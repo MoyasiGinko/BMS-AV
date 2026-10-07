@@ -21,6 +21,7 @@ RESERVED_SUBDOMAINS = frozenset({"www", "api", "admin", "app", "mail", "static",
 # Path prefixes that do not require an active tenant
 EXEMPT_PREFIXES = (
     "/accounts/",
+    "/tenancy/",
     "/admin/",
     "/_styleguide/",
     "/healthz",
@@ -94,7 +95,7 @@ class TenantMiddleware:
             membership_model: Any = apps.get_app_config("tenancy").get_model("Membership")
             if membership_model:
                 membership = (
-                    membership_model.objects.filter(user=user, organization__is_active=True)
+                    membership_model.all_tenants.filter(user=user, organization__is_active=True)
                     .select_related("organization")
                     .first()
                 )
