@@ -8,7 +8,10 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
-from apps.core.models import NumberSequence
+from apps.core.events import publish
+from apps.core.exceptions import ValidationError
+from apps.core.models import AuditLog, NumberSequence
+from apps.core.tenant_context import get_current_organization_id
 
 
 @transaction.atomic
@@ -68,3 +71,54 @@ def generate_next_number(
     seq.save(update_fields=["next_number", "last_reset_date", "updated_at"])
 
     return formatted
+
+
+@transaction.atomic
+def record_audit_log(
+    *,
+    action: str,
+    organization_id: int | None = None,
+    target: Any = None,
+    changes: dict[str, Any] | None = None,
+    actor: Any = None,
+    ip_address: str | None = None,
+    user_agent: str = "",
+) -> AuditLog:
+    """Record an immutable audit log entry and publish audit.logged domain event."""
+    org_id = organization_id or get_current_organization_id()
+    if org_id is None:
+        raise ValidationError("organization_id is required for audit logs.")
+
+    target_type = ""
+    target_id = ""
+    object_repr = ""
+    if target is not None:
+        target_type = f"{target.__class__.__module__}.{target.__class__.__name__}"
+        target_id = str(getattr(target, "pk", getattr(target, "id", "")))
+        object_repr = str(target)[:255]
+
+    audit = AuditLog.all_tenants.create(
+        organization_id=org_id,
+        actor=actor if getattr(actor, "is_authenticated", False) else None,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        object_repr=object_repr,
+        changes=changes or {},
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
+    publish(
+        "audit.logged",
+        payload={
+            "audit_id": str(audit.public_id),
+            "action": action,
+            "target_type": target_type,
+            "target_id": target_id,
+        },
+        organization_id=org_id,
+        actor_id=getattr(actor, "pk", None) if getattr(actor, "is_authenticated", False) else None,
+    )
+
+    return audit

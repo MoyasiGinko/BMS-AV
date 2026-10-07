@@ -114,3 +114,94 @@ class NumberSequence(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.prefix}...)"
+
+
+class AuditLog(TenantModel):
+    """Immutable audit log recording sensitive actions and state changes within a tenant."""
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+        verbose_name=_("actor"),
+    )
+    action = models.CharField(_("action"), max_length=128, db_index=True)
+    target_type = models.CharField(
+        _("target model type"), max_length=128, blank=True, default="", db_index=True
+    )
+    target_id = models.CharField(_("target object ID"), max_length=64, blank=True, default="", db_index=True)
+    object_repr = models.CharField(_("object representation"), max_length=255, blank=True, default="")
+    changes = models.JSONField(_("changes diff"), default=dict, blank=True)
+    ip_address = models.GenericIPAddressField(_("IP address"), null=True, blank=True)
+    user_agent = models.TextField(_("user agent"), blank=True, default="")
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("audit log")
+        verbose_name_plural = _("audit logs")
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["organization", "-created_at"]),
+            models.Index(fields=["organization", "action", "-created_at"]),
+            models.Index(fields=["organization", "target_type", "target_id"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"[{self.created_at}] {self.action} on {self.object_repr or self.target_type}"
+
+
+class OutboxEvent(models.Model):
+    """Transactional Outbox event. Published in caller's transaction; dispatched asynchronously."""
+
+    STATUS_PENDING = "pending"
+    STATUS_PROCESSING = "processing"
+    STATUS_PROCESSED = "processed"
+    STATUS_FAILED = "failed"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, _("Pending")),
+        (STATUS_PROCESSING, _("Processing")),
+        (STATUS_PROCESSED, _("Processed")),
+        (STATUS_FAILED, _("Failed")),
+    ]
+
+    id = models.BigAutoField(primary_key=True)
+    event_id = models.UUIDField(default=uuid.uuid7, unique=True, editable=False)
+    organization = models.ForeignKey(
+        "tenancy.Organization",
+        on_delete=models.CASCADE,
+        related_name="outbox_events",
+        verbose_name=_("organization"),
+        null=True,
+        blank=True,
+        db_index=True,
+    )
+    event_type = models.CharField(_("event type"), max_length=128, db_index=True)
+    payload = models.JSONField(_("payload"), default=dict)
+    headers = models.JSONField(_("headers"), default=dict, blank=True)
+    status = models.CharField(
+        _("status"),
+        max_length=32,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        db_index=True,
+    )
+    retry_count = models.PositiveIntegerField(_("retry count"), default=0)
+    last_error = models.TextField(_("last error"), blank=True, default="")
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True, db_index=True)
+    processed_at = models.DateTimeField(_("processed at"), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("outbox event")
+        verbose_name_plural = _("outbox events")
+        ordering = ("created_at",)
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["organization", "status", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.event_type} ({self.event_id}) [{self.status}]"
