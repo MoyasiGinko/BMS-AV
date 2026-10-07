@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Calm Ledger: visual reference</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../static/css/tokens.css">
+<style>
+*{box-sizing:border-box}body{margin:0;font-size:var(--fs-base)}
+.shell{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+.side{background:var(--surface);border-right:1px solid var(--border);padding:16px 12px}
+.brand{font-weight:600;font-size:16px;padding:4px 8px 16px;color:var(--brand-600)}
+.grp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);padding:14px 8px 6px}
+.nav a{display:block;padding:7px 10px;border-radius:6px;color:var(--text-muted);text-decoration:none;margin-bottom:2px}
+.nav a.on{background:var(--brand-50);color:var(--brand-700);font-weight:500;box-shadow:inset 3px 0 0 var(--brand-600)}
+.top{height:var(--topbar-h);display:flex;align-items:center;gap:12px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.top .search{flex:1;max-width:420px;border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text-subtle)}
+.pill{border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:13px;color:var(--text-muted)}
+main{padding:24px;max-width:var(--content-max)}
+h1{font-size:var(--fs-xl);margin:0 0 4px}.sub{color:var(--text-muted);margin-bottom:20px}
+.grid{display:grid;gap:16px}.k4{grid-template-columns:repeat(4,1fr)}.k2{grid-template-columns:2fr 1fr}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);padding:16px}
+.kpi .l{color:var(--text-muted);font-size:13px}.kpi .v{font-size:var(--fs-xl);font-weight:600;font-variant-numeric:tabular-nums;margin:4px 0}
+.up{color:var(--success)}.down{color:var(--danger)}.d{font-size:12px}
+table{width:100%;border-collapse:collapse}th{font-weight:500;color:var(--text-muted);font-size:12px;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+td{padding:10px;border-bottom:1px solid var(--border)}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.st{display:inline-flex;gap:6px;align-items:center;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid}
+.st.ok{color:var(--success);background:var(--success-bg);border-color:var(--success-border)}
+.st.wa{color:var(--warning);background:var(--warning-bg);border-color:var(--warning-border)}
+.st.er{color:var(--danger);background:var(--danger-bg);border-color:var(--danger-border)}
+.btn{display:inline-block;background:var(--brand-600);color:#fff;border-radius:6px;padding:8px 14px;font-weight:500;border:0}
+.btn.sec{background:var(--surface);color:var(--text);border:1px solid var(--border-strong)}
+.att li{padding:8px 0;border-bottom:1px solid var(--border);list-style:none;display:flex;justify-content:space-between}.att{margin:0;padding:0}
+.bars{display:flex;align-items:flex-end;gap:6px;height:120px}.bars i{flex:1;background:var(--brand-500);border-radius:3px 3px 0 0;opacity:.85}
+.sec-title{margin:40px 0 12px;font-size:var(--fs-lg)}
+.pos{display:grid;grid-template-columns:1fr 360px;gap:16px;height:420px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.tile{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--surface);min-height:84px}
+.tile b{display:block;font-weight:500}.tile span{color:var(--text-muted);font-variant-numeric:tabular-nums}
+.cart{display:flex;flex-direction:column}.cart .lines{flex:1}.cart .tot{border-top:1px solid var(--border);padding-top:10px}
+.charge{margin-top:10px;width:100%;font-size:18px;padding:14px;text-align:center}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.k4{grid-template-columns:1fr 1fr}.k2,.pos{grid-template-columns:1fr}}
+</style></head><body>
+<div class="shell">
+<aside class="side"><div class="brand">Business OS</div><div class="nav">
+<a class="on">Dashboard</a><div class="grp">Sell</div><a>Sales</a><a>POS</a><a>Customers</a><div class="grp">Stock</div><a>Products</a><a>Inventory</a><a>Purchasing</a>
+<div class="grp">Finance</div><a>Accounting</a><a>Reports</a><div class="grp">People</div><a>CRM</a><a>HR</a><a>Payroll</a><div class="grp">System</div><a>Automation</a><a>Integrations</a><a>Settings</a></div></aside>
+<div><div class="top"><span class="pill">Acme Trading ▾</span><span class="pill">All branches ▾</span><div class="search">Search or jump to… (Ctrl K)</div><span class="btn">+ New</span></div>
+<main>
+<h1>Good morning</h1><div class="sub">Here is how the business is doing today.</div>
+<div class="grid k4">
+<div class="card kpi"><div class="l">Sales today</div><div class="v">$12,480.00</div><div class="d up">▲ 8.2% vs yesterday</div></div>
+<div class="card kpi"><div class="l">Receivables</div><div class="v">$41,920.50</div><div class="d down">▲ $3,200 overdue</div></div>
+<div class="card kpi"><div class="l">Payables</div><div class="v">$18,305.00</div><div class="d">5 bills due this week</div></div>
+<div class="card kpi"><div class="l">Low stock</div><div class="v">14 items</div><div class="d down">3 out of stock</div></div></div>
+<div class="grid k2" style="margin-top:16px">
+<div class="card"><b>Sales, last 14 days</b><div class="bars" style="margin-top:12px"><i style="height:40%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:62%"></i><i style="height:70%"></i><i style="height:52%"></i><i style="height:66%"></i><i style="height:74%"></i><i style="height:60%"></i><i style="height:82%"></i><i style="height:78%"></i><i style="height:88%"></i><i style="height:72%"></i><i style="height:95%"></i></div></div>
+<div class="card"><b>Needs attention today</b><ul class="att"><li>3 invoices overdue <span class="st er">Overdue</span></li><li>Reorder: Arabica 1kg <span class="st wa">Low</span></li><li>Payroll awaiting approval <span class="st wa">Pending</span></li><li>Shift #212 not closed <span class="st wa">Open</span></li></ul></div></div>
+
+<h2 class="sec-title">List pattern: Invoices</h2>
+<div class="card" style="padding:0"><div style="padding:12px 16px;display:flex;gap:8px;border-bottom:1px solid var(--border)"><div class="pill" style="flex:1;max-width:320px">Search invoices…</div><span class="pill">Status: All</span><span class="pill">This month</span><span style="flex:1"></span><span class="btn sec">Export</span><span class="btn">Create invoice</span></div>
+<table><thead><tr><th>Number</th><th>Customer</th><th>Date</th><th>Status</th><th class="num">Total</th><th class="num">Balance</th></tr></thead><tbody>
+<tr><td>INV-00231</td><td>Northwind Ltd</td><td>12 Mar 2026</td><td><span class="st ok">● Paid</span></td><td class="num">1,240.00</td><td class="num">—</td></tr>
+<tr><td>INV-00230</td><td>Contoso Retail</td><td>11 Mar 2026</td><td><span class="st wa">● Partially paid</span></td><td class="num">3,980.50</td><td class="num">1,500.00</td></tr>
+<tr><td>INV-00229</td><td>Fabrikam</td><td>02 Mar 2026</td><td><span class="st er">● Overdue</span></td><td class="num">860.00</td><td class="num">860.00</td></tr></tbody></table></div>
+
+<h2 class="sec-title">POS pattern</h2>
+<div class="pos"><div class="card"><div class="pill" style="display:block;margin-bottom:12px">▮▯ Scan barcode or search products…</div>
+<div class="tiles"><div class="tile"><b>Espresso</b><span>3.50</span></div><div class="tile"><b>Latte</b><span>4.80</span></div><div class="tile"><b>Croissant</b><span>3.20</span></div><div class="tile"><b>Cold brew</b><span>4.20</span></div><div class="tile"><b>Bagel</b><span>3.00</span></div><div class="tile"><b>Beans 1kg</b><span>24.00</span></div><div class="tile"><b>Mug</b><span>9.50</span></div><div class="tile"><b>Gift card</b><span>25.00</span></div></div></div>
+<div class="card cart"><b>Current sale · Walk-in customer</b><div class="lines"><table><tr><td>Latte × 2</td><td class="num">9.60</td></tr><tr><td>Croissant × 1</td><td class="num">3.20</td></tr></table></div>
+<div class="tot"><table><tr><td>Subtotal</td><td class="num">12.80</td></tr><tr><td>Tax</td><td class="num">1.02</td></tr><tr><td><b>Total</b></td><td class="num"><b>13.82</b></td></tr></table></div><div class="btn charge">Charge 13.82</div></div></div>
+</main></div></div></body></html>

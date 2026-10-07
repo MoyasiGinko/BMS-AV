@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+node_modules/
+staticfiles/
+media/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
