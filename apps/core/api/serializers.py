@@ -6,7 +6,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from apps.core.models import AuditLog, NumberSequence
+from apps.core.models import ApiKey, AuditLog, NumberSequence
 
 
 class NumberSequenceSerializer(serializers.ModelSerializer[NumberSequence]):
@@ -64,3 +64,73 @@ class AuditLogSerializer(serializers.ModelSerializer[AuditLog]):
             "created_at",
         ]
         read_only_fields = fields
+
+
+class ApiKeySerializer(serializers.ModelSerializer[ApiKey]):
+    """Public representation of an API key (never exposes raw secret or key hash)."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+
+    class Meta:
+        model = ApiKey
+        fields = [
+            "id",
+            "name",
+            "prefix",
+            "scopes",
+            "ip_allowlist",
+            "expires_at",
+            "last_used_at",
+            "last_used_ip",
+            "is_active",
+            "revoked_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "prefix",
+            "last_used_at",
+            "last_used_ip",
+            "is_active",
+            "revoked_at",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ApiKeyCreateSerializer(serializers.Serializer[dict[str, Any]]):
+    """Input payload for generating a new API key."""
+
+    name = serializers.CharField(max_length=128)
+    scopes = serializers.ListField(
+        child=serializers.CharField(max_length=64),
+        required=False,
+        default=lambda: ["admin"],
+    )
+    ip_allowlist = serializers.ListField(
+        child=serializers.CharField(max_length=64),
+        required=False,
+        default=list,
+    )
+    expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
+
+
+class ApiKeyCreatedResponseSerializer(serializers.Serializer[dict[str, Any]]):
+    """Response containing created API key metadata along with one-time plain secret."""
+
+    api_key = ApiKeySerializer()
+    raw_key = serializers.CharField(
+        help_text="Plaintext secret token. Stored in hashed format; cannot be retrieved again."
+    )
+
+
+class ApiKeyRotateSerializer(serializers.Serializer[dict[str, Any]]):
+    """Input payload for rotating an API key."""
+
+    grace_period_hours = serializers.IntegerField(
+        min_value=0,
+        max_value=720,
+        default=0,
+        help_text="Number of hours to keep old key active for migration. 0 means immediate revocation.",
+    )

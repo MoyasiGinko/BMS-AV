@@ -153,6 +153,7 @@ FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="dev-only-32-byte-bas
 # DRF
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "apps.core.api.authentication.ApiKeyAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
@@ -165,10 +166,13 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "apps.core.api.pagination.StandardCursorPagination",
     "EXCEPTION_HANDLER": "apps.core.api.exceptions.custom_exception_handler",
-    "DEFAULT_THROTTLE_CLASSES": [],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "apps.core.api.throttling.ApiKeyRateThrottle",
+    ],
     "DEFAULT_THROTTLE_RATES": {
         "tenant_user": "1000/minute",
         "tenant_anon": "100/minute",
+        "api_key": "60/minute",
     },
 }
 

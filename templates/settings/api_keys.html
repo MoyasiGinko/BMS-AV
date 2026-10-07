@@ -1,0 +1,366 @@
+{% extends "settings/base_settings.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "API Keys" %} - {% trans "Settings" %} - Business OS{% endblock %}
+
+{% block settings_content %}
+<div x-data="{
+  showCreateModal: false,
+  showRotateModal: false,
+  rotateTargetId: '',
+  rotateTargetName: '',
+  showSecretModal: {% if newly_created_raw_key %}true{% else %}false{% endif %},
+  rawKeySecret: '{{ newly_created_raw_key|default:"" }}',
+  copied: false,
+  copySecret() {
+    navigator.clipboard.writeText(this.rawKeySecret);
+    this.copied = true;
+    setTimeout(() => { this.copied = false; }, 2500);
+  }
+}">
+
+  <!-- Overview & Usage Stats Header -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-xs">
+      <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Active Plan Rate Limit" %}</div>
+      <div class="text-2xl font-bold text-[var(--text)] mt-1">{{ rate_limit_display|default:"60/min" }}</div>
+      <div class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Plan" %}: <span class="font-medium text-[var(--brand-600)]">{{ plan_name|default:"Starter" }}</span>
+      </div>
+    </div>
+
+    <div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-xs">
+      <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{% trans "API Calls (This Month)" %}</div>
+      <div class="text-2xl font-bold text-[var(--text)] mt-1">{{ monthly_api_calls|default:"0" }}</div>
+      <div class="text-xs text-[var(--text-muted)] mt-1">{% trans "Metered calendar month consumption" %}</div>
+    </div>
+
+    <div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-xs">
+      <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Configured Keys" %}</div>
+      <div class="text-2xl font-bold text-[var(--text)] mt-1">{{ api_keys.count|default:"0" }}</div>
+      <div class="text-xs text-[var(--text-muted)] mt-1">{% trans "Active external credentials" %}</div>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-lg font-semibold text-[var(--text)]">{% trans "API Keys & Integrations" %}</h2>
+      <p class="text-sm text-[var(--text-muted)]">
+        {% trans "Manage secret keys used by third-party integrations, scripts, and API consumers." %}
+      </p>
+    </div>
+    {% if can_manage %}
+    <button
+      type="button"
+      @click="showCreateModal = true"
+      class="btn btn-primary inline-flex items-center gap-2 self-start"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      {% trans "Create API Key" %}
+    </button>
+    {% endif %}
+  </div>
+
+  <!-- Newly Generated Secret Modal / Alert -->
+  <template x-if="showSecretModal">
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl max-w-lg w-full p-6 shadow-xl relative animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 mb-2">
+          <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <h3 class="text-lg font-bold text-[var(--text)]">{% trans "API Key Created Successfully" %}</h3>
+        </div>
+
+        <p class="text-sm text-[var(--text-muted)] mb-4">
+          {% trans "Please copy this secret key now. For security purposes, this value is hashed in the database and will" %}
+          <strong class="text-[var(--text)]">{% trans "never be displayed again" %}</strong>.
+        </p>
+
+        <!-- Secret Token Box -->
+        <div class="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3 flex items-center justify-between gap-3 mb-4">
+          <code class="text-xs font-mono text-[var(--brand-600)] break-all select-all font-semibold" x-text="rawKeySecret"></code>
+          <button
+            type="button"
+            @click="copySecret()"
+            class="btn btn-secondary text-xs px-2.5 py-1.5 shrink-0 flex items-center gap-1.5"
+          >
+            <svg x-show="!copied" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+            <svg x-show="copied" class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            <span x-text="copied ? '{% trans "Copied!" %}' : '{% trans "Copy" %}'"></span>
+          </button>
+        </div>
+
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-700 dark:text-amber-400 mb-6">
+          {% trans "Store it in your environment variables or password manager. If you lose this key, you must rotate or generate a new one." %}
+        </div>
+
+        <div class="flex justify-end">
+          <button
+            type="button"
+            @click="showSecretModal = false; rawKeySecret = ''"
+            class="btn btn-primary"
+          >
+            {% trans "I have saved the key" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- API Keys Table / List -->
+  <div class="card bg-[var(--surface-1)] border border-[var(--border)] rounded-xl shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="bg-[var(--surface-2)] text-[var(--text-muted)] text-xs uppercase tracking-wider border-b border-[var(--border)]">
+          <tr>
+            <th class="px-4 py-3 font-semibold">{% trans "Name & Prefix" %}</th>
+            <th class="px-4 py-3 font-semibold">{% trans "Scopes" %}</th>
+            <th class="px-4 py-3 font-semibold">{% trans "IP Allowlist" %}</th>
+            <th class="px-4 py-3 font-semibold">{% trans "Status" %}</th>
+            <th class="px-4 py-3 font-semibold">{% trans "Last Used" %}</th>
+            <th class="px-4 py-3 font-semibold">{% trans "Created" %}</th>
+            {% if can_manage %}
+            <th class="px-4 py-3 font-semibold text-right">{% trans "Actions" %}</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for key in api_keys %}
+          <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+            <td class="px-4 py-3">
+              <div class="font-medium text-[var(--text)]">{{ key.name }}</div>
+              <div class="text-xs font-mono text-[var(--text-muted)] mt-0.5">{{ key.prefix }}...</div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1 max-w-xs">
+                {% for scope in key.scopes %}
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)]">
+                  {{ scope }}
+                </span>
+                {% empty %}
+                <span class="text-xs text-[var(--text-muted)]">{% trans "None" %}</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td class="px-4 py-3">
+              {% if key.ip_allowlist %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+                {{ key.ip_allowlist|length }} {% trans "IPs" %}
+              </span>
+              {% else %}
+              <span class="text-xs text-[var(--text-muted)]">{% trans "Any IP" %}</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              {% if not key.is_active or key.revoked_at %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                {% trans "Revoked" %}
+              </span>
+              {% elif key.is_expired %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                {% trans "Expired" %}
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                {% trans "Active" %}
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-xs text-[var(--text-muted)]">
+              {% if key.last_used_at %}
+                <div>{{ key.last_used_at|date:"M d, Y H:i" }}</div>
+                {% if key.last_used_ip %}<div class="font-mono text-2xs mt-0.5">{{ key.last_used_ip }}</div>{% endif %}
+              {% else %}
+                <span class="italic">{% trans "Never" %}</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-xs text-[var(--text-muted)]">
+              {{ key.created_at|date:"M d, Y" }}
+            </td>
+            {% if can_manage %}
+            <td class="px-4 py-3 text-right">
+              {% if key.is_valid %}
+              <div class="flex items-center justify-end gap-2">
+                <!-- Rotate Button -->
+                <button
+                  type="button"
+                  @click="rotateTargetId = '{{ key.public_id }}'; rotateTargetName = '{{ key.name|escapejs }}'; showRotateModal = true"
+                  class="btn btn-secondary text-xs px-2.5 py-1"
+                >
+                  {% trans "Rotate" %}
+                </button>
+                <!-- Revoke Form -->
+                <form method="post" action="{% url 'settings:api_keys' %}" onsubmit="return confirm('{% trans "Are you sure you want to revoke this API key immediately?" %}');" class="inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="revoke">
+                  <input type="hidden" name="key_id" value="{{ key.public_id }}">
+                  <button type="submit" class="btn btn-secondary text-xs px-2.5 py-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20">
+                    {% trans "Revoke" %}
+                  </button>
+                </form>
+              </div>
+              {% else %}
+              <span class="text-xs text-[var(--text-muted)]">-</span>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="px-4 py-12 text-center text-[var(--text-muted)]">
+              <div class="flex flex-col items-center justify-center">
+                <svg class="w-12 h-12 text-[var(--text-muted)]/50 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                <p class="font-medium text-base text-[var(--text)]">{% trans "No API keys generated yet" %}</p>
+                <p class="text-xs text-[var(--text-muted)] mt-1 max-w-sm">
+                  {% trans "Create your first API key to connect automated scripts, external stores, or Zapier webhooks." %}
+                </p>
+                {% if can_manage %}
+                <button
+                  type="button"
+                  @click="showCreateModal = true"
+                  class="btn btn-primary text-xs mt-4"
+                >
+                  {% trans "Create API Key" %}
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create API Key Modal -->
+  <template x-if="showCreateModal">
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl max-w-lg w-full p-6 shadow-xl relative animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-[var(--text)]">{% trans "Create API Key" %}</h3>
+          <button type="button" @click="showCreateModal = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <form method="post" action="{% url 'settings:api_keys' %}" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create">
+
+          <div>
+            <label class="form-label" for="key_name">{% trans "Key Name" %}</label>
+            <input
+              type="text"
+              id="key_name"
+              name="name"
+              required
+              class="form-input"
+              placeholder="e.g. Production Shopify Sync"
+            >
+          </div>
+
+          <div>
+            <label class="form-label">{% trans "Scopes & Permissions" %}</label>
+            <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+              <label class="flex items-center gap-2 text-xs font-semibold text-[var(--text)] col-span-2 pb-1 border-b border-[var(--border)]">
+                <input type="checkbox" name="scopes" value="admin" checked class="form-checkbox">
+                <span>{% trans "Full Admin Access (all modules)" %}</span>
+              </label>
+              {% for scope in available_scopes %}
+                {% if scope != "admin" %}
+                <label class="flex items-center gap-2 text-xs text-[var(--text)]">
+                  <input type="checkbox" name="scopes" value="{{ scope }}" class="form-checkbox">
+                  <span class="font-mono">{{ scope }}</span>
+                </label>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <p class="text-2xs text-[var(--text-muted)] mt-1">{% trans "Select specific module read/write scopes, or grant full admin." %}</p>
+          </div>
+
+          <div>
+            <label class="form-label" for="ip_allowlist">{% trans "IP Allowlist (Optional)" %}</label>
+            <textarea
+              id="ip_allowlist"
+              name="ip_allowlist"
+              rows="2"
+              class="form-input font-mono text-xs"
+              placeholder="e.g. 192.168.1.100, 10.0.0.0/24 (one per line or comma-separated)"
+            ></textarea>
+            <p class="text-2xs text-[var(--text-muted)] mt-1">{% trans "Leave blank to allow requests from any IP address." %}</p>
+          </div>
+
+          <div>
+            <label class="form-label" for="expires_in_days">{% trans "Expiration" %}</label>
+            <select id="expires_in_days" name="expires_in_days" class="form-select">
+              <option value="0">{% trans "Never expires" %}</option>
+              <option value="30">{% trans "30 days" %}</option>
+              <option value="90">{% trans "90 days" %}</option>
+              <option value="365">{% trans "1 year" %}</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
+            <button type="button" @click="showCreateModal = false" class="btn btn-secondary">
+              {% trans "Cancel" %}
+            </button>
+            <button type="submit" class="btn btn-primary">
+              {% trans "Generate Key" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <!-- Rotate Key Modal -->
+  <template x-if="showRotateModal">
+    <div class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl max-w-md w-full p-6 shadow-xl relative animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-[var(--text)]">{% trans "Rotate API Key" %}</h3>
+          <button type="button" @click="showRotateModal = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <p class="text-sm text-[var(--text-muted)] mb-4">
+          {% trans "Rotating" %} <strong class="text-[var(--text)]" x-text="rotateTargetName"></strong> {% trans "will generate a fresh secret token with the same scopes." %}
+        </p>
+
+        <form method="post" action="{% url 'settings:api_keys' %}" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="rotate">
+          <input type="hidden" name="key_id" :value="rotateTargetId">
+
+          <div>
+            <label class="form-label" for="grace_period_hours">{% trans "Migration Grace Period" %}</label>
+            <select id="grace_period_hours" name="grace_period_hours" class="form-select">
+              <option value="0">{% trans "Immediate (revoke old key right now)" %}</option>
+              <option value="24" selected>{% trans "24 hours (keep old key working for 1 day)" %}</option>
+              <option value="72">{% trans "72 hours (3 days)" %}</option>
+              <option value="168">{% trans "7 days" %}</option>
+            </select>
+            <p class="text-2xs text-[var(--text-muted)] mt-1">
+              {% trans "Grace period lets existing clients transition without service interruption." %}
+            </p>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
+            <button type="button" @click="showRotateModal = false" class="btn btn-secondary">
+              {% trans "Cancel" %}
+            </button>
+            <button type="submit" class="btn btn-primary">
+              {% trans "Rotate Key Now" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </template>
+
+</div>
+{% endblock %}

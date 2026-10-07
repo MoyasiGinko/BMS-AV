@@ -7,7 +7,15 @@ from typing import Any
 from django.contrib import admin
 from django.http import HttpRequest
 
-from apps.core.models import AuditLog, NumberSequence, OutboxEvent
+from apps.core.models import ApiKey, AuditLog, NumberSequence, OutboxEvent
+
+
+@admin.register(ApiKey)
+class ApiKeyAdmin(admin.ModelAdmin):
+    list_display = ("name", "organization", "prefix", "is_active", "expires_at", "last_used_at")
+    list_filter = ("is_active", "created_at")
+    search_fields = ("name", "prefix")
+    readonly_fields = ("prefix", "key_hash", "last_used_at", "last_used_ip", "created_at", "updated_at")
 
 
 @admin.register(NumberSequence)

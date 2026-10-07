@@ -20,4 +20,5 @@ urlpatterns = [
     path("tax-codes/", settings_views.tax_codes_settings_view, name="tax_codes"),
     path("currencies/", settings_views.currencies_settings_view, name="currencies"),
     path("notifications/", settings_views.notifications_settings_view, name="notifications"),
+    path("api-keys/", settings_views.api_keys_settings_view, name="api_keys"),
 ]

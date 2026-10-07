@@ -684,3 +684,22 @@ def provision_billing_subscription(ctx: Any) -> None:
         actor=ctx.owner,
         interval="monthly",
     )
+
+
+PLAN_RATE_LIMITS = {
+    "starter": "60/minute",
+    "growth": "300/minute",
+    "business": "1000/minute",
+    "enterprise": "3000/minute",
+}
+
+
+def resolve_org_plan_rate_limit(organization: Any) -> str:
+    """Resolve rate limit string based on the tenant's active subscription tier."""
+    if organization is None:
+        return "60/minute"
+
+    sub = Subscription.all_tenants.filter(organization=organization).select_related("plan").first()
+    if sub and sub.plan:
+        return PLAN_RATE_LIMITS.get(sub.plan.slug, "60/minute")
+    return "60/minute"

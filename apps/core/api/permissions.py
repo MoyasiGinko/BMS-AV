@@ -53,38 +53,78 @@ class HasFeatureEntitlement(BasePermission):
         return True
 
 
+class HasApiKeyScope(BasePermission):
+    """Verifies that an API key client possesses the granted scope for the module/action."""
+
+    message = "API key does not possess the required scope for this operation."
+    code = "insufficient_scope"
+
+    def has_permission(self, request: Request, view: Any) -> bool:
+        auth = getattr(request, "auth", None)
+        if not auth or not hasattr(auth, "scopes"):
+            return True
+
+        scopes = set(getattr(auth, "scopes", []))
+        if "admin" in scopes or "*" in scopes:
+            return True
+
+        module_key = (
+            getattr(view, "module_key", None)
+            or getattr(view, "scope_module", None)
+            or getattr(view, "basename", "")
+        )
+
+        is_read_only = request.method in ("GET", "HEAD", "OPTIONS")
+        if is_read_only:
+            required_scopes = {f"{module_key}:read", f"{module_key}:write"}
+        else:
+            required_scopes = {f"{module_key}:write"}
+
+        if scopes.intersection(required_scopes):
+            return True
+
+        raise PermissionDeniedError(
+            f"API key requires one of {sorted(required_scopes)} to perform this operation."
+        )
+
+
 class HasRolePermission(BasePermission):
     """Layer 2: Verifies user has the required permission code in the organization."""
 
     message = "You do not have permission to perform this action."
     code = "permission_denied"
 
+    def _resolve_perm_code(self, view: Any) -> str | None:
+        action = getattr(view, "action", None)
+        permission_map = getattr(view, "permission_map", None)
+        if isinstance(permission_map, dict) and action in permission_map:
+            return permission_map[action]
+        return getattr(view, "required_permission", None)
+
     def has_permission(self, request: Request, view: Any) -> bool:
+        auth = getattr(request, "auth", None)
+        if auth and hasattr(auth, "scopes"):
+            HasApiKeyScope().has_permission(request, view)
+            scopes = set(getattr(auth, "scopes", []))
+            if "admin" in scopes or "*" in scopes:
+                return True
+
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
             return False
 
-        # Superusers and staff have system-level access
         if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
             return True
 
-        perm_code: str | None = None
-        action = getattr(view, "action", None)
-        permission_map = getattr(view, "permission_map", None)
+        if getattr(user, "pk", None) is None and auth and hasattr(auth, "scopes"):
+            return True
 
-        if isinstance(permission_map, dict) and action in permission_map:
-            perm_code = permission_map[action]
-        elif hasattr(view, "required_permission"):
-            perm_code = getattr(view, "required_permission", None)
-
+        perm_code = self._resolve_perm_code(view)
         if not perm_code:
             return True
 
         org = _get_request_org(request, view)
-        if not org:
-            return False
-
-        if not has_permission(user, perm_code, organization=org):
+        if not org or not has_permission(user, perm_code, organization=org):
             raise PermissionDeniedError(f"Your role does not grant permission '{perm_code}'.")
         return True
 
@@ -96,6 +136,12 @@ class HasObjectScope(BasePermission):
     code = "object_scope_denied"
 
     def has_object_permission(self, request: Request, view: Any, obj: Any) -> bool:
+        auth = getattr(request, "auth", None)
+        if auth and hasattr(auth, "scopes"):
+            scopes = set(getattr(auth, "scopes", []))
+            if "admin" in scopes or "*" in scopes:
+                return True
+
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
             return False
@@ -116,13 +162,16 @@ class HasModuleAccess(BasePermission):
     """Convenience permission checking both feature entitlement and basic module view."""
 
     def has_permission(self, request: Request, view: Any) -> bool:
-        feature_check = HasFeatureEntitlement()
-        if not feature_check.has_permission(request, view):
+        if not HasFeatureEntitlement().has_permission(request, view):
             return False
 
         module_key = getattr(view, "module_key", None)
         if not module_key:
             return True
+
+        auth = getattr(request, "auth", None)
+        if auth and hasattr(auth, "scopes"):
+            return HasApiKeyScope().has_permission(request, view)
 
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
@@ -132,12 +181,9 @@ class HasModuleAccess(BasePermission):
             return True
 
         org = _get_request_org(request, view)
-        if not org:
-            return False
-
-        # Check if user has either module.view or module.manage
-        if has_permission(user, f"{module_key}.view", organization=org) or has_permission(
-            user, f"{module_key}.manage", organization=org
+        if org and (
+            has_permission(user, f"{module_key}.view", organization=org)
+            or has_permission(user, f"{module_key}.manage", organization=org)
         ):
             return True
 

@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+import datetime
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
+from apps.core import selectors as core_selectors
+from apps.core import services as core_services
+from apps.core.api.throttling import get_organization_rate_limit
 from apps.core.exceptions import ValidationError as DomainValidationError
+from apps.core.metrics import get_metric_count
 from apps.core.permissions import has_permission, list_permissions
 from apps.tenancy import selectors, services
 from apps.tenancy.forms import (
@@ -877,5 +884,127 @@ def notifications_settings_view(request: HttpRequest) -> HttpResponse:
             "category_items": category_items,
             "can_manage": can_manage,
             "active_tab": "notifications",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# 11. API Keys & Developer Access
+# ---------------------------------------------------------------------------
+
+
+def _handle_api_key_create(request: HttpRequest, org: Organization) -> str | None:
+    name = request.POST.get("name", "").strip()
+    scopes = request.POST.getlist("scopes")
+    ip_raw = request.POST.get("ip_allowlist", "")
+    expires_days = int(request.POST.get("expires_in_days", 0))
+
+    ip_list = [ip.strip() for ip in ip_raw.replace("\n", ",").split(",") if ip.strip()]
+    expires_at = None
+    if expires_days > 0:
+        expires_at = timezone.now() + datetime.timedelta(days=expires_days)
+
+    try:
+        _created_key, raw_key = core_services.create_api_key(
+            organization=org,
+            name=name,
+            scopes=scopes or ["admin"],
+            ip_allowlist=ip_list,
+            expires_at=expires_at,
+            user=request.user,
+            actor=request.user,
+        )
+        messages.success(request, _("API key '%(name)s' created.") % {"name": name})
+        return raw_key
+    except ValidationError as exc:
+        messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+        return None
+
+
+def _handle_api_key_rotate(request: HttpRequest, org: Organization) -> str | None:
+    key_id = request.POST.get("key_id")
+    grace_hours = int(request.POST.get("grace_period_hours", 0))
+    target_key = core_selectors.get_api_key_by_id(organization_id=org.pk, api_key_id=key_id)
+    if not target_key:
+        return None
+    try:
+        _rotated_key, raw_key = core_services.rotate_api_key(
+            api_key=target_key,
+            grace_period_hours=grace_hours,
+            actor=request.user,
+        )
+        messages.success(request, _("API key '%(name)s' rotated.") % {"name": target_key.name})
+        return raw_key
+    except ValidationError as exc:
+        messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+        return None
+
+
+def _handle_api_key_revoke(request: HttpRequest, org: Organization) -> None:
+    key_id = request.POST.get("key_id")
+    target_key = core_selectors.get_api_key_by_id(organization_id=org.pk, api_key_id=key_id)
+    if target_key:
+        core_services.revoke_api_key(api_key=target_key, actor=request.user)
+        messages.success(request, _("API key revoked."))
+
+
+def _handle_api_key_post(request: HttpRequest, org: Organization) -> tuple[HttpResponse | None, str | None]:
+    if not request.user.is_authenticated:
+        return redirect("account_login"), None
+
+    action = request.POST.get("action")
+    if action == "create":
+        raw_key = _handle_api_key_create(request, org)
+        return (None, raw_key) if raw_key else (redirect("settings:api_keys"), None)
+
+    if action == "rotate":
+        raw_key = _handle_api_key_rotate(request, org)
+        return (None, raw_key) if raw_key else (redirect("settings:api_keys"), None)
+
+    if action == "revoke":
+        _handle_api_key_revoke(request, org)
+
+    return redirect("settings:api_keys"), None
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def api_keys_settings_view(request: HttpRequest) -> HttpResponse:
+    """Manage tenant API keys, scopes, IP allowlists, rotation, and usage metering."""
+    org_res = _get_active_org(request)
+    if isinstance(org_res, HttpResponseRedirect):
+        return org_res
+    org = org_res
+
+    if not has_permission(request.user, "settings.view", organization=org):
+        raise PermissionDenied(_("You do not have permission to view API keys."))
+
+    can_manage = has_permission(request.user, "settings.manage", organization=org)
+    newly_created_raw_key: str | None = None
+
+    if request.method == "POST":
+        if not can_manage:
+            raise PermissionDenied(_("You do not have permission to manage API keys."))
+        redirect_res, raw_key = _handle_api_key_post(request, org)
+        if redirect_res:
+            return redirect_res
+        newly_created_raw_key = raw_key
+
+    api_keys = core_selectors.list_organization_api_keys(organization_id=org.pk, include_revoked=True)
+    rate_limit = get_organization_rate_limit(org)
+    monthly_calls = get_metric_count(org.pk, "api_calls")
+
+    return render(
+        request,
+        "settings/api_keys.html",
+        {
+            "organization": org,
+            "api_keys": api_keys,
+            "can_manage": can_manage,
+            "active_tab": "api_keys",
+            "rate_limit_display": rate_limit,
+            "monthly_api_calls": monthly_calls,
+            "available_scopes": core_services.AVAILABLE_SCOPES,
+            "newly_created_raw_key": newly_created_raw_key,
         },
     )

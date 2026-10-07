@@ -9,6 +9,7 @@ from typing import Any, ClassVar, TypeVar
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.tenant_context import get_current_organization_id
@@ -152,6 +153,78 @@ class AuditLog(TenantModel):
 
     def __str__(self) -> str:
         return f"[{self.created_at}] {self.action} on {self.object_repr or self.target_type}"
+
+
+class ApiKey(TenantModel):
+    """Scoped, hashed API key for authenticating external integrations and APIs."""
+
+    name = models.CharField(_("key name"), max_length=128)
+    prefix = models.CharField(_("key prefix"), max_length=24, db_index=True)
+    key_hash = models.CharField(_("hashed secret"), max_length=128, db_index=True)
+    scopes = models.JSONField(_("granted scopes"), default=list, blank=True)
+    ip_allowlist = models.JSONField(_("IP allowlist"), default=list, blank=True)
+    expires_at = models.DateTimeField(_("expiration time"), null=True, blank=True)
+    last_used_at = models.DateTimeField(_("last used time"), null=True, blank=True)
+    last_used_ip = models.GenericIPAddressField(_("last used IP"), null=True, blank=True)
+    is_active = models.BooleanField(_("is active"), default=True)
+    revoked_at = models.DateTimeField(_("revoked at"), null=True, blank=True)
+    revoked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="revoked_api_keys",
+        verbose_name=_("revoked by"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="api_keys",
+        verbose_name=_("associated user"),
+        help_text=_("User identity used for role and audit correlation."),
+    )
+    rotated_from = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rotations",
+        verbose_name=_("rotated from"),
+    )
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("API key")
+        verbose_name_plural = _("API keys")
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "prefix"],
+                name="unique_org_apikey_prefix",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "prefix"]),
+            models.Index(fields=["prefix", "key_hash"]),
+            models.Index(fields=["organization", "is_active", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.prefix}...)"
+
+    @property
+    def is_expired(self) -> bool:
+        if self.expires_at is None:
+            return False
+        return timezone.now() > self.expires_at
+
+    @property
+    def is_valid(self) -> bool:
+        return self.is_active and self.revoked_at is None and not self.is_expired
 
 
 class OutboxEvent(models.Model):

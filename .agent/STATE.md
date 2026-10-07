@@ -1,8 +1,8 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P1 SaaS shell
-- Last completed task: P1-04
-- Next task: P1-05
+- Last completed task: P1-05
+- Next task: P1-06
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (88.58% test coverage, 163 tests green, all architecture contracts kept, deploy check clean)
-- Notes: P1-04 implemented complete suite of 10 settings screens (/settings/): Organization profile & business settings, Branches (with default enforcement), Warehouses (branch-linked, default enforcement), Departments (hierarchical division tree with parent pointer and code), Team Members & custom Roles (matrix permission assignment, member invite, role edit, removal, revoke invites), Numbering Sequences (INV, PO, BIL, ORD prefix, suffix, padding, reset frequency), Tax Codes (rate, inclusive flag, default), Currencies (supported list, exchange rate, base currency flag), and Notification Preferences per category and channel. Added TaxCode, Currency, and NotificationPreference models with PostgreSQL RLS. All 163 tests passing at 88.58% coverage.
+- Last `make verify`: PASSED (87.88% test coverage, 181 tests green, all architecture contracts kept, openapi valid, deploy check clean)
+- Notes: P1-05 implemented scoped, hashed API keys (ApiKey model with PostgreSQL RLS), DRF ApiKeyAuthentication backend supporting X-API-Key and Authorization headers, constant-time HMAC SHA-256 hash checks, expiration & IP allowlist filtering, ApiKeyRateThrottle with dynamic rates resolved by organization subscription plan (Starter: 60/min, Growth: 300/min, Business: 1000/min, Enterprise: 3000/min), decoupled telemetry usage metering (UsageCounter api_calls), DRF /api/v1/core/api-keys/ CRUD viewset with one-time raw secret token reveal on create and rotate, and full settings UI (/settings/api-keys/) with create, rotate (grace period support), and revoke workflows. All 181 tests passing at 87.88% coverage.
