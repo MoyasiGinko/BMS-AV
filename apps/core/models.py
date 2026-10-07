@@ -42,7 +42,7 @@ class TenantModel(models.Model):
         verbose_name=_("organization"),
         editable=False,
     )
-    public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(
@@ -71,3 +71,46 @@ class TenantModel(models.Model):
             if org_id is not None:
                 self.organization_id = org_id
         super().save(*args, **kwargs)
+
+
+class NumberSequence(TenantModel):
+    """Generates sequential document numbers per organization (e.g. INV-2026-00001)."""
+
+    RESET_NEVER = "never"
+    RESET_YEARLY = "yearly"
+    RESET_MONTHLY = "monthly"
+    RESET_CHOICES = [
+        (RESET_NEVER, _("Never")),
+        (RESET_YEARLY, _("Yearly")),
+        (RESET_MONTHLY, _("Monthly")),
+    ]
+
+    name = models.CharField(_("sequence name"), max_length=64)
+    prefix = models.CharField(_("prefix"), max_length=32, blank=True, default="")
+    suffix = models.CharField(_("suffix"), max_length=32, blank=True, default="")
+    next_number = models.PositiveIntegerField(_("next number"), default=1)
+    padding = models.PositiveSmallIntegerField(_("padding digits"), default=5)
+    reset_frequency = models.CharField(
+        _("reset frequency"),
+        max_length=16,
+        choices=RESET_CHOICES,
+        default=RESET_NEVER,
+    )
+    last_reset_date = models.DateField(_("last reset date"), null=True, blank=True)
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("number sequence")
+        verbose_name_plural = _("number sequences")
+        ordering = ("name",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="unique_org_number_sequence",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.prefix}...)"
