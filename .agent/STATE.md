@@ -1,8 +1,8 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P0
-- Last completed task: P0-09
-- Next task: P0-10
+- Last completed task: P0-10
+- Next task: P0-11
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (90.01% test coverage, 79 tests green, all architecture contracts kept, UI smoke passed)
-- Notes: P0-09 complete with Calm Ledger tokens, Tailwind 4 build, vendored JS/icons, responsive layouts, 24-component UI library, interactive /_styleguide/ page, and Playwright UI smoke tests.
+- Last `make verify`: PASSED (84.24% test coverage, 88 tests green, all architecture contracts kept, OpenAPI schema validates cleanly)
+- Notes: P0-10 complete with TenantScopedViewSet, JWT authentication, 3-layer DRF permission classes, cursor pagination, RFC 7807/unified exception handler, Idempotency-Key support, RequestIdMiddleware, and OpenAPI 3 schema.

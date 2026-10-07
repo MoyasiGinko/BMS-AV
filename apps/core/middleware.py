@@ -1,7 +1,12 @@
-"""TenantMiddleware resolves the current tenant by subdomain or authenticated user membership fallback."""
+"""Tenant and Request ID middleware for Business OS.
+
+- RequestIdMiddleware: Assigns or propagates X-Request-ID on request and response.
+- TenantMiddleware: Resolves tenant by header (API), subdomain, or active user membership fallback.
+"""
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -18,8 +23,9 @@ if TYPE_CHECKING:
 # Subdomains reserved for infrastructure/public routing
 RESERVED_SUBDOMAINS = frozenset({"www", "api", "admin", "app", "mail", "static", "media"})
 
-# Path prefixes that do not require an active tenant
+# Path prefixes that do not require an active tenant (no redirect)
 EXEMPT_PREFIXES = (
+    "/api/",
     "/accounts/",
     "/tenancy/",
     "/admin/",
@@ -32,8 +38,30 @@ EXEMPT_PREFIXES = (
 )
 
 
+class RequestIdMiddleware:
+    """Ensures each request has an X-Request-ID assigned and attached to response headers."""
+
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        req_id = request.headers.get("X-Request-ID") or request.META.get("HTTP_X_REQUEST_ID")
+        if not req_id:
+            try:
+                req_id = str(uuid.uuid7())
+            except AttributeError:
+                req_id = str(uuid.uuid4())
+
+        request.request_id = req_id  # type: ignore[attr-defined]
+        request.id = req_id  # type: ignore[attr-defined]
+
+        response = self.get_response(request)
+        response["X-Request-ID"] = req_id
+        return response
+
+
 class TenantMiddleware:
-    """Extracts tenant organization from subdomain or user's active membership fallback."""
+    """Extracts tenant organization from header, subdomain, or user's active membership fallback."""
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
@@ -47,7 +75,7 @@ class TenantMiddleware:
             if org is None and self.is_tenant_required(request):
                 if not getattr(request.user, "is_authenticated", False):
                     return redirect(f"{settings.LOGIN_URL}?next={request.path}")
-                # Authenticated user without active org: redirect to org selection or return 404
+                # Authenticated user without active org: redirect to org selection
                 if apps.is_installed("apps.tenancy"):
                     return redirect("/tenancy/select/")
 
@@ -58,7 +86,7 @@ class TenantMiddleware:
         return all(not request.path.startswith(prefix) for prefix in EXEMPT_PREFIXES)
 
     def resolve_tenant(self, request: HttpRequest) -> Model | None:
-        """Resolve organization by subdomain first, then active user membership fallback."""
+        """Resolve organization by header first, then subdomain, then active user membership fallback."""
         if not apps.is_installed("apps.tenancy"):
             return None
 
@@ -66,11 +94,35 @@ class TenantMiddleware:
         if org_model is None:
             return None
 
+        # 1. Header (essential for API clients: X-Organization-ID or X-Tenant-ID)
+        org = self._resolve_from_header(request, org_model)
+        if org is not None:
+            return org
+
+        # 2. Subdomain
         org = self._resolve_from_subdomain(request, org_model)
         if org is not None:
             return org
 
+        # 3. User membership / active session
         return self._resolve_from_user(request, org_model)
+
+    def _resolve_from_header(self, request: HttpRequest, org_model: Any) -> Model | None:
+        header_val = request.headers.get("X-Organization-ID") or request.headers.get("X-Tenant-ID")
+        if not header_val:
+            return None
+
+        val = str(header_val).strip()
+        try:
+            parsed_uuid = uuid.UUID(val)
+            return org_model.objects.filter(public_id=parsed_uuid, is_active=True).first()
+        except ValueError:
+            pass
+
+        if val.isdigit():
+            return org_model.objects.filter(id=int(val), is_active=True).first()
+
+        return org_model.objects.filter(slug=val, is_active=True).first()
 
     def _resolve_from_subdomain(self, request: HttpRequest, org_model: Any) -> Model | None:
         subdomain = self._extract_subdomain(request)
