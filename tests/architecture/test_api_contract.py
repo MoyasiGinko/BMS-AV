@@ -1,9 +1,15 @@
 """Every API viewset must be tenant-scoped and permission-protected."""
-def test_all_api_views_have_permissions():
-    from django.urls import get_resolver
-    from rest_framework.permissions import AllowAny
+
+from typing import Any
+
+from django.urls import get_resolver
+from rest_framework.permissions import AllowAny
+
+
+def test_all_api_views_have_permissions() -> None:
     bad = []
-    def walk(patterns, prefix=""):
+
+    def walk(patterns: Any, prefix: str = "") -> None:
         for p in patterns:
             if hasattr(p, "url_patterns"):
                 walk(p.url_patterns, prefix + str(p.pattern))
@@ -13,5 +19,8 @@ def test_all_api_views_have_permissions():
                     perms = getattr(cls, "permission_classes", [])
                     if any(x is AllowAny for x in perms) and not getattr(cls, "public_endpoint", False):
                         bad.append(cls.__name__)
+
     walk(get_resolver().url_patterns)
-    assert not bad, f"Unprotected API views (set public_endpoint=True only for signup/health/webhooks-in): {bad}"
+    assert not bad, (
+        f"Unprotected API views (set public_endpoint=True only for signup/health/webhooks-in): {bad}"
+    )
