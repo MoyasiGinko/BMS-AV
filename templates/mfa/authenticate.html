@@ -1,0 +1,52 @@
+{% extends "layouts/auth.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Two-factor authentication" %}{% endblock %}
+{% block subtitle %}{% trans "Enter the 6-digit verification code from your authenticator app" %}{% endblock %}
+
+{% block content %}
+<form method="post" action="{{ action_url }}" class="space-y-5" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="p-3 text-sm rounded-lg bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)]" role="alert">
+      {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div>
+    <label for="id_code" class="block text-sm font-medium text-[var(--text)]">
+      {% trans "Authentication code" %}
+    </label>
+    <div class="mt-1.5">
+      <input
+        type="text"
+        name="code"
+        id="id_code"
+        autocomplete="one-time-code"
+        inputmode="numeric"
+        required
+        autofocus
+        class="block w-full px-3 py-2 text-center text-lg tracking-widest font-mono rounded-lg border {% if form.code.errors %}border-[var(--danger)] text-[var(--danger)]{% else %}border-[var(--border)] text-[var(--text)] focus:border-[var(--brand-600)] focus:ring-[var(--brand-600)]{% endif %} bg-[var(--surface)] shadow-sm focus:outline-none focus:ring-1"
+        placeholder="123456"
+        maxlength="6"
+      >
+    </div>
+    {% if form.code.errors %}
+      <p class="mt-1.5 text-xs text-[var(--danger)]">{{ form.code.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <button
+      type="submit"
+      id="submit-mfa-code-btn"
+      class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[var(--brand-600)] hover:bg-[var(--brand-700)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-600)] transition duration-150 cursor-pointer"
+    >
+      {% trans "Verify code" %}
+    </button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "layouts/auth.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Set up two-factor authentication" %}{% endblock %}
+{% block subtitle %}{% trans "Scan the QR code with your authenticator app (e.g. Google Authenticator or 1Password)" %}{% endblock %}
+
+{% block content %}
+<form method="post" action="{{ action_url }}" class="space-y-5" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="p-3 text-sm rounded-lg bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)]" role="alert">
+      {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="text-center py-2 flex flex-col items-center">
+    <div class="p-3 bg-white border border-[var(--border)] rounded-lg inline-block shadow-sm">
+      <img src="{{ totp_svg_data_uri }}" alt="TOTP QR code" class="w-48 h-48 mx-auto" />
+    </div>
+    <p class="mt-3 text-xs text-[var(--text-muted)]">
+      {% trans "Or enter secret manually:" %}
+      <code class="font-mono bg-[var(--surface-2)] px-1.5 py-0.5 rounded text-[var(--text)] select-all">{{ key }}</code>
+    </p>
+  </div>
+
+  <div>
+    <label for="id_code" class="block text-sm font-medium text-[var(--text)]">
+      {% trans "Enter 6-digit code from app" %}
+    </label>
+    <div class="mt-1.5">
+      <input
+        type="text"
+        name="code"
+        id="id_code"
+        autocomplete="one-time-code"
+        inputmode="numeric"
+        required
+        class="block w-full px-3 py-2 text-center text-lg tracking-widest font-mono rounded-lg border {% if form.code.errors %}border-[var(--danger)] text-[var(--danger)]{% else %}border-[var(--border)] text-[var(--text)] focus:border-[var(--brand-600)] focus:ring-[var(--brand-600)]{% endif %} bg-[var(--surface)] shadow-sm focus:outline-none focus:ring-1"
+        placeholder="123456"
+        maxlength="6"
+      >
+    </div>
+    {% if form.code.errors %}
+      <p class="mt-1.5 text-xs text-[var(--danger)]">{{ form.code.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <button
+      type="submit"
+      id="activate-totp-btn"
+      class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[var(--brand-600)] hover:bg-[var(--brand-700)] focus:outline-none transition duration-150 cursor-pointer"
+    >
+      {% trans "Activate 2FA" %}
+    </button>
+  </div>
+</form>
+{% endblock %}

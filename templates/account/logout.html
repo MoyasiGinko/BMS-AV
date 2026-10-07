@@ -1,0 +1,33 @@
+{% extends "layouts/auth.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sign out" %}{% endblock %}
+{% block subtitle %}{% trans "Confirm sign out from Business OS" %}{% endblock %}
+
+{% block content %}
+<form method="post" action="{% url 'account_logout' %}" class="space-y-5 text-center">
+  {% csrf_token %}
+
+  <div class="py-3">
+    <p class="text-sm text-[var(--text-muted)]">
+      {% trans "Are you sure you want to sign out of your account?" %}
+    </p>
+  </div>
+
+  <div class="flex flex-col sm:flex-row gap-3">
+    <button
+      type="submit"
+      id="confirm-logout-btn"
+      class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[var(--danger)] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--danger)] transition duration-150 ease-in-out cursor-pointer"
+    >
+      {% trans "Sign out" %}
+    </button>
+    <a
+      href="/"
+      class="w-full flex justify-center py-2.5 px-4 border border-[var(--border)] rounded-lg text-sm font-medium text-[var(--text)] bg-[var(--surface)] hover:bg-[var(--surface-2)] focus:outline-none transition duration-150 ease-in-out cursor-pointer"
+    >
+      {% trans "Cancel" %}
+    </a>
+  </div>
+</form>
+{% endblock %}

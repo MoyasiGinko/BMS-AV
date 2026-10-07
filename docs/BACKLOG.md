@@ -4,7 +4,7 @@ Format: `ID title: Done when ...`
 ## P0 Foundations
 - [x] P0-01 Scaffold project (Python 3.14, Django 6.1, `uv lock` committed, settings use MAILERS/CSP/Redis cache per docs/STACK.md; run `pip check` and fix any compatibility issue per STACK.md policy): config/ (settings base/dev/test/prod/prod_check, urls, api_urls, asgi/wsgi, celery), apps/ package, templates/static dirs, manage.py. Done when `make verify` passes on the empty project.
 - [x] P0-02 core base: TenantModel, TenantManager, tenant context var, TenantMiddleware (subdomain + membership fallback), money utils, base exceptions, NumberSequence. Done when architecture tests pass with sample model.
-- [ ] P0-03 accounts: custom User (email), allauth config, login/logout/password reset/email verify screens, optional TOTP 2FA. Done when tests + UI smoke login pass.
+- [x] P0-03 accounts: custom User (email), allauth config, login/logout/password reset/email verify screens, optional TOTP 2FA. Done when tests + UI smoke login pass.
 - [ ] P0-04 tenancy: Organization, Membership, Role (+default roles), Invitation, Branch, Department, Warehouse, OrganizationSettings; org switcher; invite flow. Done when two orgs fully isolated in tests.
 - [ ] P0-05 RLS: enable_rls helper + migration for all tenant tables + request/task context setter + test with raw SQL. Done when RLS test proves cross-org reads return nothing.
 - [ ] P0-06 AuditLog + OutboxEvent + events.publish/subscribe + dispatcher task + event catalog. Done when atomicity/idempotency tests pass.

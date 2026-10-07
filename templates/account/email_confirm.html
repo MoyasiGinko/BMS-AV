@@ -1,0 +1,35 @@
+{% extends "layouts/auth.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Confirm email address" %}{% endblock %}
+{% block subtitle %}{% trans "Confirm your email address for Business OS" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-5 text-center">
+  {% if confirmation %}
+    <p class="text-sm text-[var(--text)]">
+      {% blocktrans with email=confirmation.email_address.email %}Please confirm that <strong class="font-medium text-[var(--brand-600)]">{{ email }}</strong> is an email address for your account.{% endblocktrans %}
+    </p>
+
+    <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+      {% csrf_token %}
+      <button
+        type="submit"
+        id="confirm-email-btn"
+        class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[var(--brand-600)] hover:bg-[var(--brand-700)] focus:outline-none transition duration-150 cursor-pointer"
+      >
+        {% trans "Confirm email" %}
+      </button>
+    </form>
+  {% else %}
+    <div class="p-3 text-sm rounded-lg bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)]" role="alert">
+      {% trans "This email confirmation link has expired or is invalid." %}
+    </div>
+    <div class="pt-2">
+      <a href="{% url 'account_login' %}" class="text-sm font-medium text-[var(--brand-600)] hover:underline">
+        {% trans "Return to sign in" %}
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

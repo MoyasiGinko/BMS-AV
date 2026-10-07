@@ -1,0 +1,93 @@
+{% extends "layouts/auth.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sign in" %}{% endblock %}
+{% block subtitle %}{% trans "Enter your credentials to access your organization" %}{% endblock %}
+
+{% block content %}
+<form method="post" action="{% url 'account_login' %}" class="space-y-5" novalidate>
+  {% csrf_token %}
+
+  {% if redirect_field_value %}
+    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+  {% endif %}
+
+  {% if form.non_field_errors %}
+    <div class="p-3 text-sm rounded-lg bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)]" role="alert">
+      {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div>
+    <label for="id_login" class="block text-sm font-medium text-[var(--text)]">
+      {% trans "Email address" %}
+    </label>
+    <div class="mt-1.5">
+      <input
+        type="email"
+        name="login"
+        id="id_login"
+        autocomplete="email"
+        required
+        value="{{ form.login.value|default:'' }}"
+        class="block w-full px-3 py-2 text-sm rounded-lg border {% if form.login.errors %}border-[var(--danger)] text-[var(--danger)] focus:ring-[var(--danger)]{% else %}border-[var(--border)] text-[var(--text)] focus:border-[var(--brand-600)] focus:ring-[var(--brand-600)]{% endif %} bg-[var(--surface)] shadow-sm focus:outline-none focus:ring-1"
+        placeholder="you@company.com"
+      >
+    </div>
+    {% if form.login.errors %}
+      <p class="mt-1.5 text-xs text-[var(--danger)]">{{ form.login.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="flex items-center justify-between">
+      <label for="id_password" class="block text-sm font-medium text-[var(--text)]">
+        {% trans "Password" %}
+      </label>
+      <a href="{% url 'account_reset_password' %}" class="text-xs font-medium text-[var(--brand-600)] hover:text-[var(--brand-700)] hover:underline">
+        {% trans "Forgot password?" %}
+      </a>
+    </div>
+    <div class="mt-1.5">
+      <input
+        type="password"
+        name="password"
+        id="id_password"
+        autocomplete="current-password"
+        required
+        class="block w-full px-3 py-2 text-sm rounded-lg border {% if form.password.errors %}border-[var(--danger)] text-[var(--danger)] focus:ring-[var(--danger)]{% else %}border-[var(--border)] text-[var(--text)] focus:border-[var(--brand-600)] focus:ring-[var(--brand-600)]{% endif %} bg-[var(--surface)] shadow-sm focus:outline-none focus:ring-1"
+        placeholder="••••••••"
+      >
+    </div>
+    {% if form.password.errors %}
+      <p class="mt-1.5 text-xs text-[var(--danger)]">{{ form.password.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div class="flex items-center justify-between">
+    <div class="flex items-center">
+      <input
+        id="id_remember"
+        name="remember"
+        type="checkbox"
+        class="h-4 w-4 rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
+      >
+      <label for="id_remember" class="ml-2 block text-xs text-[var(--text-muted)]">
+        {% trans "Remember this device" %}
+      </label>
+    </div>
+  </div>
+
+  <div>
+    <button
+      type="submit"
+      id="submit-login-btn"
+      class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-[var(--brand-600)] hover:bg-[var(--brand-700)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--brand-600)] transition duration-150 ease-in-out cursor-pointer"
+    >
+      {% trans "Sign in" %}
+    </button>
+  </div>
+</form>
+{% endblock %}

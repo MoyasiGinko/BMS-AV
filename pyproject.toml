@@ -71,6 +71,7 @@ select = ["E","F","I","B","UP","DJ","S","C4","SIM","PL","RUF"]
 ignore = ["PLR0913","PLR2004","S101","RUF012","DJ001"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S","PLR","B"]
+"apps/*/tests/**" = ["S","PLR","B"]
 "config/settings/*" = ["S105"]
 
 [tool.mypy]
@@ -82,7 +83,7 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 exclude = ["migrations", "tests"]
 [[tool.mypy.overrides]]  # ADR 0003: untyped third-party packages only
-module = ["celery.*", "environ.*"]
+module = ["celery.*", "environ.*", "allauth.*"]
 ignore_missing_imports = true
 [tool.django-stubs]
 django_settings_module = "config.settings.test"
