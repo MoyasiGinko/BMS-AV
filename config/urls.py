@@ -4,7 +4,13 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from apps.core.views import healthz_view, readyz_view
+
 urlpatterns = [
+    path("healthz", healthz_view, name="healthz"),
+    path("healthz/", healthz_view),
+    path("readyz", readyz_view, name="readyz"),
+    path("readyz/", readyz_view),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("accounts/2fa/", include("allauth.mfa.urls")),

@@ -3,16 +3,39 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
-from celery import shared_task
+from celery import Task, shared_task
 from django.db import transaction
 from django.utils import timezone
 
 from apps.core.events import get_subscribers
+from apps.core.exceptions import TenantAccessError
 from apps.core.models import OutboxEvent
 from apps.core.tenant_context import tenant_context
 
 logger = logging.getLogger(__name__)
+
+
+class TenantTask(Task):
+    """Base Celery task enforcing tenant isolation.
+
+    Activates tenant_context(organization_id) for the task execution.
+    No ambient tenant in tasks.
+    """
+
+    abstract = True
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        organization_id = kwargs.get("organization_id")
+        if organization_id is None and args and isinstance(args[0], int):
+            organization_id = args[0]
+
+        if organization_id is None:
+            raise TenantAccessError("TenantTask requires an explicit organization_id.")
+
+        with tenant_context(organization_id):
+            return super().__call__(*args, **kwargs)
 
 
 @transaction.atomic

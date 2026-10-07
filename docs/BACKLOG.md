@@ -9,7 +9,7 @@ Format: `ID title: Done when ...`
 - [x] P0-05 RLS: enable_rls helper + migration for all tenant tables + request/task context setter + test with raw SQL. Done when RLS test proves cross-org reads return nothing.
 - [x] P0-06 AuditLog + OutboxEvent + events.publish/subscribe + dispatcher task + event catalog. Done when atomicity/idempotency tests pass.
 - [x] P0-07 Permission engine: permission codes registry, role->permission, `permission_required`, `feature_required`, object scope helpers, view mixins. Done when 3-layer tests pass for web.
-- [ ] P0-08 Celery + Redis wiring: base tenant-aware task, queues, beat schedule skeleton, `/healthz` `/readyz`. Done when a tenant task test passes.
+- [x] P0-08 Celery + Redis wiring: base tenant-aware task, queues, beat schedule skeleton, `/healthz` `/readyz`. Done when a tenant task test passes.
 - [ ] P0-09 UI foundation: tokens.css, Tailwind 4 build via django-tailwind-cli, vendored JS via scripts/vendor_frontend.sh, layouts (app shell, auth, public), full component library, `/_styleguide/` page, toasts, HTMX setup. Done when styleguide renders all components and UI smoke passes.
 - [ ] P0-10 DRF foundation (apps/core/api): TenantScopedViewSet, permission classes, pagination, exception handler, idempotency, request-id, rate limiting, spectacular setup, JWT auth. Done when sample endpoint passes contract tests and schema validates.
 - [ ] P0-11 Observability: structured JSON logging with request/org/user ids, Sentry hook (env-gated), security headers, `check --deploy` clean in prod_check settings.

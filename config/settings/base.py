@@ -174,6 +174,17 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TIMEZONE = "UTC"
+CELERY_TASK_QUEUES = {
+    "default": {"exchange": "default", "routing_key": "default"},
+    "high": {"exchange": "high", "routing_key": "high"},
+    "low": {"exchange": "low", "routing_key": "low"},
+}
+CELERY_BEAT_SCHEDULE = {
+    "dispatch-outbox-events": {
+        "task": "core.dispatch_outbox_events",
+        "schedule": 10.0,
+    },
+}
 
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
