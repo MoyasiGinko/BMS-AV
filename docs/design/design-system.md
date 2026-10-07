@@ -43,3 +43,6 @@ Lucide icon set via inline SVG sprite (`static/icons/sprite.svg`), 16/20px, stro
 
 ## Definition of "design done"
 Uses only tokens + components; passes keyboard walkthrough; has empty/loading/error states; looks right at 360, 768, 1280, 1920px; light and dark; styleguide updated if a component was added.
+
+## Reference images
+Put inspiration/target screenshots in `docs/design/reference/` (png/jpg/webp). When present, they outrank generic taste: match their density, hierarchy and feel while still using the tokens and components. `reference-screens.html` is the baseline target.

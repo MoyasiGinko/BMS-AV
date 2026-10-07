@@ -8,7 +8,7 @@ description: Final completeness audit and handoff package for the human evaluato
    create products -> purchase & receive -> sell via POS and invoice -> collect payment -> expense -> payroll run -> dashboard figures
    and reports reconcile to ledgers -> webhook delivered -> API key call -> automation rule fires -> AI assistant answers a question
    with tool-grounded data.
-4. Walk every module's screens in the browser tool; fix visual/UX defects against `docs/design/design-system.md`.
+4. Run `/visual-qa` for every module's screens; fix visual/UX defects against `docs/design/design-system.md`.
 5. Security pass: run tenant isolation suite, `check --deploy`, dependency audit (`pip-audit`), review `docs/BLOCKERS.md`.
 6. Write `docs/EVALUATION.md`: how to run (3 commands), seeded demo orgs + logins, module-by-module feature list, API docs URL,
    known limitations, architecture decision list. Commit `chore: final audit`.

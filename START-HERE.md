@@ -16,6 +16,14 @@ Drop this folder's contents into an empty repository and let Antigravity build t
 5. Model: pick the strongest model available (e.g. highest-tier Gemini Pro / Claude option) with the longest context. Plan mode off; fast/agent mode on.
 6. Make sure the machine will not sleep (power settings) and Antigravity stays open.
 
+### Optional MCP (recommended: Context7 only)
+Context7 gives the agent live library docs (Django, DRF, HTMX, Tailwind...). Requires Node.js. In Antigravity open the agent panel -> `...` ->
+MCP Servers -> Manage MCP Servers -> View raw config, and merge the contents of `mcp_config.example.json`. No other MCP is needed for design:
+the built-in browser plus `/visual-qa` handles it. Skip Figma unless you already have Figma designs.
+
+### Optional: your own visual references
+Drop screenshots of UIs you like into `docs/design/reference/`. The agent matches them in `/visual-qa`.
+
 ## 2. Start the build
 In the Agent Manager (or Cmd/Ctrl+L panel) paste:
 
@@ -47,7 +55,7 @@ Also review `docs/adr/` (decisions the agent made for you) and `docs/BLOCKERS.md
 ```
 AGENTS.md / GEMINI.md          always-loaded operating manual (autonomy contract, hard rules)
 .agent/rules/*.md              7 rules (2 always-on, 5 loaded when relevant)
-.agent/workflows/*.md          /build-all  /verify  /fix-failures  /review-module  /final-audit
+.agent/workflows/*.md          /build-all  /verify  /visual-qa  /fix-failures  /review-module  /final-audit
 .agent/STATE.md                resumable progress state
 .agents/skills/*/SKILL.md      6 skills: module scaffold, ledger posting, DRF endpoint, HTMX screen, tenant-isolation tests, events/webhooks
 docs/00..04-*.md               product story, architecture, domain model, API/integrations, testing spec

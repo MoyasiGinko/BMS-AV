@@ -37,6 +37,11 @@ required), pytest, ruff, mypy (django-stubs), import-linter, factory_boy, hypoth
 | API/integrations | `docs/03-api-and-integrations.md`, skill `drf-endpoint` |
 | money/stock | skill `ledger-posting`, rule `30-accounting-inventory` |
 | tests | `docs/04-testing-and-validation.md` |
+| UI review | workflow `/visual-qa` |
+
+## Tools
+- If a Context7 MCP tool is available, use it to look up current Django, DRF, HTMX, Alpine, Tailwind, Celery, Playwright docs before writing unfamiliar API usage; otherwise read the official docs in the browser tool. Never block on a missing MCP.
+- Use the built-in browser to run the app and verify UI (`/visual-qa`). Do not depend on any design-generation MCP.
 
 ## Hard rules (the ten that are always on)
 1. Business logic only in `apps/<app>/services.py`; reads in `selectors.py`. Views/serializers/tasks/admin call services.

@@ -13,10 +13,10 @@ Run this loop until every backlog item is `[x]`. Do not stop, summarize, or ask 
    Follow the task's "Done when" acceptance line literally.
 4. **Validate**: run `make verify`. On any failure run the `/fix-failures` procedure and repeat until green.
 5. **Prove behavior** (for tasks with UI): start the dev server, exercise the screen with the browser tool or Playwright, confirm the
-   acceptance criteria visually/functionally, fix defects.
+   acceptance criteria functionally, then run `/visual-qa` for the touched screens and fix every defect it finds.
 6. **Record**: tick the task `[x]` in `docs/BACKLOG.md`, update `.agent/STATE.md`, add ADRs if you decided anything,
    `git add -A && git commit -m "<TASK-ID>: <summary>"`.
-7. **Phase boundary**: when the last task of a phase is ticked, run `/verify` then `/review-module` for each module built in the
+7. **Phase boundary**: when the last task of a phase is ticked, run `/verify`, `/review-module` and `/visual-qa` for each module built in the
    phase, fix findings, commit, then continue with the next phase automatically.
 8. **Completion**: when no `[ ]` or `[!]` remains, run `/final-audit`. If it finds gaps, add them as new backlog tasks and continue
    the loop. Only when `/final-audit` passes: write `docs/EVALUATION.md` and stop.
