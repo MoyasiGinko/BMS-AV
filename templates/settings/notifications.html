@@ -1,0 +1,85 @@
+{% extends "settings/base_settings.html" %}
+{% load i18n %}
+
+{% block settings_content %}
+<form method="post" action="{% url 'settings:notifications' %}" class="space-y-6">
+  {% csrf_token %}
+
+  <!-- Notification Channels Matrix Card -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs">
+    <div class="border-b border-[var(--border)] pb-4 mb-6">
+      <h2 class="text-base font-bold text-[var(--text)]">{% trans "Notification Alerts & Channels" %}</h2>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Configure which operational activities send email notifications or produce in-app ledger notices." %}
+      </p>
+    </div>
+
+    <div class="divide-y divide-[var(--border)]">
+      {% for item in category_items %}
+        <div class="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-semibold text-[var(--text)]">{{ item.label }}</h3>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5 font-mono">
+              {% if item.key == 'billing' %}
+                {% trans "Invoice generation, payment failures, subscription grace periods, renewals." %}
+              {% elif item.key == 'inventory' %}
+                {% trans "Stock below reorder point, negative stock events, stock valuation adjustments." %}
+              {% elif item.key == 'sales' %}
+                {% trans "High-value sales confirmed, credit limit exceeded, overdue customer balances." %}
+              {% elif item.key == 'security' %}
+                {% trans "New member joined, role permissions altered, API keys rotated or revoked." %}
+              {% endif %}
+            </p>
+          </div>
+
+          <!-- Channel Checkbox Toggles -->
+          <div class="flex items-center gap-6 shrink-0">
+            <!-- Email Channel -->
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="{{ item.key }}_email"
+                {% if item.email_enabled %}checked{% endif %}
+                {% if not can_manage %}disabled{% endif %}
+                class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
+              >
+              <span class="text-xs font-medium text-[var(--text)]">
+                <svg class="w-3.5 h-3.5 inline mr-0.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                {% trans "Email" %}
+              </span>
+            </label>
+
+            <!-- In-App Channel -->
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="{{ item.key }}_in_app"
+                {% if item.in_app_enabled %}checked{% endif %}
+                {% if not can_manage %}disabled{% endif %}
+                class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
+              >
+              <span class="text-xs font-medium text-[var(--text)]">
+                <svg class="w-3.5 h-3.5 inline mr-0.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                {% trans "In-App" %}
+              </span>
+            </label>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Submit Action -->
+  {% if can_manage %}
+    <div class="flex items-center justify-end gap-3">
+      <button
+        type="submit"
+        class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        {% trans "Save Preferences" %}
+      </button>
+    </div>
+  {% endif %}
+</form>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends "settings/base_settings.html" %}
+{% load i18n %}
+
+{% block settings_content %}
+<div x-data="{
+  modalOpen: false,
+  isEdit: false,
+  roleId: '',
+  name: '',
+  description: '',
+  selectedPermissions: [],
+  openCreate() {
+    this.isEdit = false;
+    this.roleId = '';
+    this.name = '';
+    this.description = '';
+    this.selectedPermissions = [];
+    this.modalOpen = true;
+  },
+  openEdit(id, name, desc, perms) {
+    this.isEdit = true;
+    this.roleId = id;
+    this.name = name;
+    this.description = desc;
+    this.selectedPermissions = perms;
+    this.modalOpen = true;
+  }
+}" class="space-y-6">
+
+  <!-- Header Card & Actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-bold text-[var(--text)]">{% trans "Roles & Granular Permissions" %}</h2>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Built-in system roles and customizable role-based access control (RBAC) definitions." %}
+      </p>
+    </div>
+    {% if can_manage %}
+      <button
+        type="button"
+        @click="openCreate()"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs transition-colors shrink-0"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        {% trans "Add Custom Role" %}
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- Roles Table -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            <th class="py-3 px-4">{% trans "Role Name" %}</th>
+            <th class="py-3 px-4">{% trans "Type" %}</th>
+            <th class="py-3 px-4">{% trans "Description" %}</th>
+            <th class="py-3 px-4">{% trans "Permissions Granted" %}</th>
+            {% if can_manage %}
+              <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for role in roles %}
+            <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+              <td class="py-3 px-4 font-semibold text-[var(--text)]">
+                {{ role.name }}
+              </td>
+              <td class="py-3 px-4">
+                {% if role.is_system %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                    {% trans "System Built-in" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                    {% trans "Custom" %}
+                  </span>
+                {% endif %}
+              </td>
+              <td class="py-3 px-4 text-xs text-[var(--text-muted)] max-w-xs truncate">
+                {{ role.description|default:"—" }}
+              </td>
+              <td class="py-3 px-4 text-xs">
+                {% if role.name == 'Owner' or role.name == 'Admin' %}
+                  <span class="text-emerald-600 font-semibold">{% trans "All Permissions (*)" %}</span>
+                {% else %}
+                  <span class="font-mono">{{ role.permissions|length }}</span> {% trans "permissions" %}
+                {% endif %}
+              </td>
+              {% if can_manage %}
+                <td class="py-3 px-4 text-right space-x-2">
+                  {% if not role.is_system %}
+                    <button
+                      type="button"
+                      @click="openEdit('{{ role.pk }}', '{{ role.name|escapejs }}', '{{ role.description|escapejs }}', {{ role.permissions|safe }})"
+                      class="text-xs text-[var(--brand-600)] hover:underline font-medium"
+                    >
+                      {% trans "Edit" %}
+                    </button>
+                    <form method="post" action="{% url 'settings:roles' %}" class="inline-block" onsubmit="return confirm('{% trans "Delete this role?" %}');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="role_id" value="{{ role.pk }}">
+                      <button type="submit" class="text-xs text-red-500 hover:underline font-medium">
+                        {% trans "Delete" %}
+                      </button>
+                    </form>
+                  {% else %}
+                    <span class="text-xs text-[var(--text-subtle)]">{% trans "Locked" %}</span>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Role Modal (Create / Edit) -->
+  <div
+    x-show="modalOpen"
+    x-cloak
+    style="display: none;"
+    class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+  >
+    <div
+      @click.away="modalOpen = false"
+      class="w-full max-w-2xl rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl space-y-4 max-h-[90vh] flex flex-col"
+    >
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3 shrink-0">
+        <h3 class="text-base font-bold text-[var(--text)]" x-text="isEdit ? '{% trans "Edit Custom Role" %}' : '{% trans "Create Custom Role" %}'"></h3>
+        <button type="button" @click="modalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form method="post" action="{% url 'settings:roles' %}" class="space-y-4 overflow-y-auto pr-1 flex-1">
+        {% csrf_token %}
+        <input type="hidden" name="role_id" :value="roleId">
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+            {% trans "Role Name" %} <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="name" x-model="name" required class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+            {% trans "Description" %}
+          </label>
+          <input type="text" name="description" x-model="description" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-2">
+            {% trans "Assign Permissions" %}
+          </label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+            {% for perm in system_permissions %}
+              <label class="flex items-center gap-2 text-xs text-[var(--text)] cursor-pointer hover:bg-[var(--surface)] p-1 rounded transition-colors">
+                <input
+                  type="checkbox"
+                  name="permissions"
+                  value="{{ perm }}"
+                  :checked="selectedPermissions.includes('{{ perm }}')"
+                  class="rounded border-[var(--border)] text-[var(--brand-600)]"
+                >
+                <span class="font-mono text-[11px] truncate">{{ perm }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)] shrink-0">
+          <button type="button" @click="modalOpen = false" class="px-4 py-2 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]">
+            {% trans "Cancel" %}
+          </button>
+          <button type="submit" class="px-4 py-2 text-xs font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]">
+            {% trans "Save Role" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from decimal import Decimal
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.core.models import TenantModel
+from apps.core.models import TenantManager, TenantModel
 
 
 class Organization(models.Model):
@@ -176,6 +178,14 @@ class Department(TenantModel):
     """Department within an organization or branch."""
 
     name = models.CharField(_("department name"), max_length=128)
+    code = models.CharField(_("code"), max_length=32, blank=True, default="")
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="children",
+    )
     branch = models.ForeignKey(
         "tenancy.Branch",
         on_delete=models.SET_NULL,
@@ -302,3 +312,113 @@ class OrganizationSettings(TenantModel):
 
     def __str__(self) -> str:
         return f"Settings for {self.organization}"
+
+
+class TaxCode(TenantModel):
+    """Tax rate specification applicable to products, services, and transactions."""
+
+    code = models.CharField(_("code"), max_length=32, db_index=True)
+    name = models.CharField(_("name"), max_length=128)
+    rate = models.DecimalField(
+        _("rate percentage"),
+        max_digits=7,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    is_inclusive = models.BooleanField(_("tax inclusive"), default=False)
+    is_default = models.BooleanField(_("default tax code"), default=False)
+    is_active = models.BooleanField(_("is active"), default=True)
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("tax code")
+        verbose_name_plural = _("tax codes")
+        ordering = ("code",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "code"],
+                name="unique_org_tax_code",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "is_active", "code"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.code} ({self.rate}%)"
+
+
+class Currency(TenantModel):
+    """Currency configuration and conversion rate against organization base currency."""
+
+    code = models.CharField(_("currency code"), max_length=3, db_index=True)
+    name = models.CharField(_("currency name"), max_length=64)
+    symbol = models.CharField(_("symbol"), max_length=8, default="$")
+    exchange_rate = models.DecimalField(
+        _("exchange rate"),
+        max_digits=18,
+        decimal_places=6,
+        default=Decimal("1.000000"),
+    )
+    is_base = models.BooleanField(_("base currency"), default=False)
+    is_active = models.BooleanField(_("is active"), default=True)
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("currency")
+        verbose_name_plural = _("currencies")
+        ordering = ("code",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "code"],
+                name="unique_org_currency_code",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "is_active", "code"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.code} ({self.symbol})"
+
+
+class NotificationPreference(TenantModel):
+    """Notification preference per channel and event category for the organization."""
+
+    CHANNEL_EMAIL = "email"
+    CHANNEL_IN_APP = "in_app"
+    CHANNEL_CHOICES = [
+        (CHANNEL_EMAIL, _("Email")),
+        (CHANNEL_IN_APP, _("In-App")),
+    ]
+
+    channel = models.CharField(
+        _("channel"),
+        max_length=32,
+        choices=CHANNEL_CHOICES,
+        default=CHANNEL_EMAIL,
+    )
+    category = models.CharField(_("category"), max_length=64, db_index=True)
+    is_enabled = models.BooleanField(_("is enabled"), default=True)
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("notification preference")
+        verbose_name_plural = _("notification preferences")
+        ordering = ("category", "channel")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "category", "channel"],
+                name="unique_org_notification_pref",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        state = "enabled" if self.is_enabled else "disabled"
+        return f"[{self.organization}] {self.category} via {self.channel}: {state}"

@@ -1,0 +1,216 @@
+{% extends "settings/base_settings.html" %}
+{% load i18n %}
+
+{% block settings_content %}
+<div x-data="{
+  modalOpen: false,
+  isEdit: false,
+  branchId: '',
+  name: '',
+  code: '',
+  address: '',
+  phone: '',
+  isHeadquarters: false,
+  isActive: true,
+  openCreate() {
+    this.isEdit = false;
+    this.branchId = '';
+    this.name = '';
+    this.code = '';
+    this.address = '';
+    this.phone = '';
+    this.isHeadquarters = false;
+    this.isActive = true;
+    this.modalOpen = true;
+  },
+  openEdit(id, name, code, addr, phone, isHq, isActive) {
+    this.isEdit = true;
+    this.branchId = id;
+    this.name = name;
+    this.code = code;
+    this.address = addr;
+    this.phone = phone;
+    this.isHeadquarters = isHq;
+    this.isActive = isActive;
+    this.modalOpen = true;
+  }
+}" class="space-y-6">
+
+  <!-- Header Card & Actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-bold text-[var(--text)]">{% trans "Operating Branches" %}</h2>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Physical offices, stores, and regional branches conducting business for this organization." %}
+      </p>
+    </div>
+    {% if can_manage %}
+      <button
+        type="button"
+        @click="openCreate()"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs transition-colors shrink-0"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        {% trans "Add Branch" %}
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- Branches Table -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            <th class="py-3 px-4">{% trans "Branch Name" %}</th>
+            <th class="py-3 px-4">{% trans "Code" %}</th>
+            <th class="py-3 px-4">{% trans "Headquarters" %}</th>
+            <th class="py-3 px-4">{% trans "Contact & Address" %}</th>
+            <th class="py-3 px-4">{% trans "Status" %}</th>
+            {% if can_manage %}
+              <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for branch in branches %}
+            <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+              <td class="py-3 px-4 font-semibold text-[var(--text)]">
+                {{ branch.name }}
+              </td>
+              <td class="py-3 px-4 font-mono text-xs text-[var(--text-muted)]">
+                {{ branch.code }}
+              </td>
+              <td class="py-3 px-4">
+                {% if branch.is_headquarters %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-50)] text-[var(--brand-700)] border border-[var(--brand-200)]">
+                    {% trans "Headquarters" %}
+                  </span>
+                {% else %}
+                  <span class="text-xs text-[var(--text-subtle)]">{% trans "Regional" %}</span>
+                {% endif %}
+              </td>
+              <td class="py-3 px-4 text-xs text-[var(--text-muted)] max-w-xs truncate">
+                {% if branch.phone %}<span class="block">{{ branch.phone }}</span>{% endif %}
+                <span class="truncate block">{{ branch.address|default:"—" }}</span>
+              </td>
+              <td class="py-3 px-4">
+                {% if branch.is_active %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                    {% trans "Active" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-500/10 text-zinc-600 border border-zinc-500/20">
+                    {% trans "Inactive" %}
+                  </span>
+                {% endif %}
+              </td>
+              {% if can_manage %}
+                <td class="py-3 px-4 text-right space-x-2">
+                  <button
+                    type="button"
+                    @click="openEdit('{{ branch.pk }}', '{{ branch.name|escapejs }}', '{{ branch.code|escapejs }}', '{{ branch.address|escapejs }}', '{{ branch.phone|escapejs }}', {{ branch.is_headquarters|yesno:'true,false' }}, {{ branch.is_active|yesno:'true,false' }})"
+                    class="text-xs text-[var(--brand-600)] hover:underline font-medium"
+                  >
+                    {% trans "Edit" %}
+                  </button>
+                  {% if not branch.is_headquarters %}
+                    <form method="post" action="{% url 'settings:branches' %}" class="inline-block" onsubmit="return confirm('{% trans "Delete this branch?" %}');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="branch_id" value="{{ branch.pk }}">
+                      <button type="submit" class="text-xs text-red-500 hover:underline font-medium">
+                        {% trans "Delete" %}
+                      </button>
+                    </form>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="py-8 px-4 text-center text-sm text-[var(--text-muted)]">
+                {% trans "No branches configured yet." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Branch Modal (Create / Edit) -->
+  <div
+    x-show="modalOpen"
+    x-cloak
+    style="display: none;"
+    class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+  >
+    <div
+      @click.away="modalOpen = false"
+      class="w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl space-y-4"
+    >
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+        <h3 class="text-base font-bold text-[var(--text)]" x-text="isEdit ? '{% trans "Edit Branch" %}' : '{% trans "Create Branch" %}'"></h3>
+        <button type="button" @click="modalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form method="post" action="{% url 'settings:branches' %}" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="branch_id" :value="branchId">
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+            {% trans "Branch Name" %} <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="name" x-model="name" required class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+            {% trans "Branch Code" %} <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="code" x-model="code" required class="w-full px-3 py-2 text-sm uppercase font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+            {% trans "Address" %}
+          </label>
+          <textarea name="address" x-model="address" rows="2" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+            {% trans "Phone" %}
+          </label>
+          <input type="text" name="phone" x-model="phone" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+        </div>
+
+        <div class="space-y-2 pt-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="is_headquarters" x-model="isHeadquarters" class="rounded border-[var(--border)] text-[var(--brand-600)]">
+            <span class="text-xs font-medium text-[var(--text)]">{% trans "Designate as Organization Headquarters" %}</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="is_active" x-model="isActive" class="rounded border-[var(--border)] text-[var(--brand-600)]">
+            <span class="text-xs font-medium text-[var(--text)]">{% trans "Active Branch" %}</span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)]">
+          <button type="button" @click="modalOpen = false" class="px-4 py-2 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]">
+            {% trans "Cancel" %}
+          </button>
+          <button type="submit" class="px-4 py-2 text-xs font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]">
+            {% trans "Save Branch" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

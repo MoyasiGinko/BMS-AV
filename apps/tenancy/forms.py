@@ -177,3 +177,287 @@ class OnboardingStep3Form(forms.Form):
                 msg = _("Invalid email address: %(email)s") % {"email": email}
                 raise forms.ValidationError(msg) from None
         return clean_emails
+
+
+# ---------------------------------------------------------------------------
+# Settings Forms
+# ---------------------------------------------------------------------------
+
+
+class OrganizationProfileForm(forms.Form):
+    """Organization legal and geographic profile configuration."""
+
+    name = forms.CharField(
+        label=_("Organization Name"), max_length=200, widget=forms.TextInput(attrs={"class": "form-input"})
+    )
+    base_currency = forms.CharField(
+        label=_("Base Currency"), max_length=3, widget=forms.TextInput(attrs={"class": "form-input"})
+    )
+    country = forms.CharField(
+        label=_("Country Code (ISO 2)"),
+        max_length=2,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": "US"}),
+    )
+    timezone = forms.CharField(
+        label=_("Time Zone"), max_length=64, widget=forms.TextInput(attrs={"class": "form-input"})
+    )
+    fiscal_year_start = forms.IntegerField(
+        label=_("Fiscal Year Start Month (1-12)"),
+        min_value=1,
+        max_value=12,
+        widget=forms.NumberInput(attrs={"class": "form-input"}),
+    )
+    date_format = forms.CharField(
+        label=_("Date Format"), max_length=32, widget=forms.TextInput(attrs={"class": "form-input"})
+    )
+
+
+class OrganizationSettingsForm(forms.Form):
+    """Tenant business logic and operations switches."""
+
+    allow_negative_stock = forms.BooleanField(
+        label=_("Allow Negative Stock"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    costing_method = forms.ChoiceField(
+        label=_("Costing Method"),
+        choices=[("weighted_average", _("Weighted Average")), ("fifo", _("FIFO"))],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    tax_inclusive_pricing = forms.BooleanField(
+        label=_("Tax-Inclusive Pricing"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+
+
+class BranchForm(forms.Form):
+    """Form to create or edit branch records."""
+
+    name = forms.CharField(
+        label=_("Branch Name"), max_length=128, widget=forms.TextInput(attrs={"class": "form-input"})
+    )
+    code = forms.CharField(
+        label=_("Branch Code"),
+        max_length=32,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input"}),
+    )
+    address = forms.CharField(
+        label=_("Address"), required=False, widget=forms.Textarea(attrs={"class": "form-textarea", "rows": 2})
+    )
+    phone = forms.CharField(
+        label=_("Phone Number"),
+        max_length=32,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input"}),
+    )
+    is_headquarters = forms.BooleanField(
+        label=_("Headquarters Branch"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    is_active = forms.BooleanField(
+        label=_("Is Active"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+
+
+class WarehouseForm(forms.Form):
+    """Form to create or edit warehouse storage facilities."""
+
+    name = forms.CharField(
+        label=_("Warehouse Name"), max_length=128, widget=forms.TextInput(attrs={"class": "form-input"})
+    )
+    code = forms.CharField(
+        label=_("Warehouse Code"),
+        max_length=32,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input"}),
+    )
+    branch_id = forms.IntegerField(label=_("Branch"), widget=forms.Select(attrs={"class": "form-select"}))
+    is_default = forms.BooleanField(
+        label=_("Default Warehouse"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    is_active = forms.BooleanField(
+        label=_("Is Active"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+
+
+class DepartmentForm(forms.Form):
+    """Form to create or edit internal departments."""
+
+    name = forms.CharField(
+        label=_("Department Name"), max_length=128, widget=forms.TextInput(attrs={"class": "form-input"})
+    )
+    code = forms.CharField(
+        label=_("Department Code"),
+        max_length=32,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input"}),
+    )
+    parent_id = forms.IntegerField(
+        label=_("Parent Department"), required=False, widget=forms.Select(attrs={"class": "form-select"})
+    )
+    is_active = forms.BooleanField(
+        label=_("Is Active"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+
+
+class RoleForm(forms.Form):
+    """Form for custom roles and permissions matrix."""
+
+    name = forms.CharField(
+        label=_("Role Name"), max_length=64, widget=forms.TextInput(attrs={"class": "form-input"})
+    )
+    description = forms.CharField(
+        label=_("Description"),
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input"}),
+    )
+    permissions = forms.MultipleChoiceField(
+        label=_("Permissions"),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-checkbox"}),
+    )
+
+
+class InviteMemberForm(forms.Form):
+    """Form to invite new user into organization."""
+
+    email = forms.EmailField(
+        label=_("Email Address"),
+        widget=forms.EmailInput(attrs={"class": "form-input", "placeholder": "user@example.com"}),
+    )
+    role_id = forms.IntegerField(
+        label=_("Assigned Role"), widget=forms.Select(attrs={"class": "form-select"})
+    )
+
+
+class MemberUpdateForm(forms.Form):
+    """Form to modify an existing member's role or status."""
+
+    role_id = forms.IntegerField(label=_("Role"), widget=forms.Select(attrs={"class": "form-select"}))
+    status = forms.ChoiceField(
+        label=_("Status"),
+        choices=[("active", _("Active")), ("suspended", _("Suspended"))],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+
+class NumberSequenceForm(forms.Form):
+    """Form to update numbering sequence rules."""
+
+    sequence_prefix = forms.CharField(
+        label=_("Prefix"),
+        max_length=32,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input"}),
+    )
+    suffix = forms.CharField(
+        label=_("Suffix"),
+        max_length=32,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input"}),
+    )
+    next_number = forms.IntegerField(
+        label=_("Next Number"), min_value=1, widget=forms.NumberInput(attrs={"class": "form-input"})
+    )
+    padding = forms.IntegerField(
+        label=_("Digit Padding"),
+        min_value=1,
+        max_value=10,
+        widget=forms.NumberInput(attrs={"class": "form-input"}),
+    )
+    reset_frequency = forms.ChoiceField(
+        label=_("Reset Frequency"),
+        choices=[("never", _("Never")), ("yearly", _("Yearly")), ("monthly", _("Monthly"))],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+
+class TaxCodeForm(forms.Form):
+    """Form to create or update tax codes."""
+
+    code = forms.CharField(
+        label=_("Tax Code"),
+        max_length=32,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": "VAT-20"}),
+    )
+    name = forms.CharField(
+        label=_("Description"),
+        max_length=128,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": "Standard VAT 20%"}),
+    )
+    rate = forms.DecimalField(
+        label=_("Rate (%)"),
+        max_digits=7,
+        decimal_places=4,
+        widget=forms.NumberInput(attrs={"class": "form-input", "step": "0.01"}),
+    )
+    is_inclusive = forms.BooleanField(
+        label=_("Tax Inclusive"), required=False, widget=forms.CheckboxInput(attrs={"class": "form-checkbox"})
+    )
+    is_default = forms.BooleanField(
+        label=_("Default Tax Code"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    is_active = forms.BooleanField(
+        label=_("Is Active"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+
+
+class CurrencyForm(forms.Form):
+    """Form to create or update currency entries."""
+
+    code = forms.CharField(
+        label=_("Currency Code (ISO)"),
+        max_length=3,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": "EUR"}),
+    )
+    name = forms.CharField(
+        label=_("Currency Name"),
+        max_length=64,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": "Euro"}),
+    )
+    symbol = forms.CharField(
+        label=_("Symbol"),
+        max_length=8,
+        initial="$",
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": "€"}),
+    )
+    exchange_rate = forms.DecimalField(
+        label=_("Exchange Rate to Base"),
+        max_digits=18,
+        decimal_places=6,
+        initial=1.0,
+        widget=forms.NumberInput(attrs={"class": "form-input", "step": "0.000001"}),
+    )
+    is_base = forms.BooleanField(
+        label=_("Set as Base Currency"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    is_active = forms.BooleanField(
+        label=_("Is Active"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )

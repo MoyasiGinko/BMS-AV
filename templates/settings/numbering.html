@@ -1,0 +1,189 @@
+{% extends "settings/base_settings.html" %}
+{% load i18n %}
+
+{% block settings_content %}
+<div x-data="{
+  modalOpen: false,
+  seqId: '',
+  name: '',
+  prefix: '',
+  suffix: '',
+  nextNumber: 1,
+  padding: 5,
+  resetFrequency: 'never',
+  openEdit(id, name, prefix, suffix, nextNum, padding, resetFreq) {
+    this.seqId = id;
+    this.name = name;
+    this.prefix = prefix;
+    this.suffix = suffix;
+    this.nextNumber = nextNum;
+    this.padding = padding;
+    this.resetFrequency = resetFreq;
+    this.modalOpen = true;
+  },
+  get preview() {
+    let numStr = String(this.nextNumber).padStart(this.padding, '0');
+    return `${this.prefix}${numStr}${this.suffix}`;
+  }
+}" class="space-y-6">
+
+  <!-- Header Card -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-bold text-[var(--text)]">{% trans "Document Numbering Sequences" %}</h2>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Auto-generated numbering patterns for invoices, sales orders, purchase orders, and receipts." %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Number Sequences Table -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            <th class="py-3 px-4">{% trans "Document Series" %}</th>
+            <th class="py-3 px-4">{% trans "Prefix" %}</th>
+            <th class="py-3 px-4">{% trans "Suffix" %}</th>
+            <th class="py-3 px-4">{% trans "Next Number" %}</th>
+            <th class="py-3 px-4">{% trans "Padding" %}</th>
+            <th class="py-3 px-4">{% trans "Reset" %}</th>
+            {% if can_manage %}
+              <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for seq in sequences %}
+            <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+              <td class="py-3 px-4">
+                <div class="font-semibold text-[var(--text)]">{{ seq.name }}</div>
+                <div class="font-mono text-xs text-[var(--brand-600)]">
+                  {{ seq.prefix }}{% for _ in "x"|rjust:seq.padding %}0{% endfor %}{{ seq.suffix }}
+                </div>
+              </td>
+              <td class="py-3 px-4 font-mono text-xs text-[var(--text-muted)]">
+                {{ seq.prefix|default:"—" }}
+              </td>
+              <td class="py-3 px-4 font-mono text-xs text-[var(--text-muted)]">
+                {{ seq.suffix|default:"—" }}
+              </td>
+              <td class="py-3 px-4 font-mono text-xs font-semibold text-[var(--text)]">
+                {{ seq.next_number }}
+              </td>
+              <td class="py-3 px-4 font-mono text-xs text-[var(--text-muted)]">
+                {{ seq.padding }}
+              </td>
+              <td class="py-3 px-4 text-xs text-[var(--text-muted)] capitalize">
+                {{ seq.reset_frequency }}
+              </td>
+              {% if can_manage %}
+                <td class="py-3 px-4 text-right">
+                  <button
+                    type="button"
+                    @click="openEdit('{{ seq.pk }}', '{{ seq.name|escapejs }}', '{{ seq.prefix|escapejs }}', '{{ seq.suffix|escapejs }}', {{ seq.next_number }}, {{ seq.padding }}, '{{ seq.reset_frequency }}')"
+                    class="text-xs text-[var(--brand-600)] hover:underline font-medium"
+                  >
+                    {% trans "Edit Series" %}
+                  </button>
+                </td>
+              {% endif %}
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="py-8 px-4 text-center text-sm text-[var(--text-muted)]">
+                {% trans "No numbering sequences registered." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Number Sequence Edit Modal -->
+  <div
+    x-show="modalOpen"
+    x-cloak
+    style="display: none;"
+    class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+  >
+    <div
+      @click.away="modalOpen = false"
+      class="w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xl space-y-4"
+    >
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+        <h3 class="text-base font-bold text-[var(--text)]">
+          {% trans "Configure Series" %}: <span x-text="name" class="text-[var(--brand-600)]"></span>
+        </h3>
+        <button type="button" @click="modalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Live Format Preview -->
+      <div class="p-3 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-center">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Live Sample Preview" %}</div>
+        <div class="text-lg font-mono font-bold text-[var(--text)] mt-1" x-text="preview"></div>
+      </div>
+
+      <form method="post" action="{% url 'settings:numbering' %}" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="sequence_id" :value="seqId">
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+              {% trans "Prefix" %}
+            </label>
+            <input type="text" name="prefix" x-model="prefix" class="w-full px-3 py-2 text-sm uppercase font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+              {% trans "Suffix" %}
+            </label>
+            <input type="text" name="suffix" x-model="suffix" class="w-full px-3 py-2 text-sm uppercase font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+              {% trans "Next Number" %} <span class="text-red-500">*</span>
+            </label>
+            <input type="number" name="next_number" x-model="nextNumber" min="1" required class="w-full px-3 py-2 text-sm font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+              {% trans "Padding Digits" %} <span class="text-red-500">*</span>
+            </label>
+            <input type="number" name="padding" x-model="padding" min="1" max="10" required class="w-full px-3 py-2 text-sm font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+            {% trans "Reset Frequency" %}
+          </label>
+          <select name="reset_frequency" x-model="resetFrequency" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+            <option value="never">{% trans "Never (Continuous increment)" %}</option>
+            <option value="yearly">{% trans "Yearly (Reset to 1 on Jan 1st)" %}</option>
+            <option value="monthly">{% trans "Monthly (Reset to 1 each month)" %}</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)]">
+          <button type="button" @click="modalOpen = false" class="px-4 py-2 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]">
+            {% trans "Cancel" %}
+          </button>
+          <button type="submit" class="px-4 py-2 text-xs font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]">
+            {% trans "Save Sequence" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

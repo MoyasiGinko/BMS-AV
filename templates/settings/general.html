@@ -1,0 +1,238 @@
+{% extends "settings/base_settings.html" %}
+{% load i18n %}
+
+{% block settings_content %}
+<form method="post" action="{% url 'settings:general' %}" class="space-y-6">
+  {% csrf_token %}
+
+  <!-- Organization Profile Card -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs">
+    <div class="border-b border-[var(--border)] pb-4 mb-6">
+      <h2 class="text-base font-bold text-[var(--text)]">{% trans "Organization Legal Profile" %}</h2>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Primary identity, reporting base currency, and locale standards for this tenant." %}
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Legal / Commercial Name -->
+      <div class="md:col-span-2">
+        <label for="id_name" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+          {% trans "Organization Name" %} <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="name"
+          id="id_name"
+          value="{{ profile_form.name.value|default:organization.name }}"
+          required
+          {% if not can_manage %}disabled{% endif %}
+          class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all"
+        >
+        {% if profile_form.name.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_form.name.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Base Currency -->
+      <div>
+        <label for="id_base_currency" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+          {% trans "Base Functional Currency" %} <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="base_currency"
+          id="id_base_currency"
+          maxlength="3"
+          value="{{ profile_form.base_currency.value|default:organization.base_currency }}"
+          required
+          {% if not can_manage %}disabled{% endif %}
+          class="w-full px-3 py-2 text-sm uppercase bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all font-mono"
+        >
+        <p class="text-[11px] text-[var(--text-subtle)] mt-1">{% trans "3-letter ISO code (e.g., USD, EUR, GBP, CAD)." %}</p>
+        {% if profile_form.base_currency.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_form.base_currency.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Country -->
+      <div>
+        <label for="id_country" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+          {% trans "Country Code" %} <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="country"
+          id="id_country"
+          maxlength="2"
+          value="{{ profile_form.country.value|default:organization.country }}"
+          required
+          {% if not can_manage %}disabled{% endif %}
+          class="w-full px-3 py-2 text-sm uppercase bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all font-mono"
+        >
+        <p class="text-[11px] text-[var(--text-subtle)] mt-1">{% trans "2-letter ISO country (e.g., US, GB, DE, SG)." %}</p>
+        {% if profile_form.country.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_form.country.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Timezone -->
+      <div>
+        <label for="id_timezone" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+          {% trans "Operating Timezone" %} <span class="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="timezone"
+          id="id_timezone"
+          value="{{ profile_form.timezone.value|default:organization.timezone }}"
+          required
+          {% if not can_manage %}disabled{% endif %}
+          class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all font-mono"
+        >
+        <p class="text-[11px] text-[var(--text-subtle)] mt-1">{% trans "IANA standard (e.g. UTC, America/New_York, Europe/London)." %}</p>
+        {% if profile_form.timezone.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_form.timezone.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Fiscal Year Start Month -->
+      <div>
+        <label for="id_fiscal_year_start" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+          {% trans "Fiscal Year Start Month" %} <span class="text-red-500">*</span>
+        </label>
+        <select
+          name="fiscal_year_start"
+          id="id_fiscal_year_start"
+          {% if not can_manage %}disabled{% endif %}
+          class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all"
+        >
+          {% for m in "1 2 3 4 5 6 7 8 9 10 11 12"|make_list %}
+            {# Form standard values #}
+          {% endfor %}
+          <option value="1" {% if profile_form.fiscal_year_start.value == 1 or organization.fiscal_year_start == 1 %}selected{% endif %}>{% trans "January (Month 1)" %}</option>
+          <option value="2" {% if profile_form.fiscal_year_start.value == 2 or organization.fiscal_year_start == 2 %}selected{% endif %}>{% trans "February (Month 2)" %}</option>
+          <option value="3" {% if profile_form.fiscal_year_start.value == 3 or organization.fiscal_year_start == 3 %}selected{% endif %}>{% trans "March (Month 3)" %}</option>
+          <option value="4" {% if profile_form.fiscal_year_start.value == 4 or organization.fiscal_year_start == 4 %}selected{% endif %}>{% trans "April (Month 4)" %}</option>
+          <option value="5" {% if profile_form.fiscal_year_start.value == 5 or organization.fiscal_year_start == 5 %}selected{% endif %}>{% trans "May (Month 5)" %}</option>
+          <option value="6" {% if profile_form.fiscal_year_start.value == 6 or organization.fiscal_year_start == 6 %}selected{% endif %}>{% trans "June (Month 6)" %}</option>
+          <option value="7" {% if profile_form.fiscal_year_start.value == 7 or organization.fiscal_year_start == 7 %}selected{% endif %}>{% trans "July (Month 7)" %}</option>
+          <option value="8" {% if profile_form.fiscal_year_start.value == 8 or organization.fiscal_year_start == 8 %}selected{% endif %}>{% trans "August (Month 8)" %}</option>
+          <option value="9" {% if profile_form.fiscal_year_start.value == 9 or organization.fiscal_year_start == 9 %}selected{% endif %}>{% trans "September (Month 9)" %}</option>
+          <option value="10" {% if profile_form.fiscal_year_start.value == 10 or organization.fiscal_year_start == 10 %}selected{% endif %}>{% trans "October (Month 10)" %}</option>
+          <option value="11" {% if profile_form.fiscal_year_start.value == 11 or organization.fiscal_year_start == 11 %}selected{% endif %}>{% trans "November (Month 11)" %}</option>
+          <option value="12" {% if profile_form.fiscal_year_start.value == 12 or organization.fiscal_year_start == 12 %}selected{% endif %}>{% trans "December (Month 12)" %}</option>
+        </select>
+        {% if profile_form.fiscal_year_start.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_form.fiscal_year_start.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Date Format -->
+      <div>
+        <label for="id_date_format" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+          {% trans "Default Date Format" %} <span class="text-red-500">*</span>
+        </label>
+        <select
+          name="date_format"
+          id="id_date_format"
+          {% if not can_manage %}disabled{% endif %}
+          class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all font-mono"
+        >
+          <option value="YYYY-MM-DD" {% if profile_form.date_format.value == "YYYY-MM-DD" or organization.date_format == "YYYY-MM-DD" %}selected{% endif %}>YYYY-MM-DD (ISO standard)</option>
+          <option value="DD/MM/YYYY" {% if profile_form.date_format.value == "DD/MM/YYYY" or organization.date_format == "DD/MM/YYYY" %}selected{% endif %}>DD/MM/YYYY (UK / EU)</option>
+          <option value="MM/DD/YYYY" {% if profile_form.date_format.value == "MM/DD/YYYY" or organization.date_format == "MM/DD/YYYY" %}selected{% endif %}>MM/DD/YYYY (US)</option>
+        </select>
+        {% if profile_form.date_format.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ profile_form.date_format.errors.0 }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Operational Business Rules Card -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs">
+    <div class="border-b border-[var(--border)] pb-4 mb-6">
+      <h2 class="text-base font-bold text-[var(--text)]">{% trans "Operational & Accounting Rules" %}</h2>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Inventory balance enforcement, valuation calculation method, and consumer pricing presentation." %}
+      </p>
+    </div>
+
+    <div class="space-y-5">
+      <!-- Costing Method -->
+      <div>
+        <label for="id_costing_method" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+          {% trans "Inventory Costing Method" %} <span class="text-red-500">*</span>
+        </label>
+        <select
+          name="costing_method"
+          id="id_costing_method"
+          {% if not can_manage %}disabled{% endif %}
+          class="w-full max-w-md px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all"
+        >
+          <option value="fifo" {% if settings_form.costing_method.value == "fifo" %}selected{% endif %}>{% trans "FIFO (First-In, First-Out)" %}</option>
+          <option value="lifo" {% if settings_form.costing_method.value == "lifo" %}selected{% endif %}>{% trans "LIFO (Last-In, First-Out)" %}</option>
+          <option value="weighted_average" {% if settings_form.costing_method.value == "weighted_average" %}selected{% endif %}>{% trans "Weighted Average Cost" %}</option>
+        </select>
+        <p class="text-xs text-[var(--text-muted)] mt-1">
+          {% trans "Dictates cost-of-goods-sold (COGS) calculation when depleting warehouse stock." %}
+        </p>
+      </div>
+
+      <!-- Negative Stock Toggle -->
+      <div class="flex items-start gap-3 pt-3">
+        <input
+          type="checkbox"
+          name="allow_negative_stock"
+          id="id_allow_negative_stock"
+          {% if settings_form.allow_negative_stock.value %}checked{% endif %}
+          {% if not can_manage %}disabled{% endif %}
+          class="mt-1 h-4 w-4 rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
+        >
+        <div>
+          <label for="id_allow_negative_stock" class="text-sm font-semibold text-[var(--text)] cursor-pointer">
+            {% trans "Allow Negative Inventory Stock" %}
+          </label>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">
+            {% trans "If enabled, deliveries and POS checkout can complete even when recorded on-hand quantity is zero or less. Use with caution." %}
+          </p>
+        </div>
+      </div>
+
+      <!-- Tax Inclusive Pricing Toggle -->
+      <div class="flex items-start gap-3 pt-2">
+        <input
+          type="checkbox"
+          name="tax_inclusive_pricing"
+          id="id_tax_inclusive_pricing"
+          {% if settings_form.tax_inclusive_pricing.value %}checked{% endif %}
+          {% if not can_manage %}disabled{% endif %}
+          class="mt-1 h-4 w-4 rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
+        >
+        <div>
+          <label for="id_tax_inclusive_pricing" class="text-sm font-semibold text-[var(--text)] cursor-pointer">
+            {% trans "Tax-Inclusive Product Pricing" %}
+          </label>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">
+            {% trans "When enabled, catalog retail prices already include applicable sales tax or VAT (common in consumer retail)." %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit Buttons -->
+  {% if can_manage %}
+    <div class="flex items-center justify-end gap-3">
+      <button
+        type="submit"
+        class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        {% trans "Save Organization Settings" %}
+      </button>
+    </div>
+  {% endif %}
+</form>
+{% endblock %}
