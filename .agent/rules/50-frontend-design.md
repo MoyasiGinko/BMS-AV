@@ -6,7 +6,8 @@ description: Use when creating or editing templates, CSS, HTMX interactions, for
 
 Follow `docs/design/design-system.md` exactly; tokens live in `static/css/tokens.css`; the living reference is `/_styleguide/`.
 
-- Server-rendered Django templates, HTMX for partials (return fragments when `request.htmx`), Alpine.js for tiny local state. No SPA.
+- Server-rendered Django templates; HTMX 2 for partials using **Django template partials** (`{% partialdef %}` in the same template file; views return `page.html#partial` when `request.htmx`);
+  Alpine.js 3 for tiny local state. Tailwind 4 CSS-first (`static/css/input.css`, `@theme`), vendored JS in `static/vendor/` (no CDN). No SPA.
 - Use only components from `templates/components/` (button, input, select, badge, card, data_table, modal, toast, empty_state, kpi,
   page_header, tabs, pagination). If a new component is needed, add it to the library AND the styleguide first.
 - Every list screen: search, filters, sortable columns, pagination, bulk actions where relevant, export, empty state.

@@ -1,19 +1,32 @@
-.PHONY: setup verify run seed worker test fmt schema
+.PHONY: setup verify run seed worker beat test fmt schema css vendor deps-check
+RUN := $(shell command -v uv >/dev/null 2>&1 && echo "uv run" || echo "")
 setup:
-	python -m pip install -U pip && pip install -e ".[dev]"
+	@command -v uv >/dev/null 2>&1 && uv sync --all-extras || (python -m pip install -U pip && pip install -e ".[dev,ai]")
 	-docker compose up -d db redis
-	python manage.py migrate
+	bash scripts/vendor_frontend.sh
+	$(RUN) python manage.py migrate
 verify:
 	bash scripts/verify.sh
 run:
-	python manage.py runserver 0.0.0.0:8000
+	$(RUN) python manage.py tailwind runserver
 worker:
-	celery -A config worker -l info -Q critical,default,reports,bulk
+	$(RUN) celery -A config worker -l info -Q critical,default,reports,bulk
+beat:
+	$(RUN) celery -A config beat -l info
 seed:
-	python manage.py seed_demo
+	$(RUN) python manage.py seed_demo
 test:
-	pytest -q
+	$(RUN) pytest -q
 fmt:
-	ruff check --fix . && ruff format .
+	$(RUN) ruff check --fix . && $(RUN) ruff format .
 schema:
-	python manage.py spectacular --file docs/openapi.yml --validate --fail-on-warn
+	$(RUN) python manage.py spectacular --file docs/openapi.yml --validate --fail-on-warn
+css:
+	$(RUN) python manage.py tailwind build
+vendor:
+	bash scripts/vendor_frontend.sh
+deps-check:
+	-uv lock --check
+	$(RUN) pip check
+	$(RUN) pip-audit
+	$(RUN) python -W error::DeprecationWarning manage.py check

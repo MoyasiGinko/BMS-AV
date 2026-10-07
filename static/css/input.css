@@ -1,2 +1,35 @@
-@import url("tokens.css");
-@tailwind base; @tailwind components; @tailwind utilities;
+/* Tailwind CSS v4: CSS-first configuration. Built by django-tailwind-cli (standalone CLI, no Node):
+   settings: TAILWIND_CLI_VERSION = "4.3.3", TAILWIND_CLI_SRC_CSS = "static/css/input.css", TAILWIND_CLI_DIST_CSS = "css/app.css" */
+@import "tailwindcss";
+@import "./tokens.css";
+
+@source "../../templates";
+@source "../../apps";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Map design tokens (tokens.css) to Tailwind utilities: bg-brand-600, text-muted, border-line, shadow-card ... */
+@theme inline {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-900: var(--brand-900);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-app: var(--bg);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --shadow-card: var(--shadow-sm);
+  --shadow-pop: var(--shadow-lg);
+}

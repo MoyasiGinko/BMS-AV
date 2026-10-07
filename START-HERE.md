@@ -3,7 +3,7 @@
 Drop this folder's contents into an empty repository and let Antigravity build the platform end to end.
 
 ## 1. One-time setup (about 10 minutes)
-1. Install: Python 3.12, Git, Docker Desktop (or local PostgreSQL 16 + Redis). Optional: Playwright browsers are installed by the agent.
+1. Install: **Python 3.14**, **uv** (`pip install uv` or see docs.astral.sh/uv), Git, Docker Desktop (or local PostgreSQL 18 + Redis 8). Node is NOT needed (only for the optional Context7 MCP). Playwright browsers are installed by the agent.
 2. Create a new folder, copy the entire kit into it (keep the hidden `.agent/` and `.agents/` folders), run `git init`.
 3. Open that folder as a workspace in Antigravity.
 4. **Agent autonomy settings** (Antigravity Settings -> Agent / Advanced; labels may differ slightly by version):
@@ -58,10 +58,10 @@ AGENTS.md / GEMINI.md          always-loaded operating manual (autonomy contract
 .agent/workflows/*.md          /build-all  /verify  /visual-qa  /fix-failures  /review-module  /final-audit
 .agent/STATE.md                resumable progress state
 .agents/skills/*/SKILL.md      6 skills: module scaffold, ledger posting, DRF endpoint, HTMX screen, tenant-isolation tests, events/webhooks
-docs/00..04-*.md               product story, architecture, domain model, API/integrations, testing spec
+docs/00..04-*.md, STACK.md     product story, architecture, domain model, API/integrations, testing spec, pinned latest tech stack
 docs/BACKLOG.md                ~75 ordered tasks with acceptance criteria (P0 foundations ... P7 delivery)
 docs/design/                   design system, tokens, visual reference mockup (open reference-screens.html)
-static/css/tokens.css, tailwind.config.js    design tokens + Tailwind mapping
+static/css/tokens.css, input.css   design tokens + Tailwind 4 theme mapping
 scripts/verify.sh, Makefile, pyproject.toml  the quality gate and tooling config
 tests/architecture/            tenancy, money, constraint and API protection audits
 .github/workflows/ci.yml, docker-compose.yml, .env.example

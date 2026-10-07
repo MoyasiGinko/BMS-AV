@@ -18,3 +18,10 @@ trigger: always_on
   constraints in `Meta.constraints`, `__str__`.
 - Settings split: `config/settings/{base,dev,test,prod,prod_check}.py`. Typed env parsing via django-environ. No secrets in code.
 - i18n from day one: wrap user-visible strings in `gettext`; org-level timezone/currency/date format.
+
+## Stack & modern Django (see docs/STACK.md for exact versions)
+- Django 6.1 / Python 3.14 / PostgreSQL 18. Use `uuid.uuid7()` for `public_id`. Use Django 6.x features: template partials, built-in CSP, field fetch modes
+  (tests run with the raise mode to catch N+1), `MAILERS`, DB-level `on_delete` where safe. Consult the official Django 6.1 docs for exact APIs.
+- Do NOT add: django-csp, django-redis, django-celery-beat, django-prometheus, django-otp, django-cotton (replaced by built-ins or incompatible with Django 6.1).
+- Celery stays the background engine; DB-driven schedules (report schedules, recurring invoices) are handled by one periodic "dispatch due schedules" task.
+- Any new dependency needs an ADR (why, maintenance status, Django 6.1 compatibility) and must pass `make deps-check`.

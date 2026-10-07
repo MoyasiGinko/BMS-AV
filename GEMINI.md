@@ -19,19 +19,20 @@ and `make verify` passes.
    implementation, log it in `docs/BLOCKERS.md`, move on.
 6. Persist progress in `.agent/STATE.md` and `docs/BACKLOG.md` after EVERY task so a fresh session can resume with `/build-all`.
 
-## Stack (fixed; do not re-debate)
-Python 3.12, Django 5.x, PostgreSQL 16, Redis, Celery, DRF + drf-spectacular, HTMX + Alpine.js + Tailwind (standalone CLI, no Node
-required), pytest, ruff, mypy (django-stubs), import-linter, factory_boy, hypothesis, Playwright (UI smoke).
+## Stack (fixed; exact versions in `docs/STACK.md`; do not re-debate or downgrade)
+Python 3.14, **Django 6.1**, PostgreSQL 18, Redis 8, uv, Celery 5.6, DRF 3.18 + drf-spectacular, django-allauth (MFA), HTMX 2 + Alpine 3 + **Tailwind 4**
+(standalone CLI via django-tailwind-cli, no Node), pytest 9, ruff, mypy 2, import-linter, factory_boy, hypothesis, Playwright. Use Django 6.x features
+(template partials, built-in CSP, fetch modes, MAILERS); see `docs/STACK.md`.
 
 ## Commands
-- `make setup`    install deps, start db/redis (docker or local), migrate
+- `make setup`    uv sync, start db/redis (docker or local), migrate;  `make deps-check`  lock/audit/compat
 - `make verify`   THE gate (lint, types, migrations, architecture, tests, schema, deploy check). Must pass before any task is done.
 - `make run`      dev server;  `make seed`  demo data;  `make worker`  celery
 
 ## Read before you code (progressive disclosure)
 | Working on | Read |
 |---|---|
-| anything | `docs/01-architecture.md`, `.agent/rules/*` |
+| anything | `docs/01-architecture.md`, `docs/STACK.md`, `.agent/rules/*` |
 | models/fields | `docs/02-domain-model.md` |
 | UI | `docs/design/design-system.md`, `docs/design/reference/reference-screens.html` (open it to see the target look), skill `htmx-screen` |
 | API/integrations | `docs/03-api-and-integrations.md`, skill `drf-endpoint` |

@@ -4,7 +4,7 @@ description: Build a list/detail/form screen with Django templates, HTMX partial
 ---
 # HTMX screen recipe
 
-Files: `views.py`, `urls.py`, `forms.py`, `templates/<app>/<thing>_list.html` (full page) + `_list_table.html` (fragment) + `_form.html` + `_detail.html`.
+Files: `views.py`, `urls.py`, `forms.py`, `templates/<app>/<thing>_list.html` containing the full page AND its fragments as `{% partialdef table %}...{% endpartialdef %}` (Django template partials), plus `<thing>_form.html`, `<thing>_detail.html`.
 
 ```python
 class ThingListView(TenantRequiredMixin, PermissionRequiredMixin, ListView):
@@ -12,7 +12,7 @@ class ThingListView(TenantRequiredMixin, PermissionRequiredMixin, ListView):
     paginate_by = 25
     def get_queryset(self): return selectors.things(search=self.request.GET.get("q"), status=self.request.GET.get("status"))
     def get_template_names(self):
-        return ["things/_list_table.html"] if self.request.htmx else ["things/thing_list.html"]
+        return ["things/thing_list.html#table"] if self.request.htmx else ["things/thing_list.html"]
 ```
 - Page skeleton: `{% extends "layouts/app.html" %}` -> `{% include "components/page_header.html" %}` -> filter bar (`hx-get`, `hx-trigger="input changed delay:300ms"`,
   `hx-target="#table"`, `hx-push-url="true"`) -> `components/data_table.html` -> pagination -> empty_state.

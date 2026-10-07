@@ -2,7 +2,7 @@
 Format: `ID title: Done when ...`
 
 ## P0 Foundations
-- [ ] P0-01 Scaffold project: config/ (settings base/dev/test/prod/prod_check, urls, api_urls, asgi/wsgi, celery), apps/ package, templates/static dirs, manage.py. Done when `make verify` passes on the empty project.
+- [ ] P0-01 Scaffold project (Python 3.14, Django 6.1, `uv lock` committed, settings use MAILERS/CSP/Redis cache per docs/STACK.md; run `pip check` and fix any compatibility issue per STACK.md policy): config/ (settings base/dev/test/prod/prod_check, urls, api_urls, asgi/wsgi, celery), apps/ package, templates/static dirs, manage.py. Done when `make verify` passes on the empty project.
 - [ ] P0-02 core base: TenantModel, TenantManager, tenant context var, TenantMiddleware (subdomain + membership fallback), money utils, base exceptions, NumberSequence. Done when architecture tests pass with sample model.
 - [ ] P0-03 accounts: custom User (email), allauth config, login/logout/password reset/email verify screens, optional TOTP 2FA. Done when tests + UI smoke login pass.
 - [ ] P0-04 tenancy: Organization, Membership, Role (+default roles), Invitation, Branch, Department, Warehouse, OrganizationSettings; org switcher; invite flow. Done when two orgs fully isolated in tests.
@@ -10,7 +10,7 @@ Format: `ID title: Done when ...`
 - [ ] P0-06 AuditLog + OutboxEvent + events.publish/subscribe + dispatcher task + event catalog. Done when atomicity/idempotency tests pass.
 - [ ] P0-07 Permission engine: permission codes registry, role->permission, `permission_required`, `feature_required`, object scope helpers, view mixins. Done when 3-layer tests pass for web.
 - [ ] P0-08 Celery + Redis wiring: base tenant-aware task, queues, beat schedule skeleton, `/healthz` `/readyz`. Done when a tenant task test passes.
-- [ ] P0-09 UI foundation: tokens.css, Tailwind standalone build, layouts (app shell, auth, public), full component library, `/_styleguide/` page, toasts, HTMX setup. Done when styleguide renders all components and UI smoke passes.
+- [ ] P0-09 UI foundation: tokens.css, Tailwind 4 build via django-tailwind-cli, vendored JS via scripts/vendor_frontend.sh, layouts (app shell, auth, public), full component library, `/_styleguide/` page, toasts, HTMX setup. Done when styleguide renders all components and UI smoke passes.
 - [ ] P0-10 DRF foundation (apps/core/api): TenantScopedViewSet, permission classes, pagination, exception handler, idempotency, request-id, rate limiting, spectacular setup, JWT auth. Done when sample endpoint passes contract tests and schema validates.
 - [ ] P0-11 Observability: structured JSON logging with request/org/user ids, Sentry hook (env-gated), security headers, `check --deploy` clean in prod_check settings.
 
