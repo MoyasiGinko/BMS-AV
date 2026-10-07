@@ -1,0 +1,14 @@
+{% load i18n %}
+{% for item in widgets %}
+  <div
+    id="widget-{{ item.widget_id }}"
+    class="{% if item.col_span == 12 %}col-span-1 md:col-span-12{% elif item.col_span == 8 %}col-span-1 md:col-span-8{% elif item.col_span == 6 %}col-span-1 md:col-span-6{% elif item.col_span == 4 %}col-span-1 md:col-span-4{% else %}col-span-1 md:col-span-12{% endif %}"
+  >
+    {{ item.html|safe }}
+  </div>
+{% empty %}
+  <div class="col-span-1 md:col-span-12 py-12 text-center bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl">
+    <h3 class="text-base font-semibold text-[var(--text)]">{% trans "No Active Dashboard Widgets" %}</h3>
+    <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "No widgets are currently visible." %}</p>
+  </div>
+{% endfor %}

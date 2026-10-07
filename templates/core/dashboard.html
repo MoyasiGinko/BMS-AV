@@ -1,0 +1,77 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Dashboard" %} - {{ organization.name }} - Business OS{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto" id="dashboard-root">
+
+  <!-- Welcome / Dashboard Top Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-[var(--border)]">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">
+          {% blocktrans with name=organization.name %}Welcome to {{ name }}{% endblocktrans %}
+        </h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--brand-50)] text-[var(--brand-700)] dark:bg-[var(--brand-950)] dark:text-[var(--brand-300)] border border-[var(--brand-200)] dark:border-[var(--brand-800)]">
+          {{ organization.slug }}
+        </span>
+      </div>
+      <p class="text-sm text-[var(--text-muted)] mt-1">
+        {% trans "Operational workspace dashboard and real-time business health monitoring." %}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      {% if checklist_dismissed %}
+      <a
+        href="{% url 'dashboard_reset_checklist' %}"
+        class="btn btn-secondary text-xs inline-flex items-center gap-1.5"
+        title="{% trans "Restore onboarding setup checklist" %}"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <span>{% trans "Show Checklist" %}</span>
+      </a>
+      {% endif %}
+
+      <button
+        type="button"
+        hx-get="{% url 'dashboard' %}?partial=widgets"
+        hx-target="#dashboard-widgets-container"
+        hx-swap="innerHTML"
+        class="btn btn-secondary text-xs inline-flex items-center gap-1.5"
+        title="{% trans "Refresh all dashboard widgets" %}"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span>{% trans "Refresh" %}</span>
+      </button>
+
+      <a href="{% url 'settings:general' %}" class="btn btn-secondary text-xs inline-flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>{% trans "Settings" %}</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Dynamic Widget Grid Container -->
+  <div id="dashboard-widgets-container" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+    {% for item in widgets %}
+      <div
+        id="widget-{{ item.widget_id }}"
+        class="{% if item.col_span == 12 %}col-span-1 md:col-span-12{% elif item.col_span == 8 %}col-span-1 md:col-span-8{% elif item.col_span == 6 %}col-span-1 md:col-span-6{% elif item.col_span == 4 %}col-span-1 md:col-span-4{% else %}col-span-1 md:col-span-12{% endif %}"
+      >
+        {{ item.html|safe }}
+      </div>
+    {% empty %}
+      <div class="col-span-1 md:col-span-12 py-12 text-center bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl">
+        <svg class="w-12 h-12 mx-auto text-[var(--text-muted)] opacity-50 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        <h3 class="text-base font-semibold text-[var(--text)]">{% trans "No Active Dashboard Widgets" %}</h3>
+        <p class="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
+          {% trans "No widgets are currently visible for your user role and plan entitlements." %}
+        </p>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

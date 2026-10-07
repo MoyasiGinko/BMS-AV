@@ -1,8 +1,8 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P1 SaaS shell
-- Last completed task: P1-05
-- Next task: P1-06
+- Last completed task: P1-06
+- Next task: P1-07
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (87.88% test coverage, 181 tests green, all architecture contracts kept, openapi valid, deploy check clean)
-- Notes: P1-05 implemented scoped, hashed API keys (ApiKey model with PostgreSQL RLS), DRF ApiKeyAuthentication backend supporting X-API-Key and Authorization headers, constant-time HMAC SHA-256 hash checks, expiration & IP allowlist filtering, ApiKeyRateThrottle with dynamic rates resolved by organization subscription plan (Starter: 60/min, Growth: 300/min, Business: 1000/min, Enterprise: 3000/min), decoupled telemetry usage metering (UsageCounter api_calls), DRF /api/v1/core/api-keys/ CRUD viewset with one-time raw secret token reveal on create and rotate, and full settings UI (/settings/api-keys/) with create, rotate (grace period support), and revoke workflows. All 181 tests passing at 87.88% coverage.
+- Last `make verify`: PASSED (88.13% test coverage, 193 tests green, all architecture contracts kept, openapi valid, deploy check clean)
+- Notes: P1-06 implemented modular dashboard shell with thread-safe extensible WidgetRegistry in apps.core.dashboard. Filtered dynamically by plan module entitlement, user permission, and visibility predicates. Implemented starter widgets: QuickActionsWidget, RecentAuditActivityWidget, OnboardingChecklistWidget (5 setup milestones with completion rate, action links, and session dismissal), and WorkspaceOverviewWidget (4 KPI metric cards). Added HTMX partial swap endpoints (/dashboard/widget/<id>/ and /?partial=widgets) with calm ledger styling. All 193 tests passing at 88.13% coverage.

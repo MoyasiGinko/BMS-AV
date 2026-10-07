@@ -20,7 +20,7 @@ Format: `ID title: Done when ...`
 - [x] P1-03 Payment gateway adapter (+ fake gateway), subscription state machine, gateway webhook (inbound, idempotent), grace period -> read-only mode, plan change/upgrade UI, invoices for subscription.
 - [x] P1-04 Settings screens: organization, branches, warehouses, departments, users & roles (custom roles), numbering, tax codes, currencies, notification prefs.
 - [x] P1-05 API keys (scoped, hashed, last-used, rotation) + API key auth backend + usage metering + rate limits per plan; UI to manage.
-- [ ] P1-06 Dashboard shell with widget registry (module/permission aware) and empty-state onboarding checklist.
+- [x] P1-06 Dashboard shell with widget registry (module/permission aware) and empty-state onboarding checklist.
 - [ ] P1-07 Back-office (internal staff) app: tenant lookup, impersonation with audit + banner, subscription overrides, job/webhook inspection.
 
 ## P2 Small-shop MVP: Catalog, Inventory, Customers, Sales, POS

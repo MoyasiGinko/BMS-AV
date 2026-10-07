@@ -136,6 +136,9 @@ def has_feature_entitlement(organization: Any, feature_code: str) -> bool:
     return True
 
 
+check_organization_feature_entitlement = has_feature_entitlement
+
+
 # ---------------------------------------------------------------------------
 # Layer 2: Role Permission
 # ---------------------------------------------------------------------------

@@ -4,9 +4,34 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from apps.core.views import healthz_view, readyz_view, styleguide_view
+from apps.core.views import (
+    dashboard_view,
+    dashboard_widget_partial_view,
+    dismiss_onboarding_checklist_view,
+    healthz_view,
+    readyz_view,
+    reset_onboarding_checklist_view,
+    styleguide_view,
+)
 
 urlpatterns = [
+    path("", dashboard_view, name="dashboard"),
+    path("dashboard/", dashboard_view, name="dashboard_alias"),
+    path(
+        "dashboard/widget/<str:widget_id>/",
+        dashboard_widget_partial_view,
+        name="dashboard_widget_partial",
+    ),
+    path(
+        "dashboard/checklist/dismiss/",
+        dismiss_onboarding_checklist_view,
+        name="dashboard_dismiss_checklist",
+    ),
+    path(
+        "dashboard/checklist/reset/",
+        reset_onboarding_checklist_view,
+        name="dashboard_reset_checklist",
+    ),
     path("_styleguide/", styleguide_view, name="styleguide"),
     path("healthz", healthz_view, name="healthz"),
     path("healthz/", healthz_view),
