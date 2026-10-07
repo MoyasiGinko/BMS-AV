@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 _current_org_id: ContextVar[int | None] = ContextVar("current_org_id", default=None)
 _current_org: ContextVar[Model | None] = ContextVar("current_org", default=None)
+_current_request_id: ContextVar[str | None] = ContextVar("current_request_id", default=None)
+_current_user_id: ContextVar[int | str | None] = ContextVar("current_user_id", default=None)
 
 
 def set_tenant_session(org_id: int | None, *, using: str = "default") -> None:
@@ -128,3 +130,19 @@ def tenant_context(org: Any) -> Iterator[Any]:
         _current_org.reset(token_org)
         _current_org_id.reset(token_id)
         set_tenant_session(prev_org_id)
+
+
+def get_current_request_id() -> str | None:
+    return _current_request_id.get()
+
+
+def set_current_request_id(req_id: str | None) -> None:
+    _current_request_id.set(req_id)
+
+
+def get_current_user_id() -> int | str | None:
+    return _current_user_id.get()
+
+
+def set_current_user_id(user_id: int | str | None) -> None:
+    _current_user_id.set(user_id)

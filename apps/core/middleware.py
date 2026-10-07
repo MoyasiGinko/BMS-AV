@@ -1,7 +1,8 @@
-"""Tenant and Request ID middleware for Business OS.
+"""Tenant, Request ID, and Security Headers middleware for Business OS.
 
-- RequestIdMiddleware: Assigns or propagates X-Request-ID on request and response.
+- RequestIdMiddleware: Assigns or propagates X-Request-ID on request and response and sets contextvar.
 - TenantMiddleware: Resolves tenant by header (API), subdomain, or active user membership fallback.
+- SecurityHeadersMiddleware: Inforces modern HTTP security headers (Permissions-Policy, etc.).
 """
 
 from __future__ import annotations
@@ -15,7 +16,11 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 
-from apps.core.tenant_context import tenant_context
+from apps.core.tenant_context import (
+    set_current_request_id,
+    set_current_user_id,
+    tenant_context,
+)
 
 if TYPE_CHECKING:
     from django.db.models import Model
@@ -54,9 +59,34 @@ class RequestIdMiddleware:
 
         request.request_id = req_id  # type: ignore[attr-defined]
         request.id = req_id  # type: ignore[attr-defined]
+        set_current_request_id(req_id)
 
-        response = self.get_response(request)
+        try:
+            response = self.get_response(request)
+        finally:
+            set_current_request_id(None)
+
         response["X-Request-ID"] = req_id
+        return response
+
+
+class SecurityHeadersMiddleware:
+    """Attaches standard security headers: Permissions-Policy, Referrer-Policy, nosniff."""
+
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        response = self.get_response(request)
+        response.setdefault(
+            "Permissions-Policy",
+            (
+                "accelerometer=(), camera=(), geolocation=(), gyroscope=(), "
+                "magnetometer=(), microphone=(), payment=(), usb=()"
+            ),
+        )
+        response.setdefault("X-Content-Type-Options", "nosniff")
+        response.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         return response
 
 
@@ -70,16 +100,23 @@ class TenantMiddleware:
         org = self.resolve_tenant(request)
         request.organization = org  # type: ignore[attr-defined]
 
-        with tenant_context(org):
-            # Check if current path requires a tenant and none was found
-            if org is None and self.is_tenant_required(request):
-                if not getattr(request.user, "is_authenticated", False):
-                    return redirect(f"{settings.LOGIN_URL}?next={request.path}")
-                # Authenticated user without active org: redirect to org selection
-                if apps.is_installed("apps.tenancy"):
-                    return redirect("/tenancy/select/")
+        user = getattr(request, "user", None)
+        user_id = getattr(user, "pk", None) if getattr(user, "is_authenticated", False) else None
+        set_current_user_id(user_id)
 
-            return self.get_response(request)
+        try:
+            with tenant_context(org):
+                # Check if current path requires a tenant and none was found
+                if org is None and self.is_tenant_required(request):
+                    if not getattr(request.user, "is_authenticated", False):
+                        return redirect(f"{settings.LOGIN_URL}?next={request.path}")
+                    # Authenticated user without active org: redirect to org selection
+                    if apps.is_installed("apps.tenancy"):
+                        return redirect("/tenancy/select/")
+
+                return self.get_response(request)
+        finally:
+            set_current_user_id(None)
 
     def is_tenant_required(self, request: HttpRequest) -> bool:
         """Return True if the requested path requires an active tenant."""
@@ -108,7 +145,12 @@ class TenantMiddleware:
         return self._resolve_from_user(request, org_model)
 
     def _resolve_from_header(self, request: HttpRequest, org_model: Any) -> Model | None:
-        header_val = request.headers.get("X-Organization-ID") or request.headers.get("X-Tenant-ID")
+        header_val = (
+            request.headers.get("X-Organization-ID")
+            or request.headers.get("X-Tenant-ID")
+            or request.META.get("HTTP_X_ORGANIZATION_ID")
+            or request.META.get("HTTP_X_TENANT_ID")
+        )
         if not header_val:
             return None
 
