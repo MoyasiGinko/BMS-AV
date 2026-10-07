@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Business OS - Multi-tenant SaaS Business Management Platform">
+  <title>{% block title %}Business OS{% endblock %}</title>
+
+  <!-- Prevent theme flicker -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('bos_theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = saved || (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Calm Ledger Tokens & Tailwind 4 -->
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+
+  <!-- Vendored JavaScript (No CDN dependencies) -->
+  <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
+  <script defer src="{% static 'vendor/alpine-collapse.min.js' %}"></script>
+  <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
+  <script defer src="{% static 'vendor/htmx.min.js' %}"></script>
+
+  <!-- Global Handlers & Listeners -->
+  <script>
+    window.toggleTheme = function() {
+      var current = document.documentElement.getAttribute('data-theme') || 'light';
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('bos_theme', next); } catch(e) {}
+      return next;
+    };
+
+    window.toast = function(message, type, duration) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: {
+          message: message || 'Notification',
+          type: type || 'info',
+          duration: duration === undefined ? 4000 : duration
+        }
+      }));
+    };
+
+    document.addEventListener('htmx:afterOnLoad', function(e) {
+      if (!e.detail || !e.detail.xhr) return;
+      var trigger = e.detail.xhr.getResponseHeader('HX-Trigger');
+      if (trigger) {
+        try {
+          var data = JSON.parse(trigger);
+          if (data.toast) {
+            var msg = typeof data.toast === 'string' ? data.toast : (data.toast.message || 'Updated');
+            var typ = typeof data.toast === 'object' && data.toast.type ? data.toast.type : 'success';
+            window.toast(msg, typ);
+          }
+        } catch (_) {}
+      }
+    });
+  </script>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full bg-[var(--bg)] text-[var(--text)] font-sans antialiased selection:bg-[var(--brand-100)] selection:text-[var(--brand-900)]" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <!-- Global HTMX Loading Bar -->
+  <div id="global-indicator" class="htmx-indicator fixed top-0 left-0 right-0 h-0.5 bg-[var(--brand-600)] z-50"></div>
+
+  <!-- Main Body Content -->
+  {% block body %}
+    {% block content %}{% endblock %}
+  {% endblock %}
+
+  <!-- Toast Notification Container (Aria-live) -->
+  <div
+    x-data="{
+      items: [],
+      add(message, type, duration) {
+        type = type || 'info';
+        duration = duration === undefined ? 4000 : duration;
+        var id = Date.now().toString() + Math.random().toString(36).substring(2, 6);
+        this.items.push({ id: id, message: message, type: type });
+        if (duration > 0) {
+          var self = this;
+          setTimeout(function() {
+            self.remove(id);
+          }, duration);
+        }
+      },
+      remove(id) {
+        this.items = this.items.filter(function(item) { return item.id !== id; });
+      }
+    }"
+    @toast.window="add($event.detail.message, $event.detail.type, $event.detail.duration)"
+    class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"
+    role="region"
+    aria-live="polite"
+    aria-label="Notifications"
+  >
+    <template x-for="item in items" :key="item.id">
+      <div
+        class="pointer-events-auto flex items-start gap-3 p-4 rounded-lg border shadow-lg transition-all duration-200 transform translate-y-0"
+        :class="{
+          'bg-[var(--surface)] text-[var(--text)] border-[var(--border)]': item.type === 'neutral',
+          'bg-[var(--success-bg)] text-[var(--success)] border-[var(--success-border)]': item.type === 'success',
+          'bg-[var(--warning-bg)] text-[var(--warning)] border-[var(--warning-border)]': item.type === 'warning',
+          'bg-[var(--danger-bg)] text-[var(--danger)] border-[var(--danger-border)]': item.type === 'error' || item.type === 'danger',
+          'bg-[var(--info-bg)] text-[var(--info)] border-[var(--info-border)]': item.type === 'info'
+        }"
+      >
+        <!-- Icon -->
+        <div class="shrink-0 mt-0.5">
+          <template x-if="item.type === 'success'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </template>
+          <template x-if="item.type === 'warning'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </template>
+          <template x-if="item.type === 'error' || item.type === 'danger'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </template>
+          <template x-if="item.type === 'info' || item.type === 'neutral'">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+          </template>
+        </div>
+        <!-- Message -->
+        <div class="flex-1 text-sm font-medium leading-tight" x-text="item.message"></div>
+        <!-- Close button -->
+        <button
+          type="button"
+          @click="remove(item.id)"
+          class="shrink-0 text-current opacity-70 hover:opacity-100 p-0.5 rounded transition-opacity"
+          aria-label="Dismiss notification"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </template>
+  </div>
+
+  <!-- Modal Container Root -->
+  <div id="modal-root"></div>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

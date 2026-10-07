@@ -1,0 +1,34 @@
+{% comment %}
+Card Component
+Usage:
+  {% include "components/card.html" with title="Overview" content="..." %}
+{% endcomment %}
+<div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] shadow-[var(--shadow-sm)] overflow-hidden {{ class }}">
+  {% if title or subtitle or actions %}
+    <div class="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between gap-4">
+      <div>
+        {% if title %}
+          <h3 class="text-base font-semibold text-[var(--text)] tracking-tight">{{ title }}</h3>
+        {% endif %}
+        {% if subtitle %}
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ subtitle }}</p>
+        {% endif %}
+      </div>
+      {% if actions %}
+        <div class="flex items-center gap-2">
+          {{ actions|safe }}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="{% if not no_padding %}p-5{% endif %}">
+    {{ content|safe }}
+  </div>
+
+  {% if footer %}
+    <div class="px-5 py-3 bg-[var(--surface-2)]/50 border-t border-[var(--border)] text-xs text-[var(--text-muted)] flex items-center justify-between">
+      {{ footer|safe }}
+    </div>
+  {% endif %}
+</div>

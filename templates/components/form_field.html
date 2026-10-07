@@ -1,0 +1,46 @@
+{% comment %}
+Form Field Wrapper Component
+Usage:
+  {% include "components/form_field.html" with label="Email Address" required=True hint="We'll never share it." %}
+{% endcomment %}
+<div class="space-y-1.5 w-full {{ class }}">
+  {% if label %}
+    <div class="flex items-center justify-between">
+      <label for="{% firstof id name 'field' %}" class="block text-sm font-medium text-[var(--text)]">
+        {{ label }}
+        {% if required %}
+          <span class="text-[var(--danger)] ml-0.5" aria-hidden="true">*</span>
+        {% endif %}
+      </label>
+      {% if badge %}
+        <span class="text-xs text-[var(--text-subtle)]">{{ badge }}</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Field Input Slot / Inclusion -->
+  <div class="mt-1">
+    {{ content|safe }}
+  </div>
+
+  <!-- Hint Text -->
+  {% if hint and not error and not errors %}
+    <p class="text-xs text-[var(--text-muted)]" id="{% firstof id name 'field' %}-hint">{{ hint }}</p>
+  {% endif %}
+
+  <!-- Error Text -->
+  {% if error %}
+    <div class="flex items-center gap-1.5 text-xs text-[var(--danger)] font-medium mt-1" role="alert">
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>{{ error }}</span>
+    </div>
+  {% endif %}
+  {% if errors %}
+    {% for err in errors %}
+      <div class="flex items-center gap-1.5 text-xs text-[var(--danger)] font-medium mt-1" role="alert">
+        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>{{ err }}</span>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>

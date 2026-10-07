@@ -1,0 +1,42 @@
+{% comment %}
+Avatar Component
+Usage:
+  {% include "components/avatar.html" with name="John Doe" size="md" %}
+{% endcomment %}
+<div class="relative inline-flex shrink-0 select-none {{ class }}">
+  {% if image_url %}
+    <img
+      src="{{ image_url }}"
+      alt="{{ name|default:'Avatar' }}"
+      class="rounded-full object-cover border border-[var(--border)]
+        {% if size == 'xs' %}w-6 h-6
+        {% elif size == 'sm' %}w-8 h-8
+        {% elif size == 'lg' %}w-12 h-12 text-base
+        {% else %}w-10 h-10 text-sm{% endif %}"
+    >
+  {% else %}
+    <div
+      class="rounded-full bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)] font-semibold flex items-center justify-center
+        {% if size == 'xs' %}w-6 h-6 text-[10px]
+        {% elif size == 'sm' %}w-8 h-8 text-xs
+        {% elif size == 'lg' %}w-12 h-12 text-base
+        {% else %}w-10 h-10 text-sm{% endif %}"
+    >
+      {{ initials|default:name|slice:":2"|upper|default:"U" }}
+    </div>
+  {% endif %}
+
+  {% if status %}
+    <span
+      class="absolute bottom-0 right-0 block rounded-full ring-2 ring-[var(--surface)]
+        {% if size == 'xs' %}w-1.5 h-1.5
+        {% elif size == 'sm' %}w-2 h-2
+        {% else %}w-2.5 h-2.5{% endif %}
+        {% if status == 'online' %}bg-[var(--success)]
+        {% elif status == 'busy' %}bg-[var(--danger)]
+        {% elif status == 'away' %}bg-[var(--warning)]
+        {% else %}bg-[var(--text-subtle)]{% endif %}"
+      aria-hidden="true"
+    ></span>
+  {% endif %}
+</div>

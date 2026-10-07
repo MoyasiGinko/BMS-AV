@@ -4,9 +4,10 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from apps.core.views import healthz_view, readyz_view
+from apps.core.views import healthz_view, readyz_view, styleguide_view
 
 urlpatterns = [
+    path("_styleguide/", styleguide_view, name="styleguide"),
     path("healthz", healthz_view, name="healthz"),
     path("healthz/", healthz_view),
     path("readyz", readyz_view, name="readyz"),

@@ -1,0 +1,34 @@
+{% comment %}
+Select Component
+Usage:
+  {% include "components/select.html" with name="status" options=status_options value="active" %}
+{% endcomment %}
+<div class="relative w-full">
+  <select
+    name="{{ name }}"
+    {% if id %}id="{{ id }}"{% elif name %}id="id_{{ name }}"{% endif %}
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if hx_get %}hx-get="{{ hx_get }}"{% endif %}
+    {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
+    class="w-full bg-[var(--surface)] text-[var(--text)] border rounded-md text-sm pl-3 pr-8 py-2 appearance-none transition-colors
+      focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)] focus:border-[var(--brand-600)]
+      disabled:opacity-50 disabled:bg-[var(--surface-2)] disabled:cursor-not-allowed
+      {% if error %}border-[var(--danger)] focus:ring-[var(--danger)] focus:border-[var(--danger)]
+      {% else %}border-[var(--border)]{% endif %}
+      {{ extra_classes }} {{ class }}"
+    {{ attrs|safe }}
+  >
+    {% if placeholder %}
+      <option value="" disabled {% if not value %}selected{% endif %}>{{ placeholder }}</option>
+    {% endif %}
+    {% for opt_val, opt_label in options %}
+      <option value="{{ opt_val }}" {% if value == opt_val|stringformat:"s" or value == opt_val %}selected{% endif %}>
+        {{ opt_label }}
+      </option>
+    {% endfor %}
+  </select>
+  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--text-muted)]">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+  </div>
+</div>

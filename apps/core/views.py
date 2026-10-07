@@ -6,9 +6,15 @@ import logging
 
 from django.core.cache import caches
 from django.db import connection
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import render
 
 logger = logging.getLogger(__name__)
+
+
+def styleguide_view(request: HttpRequest) -> HttpResponse:
+    """Render Calm Ledger design system styleguide and component showcase."""
+    return render(request, "core/styleguide.html")
 
 
 def healthz_view(request: HttpRequest) -> JsonResponse:

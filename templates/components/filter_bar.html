@@ -1,0 +1,33 @@
+{% comment %}
+Filter Bar Component
+Usage:
+  {% include "components/filter_bar.html" with search_placeholder="Search records..." %}
+{% endcomment %}
+<div class="p-3 sm:p-4 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] flex flex-wrap items-center justify-between gap-3 shadow-xs {{ class }}">
+  <!-- Search Input -->
+  <div class="relative flex-1 min-w-[200px] max-w-sm">
+    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-subtle)]">
+      {% include "components/icon.html" with name="search" class="w-4 h-4" %}
+    </div>
+    <input
+      type="search"
+      name="{{ search_name|default:'q' }}"
+      value="{{ search_value|default:'' }}"
+      placeholder="{{ search_placeholder|default:'Search records...' }}"
+      {% if hx_get %}hx-get="{{ hx_get }}"{% endif %}
+      {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
+      hx-trigger="input changed delay:300ms, search"
+      class="w-full pl-9 pr-3 py-1.5 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-[var(--text)] placeholder-[var(--text-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all"
+    >
+  </div>
+
+  <!-- Filter Pills / Extra Filters -->
+  <div class="flex items-center flex-wrap gap-2">
+    {{ filters|safe }}
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex items-center gap-2">
+    {{ actions|safe }}
+  </div>
+</div>

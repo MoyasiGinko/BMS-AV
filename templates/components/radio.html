@@ -1,0 +1,23 @@
+{% comment %}
+Radio Component
+Usage:
+  {% include "components/radio.html" with name="tier" value="standard" label="Standard Plan" checked=True %}
+{% endcomment %}
+<label class="inline-flex items-start gap-2.5 cursor-pointer select-none text-sm {% if disabled %}opacity-50 cursor-not-allowed{% endif %}">
+  <input
+    type="radio"
+    name="{{ name }}"
+    value="{{ value }}"
+    {% if id %}id="{{ id }}"{% endif %}
+    {% if checked %}checked{% endif %}
+    {% if disabled %}disabled{% endif %}
+    class="mt-0.5 rounded-full border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)] focus:ring-offset-0 transition-colors {{ class }}"
+    {{ attrs|safe }}
+  >
+  <div class="flex flex-col">
+    <span class="text-[var(--text)] font-medium">{{ label }}</span>
+    {% if hint %}
+      <span class="text-xs text-[var(--text-muted)]">{{ hint }}</span>
+    {% endif %}
+  </div>
+</label>

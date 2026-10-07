@@ -1,0 +1,34 @@
+{% comment %}
+Tabs Component
+Usage:
+  {% include "components/tabs.html" with tabs=tab_list active_tab="overview" %}
+{% endcomment %}
+<div class="border-b border-[var(--border)] {{ class }}">
+  <nav class="-mb-px flex space-x-6 overflow-x-auto" aria-label="Tabs">
+    {% for tab in tabs %}
+      <a
+        href="{{ tab.url|default:'#' }}"
+        {% if tab.hx_get %}hx-get="{{ tab.hx_get }}" hx-target="{{ tab.hx_target }}"{% endif %}
+        class="whitespace-nowrap py-3 px-1 border-b-2 text-sm font-medium transition-colors select-none no-underline flex items-center gap-2
+          {% if tab.is_active or active_tab == tab.id or active_tab == tab.name %}
+            border-[var(--brand-600)] text-[var(--brand-600)] font-semibold
+          {% else %}
+            border-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border-strong)]
+          {% endif %}"
+        {% if tab.is_active or active_tab == tab.id %}aria-current="page"{% endif %}
+      >
+        {% if tab.icon %}
+          {% include "components/icon.html" with name=tab.icon class="w-4 h-4" %}
+        {% endif %}
+        <span>{% firstof tab.name tab.label %}</span>
+        {% if tab.count is not None %}
+          <span class="rounded-full px-2 py-0.5 text-xs font-medium
+            {% if tab.is_active or active_tab == tab.id %}bg-[var(--brand-50)] text-[var(--brand-700)]
+            {% else %}bg-[var(--surface-2)] text-[var(--text-muted)]{% endif %}">
+            {{ tab.count }}
+          </span>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </nav>
+</div>

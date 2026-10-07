@@ -1,0 +1,332 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+{% block body %}
+<div
+  x-data="{
+    sidebarOpen: false,
+    sidebarCollapsed: localStorage.getItem('bos_sidebar_collapsed') === 'true',
+    toggleCollapse() {
+      this.sidebarCollapsed = !this.sidebarCollapsed;
+      localStorage.setItem('bos_sidebar_collapsed', this.sidebarCollapsed);
+    }
+  }"
+  class="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col"
+>
+  <!-- Mobile Sidebar Backdrop -->
+  <div
+    x-show="sidebarOpen"
+    x-cloak
+    style="display: none;"
+    @click="sidebarOpen = false"
+    class="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden transition-opacity"
+  ></div>
+
+  <!-- App Shell Grid/Flex -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Left Sidebar -->
+    <aside
+      :class="{
+        'translate-x-0': sidebarOpen,
+        '-translate-x-full lg:translate-x-0': !sidebarOpen,
+        'lg:w-16': sidebarCollapsed,
+        'lg:w-60': !sidebarCollapsed
+      }"
+      class="fixed inset-y-0 left-0 z-50 w-60 lg:static shrink-0 bg-[var(--surface)] border-r border-[var(--border)] flex flex-col transition-all duration-200 ease-out"
+    >
+      <!-- Brand Header -->
+      <div class="h-14 flex items-center justify-between px-4 border-b border-[var(--border)] shrink-0">
+        <a href="/" class="flex items-center gap-3 overflow-hidden text-[var(--text)] no-underline">
+          <div class="w-8 h-8 rounded-lg bg-[var(--brand-600)] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
+            B
+          </div>
+          <span x-show="!sidebarCollapsed" class="font-semibold text-base tracking-tight truncate">Business OS</span>
+        </a>
+        <button
+          type="button"
+          @click="toggleCollapse()"
+          class="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+          title="Toggle sidebar collapse"
+        >
+          <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': sidebarCollapsed }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <button
+          type="button"
+          @click="sidebarOpen = false"
+          class="lg:hidden p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="flex-1 overflow-y-auto px-2 py-4 space-y-5">
+        <!-- Main Group -->
+        <div>
+          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            Platform
+          </div>
+          <div class="space-y-1">
+            <a
+              href="/"
+              class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if request.path == '/' %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Dashboard"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Dashboard</span>
+            </a>
+            <a
+              href="/_styleguide/"
+              class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/_styleguide/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Styleguide"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Styleguide</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Sell Group -->
+        <div>
+          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            Sell
+          </div>
+          <div class="space-y-1">
+            <a href="#" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Sales">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Sales & Invoices</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Point of Sale">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Point of Sale</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Customers">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Customers</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Stock Group -->
+        <div>
+          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            Stock
+          </div>
+          <div class="space-y-1">
+            <a href="#" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Products">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Products & Items</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Inventory">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Inventory & Stock</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Purchasing">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Purchasing & Bills</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Finance Group -->
+        <div>
+          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            Finance
+          </div>
+          <div class="space-y-1">
+            <a href="#" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Accounting">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">General Ledger</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Reports">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Financial Reports</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- System Group -->
+        <div>
+          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            System
+          </div>
+          <div class="space-y-1">
+            <a
+              href="/tenancy/"
+              class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/tenancy/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Organizations"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Organizations</span>
+            </a>
+            <a href="/admin/" class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors" title="Settings">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Admin & Settings</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Sidebar Footer (Quick Help & Version) -->
+      <div x-show="!sidebarCollapsed" class="p-3 border-t border-[var(--border)] text-xs text-[var(--text-subtle)]">
+        <div class="flex items-center justify-between">
+          <span>v0.1.0</span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-[var(--success)]"></span>
+            <span>Online</span>
+          </span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area with Topbar -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <!-- Topbar -->
+      <header class="h-14 bg-[var(--surface)] border-b border-[var(--border)] px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 sticky top-0 z-30">
+        <!-- Left: Mobile Toggle & Tenant Selectors -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            @click="sidebarOpen = true"
+            class="lg:hidden p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+            aria-label="Open navigation menu"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+
+          <!-- Organization Switcher Pill -->
+          <div class="relative" x-data="{ open: false }">
+            <button
+              type="button"
+              @click="open = !open"
+              class="inline-flex items-center gap-2 px-2.5 py-1 text-xs sm:text-sm font-medium rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+            >
+              <svg class="w-3.5 h-3.5 text-[var(--brand-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              <span class="max-w-[120px] sm:max-w-[180px] truncate">{{ request.tenant.name|default:"Acme Trading Corp" }}</span>
+              <svg class="w-3 h-3 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            <div
+              x-show="open"
+              x-cloak
+              style="display: none;"
+              @click.away="open = false"
+              class="absolute left-0 mt-2 w-56 rounded-md bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)] py-1 z-50 text-sm"
+            >
+              <div class="px-3 py-1.5 text-xs text-[var(--text-muted)] font-medium uppercase tracking-wider">Switch Organization</div>
+              <a href="/tenancy/" class="block px-3 py-2 text-[var(--text)] hover:bg-[var(--surface-2)]">Manage Organizations</a>
+              <a href="/tenancy/create/" class="block px-3 py-2 text-[var(--brand-600)] font-medium hover:bg-[var(--surface-2)]">+ New Organization</a>
+            </div>
+          </div>
+
+          <!-- Branch Pill -->
+          <div class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full border border-[var(--border)] text-[var(--text-muted)] bg-[var(--surface)]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[var(--brand-500)]"></span>
+            <span>All branches</span>
+          </div>
+        </div>
+
+        <!-- Center: Search Input / Cmd+K -->
+        <div class="flex-1 max-w-md mx-2 hidden md:block">
+          <div class="relative flex items-center">
+            <svg class="w-4 h-4 absolute left-3 text-[var(--text-subtle)] pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input
+              type="text"
+              placeholder="Search or jump to... (Ctrl+K)"
+              class="w-full pl-9 pr-12 py-1.5 text-xs sm:text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-[var(--text)] placeholder-[var(--text-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)] focus:bg-[var(--surface)] transition-all"
+            >
+            <kbd class="absolute right-2.5 px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-subtle)] bg-[var(--surface)] border border-[var(--border)] rounded">Ctrl K</kbd>
+          </div>
+        </div>
+
+        <!-- Right: Actions, Theme Toggle, User Profile -->
+        <div class="flex items-center gap-2">
+          <!-- + New Action Button -->
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            <span class="hidden sm:inline">New</span>
+          </button>
+
+          <!-- Dark/Light Theme Switcher -->
+          <button
+            type="button"
+            id="theme-toggle-btn"
+            onclick="window.toggleTheme()"
+            class="p-2 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+            title="Toggle color theme"
+            aria-label="Toggle dark mode"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+
+          <!-- User Menu Dropdown -->
+          <div class="relative" x-data="{ open: false }">
+            <button
+              type="button"
+              @click="open = !open"
+              class="flex items-center gap-2 p-1 rounded-full hover:bg-[var(--surface-2)] transition-colors"
+              aria-label="User menu"
+            >
+              <div class="w-8 h-8 rounded-full bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text)] font-semibold text-xs flex items-center justify-center">
+                {% if request.user.is_authenticated %}
+                  {{ request.user.name|default:request.user.email|slice:":1"|upper }}
+                {% else %}
+                  G
+                {% endif %}
+              </div>
+            </button>
+            <div
+              x-show="open"
+              x-cloak
+              style="display: none;"
+              @click.away="open = false"
+              class="absolute right-0 mt-2 w-56 rounded-md bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-lg)] py-1 z-50 text-sm"
+            >
+              <div class="px-4 py-2 border-b border-[var(--border)]">
+                {% if request.user.is_authenticated %}
+                  <p class="font-medium text-[var(--text)] truncate">{{ request.user.name|default:"User" }}</p>
+                  <p class="text-xs text-[var(--text-muted)] truncate">{{ request.user.email }}</p>
+                {% else %}
+                  <p class="font-medium text-[var(--text)] truncate">Guest</p>
+                  <p class="text-xs text-[var(--text-muted)] truncate">Sign in to manage data</p>
+                {% endif %}
+              </div>
+              {% if request.user.is_authenticated %}
+                <a href="/accounts/password/change/" class="block px-4 py-2 text-[var(--text)] hover:bg-[var(--surface-2)]">Change Password</a>
+                <a href="/accounts/2fa/" class="block px-4 py-2 text-[var(--text)] hover:bg-[var(--surface-2)]">Two-Factor Auth</a>
+                <div class="border-t border-[var(--border)] my-1"></div>
+                <a href="/accounts/logout/" class="block px-4 py-2 text-[var(--danger)] hover:bg-[var(--surface-2)]">Sign Out</a>
+              {% else %}
+                <a href="/accounts/login/" class="block px-4 py-2 text-[var(--brand-600)] font-medium hover:bg-[var(--surface-2)]">Sign In</a>
+                <a href="/accounts/signup/" class="block px-4 py-2 text-[var(--text)] hover:bg-[var(--surface-2)]">Create Account</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Body Container -->
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-[var(--content-max)] w-full mx-auto">
+        <!-- Page Header Slot -->
+        {% block page_header %}{% endblock %}
+
+        <!-- Django Messages Banners -->
+        {% if messages %}
+          <div class="mb-6 space-y-2">
+            {% for message in messages %}
+              <div class="flex items-center justify-between p-3 text-sm rounded-lg border {% if message.tags == 'error' %}bg-[var(--danger-bg)] text-[var(--danger)] border-[var(--danger-border)]{% elif message.tags == 'warning' %}bg-[var(--warning-bg)] text-[var(--warning)] border-[var(--warning-border)]{% else %}bg-[var(--success-bg)] text-[var(--success)] border-[var(--success-border)]{% endif %}" role="alert">
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Primary View Content -->
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+</div>
+{% endblock %}

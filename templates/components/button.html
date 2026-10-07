@@ -1,0 +1,59 @@
+{% comment %}
+Button Component
+Usage:
+  {% include "components/button.html" with label="Save Changes" variant="primary" size="md" icon="check" %}
+  {% include "components/button.html" with label="Cancel" variant="secondary" href="/things/" %}
+Variants: primary, secondary, ghost, danger, success
+Sizes: sm, md, lg
+{% endcomment %}
+{% if href %}
+<a
+  href="{{ href }}"
+  class="inline-flex items-center justify-center font-medium rounded-md transition-colors cursor-pointer select-none no-underline
+    {% if size == 'sm' %}px-2.5 py-1 text-xs gap-1.5
+    {% elif size == 'lg' %}px-4.5 py-2.5 text-base gap-2.5
+    {% else %}px-3.5 py-2 text-sm gap-2{% endif %}
+    {% if variant == 'secondary' %}bg-[var(--surface)] text-[var(--text)] border border-[var(--border-strong)] hover:bg-[var(--surface-2)] shadow-xs
+    {% elif variant == 'ghost' %}bg-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]
+    {% elif variant == 'danger' %}bg-[var(--danger)] text-white hover:opacity-95 shadow-xs
+    {% elif variant == 'success' %}bg-[var(--success)] text-white hover:opacity-95 shadow-xs
+    {% else %}bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs{% endif %}
+    {{ extra_classes }} {{ class }}"
+  {% if id %}id="{{ id }}"{% endif %}
+  {% if target %}target="{{ target }}"{% endif %}
+  {% if hx_get %}hx-get="{{ hx_get }}"{% endif %}
+  {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
+  {% if hx_swap %}hx-swap="{{ hx_swap }}"{% endif %}
+  {{ attrs|safe }}
+>
+  {% if icon %}{% include "components/icon.html" with name=icon class="w-4 h-4 shrink-0" %}{% endif %}
+  <span>{% firstof label text "Button" %}</span>
+  {% if icon_after %}{% include "components/icon.html" with name=icon_after class="w-4 h-4 shrink-0" %}{% endif %}
+</a>
+{% else %}
+<button
+  type="{{ type|default:'button' }}"
+  class="inline-flex items-center justify-center font-medium rounded-md transition-colors cursor-pointer select-none disabled:opacity-50 disabled:pointer-events-none
+    {% if size == 'sm' %}px-2.5 py-1 text-xs gap-1.5
+    {% elif size == 'lg' %}px-4.5 py-2.5 text-base gap-2.5
+    {% else %}px-3.5 py-2 text-sm gap-2{% endif %}
+    {% if variant == 'secondary' %}bg-[var(--surface)] text-[var(--text)] border border-[var(--border-strong)] hover:bg-[var(--surface-2)] shadow-xs
+    {% elif variant == 'ghost' %}bg-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]
+    {% elif variant == 'danger' %}bg-[var(--danger)] text-white hover:opacity-95 shadow-xs
+    {% elif variant == 'success' %}bg-[var(--success)] text-white hover:opacity-95 shadow-xs
+    {% else %}bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs{% endif %}
+    {{ extra_classes }} {{ class }}"
+  {% if id %}id="{{ id }}"{% endif %}
+  {% if disabled %}disabled{% endif %}
+  {% if hx_get %}hx-get="{{ hx_get }}"{% endif %}
+  {% if hx_post %}hx-post="{{ hx_post }}"{% endif %}
+  {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
+  {% if hx_swap %}hx-swap="{{ hx_swap }}"{% endif %}
+  {% if hx_indicator %}hx-indicator="{{ hx_indicator }}"{% endif %}
+  {{ attrs|safe }}
+>
+  {% if icon %}{% include "components/icon.html" with name=icon class="w-4 h-4 shrink-0" %}{% endif %}
+  <span>{% firstof label text "Button" %}</span>
+  {% if icon_after %}{% include "components/icon.html" with name=icon_after class="w-4 h-4 shrink-0" %}{% endif %}
+</button>
+{% endif %}

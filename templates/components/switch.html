@@ -1,0 +1,35 @@
+{% comment %}
+Toggle Switch Component
+Usage:
+  {% include "components/switch.html" with name="auto_sync" label="Auto Synchronize" checked=True %}
+{% endcomment %}
+<label
+  x-data="{ checked: {{ checked|yesno:'true,false' }} }"
+  class="inline-flex items-center gap-3 cursor-pointer select-none {% if disabled %}opacity-50 cursor-not-allowed{% endif %}"
+>
+  <button
+    type="button"
+    role="switch"
+    :aria-checked="checked"
+    @click="if(!{{ disabled|yesno:'true,false' }}) { checked = !checked; $refs.input.checked = checked; }"
+    :class="{ 'bg-[var(--brand-600)]': checked, 'bg-[var(--border-strong)]': !checked }"
+    class="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)] focus:ring-offset-2"
+  >
+    <span
+      :class="{ 'translate-x-5': checked, 'translate-x-0': !checked }"
+      class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"
+    ></span>
+  </button>
+  <input
+    type="checkbox"
+    x-ref="input"
+    name="{{ name }}"
+    {% if id %}id="{{ id }}"{% elif name %}id="id_{{ name }}"{% endif %}
+    {% if checked %}checked{% endif %}
+    class="sr-only"
+    {{ attrs|safe }}
+  >
+  {% if label %}
+    <span class="text-sm font-medium text-[var(--text)]">{{ label }}</span>
+  {% endif %}
+</label>

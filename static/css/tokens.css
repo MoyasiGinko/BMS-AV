@@ -40,3 +40,4 @@ html { font-family:var(--font-sans); font-size:var(--fs-base); color:var(--text)
 .num, td.num, th.num { font-variant-numeric:tabular-nums; text-align:right; }
 :focus-visible { outline:none; box-shadow:var(--focus-ring); }
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+[x-cloak] { display: none !important; }

@@ -1,0 +1,45 @@
+{% comment %}
+KPI Metric Card Component
+Usage:
+  {% include "components/kpi.html" with label="Sales Today" value="$12,480.00" delta="8.2%" delta_dir="up" delta_text="vs yesterday" %}
+  {% include "components/kpi.html" with label="Receivables" value="$41,920.50" delta="$3,200" delta_dir="down" delta_text="overdue" %}
+{% endcomment %}
+<div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-5 shadow-[var(--shadow-sm)] flex flex-col justify-between transition-shadow hover:shadow-md {{ class }}">
+  <div class="flex items-center justify-between">
+    <span class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{{ label }}</span>
+    {% if icon %}
+      <div class="p-1.5 rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]">
+        {% include "components/icon.html" with name=icon class="w-4 h-4" %}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="my-3">
+    <div class="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--text)] font-mono tabular-nums">
+      {{ value }}
+    </div>
+  </div>
+
+  <div class="flex items-center gap-1.5 text-xs">
+    {% if delta %}
+      <span class="inline-flex items-center font-semibold
+        {% if delta_dir == 'up' %}text-[var(--success)]
+        {% elif delta_dir == 'down' %}text-[var(--danger)]
+        {% else %}text-[var(--text-muted)]{% endif %}"
+      >
+        {% if delta_dir == 'up' %}
+          <span class="mr-0.5">▲</span>
+        {% elif delta_dir == 'down' %}
+          <span class="mr-0.5">▼</span>
+        {% endif %}
+        {{ delta }}
+      </span>
+    {% endif %}
+    {% if delta_text %}
+      <span class="text-[var(--text-muted)]">{{ delta_text }}</span>
+    {% endif %}
+    {% if subtitle and not delta_text %}
+      <span class="text-[var(--text-muted)]">{{ subtitle }}</span>
+    {% endif %}
+  </div>
+</div>

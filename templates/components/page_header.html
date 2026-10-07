@@ -1,0 +1,39 @@
+{% comment %}
+Page Header Component
+Usage:
+  {% include "components/page_header.html" with title="Invoices" subtitle="Manage and issue customer invoices." %}
+{% endcomment %}
+<div class="mb-6 pb-4 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 {{ class }}">
+  <div>
+    {% if breadcrumbs %}
+      <nav class="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mb-1.5" aria-label="Breadcrumb">
+        {% for crumb in breadcrumbs %}
+          {% if not forloop.first %}
+            <svg class="w-3.5 h-3.5 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          {% endif %}
+          {% if crumb.url and not forloop.last %}
+            <a href="{{ crumb.url }}" class="hover:text-[var(--text)] transition-colors no-underline">{{ crumb.name }}</a>
+          {% else %}
+            <span class="font-medium text-[var(--text)]">{{ crumb.name }}</span>
+          {% endif %}
+        {% endfor %}
+      </nav>
+    {% endif %}
+
+    <h1 class="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--text)]">
+      {{ title }}
+    </h1>
+
+    {% if subtitle %}
+      <p class="mt-1 text-xs sm:text-sm text-[var(--text-muted)]">
+        {{ subtitle }}
+      </p>
+    {% endif %}
+  </div>
+
+  {% if actions %}
+    <div class="flex items-center gap-2.5 shrink-0">
+      {{ actions|safe }}
+    </div>
+  {% endif %}
+</div>

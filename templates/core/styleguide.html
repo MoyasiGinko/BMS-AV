@@ -1,0 +1,429 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+
+{% block title %}Styleguide & Component Library | Business OS{% endblock %}
+
+{% block page_header %}
+<div class="mb-8 pb-4 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div>
+    <nav class="flex items-center gap-1.5 text-xs text-[var(--text-muted)] mb-1.5" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-[var(--text)] transition-colors no-underline">Platform</a>
+      <svg class="w-3.5 h-3.5 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      <span class="font-medium text-[var(--text)]">Design System</span>
+    </nav>
+    <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Calm Ledger Styleguide</h1>
+    <p class="mt-1 text-sm text-[var(--text-muted)]">Living reference of tokens, components, and interactive patterns.</p>
+  </div>
+
+  <div class="flex items-center gap-2.5">
+    <button
+      type="button"
+      id="test-open-modal-btn"
+      @click="$dispatch('open-modal', 'demo-styleguide-modal')"
+      class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-md bg-[var(--surface)] text-[var(--text)] border border-[var(--border-strong)] hover:bg-[var(--surface-2)] transition-colors shadow-xs"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+      <span>Open Demo Modal</span>
+    </button>
+
+    <button
+      type="button"
+      id="test-trigger-toast-btn"
+      onclick="window.toast('Styleguide notification triggered successfully!', 'success')"
+      class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+      <span>Trigger Toast</span>
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-12 pb-16">
+  <!-- 1. Color Tokens Palette -->
+  <section id="section-colors" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">1. Color Tokens</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">static/css/tokens.css</span>
+    </div>
+
+    <!-- Brand Colors -->
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Brand (Ink-Teal)</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-50)] border border-[var(--brand-100)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-50</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#f0fdfa</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-100)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-100</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#ccfbf1</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-500)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-500</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#14b8a6</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-600)] mb-2"></div>
+          <span class="text-xs font-semibold text-[var(--text)]">--brand-600</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#0f766e</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-700)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-700</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#115e59</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-900)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-900</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#134e4a</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Semantic Status Colors -->
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Semantic Colors</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="p-3 rounded-lg border border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success)] flex flex-col items-center text-center">
+          <div class="w-full h-10 rounded bg-[var(--success)] mb-2"></div>
+          <span class="text-xs font-semibold">Success</span>
+          <span class="text-[11px] font-mono">#15803d</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning)] flex flex-col items-center text-center">
+          <div class="w-full h-10 rounded bg-[var(--warning)] mb-2"></div>
+          <span class="text-xs font-semibold">Warning</span>
+          <span class="text-[11px] font-mono">#b45309</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger)] flex flex-col items-center text-center">
+          <div class="w-full h-10 rounded bg-[var(--danger)] mb-2"></div>
+          <span class="text-xs font-semibold">Danger</span>
+          <span class="text-[11px] font-mono">#b91c1c</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] text-[var(--info)] flex flex-col items-center text-center">
+          <div class="w-full h-10 rounded bg-[var(--info)] mb-2"></div>
+          <span class="text-xs font-semibold">Info</span>
+          <span class="text-[11px] font-mono">#1d4ed8</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Typography & Numerics -->
+  <section id="section-typography" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">2. Typography & Numerics</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">Inter + JetBrains Mono (Tabular)</span>
+    </div>
+
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-baseline">
+        <div class="space-y-3">
+          <div>
+            <div class="text-xs text-[var(--text-subtle)] font-mono">Display 2XL (30px / 600)</div>
+            <div class="text-[30px] font-semibold tracking-tight text-[var(--text)] leading-tight">Financial Overview</div>
+          </div>
+          <div>
+            <div class="text-xs text-[var(--text-subtle)] font-mono">Heading XL (24px / 600)</div>
+            <div class="text-2xl font-semibold tracking-tight text-[var(--text)]">Good morning, Acme Trading</div>
+          </div>
+          <div>
+            <div class="text-xs text-[var(--text-subtle)] font-mono">Heading LG (20px / 600)</div>
+            <div class="text-xl font-semibold text-[var(--text)]">Invoices & Receivables</div>
+          </div>
+          <div>
+            <div class="text-xs text-[var(--text-subtle)] font-mono">Body Base (14px / 400)</div>
+            <div class="text-sm text-[var(--text)]">Calm Ledger balances density with breathing room for financial operators.</div>
+          </div>
+        </div>
+
+        <div class="space-y-3 bg-[var(--surface-2)] p-4 rounded-lg border border-[var(--border)]">
+          <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)]">First-Class Numerics (Tabular)</div>
+          <div class="space-y-1 font-mono text-base tabular-nums">
+            <div class="flex justify-between py-1 border-b border-[var(--border)]">
+              <span class="text-[var(--text-muted)]">INV-00231 Balance:</span>
+              <span class="font-semibold text-[var(--text)]">$1,240.00</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-[var(--border)]">
+              <span class="text-[var(--text-muted)]">INV-00230 Partially Paid:</span>
+              <span class="font-semibold text-[var(--warning)]">$3,980.50</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-[var(--border)]">
+              <span class="text-[var(--text-muted)]">INV-00229 Overdue:</span>
+              <span class="font-semibold text-[var(--danger)]">($860.00)</span>
+            </div>
+            <div class="flex justify-between py-1 pt-2 font-bold text-lg">
+              <span class="text-[var(--text)]">Net Position:</span>
+              <span class="text-[var(--brand-600)]">$4,360.50</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Buttons Showcase -->
+  <section id="section-buttons" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">3. Buttons</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/button.html</span>
+    </div>
+
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 space-y-6">
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Variants</div>
+        <div class="flex flex-wrap items-center gap-3">
+          {% include "components/button.html" with label="Primary Action" variant="primary" %}
+          {% include "components/button.html" with label="Secondary" variant="secondary" %}
+          {% include "components/button.html" with label="Ghost Button" variant="ghost" %}
+          {% include "components/button.html" with label="Destructive" variant="danger" %}
+          {% include "components/button.html" with label="Success" variant="success" %}
+          {% include "components/button.html" with label="Disabled" disabled=True %}
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Sizes & Icons</div>
+        <div class="flex flex-wrap items-center gap-3">
+          {% include "components/button.html" with label="Small" size="sm" icon="plus" %}
+          {% include "components/button.html" with label="Medium (Default)" size="md" icon="plus" %}
+          {% include "components/button.html" with label="Large" size="lg" icon="plus" %}
+          {% include "components/button.html" with label="With Chevron" variant="secondary" icon_after="chevron-down" %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Badges & Status Pills -->
+  <section id="section-badges" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">4. Status Pills & Badges</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/status_pill.html</span>
+    </div>
+
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 space-y-4">
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Document & Workflow Statuses</div>
+        <div class="flex flex-wrap items-center gap-3">
+          {% include "components/status_pill.html" with status="paid" label="Paid" %}
+          {% include "components/status_pill.html" with status="partially_paid" label="Partially Paid" %}
+          {% include "components/status_pill.html" with status="overdue" label="Overdue" %}
+          {% include "components/status_pill.html" with status="draft" label="Draft" %}
+          {% include "components/status_pill.html" with status="posted" label="Posted" %}
+          {% include "components/status_pill.html" with status="void" label="Void" %}
+          {% include "components/status_pill.html" with status="processing" label="Processing" %}
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">System Badges</div>
+        <div class="flex flex-wrap items-center gap-3">
+          {% include "components/badge.html" with variant="success" label="Active Org" %}
+          {% include "components/badge.html" with variant="warning" label="Trial Expires in 3d" %}
+          {% include "components/badge.html" with variant="danger" label="MFA Required" %}
+          {% include "components/badge.html" with variant="info" label="SaaS Enterprise" %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. KPI Metric Cards -->
+  <section id="section-kpis" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">5. KPI Metric Cards</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/kpi.html</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {% include "components/kpi.html" with label="Sales Today" value="$12,480.00" delta="8.2%" delta_dir="up" delta_text="vs yesterday" %}
+      {% include "components/kpi.html" with label="Receivables" value="$41,920.50" delta="$3,200" delta_dir="down" delta_text="overdue" %}
+      {% include "components/kpi.html" with label="Payables" value="$18,305.00" delta="5 bills" delta_dir="neutral" delta_text="due this week" %}
+      {% include "components/kpi.html" with label="Low Stock" value="14 items" delta="3 items" delta_dir="down" delta_text="out of stock" %}
+    </div>
+  </section>
+
+  <!-- 6. Form Controls & Validation -->
+  <section id="section-forms" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">6. Form Controls & Validation</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/form_field.html</span>
+    </div>
+
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6">
+      <form class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl" onsubmit="event.preventDefault(); window.toast('Form submitted!', 'success');">
+        <!-- Text Input with Prefix -->
+        {% include "components/form_field.html" with label="Customer Name" required=True hint="Legal company or person name." content='<div class="relative flex items-center w-full"><input type="text" name="customer_name" value="Acme Corporation" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"></div>' %}
+
+        <!-- Tabular Price Input -->
+        {% include "components/form_field.html" with label="Unit Price" required=True hint="Standard selling price per unit." content='<div class="relative flex items-center w-full"><span class="absolute left-3 text-[var(--text-subtle)] text-sm font-medium select-none">$</span><input type="text" name="price" value="120.00" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-md text-sm pl-8 pr-3 py-2 font-mono tabular-nums text-right focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"></div>' %}
+
+        <!-- Select Dropdown -->
+        {% include "components/form_field.html" with label="Payment Terms" required=True content='<div class="relative w-full"><select name="terms" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-md text-sm pl-3 pr-8 py-2 appearance-none focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"><option value="net30">Net 30 Days</option><option value="due_receipt">Due on Receipt</option><option value="net60">Net 60 Days</option></select><div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--text-muted)]"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div></div>' %}
+
+        <!-- Input with Validation Error -->
+        {% include "components/form_field.html" with label="Tax ID / VAT" required=True error="Invalid VAT identification format." content='<div class="relative flex items-center w-full"><input type="text" name="tax_id" value="INVALID-123" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--danger)] rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--danger)]"></div>' %}
+
+        <!-- Textarea -->
+        <div class="md:col-span-2">
+          {% include "components/form_field.html" with label="Invoice Notes" hint="Optional remarks shown on invoice PDF." content='<textarea rows="3" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-md text-sm p-3 focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]" placeholder="Thank you for your business."></textarea>' %}
+        </div>
+
+        <!-- Toggles & Checkboxes -->
+        <div class="md:col-span-2 flex flex-wrap items-center gap-6 pt-2">
+          {% include "components/checkbox.html" with name="email_receipt" label="Email copy to customer" checked=True %}
+          {% include "components/switch.html" with name="auto_post" label="Post automatically to General Ledger" checked=True %}
+        </div>
+
+        <!-- Form Actions -->
+        <div class="md:col-span-2 flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
+          {% include "components/button.html" with label="Discard" variant="ghost" %}
+          {% include "components/button.html" with label="Save Record" variant="primary" type="submit" %}
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- 7. Data Table & Pagination -->
+  <section id="section-table" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">7. List Pattern: Invoices Table</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/data_table.html</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="p-3 bg-[var(--surface)] border border-[var(--border)] rounded-t-[var(--radius-md)] flex flex-wrap items-center justify-between gap-3">
+      <div class="relative flex-1 min-w-[200px] max-w-xs">
+        <svg class="w-4 h-4 absolute left-3 top-2.5 text-[var(--text-subtle)] pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input
+          type="search"
+          placeholder="Search invoices…"
+          class="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-[var(--text)] placeholder-[var(--text-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"
+        >
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 text-xs rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]">Status: All</span>
+        <span class="px-2.5 py-1 text-xs rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]">This Month</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        {% include "components/button.html" with label="Export" variant="secondary" size="sm" %}
+        {% include "components/button.html" with label="Create invoice" variant="primary" size="sm" icon="plus" %}
+      </div>
+    </div>
+
+    <!-- Data Table Container -->
+    <div class="overflow-x-auto border-x border-b border-[var(--border)] rounded-b-[var(--radius-md)] bg-[var(--surface)]">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-[var(--surface-2)] border-b border-[var(--border)] text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">
+            <th class="py-2.5 px-4">Number</th>
+            <th class="py-2.5 px-4">Customer</th>
+            <th class="py-2.5 px-4">Date</th>
+            <th class="py-2.5 px-4">Status</th>
+            <th class="py-2.5 px-4 text-right tabular-nums font-mono">Total</th>
+            <th class="py-2.5 px-4 text-right tabular-nums font-mono">Balance</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+            <td class="py-3 px-4 font-mono font-medium text-[var(--text)]">INV-00231</td>
+            <td class="py-3 px-4 text-[var(--text)] font-medium">Northwind Ltd</td>
+            <td class="py-3 px-4 text-[var(--text-muted)]">12 Mar 2026</td>
+            <td class="py-3 px-4">{% include "components/status_pill.html" with status="paid" label="Paid" %}</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--text)]">1,240.00</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--text-subtle)]">—</td>
+          </tr>
+          <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+            <td class="py-3 px-4 font-mono font-medium text-[var(--text)]">INV-00230</td>
+            <td class="py-3 px-4 text-[var(--text)] font-medium">Contoso Retail</td>
+            <td class="py-3 px-4 text-[var(--text-muted)]">11 Mar 2026</td>
+            <td class="py-3 px-4">{% include "components/status_pill.html" with status="partially_paid" label="Partially paid" %}</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--text)]">3,980.50</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--warning)] font-semibold">1,500.00</td>
+          </tr>
+          <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+            <td class="py-3 px-4 font-mono font-medium text-[var(--text)]">INV-00229</td>
+            <td class="py-3 px-4 text-[var(--text)] font-medium">Fabrikam</td>
+            <td class="py-3 px-4 text-[var(--text-muted)]">02 Mar 2026</td>
+            <td class="py-3 px-4">{% include "components/status_pill.html" with status="overdue" label="Overdue" %}</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--text)]">860.00</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--danger)] font-semibold">860.00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination Component -->
+      {% include "components/pagination.html" %}
+    </div>
+  </section>
+
+  <!-- 8. Interactive Toasts & Alerts -->
+  <section id="section-toasts-alerts" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">8. Alerts & Feedback</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/alert.html</span>
+    </div>
+
+    <div class="space-y-4">
+      <!-- Toast Triggers -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Live Toast Emitters</div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onclick="window.toast('Payment of $1,240.00 posted successfully.', 'success')"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success-border)] hover:opacity-90"
+          >
+            Emit Success Toast
+          </button>
+          <button
+            type="button"
+            onclick="window.toast('Low stock warning: 3 items below reorder level.', 'warning')"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--warning-bg)] text-[var(--warning)] border border-[var(--warning-border)] hover:opacity-90"
+          >
+            Emit Warning Toast
+          </button>
+          <button
+            type="button"
+            onclick="window.toast('Server transaction failed: Database deadlock rollback.', 'danger')"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)] hover:opacity-90"
+          >
+            Emit Danger Toast
+          </button>
+          <button
+            type="button"
+            onclick="window.toast('Report export scheduled in background.', 'info')"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--info-bg)] text-[var(--info)] border border-[var(--info-border)] hover:opacity-90"
+          >
+            Emit Info Toast
+          </button>
+        </div>
+      </div>
+
+      <!-- Banner Alerts -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% include "components/alert.html" with variant="success" title="Reconciliation Complete" message="All 14 bank statements matched with general ledger." dismissible=True %}
+        {% include "components/alert.html" with variant="warning" title="Action Required" message="Fiscal year end closing period starts in 5 business days." dismissible=True %}
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Empty State -->
+  <section id="section-empty-state" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">9. Empty State</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/empty_state.html</span>
+    </div>
+
+    {% include "components/empty_state.html" with title="No purchase orders created yet" description="Track incoming vendor shipments, receipts, and accounts payable." action_label="Create Purchase Order" action_href="#" %}
+  </section>
+</div>
+
+<!-- Demo Modal for Interactive Smoke Testing -->
+{% include "components/modal.html" with id="demo-styleguide-modal" title="Styleguide Interactive Modal" content="This modal tests Alpine.js focus trapping, Escape key dismiss, and Calm Ledger backdrop styling." footer='<button type="button" @click="open = false" id="modal-cancel-btn" class="px-3.5 py-2 text-sm font-medium rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)]">Cancel</button><button type="button" @click="open = false; $dispatch(&apos;toast&apos;, { message: &apos;Modal action confirmed!&apos;, type: &apos;success&apos; });" id="modal-confirm-btn" class="px-3.5 py-2 text-sm font-medium rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]">Confirm</button>' %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% comment %}
+Textarea Component
+Usage:
+  {% include "components/textarea.html" with name="notes" rows=4 placeholder="Add remarks..." %}
+{% endcomment %}
+<textarea
+  name="{{ name }}"
+  {% if id %}id="{{ id }}"{% elif name %}id="id_{{ name }}"{% endif %}
+  rows="{{ rows|default:3 }}"
+  {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+  {% if required %}required{% endif %}
+  {% if disabled %}disabled{% endif %}
+  {% if readonly %}readonly{% endif %}
+  class="w-full bg-[var(--surface)] text-[var(--text)] border rounded-md text-sm p-3 transition-colors
+    placeholder-[var(--text-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)] focus:border-[var(--brand-600)]
+    disabled:opacity-50 disabled:bg-[var(--surface-2)] disabled:cursor-not-allowed
+    {% if error %}border-[var(--danger)] focus:ring-[var(--danger)] focus:border-[var(--danger)]
+    {% else %}border-[var(--border)]{% endif %}
+    {{ extra_classes }} {{ class }}"
+  {{ attrs|safe }}
+>{{ value|default:"" }}</textarea>

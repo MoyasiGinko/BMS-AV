@@ -1,0 +1,45 @@
+{% comment %}
+Input Component
+Usage:
+  {% include "components/input.html" with name="email" type="email" placeholder="you@example.com" %}
+  {% include "components/input.html" with name="price" prefix="$" tabular=True value="120.00" %}
+{% endcomment %}
+<div class="relative flex items-center w-full">
+  {% if prefix %}
+    <span class="absolute left-3 text-[var(--text-subtle)] text-sm font-medium pointer-events-none select-none">
+      {{ prefix }}
+    </span>
+  {% endif %}
+  <input
+    type="{{ type|default:'text' }}"
+    name="{{ name }}"
+    {% if id %}id="{{ id }}"{% elif name %}id="id_{{ name }}"{% endif %}
+    {% if value is not None %}value="{{ value }}"{% endif %}
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if required %}required{% endif %}
+    {% if disabled %}disabled{% endif %}
+    {% if readonly %}readonly{% endif %}
+    {% if step %}step="{{ step }}"{% endif %}
+    {% if min %}min="{{ min }}"{% endif %}
+    {% if max %}max="{{ max }}"{% endif %}
+    {% if hx_trigger %}hx-trigger="{{ hx_trigger }}"{% endif %}
+    {% if hx_get %}hx-get="{{ hx_get }}"{% endif %}
+    {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
+    class="w-full bg-[var(--surface)] text-[var(--text)] border rounded-md text-sm transition-colors
+      placeholder-[var(--text-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)] focus:border-[var(--brand-600)]
+      disabled:opacity-50 disabled:bg-[var(--surface-2)] disabled:cursor-not-allowed
+      {% if prefix %}pl-8{% else %}pl-3{% endif %}
+      {% if suffix %}pr-8{% else %}pr-3{% endif %}
+      py-2
+      {% if error %}border-[var(--danger)] focus:ring-[var(--danger)] focus:border-[var(--danger)]
+      {% else %}border-[var(--border)]{% endif %}
+      {% if tabular %}num font-mono text-right{% endif %}
+      {{ extra_classes }} {{ class }}"
+    {{ attrs|safe }}
+  >
+  {% if suffix %}
+    <span class="absolute right-3 text-[var(--text-subtle)] text-sm font-medium pointer-events-none select-none">
+      {{ suffix }}
+    </span>
+  {% endif %}
+</div>

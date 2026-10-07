@@ -1,0 +1,64 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+{% block body %}
+<div class="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col">
+  <!-- Public Navigation Bar -->
+  <header class="h-16 bg-[var(--surface)] border-b border-[var(--border)] px-4 sm:px-6 lg:px-8 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-4">
+      <a href="/" class="flex items-center gap-3 text-[var(--text)] no-underline">
+        <div class="w-8 h-8 rounded-lg bg-[var(--brand-600)] text-white flex items-center justify-center font-bold text-base shadow-xs">
+          B
+        </div>
+        <span class="font-semibold text-lg tracking-tight">Business OS</span>
+      </a>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Dark/Light Theme Switcher -->
+      <button
+        type="button"
+        @click="$store.theme.toggle()"
+        class="p-2 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+        aria-label="Toggle theme"
+      >
+        <template x-if="$store.theme.mode === 'dark'">
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </template>
+        <template x-if="$store.theme.mode !== 'dark'">
+          <svg class="w-4 h-4 text-[var(--n-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        </template>
+      </button>
+
+      {% if user.is_authenticated %}
+        <a href="/" class="inline-flex items-center px-3.5 py-1.5 text-sm font-medium rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors">
+          Go to Dashboard
+        </a>
+      {% else %}
+        <a href="/accounts/login/" class="px-3 py-1.5 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
+          Sign In
+        </a>
+        <a href="/accounts/signup/" class="inline-flex items-center px-3.5 py-1.5 text-sm font-medium rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs">
+          Get Started
+        </a>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-[var(--content-max)] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-[var(--border)] bg-[var(--surface)] py-6 text-center text-xs text-[var(--text-subtle)]">
+    <div class="max-w-[var(--content-max)] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>&copy; {% now "Y" %} Business OS. All rights reserved.</div>
+      <div class="flex items-center gap-6">
+        <a href="/_styleguide/" class="hover:text-[var(--text)] transition-colors">Design System</a>
+        <a href="/api/docs/" class="hover:text-[var(--text)] transition-colors">API Docs</a>
+      </div>
+    </div>
+  </footer>
+</div>
+{% endblock %}
