@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 from typing import Any
 
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from apps.billing.models import Plan, PlanModule, Subscription, UsageCounter
+from apps.billing.models import Plan, PlanModule, Subscription, SubscriptionInvoice, UsageCounter
 from apps.billing.registry import registry
 from apps.core.permissions import get_user_membership
 
@@ -82,3 +83,25 @@ def get_current_usage(
         qs = qs.filter(metric=metric)
 
     return qs.order_by("metric")
+
+
+def list_subscription_invoices(organization: Any) -> QuerySet[SubscriptionInvoice]:
+    """List subscription invoices for the organization ordered newest first."""
+    if organization is None:
+        return SubscriptionInvoice.objects.none()
+    return SubscriptionInvoice.all_tenants.filter(organization=organization).order_by("-created_at")
+
+
+def get_subscription_invoice(organization: Any, invoice_id: Any) -> SubscriptionInvoice | None:
+    """Retrieve a single subscription invoice by public UUID or ID."""
+    if organization is None:
+        return None
+    qs = SubscriptionInvoice.all_tenants.filter(organization=organization)
+    try:
+        val = uuid.UUID(str(invoice_id))
+        return qs.filter(public_id=val).first()
+    except ValueError, AttributeError:
+        pass
+    if str(invoice_id).isdigit():
+        return qs.filter(id=int(invoice_id)).first()
+    return None

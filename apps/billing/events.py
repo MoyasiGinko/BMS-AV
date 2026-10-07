@@ -37,3 +37,29 @@ class SubscriptionCanceledEvent(DomainEvent):
     subscription_id: int
     plan_slug: str
     immediate: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class SubscriptionPaymentFailedEvent(DomainEvent):
+    """Fired when subscription payment fails and entered past-due grace period."""
+
+    event_type: ClassVar[str] = "subscription.payment_failed"
+    subscription_id: int
+    grace_period_end: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SubscriptionRenewedEvent(DomainEvent):
+    """Fired when subscription payment succeeds and cycle is renewed."""
+
+    event_type: ClassVar[str] = "subscription.renewed"
+    subscription_id: int
+    new_period_end: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class SubscriptionReadOnlyEvent(DomainEvent):
+    """Fired when an organization enters read-only mode after grace period expiration."""
+
+    event_type: ClassVar[str] = "subscription.read_only_entered"
+    subscription_id: int

@@ -16,6 +16,7 @@ GLOBAL_ALLOWLIST = {
     "billing.Plan",
     "billing.Module",
     "billing.PlanModule",
+    "billing.ProcessedWebhookEvent",  # ADR 0005: gateway-level webhook idempotency ledger
     "core.OutboxEvent",  # carries organization_id but is processed system-wide
 }
 

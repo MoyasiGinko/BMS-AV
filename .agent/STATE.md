@@ -1,8 +1,8 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P1 SaaS shell
-- Last completed task: P1-02
-- Next task: P1-03
+- Last completed task: P1-03
+- Next task: P1-04
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (87.24% test coverage, 122 tests green, all architecture contracts kept, deploy check clean)
-- Notes: P1-02 implemented the modular tenant provisioning engine and 3-step onboarding wizard. Built core provisioning hook registry in `apps.core.hooks`, transactional `provision_organization` service creating Organization, Owner Membership, 7 default system Roles, Headquarters Branch, Default Warehouse, OrganizationSettings, 8 standard NumberSequences (INV, QTE, ORD, PO, BIL, PAY, RCT, JE), team invitations, and downstream module provisioning hooks (e.g. automatic trial subscription via billing). Built HTMX-powered onboarding wizard (`/tenancy/onboarding/`) with real-time slug availability endpoint (`/tenancy/onboarding/check-slug/`), auto-redirect from select screen for users with 0 orgs, session persistence across steps, and launch to active workspace session. 122 tests green at 87.24% coverage.
+- Last `make verify`: PASSED (88.12% test coverage, 148 tests green, all architecture contracts kept, deploy check clean)
+- Notes: P1-03 implemented payment gateway adapter, subscription lifecycle, webhook processing, and read-only mode enforcement. Built PaymentGatewayAdapter and FakePaymentGateway sandbox in apps.billing.gateway with HMAC-SHA256 signature verification, charge simulation, and synthetic webhook generator. Added SubscriptionInvoice (TenantModel with PostgreSQL RLS) and ProcessedWebhookEvent (global idempotency ledger). Implemented SubscriptionReadOnlyMiddleware restricting mutating actions (POST/PUT/PATCH/DELETE) with HTTP 403 when past-due grace period expires or subscription is unpaid, while keeping billing/auth routes exempt. Built billing UI dashboard (/billing/), HTMX plan change modal (/billing/change-plan/), cancellation endpoint, and invoice detail receipt view (/billing/invoices/<uuid>/). Added /api/v1/billing/webhook/ and /api/v1/billing/invoices/. Documented ADR 0005 and logged sandbox adapter in docs/BLOCKERS.md. 148 tests passing at 88.12% coverage.

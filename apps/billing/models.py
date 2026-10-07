@@ -92,6 +92,7 @@ class Subscription(TenantModel):
     STATUS_TRIALING = "trialing"
     STATUS_ACTIVE = "active"
     STATUS_PAST_DUE = "past_due"
+    STATUS_UNPAID = "unpaid"
     STATUS_CANCELED = "canceled"
     STATUS_PAUSED = "paused"
 
@@ -99,9 +100,19 @@ class Subscription(TenantModel):
         (STATUS_TRIALING, _("Trialing")),
         (STATUS_ACTIVE, _("Active")),
         (STATUS_PAST_DUE, _("Past Due")),
+        (STATUS_UNPAID, _("Unpaid")),
         (STATUS_CANCELED, _("Canceled")),
         (STATUS_PAUSED, _("Paused")),
     ]
+
+    ALLOWED_TRANSITIONS: ClassVar[dict[str, list[str]]] = {
+        STATUS_TRIALING: [STATUS_ACTIVE, STATUS_PAST_DUE, STATUS_CANCELED],
+        STATUS_ACTIVE: [STATUS_PAST_DUE, STATUS_PAUSED, STATUS_CANCELED, STATUS_ACTIVE],
+        STATUS_PAST_DUE: [STATUS_ACTIVE, STATUS_UNPAID, STATUS_CANCELED],
+        STATUS_UNPAID: [STATUS_ACTIVE, STATUS_CANCELED],
+        STATUS_PAUSED: [STATUS_ACTIVE, STATUS_CANCELED],
+        STATUS_CANCELED: [STATUS_ACTIVE],
+    }
 
     INTERVAL_MONTHLY = "monthly"
     INTERVAL_YEARLY = "yearly"
@@ -140,6 +151,14 @@ class Subscription(TenantModel):
     cancel_at_period_end = models.BooleanField(_("cancel at period end"), default=False)
     canceled_at = models.DateTimeField(_("canceled at"), null=True, blank=True)
     payment_method_id = models.CharField(_("payment method ID"), max_length=128, blank=True, default="")
+    customer_id = models.CharField(_("gateway customer ID"), max_length=128, blank=True, default="")
+    gateway_subscription_id = models.CharField(
+        _("gateway subscription ID"),
+        max_length=128,
+        blank=True,
+        default="",
+    )
+    grace_period_end = models.DateTimeField(_("grace period end date"), null=True, blank=True)
 
     objects: ClassVar[TenantManager[Any]] = TenantManager()
     all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
@@ -158,13 +177,106 @@ class Subscription(TenantModel):
         return f"{self.organization} - {self.plan.name} ({self.status})"
 
     @property
+    def is_in_grace_period(self) -> bool:
+        """Returns True if subscription payment failed but organization is still within grace period."""
+        return self.status == self.STATUS_PAST_DUE and (
+            self.grace_period_end is None or self.grace_period_end >= timezone.now()
+        )
+
+    @property
+    def is_read_only(self) -> bool:
+        """Returns True if unpaid or grace period expired, restricting workspace to read-only access."""
+        if self.status == self.STATUS_UNPAID:
+            return True
+        if self.status == self.STATUS_PAST_DUE:
+            return bool(self.grace_period_end and timezone.now() > self.grace_period_end)
+        return self.status == self.STATUS_CANCELED
+
+    @property
     def is_active_or_trialing(self) -> bool:
         """Returns True if the tenant is in good standing and can access plan features."""
+        if self.is_read_only:
+            return False
         if self.status == self.STATUS_ACTIVE:
             return True
+        if self.status == self.STATUS_PAST_DUE:
+            return self.is_in_grace_period
         return self.status == self.STATUS_TRIALING and (
             self.trial_end is None or self.trial_end >= timezone.now()
         )
+
+
+class SubscriptionInvoice(TenantModel):
+    """Invoice issued for SaaS platform subscription charges."""
+
+    STATUS_DRAFT = "draft"
+    STATUS_OPEN = "open"
+    STATUS_PAID = "paid"
+    STATUS_VOID = "void"
+    STATUS_UNCOLLECTIBLE = "uncollectible"
+
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, _("Draft")),
+        (STATUS_OPEN, _("Open")),
+        (STATUS_PAID, _("Paid")),
+        (STATUS_VOID, _("Void")),
+        (STATUS_UNCOLLECTIBLE, _("Uncollectible")),
+    ]
+
+    invoice_number = models.CharField(_("invoice number"), max_length=64)
+    amount = models.DecimalField(_("amount"), max_digits=10, decimal_places=2)
+    currency = models.CharField(_("currency"), max_length=3, default="USD")
+    status = models.CharField(
+        _("status"),
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_OPEN,
+        db_index=True,
+    )
+    billing_reason = models.CharField(_("billing reason"), max_length=64, default="subscription_cycle")
+    period_start = models.DateTimeField(_("period start"))
+    period_end = models.DateTimeField(_("period end"))
+    paid_at = models.DateTimeField(_("paid at"), null=True, blank=True)
+    hosted_invoice_url = models.URLField(_("hosted invoice URL"), blank=True, default="")
+    pdf_url = models.URLField(_("PDF invoice URL"), blank=True, default="")
+    gateway_invoice_id = models.CharField(_("gateway invoice ID"), max_length=128, blank=True, default="")
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("subscription invoice")
+        verbose_name_plural = _("subscription invoices")
+        ordering = ("-period_end", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "invoice_number"],
+                name="uniq_org_sub_invoice_num",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "status", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.organization} - {self.invoice_number} ({self.status}) ${self.amount}"
+
+
+class ProcessedWebhookEvent(models.Model):
+    """Idempotency record for gateway webhook events."""
+
+    event_id = models.CharField(_("gateway event ID"), max_length=128, unique=True, db_index=True)
+    event_type = models.CharField(_("event type"), max_length=64)
+    processed_at = models.DateTimeField(_("processed at"), auto_now_add=True)
+    payload = models.JSONField(_("event payload"), default=dict, blank=True)
+
+    class Meta:
+        verbose_name = _("processed webhook event")
+        verbose_name_plural = _("processed webhook events")
+        ordering = ("-processed_at",)
+
+    def __str__(self) -> str:
+        return f"{self.event_type} ({self.event_id})"
 
 
 class UsageCounter(TenantModel):

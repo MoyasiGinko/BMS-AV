@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.billing.models import Module, Plan, PlanModule, Subscription, UsageCounter
+from apps.billing.models import Module, Plan, PlanModule, Subscription, SubscriptionInvoice, UsageCounter
 
 
 class ModuleSerializer(serializers.ModelSerializer[Module]):
@@ -58,6 +58,8 @@ class SubscriptionSerializer(serializers.ModelSerializer[Subscription]):
     id = serializers.UUIDField(source="public_id", read_only=True)
     plan = PlanSerializer(read_only=True)
     is_active = serializers.BooleanField(source="is_active_or_trialing", read_only=True)
+    is_in_grace_period = serializers.BooleanField(read_only=True)
+    is_read_only = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Subscription
@@ -73,9 +75,39 @@ class SubscriptionSerializer(serializers.ModelSerializer[Subscription]):
             "renews_at",
             "cancel_at_period_end",
             "canceled_at",
+            "customer_id",
+            "gateway_subscription_id",
+            "grace_period_end",
             "is_active",
+            "is_in_grace_period",
+            "is_read_only",
             "created_at",
             "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class SubscriptionInvoiceSerializer(serializers.ModelSerializer[SubscriptionInvoice]):
+    """Serializer for tenant subscription invoices."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+
+    class Meta:
+        model = SubscriptionInvoice
+        fields = [
+            "id",
+            "invoice_number",
+            "amount",
+            "currency",
+            "status",
+            "billing_reason",
+            "period_start",
+            "period_end",
+            "paid_at",
+            "hosted_invoice_url",
+            "pdf_url",
+            "gateway_invoice_id",
+            "created_at",
         ]
         read_only_fields = fields
 

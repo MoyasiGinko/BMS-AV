@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import uuid
 from collections.abc import Callable
 from decimal import Decimal
 from functools import wraps
@@ -12,15 +13,29 @@ from typing import Any
 from django.apps import apps
 from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.billing.events import (
     SubscriptionCanceledEvent,
     SubscriptionChangedEvent,
     SubscriptionCreatedEvent,
+    SubscriptionPaymentFailedEvent,
+    SubscriptionReadOnlyEvent,
+    SubscriptionRenewedEvent,
 )
-from apps.billing.models import Module, Plan, PlanModule, Subscription, UsageCounter
+from apps.billing.gateway import GatewayWebhookEvent, get_payment_gateway
+from apps.billing.models import (
+    Module,
+    Plan,
+    PlanModule,
+    ProcessedWebhookEvent,
+    Subscription,
+    SubscriptionInvoice,
+    UsageCounter,
+)
 from apps.billing.registry import registry
 from apps.core.events import publish
+from apps.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +263,7 @@ def change_subscription_plan(
     *,
     subscription: Subscription,
     new_plan: Plan | str,
+    interval: str | None = None,
     actor: Any = None,
 ) -> Subscription:
     """Change the subscription plan for an organization."""
@@ -257,8 +273,21 @@ def change_subscription_plan(
     sub = Subscription.all_tenants.select_for_update().get(pk=subscription.pk)
     old_plan_slug = sub.plan.slug
     sub.plan = new_plan
+    update_fields = ["plan", "cancel_at_period_end", "updated_at"]
+    if interval:
+        sub.billing_interval = interval
+        update_fields.append("billing_interval")
     sub.cancel_at_period_end = False
-    sub.save(update_fields=["plan", "cancel_at_period_end", "updated_at"])
+
+    if sub.gateway_subscription_id:
+        gw = get_payment_gateway()
+        gw.update_subscription(
+            gateway_subscription_id=sub.gateway_subscription_id,
+            new_plan_slug=new_plan.slug,
+            interval=sub.billing_interval,
+        )
+
+    sub.save(update_fields=update_fields)
 
     publish(
         SubscriptionChangedEvent(
@@ -303,6 +332,235 @@ def cancel_subscription(
     )
 
     return sub
+
+
+@transaction.atomic
+def transition_subscription_status(
+    *,
+    subscription: Subscription,
+    new_status: str,
+    actor: Any = None,
+    grace_period_days: int = 7,
+) -> Subscription:
+    """Transition subscription through its lifecycle state machine."""
+    sub = Subscription.all_tenants.select_for_update().get(pk=subscription.pk)
+    old_status = sub.status
+
+    if old_status != new_status:
+        allowed = Subscription.ALLOWED_TRANSITIONS.get(old_status, [])
+        if new_status not in allowed:
+            raise ValidationError(
+                _("Invalid subscription transition from %(old)s to %(new)s.")
+                % {"old": old_status, "new": new_status}
+            )
+
+    sub.status = new_status
+    update_fields = ["status", "updated_at"]
+
+    if new_status == Subscription.STATUS_PAST_DUE:
+        if sub.grace_period_end is None or sub.grace_period_end < timezone.now():
+            sub.grace_period_end = timezone.now() + datetime.timedelta(days=grace_period_days)
+            update_fields.append("grace_period_end")
+        publish(
+            SubscriptionPaymentFailedEvent(
+                organization_id=getattr(sub.organization, "pk", getattr(sub.organization, "id", None)),
+                actor_id=getattr(actor, "pk", getattr(actor, "id", None)),
+                subscription_id=sub.pk,
+                grace_period_end=sub.grace_period_end.isoformat() if sub.grace_period_end else None,
+            )
+        )
+    elif new_status == Subscription.STATUS_ACTIVE:
+        if sub.grace_period_end is not None:
+            sub.grace_period_end = None
+            update_fields.append("grace_period_end")
+    elif new_status == Subscription.STATUS_UNPAID:
+        publish(
+            SubscriptionReadOnlyEvent(
+                organization_id=getattr(sub.organization, "pk", getattr(sub.organization, "id", None)),
+                actor_id=getattr(actor, "pk", getattr(actor, "id", None)),
+                subscription_id=sub.pk,
+            )
+        )
+
+    sub.save(update_fields=update_fields)
+    return sub
+
+
+@transaction.atomic
+def create_subscription_invoice(
+    *,
+    organization: Any,
+    amount: Decimal,
+    period_start: datetime.datetime,
+    period_end: datetime.datetime,
+    status: str = SubscriptionInvoice.STATUS_PAID,
+    currency: str = "USD",
+    billing_reason: str = "subscription_cycle",
+    invoice_number: str | None = None,
+    gateway_invoice_id: str = "",
+    hosted_invoice_url: str = "",
+    pdf_url: str = "",
+    paid_at: datetime.datetime | None = None,
+) -> SubscriptionInvoice:
+    """Create a subscription invoice record for an organization."""
+    if not invoice_number:
+        seq_num = f"{timezone.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        invoice_number = f"SUB-{seq_num}"
+
+    effective_paid_at = paid_at or (timezone.now() if status == SubscriptionInvoice.STATUS_PAID else None)
+
+    invoice = SubscriptionInvoice.all_tenants.create(
+        organization=organization,
+        invoice_number=invoice_number,
+        amount=amount,
+        currency=currency,
+        status=status,
+        billing_reason=billing_reason,
+        period_start=period_start,
+        period_end=period_end,
+        paid_at=effective_paid_at,
+        hosted_invoice_url=hosted_invoice_url,
+        pdf_url=pdf_url,
+        gateway_invoice_id=gateway_invoice_id,
+    )
+    return invoice
+
+
+@transaction.atomic
+def process_gateway_webhook_event(event: GatewayWebhookEvent) -> dict[str, Any]:
+    """Process an incoming gateway webhook idempotently."""
+    if ProcessedWebhookEvent.objects.filter(event_id=event.event_id).exists():
+        logger.info("Webhook event %s already processed. Skipping duplicate.", event.event_id)
+        return {"status": "duplicate_ignored", "event_id": event.event_id}
+
+    ProcessedWebhookEvent.objects.create(
+        event_id=event.event_id,
+        event_type=event.event_type,
+        payload=event.data,
+    )
+
+    data = event.data
+    customer_id = data.get("customer_id") or data.get("customer")
+    sub_id = data.get("subscription_id") or data.get("subscription")
+
+    # Find matching subscription
+    sub: Subscription | None = None
+    if sub_id:
+        sub = Subscription.all_tenants.select_for_update().filter(gateway_subscription_id=sub_id).first()
+    if sub is None and customer_id:
+        sub = Subscription.all_tenants.select_for_update().filter(customer_id=customer_id).first()
+
+    now = timezone.now()
+
+    if event.event_type in ("invoice.paid", "payment.succeeded"):
+        if sub:
+            raw_amount = data.get("amount", data.get("amount_paid", 0))
+            amount = Decimal(str(raw_amount)) if not isinstance(raw_amount, Decimal) else raw_amount
+            if isinstance(raw_amount, int) and raw_amount >= 100:
+                amount = Decimal(str(raw_amount)) / Decimal("100")
+
+            currency = data.get("currency", "USD").upper()
+            period_start = sub.current_period_end or now
+            interval_days = 365 if sub.billing_interval == "yearly" else 30
+            period_end = period_start + datetime.timedelta(days=interval_days)
+
+            create_subscription_invoice(
+                organization=sub.organization,
+                amount=amount,
+                currency=currency,
+                period_start=period_start,
+                period_end=period_end,
+                status=SubscriptionInvoice.STATUS_PAID,
+                gateway_invoice_id=data.get("invoice_id", data.get("id", "")),
+                hosted_invoice_url=data.get("hosted_invoice_url", ""),
+                pdf_url=data.get("invoice_pdf", ""),
+                paid_at=now,
+            )
+
+            sub.status = Subscription.STATUS_ACTIVE
+            sub.current_period_start = period_start
+            sub.current_period_end = period_end
+            sub.renews_at = period_end
+            sub.grace_period_end = None
+            sub.save(
+                update_fields=[
+                    "status",
+                    "current_period_start",
+                    "current_period_end",
+                    "renews_at",
+                    "grace_period_end",
+                    "updated_at",
+                ]
+            )
+
+            publish(
+                SubscriptionRenewedEvent(
+                    organization_id=sub.organization.pk,
+                    subscription_id=sub.pk,
+                    new_period_end=period_end.isoformat(),
+                )
+            )
+
+    elif event.event_type in ("invoice.payment_failed", "payment.failed"):
+        if sub:
+            raw_amount = data.get("amount", 0)
+            amount = Decimal(str(raw_amount)) if not isinstance(raw_amount, Decimal) else raw_amount
+            if isinstance(raw_amount, int) and raw_amount >= 100:
+                amount = Decimal(str(raw_amount)) / Decimal("100")
+
+            period_start = sub.current_period_start or now
+            period_end = sub.current_period_end or now
+
+            create_subscription_invoice(
+                organization=sub.organization,
+                amount=amount,
+                currency=data.get("currency", "USD").upper(),
+                period_start=period_start,
+                period_end=period_end,
+                status=SubscriptionInvoice.STATUS_OPEN,
+                gateway_invoice_id=data.get("invoice_id", data.get("id", "")),
+            )
+
+            transition_subscription_status(
+                subscription=sub,
+                new_status=Subscription.STATUS_PAST_DUE,
+            )
+
+    elif event.event_type in ("customer.subscription.deleted", "subscription.canceled") and sub:
+        sub.status = Subscription.STATUS_CANCELED
+        sub.canceled_at = now
+        sub.save(update_fields=["status", "canceled_at", "updated_at"])
+        publish(
+            SubscriptionCanceledEvent(
+                organization_id=sub.organization.pk,
+                subscription_id=sub.pk,
+                plan_slug=sub.plan.slug,
+                immediate=True,
+            )
+        )
+
+    return {"status": "processed", "event_id": event.event_id, "event_type": event.event_type}
+
+
+@transaction.atomic
+def check_subscription_grace_periods() -> int:
+    """Inspect past_due subscriptions and transition expired grace periods to read-only (unpaid)."""
+    now = timezone.now()
+    expired_subs = Subscription.all_tenants.select_for_update().filter(
+        status=Subscription.STATUS_PAST_DUE, grace_period_end__lt=now
+    )
+    count = 0
+    for sub in expired_subs:
+        sub.status = Subscription.STATUS_UNPAID
+        sub.save(update_fields=["status", "updated_at"])
+        publish(
+            SubscriptionReadOnlyEvent(
+                organization_id=sub.organization.pk,
+                subscription_id=sub.pk,
+            )
+        )
+        count += 1
+    return count
 
 
 # ---------------------------------------------------------------------------

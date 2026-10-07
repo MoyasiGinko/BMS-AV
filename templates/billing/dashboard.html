@@ -1,0 +1,316 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block page_title %}{% trans "Subscription & Billing" %} - Business OS{% endblock %}
+
+{% block page_header %}
+<div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{% trans "Subscription & Billing" %}</h1>
+    <p class="text-sm text-[var(--text-muted)] mt-1">
+      {% trans "Manage subscription tier, inspect usage quotas, and review invoice history." %}
+    </p>
+  </div>
+  {% if can_manage and subscription %}
+    <div class="flex items-center gap-3">
+      {% if not subscription.cancel_at_period_end and subscription.status != 'canceled' %}
+        <form method="post" action="{% url 'billing:cancel' %}" onsubmit="return confirm('{% trans "Are you sure you want to cancel your subscription?" %}');">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--danger)] hover:border-[var(--danger)] transition-colors"
+          >
+            {% trans "Cancel Subscription" %}
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Read-Only Mode Banner -->
+  {% if subscription and subscription.is_read_only %}
+    <div class="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 flex items-start gap-3 shadow-xs">
+      <svg class="w-6 h-6 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <div class="flex-1">
+        <h3 class="text-sm font-semibold">{% trans "Workspace in Read-Only Mode" %}</h3>
+        <p class="text-xs sm:text-sm mt-1">
+          {% trans "Your subscription is unpaid or the past-due grace period has elapsed. Creating or modifying records is temporarily restricted. Please select an active plan or settle outstanding invoices below to restore editing privileges." %}
+        </p>
+      </div>
+    </div>
+  {% elif subscription and subscription.is_in_grace_period %}
+    <!-- Past-Due Grace Period Banner -->
+    <div class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 flex items-start gap-3 shadow-xs">
+      <svg class="w-6 h-6 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <div class="flex-1">
+        <h3 class="text-sm font-semibold">{% trans "Payment Past Due — Grace Period Active" %}</h3>
+        <p class="text-xs sm:text-sm mt-1">
+          {% trans "A recent subscription payment failed. Your workspace remains fully functional until" %}
+          <strong>{{ subscription.grace_period_end|date:"M d, Y" }}</strong>.
+          {% trans "Please resolve the outstanding balance to prevent workspace suspension." %}
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Current Subscription Overview Card -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border)] pb-5">
+      <div>
+        <div class="flex items-center gap-3">
+          <h2 class="text-lg font-bold text-[var(--text)]">
+            {% if subscription %}{{ subscription.plan.name }}{% else %}{% trans "No Active Subscription" %}{% endif %}
+          </h2>
+          {% if subscription %}
+            {% if subscription.status == 'active' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                {% trans "Active" %}
+              </span>
+            {% elif subscription.status == 'trialing' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                {% trans "Trial" %}
+              </span>
+            {% elif subscription.status == 'past_due' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                {% trans "Past Due" %}
+              </span>
+            {% elif subscription.status == 'unpaid' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                {% trans "Unpaid (Read-Only)" %}
+              </span>
+            {% elif subscription.status == 'canceled' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/20">
+                {% trans "Canceled" %}
+              </span>
+            {% endif %}
+          {% endif %}
+        </div>
+        <p class="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
+          {% if subscription %}
+            ${{ subscription.plan.price_monthly }}/month &bull; {% trans "Billed" %} {{ subscription.billing_interval|title }}
+          {% else %}
+            {% trans "Choose a plan below to activate your Business OS workspace." %}
+          {% endif %}
+        </p>
+      </div>
+
+      {% if subscription %}
+        <div class="text-left md:text-right text-xs text-[var(--text-muted)] space-y-1">
+          {% if subscription.status == 'trialing' and subscription.trial_end %}
+            <p>{% trans "Trial ends" %}: <span class="font-medium text-[var(--text)]">{{ subscription.trial_end|date:"M d, Y" }}</span></p>
+          {% elif subscription.renews_at %}
+            <p>{% trans "Renews on" %}: <span class="font-medium text-[var(--text)]">{{ subscription.renews_at|date:"M d, Y" }}</span></p>
+          {% endif %}
+          {% if subscription.cancel_at_period_end %}
+            <p class="text-amber-600 dark:text-amber-400 font-medium">{% trans "Cancels at end of billing cycle" %}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Usage Quotas Grid -->
+    {% if subscription %}
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5">
+        <div class="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+          <div class="text-xs font-medium text-[var(--text-muted)]">{% trans "Max Users" %}</div>
+          <div class="mt-1 flex items-baseline justify-between">
+            <span class="text-xl font-bold text-[var(--text)]">{{ subscription.plan.max_users }}</span>
+            <span class="text-xs text-[var(--text-muted)]">{% trans "seats included" %}</span>
+          </div>
+        </div>
+        <div class="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+          <div class="text-xs font-medium text-[var(--text-muted)]">{% trans "Max Branches" %}</div>
+          <div class="mt-1 flex items-baseline justify-between">
+            <span class="text-xl font-bold text-[var(--text)]">{{ subscription.plan.max_branches }}</span>
+            <span class="text-xs text-[var(--text-muted)]">{% trans "branches" %}</span>
+          </div>
+        </div>
+        <div class="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]">
+          <div class="text-xs font-medium text-[var(--text-muted)]">{% trans "Max Warehouses" %}</div>
+          <div class="mt-1 flex items-baseline justify-between">
+            <span class="text-xl font-bold text-[var(--text)]">{{ subscription.plan.max_warehouses }}</span>
+            <span class="text-xs text-[var(--text-muted)]">{% trans "locations" %}</span>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Plan Selection Tier Cards -->
+  <div>
+    <div class="mb-4">
+      <h2 class="text-lg font-bold text-[var(--text)]">{% trans "Available Plans" %}</h2>
+      <p class="text-xs sm:text-sm text-[var(--text-muted)]">{% trans "Select a tier suited to your operating scale. Upgrades take effect immediately." %}</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {% for plan in available_plans %}
+        <div class="rounded-xl border {% if subscription and subscription.plan_id == plan.id %}border-[var(--brand-600)] ring-1 ring-[var(--brand-600)] bg-[var(--brand-600)]/5{% else %}border-[var(--border)] bg-[var(--surface)]{% endif %} p-6 flex flex-col justify-between shadow-xs transition-shadow hover:shadow-md">
+          <div>
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-[var(--text)]">{{ plan.name }}</h3>
+              {% if subscription and subscription.plan_id == plan.id %}
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--brand-600)] text-white">
+                  {% trans "Current" %}
+                </span>
+              {% endif %}
+            </div>
+            <p class="text-xs text-[var(--text-muted)] mt-1 min-h-[32px]">{{ plan.description }}</p>
+
+            <div class="mt-4 flex items-baseline gap-1">
+              <span class="text-3xl font-extrabold text-[var(--text)]">${{ plan.price_monthly|floatformat:0 }}</span>
+              <span class="text-xs text-[var(--text-muted)]">/month</span>
+            </div>
+            <div class="text-xs text-[var(--text-muted)] mt-0.5">
+              ${{ plan.price_yearly|floatformat:0 }}/year ({% trans "save 15%" %})
+            </div>
+
+            <!-- Features / Modules List -->
+            <div class="mt-6 space-y-2.5 border-t border-[var(--border)] pt-4">
+              <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Included Features" %}</div>
+              <ul class="text-xs space-y-2 text-[var(--text)]">
+                <li class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  <span>{{ plan.max_users }} {% trans "Users included" %}</span>
+                </li>
+                <li class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  <span>{{ plan.max_branches }} {% trans "Branches" %}, {{ plan.max_warehouses }} {% trans "Warehouses" %}</span>
+                </li>
+                {% for pm in plan.plan_modules.all %}
+                  <li class="flex items-center gap-2">
+                    {% if pm.included %}
+                      <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                      <span>{{ pm.module.name }}</span>
+                    {% else %}
+                      <svg class="w-4 h-4 text-[var(--text-subtle)] shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                      <span class="text-[var(--text-muted)] line-through">{{ pm.module.name }}</span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+
+          <!-- Plan Action CTA -->
+          <div class="mt-6 pt-4 border-t border-[var(--border)]">
+            {% if subscription and subscription.plan_id == plan.id %}
+              <button disabled class="w-full py-2 px-3 text-xs font-medium rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)] cursor-not-allowed">
+                {% trans "Current Active Plan" %}
+              </button>
+            {% elif can_manage %}
+              <form method="post" action="{% url 'billing:change_plan' %}">
+                {% csrf_token %}
+                <input type="hidden" name="new_plan_slug" value="{{ plan.slug }}">
+                <input type="hidden" name="interval" value="{{ subscription.billing_interval|default:'monthly' }}">
+                <button
+                  type="submit"
+                  class="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+                >
+                  {% trans "Switch to" %} {{ plan.name }}
+                </button>
+              </form>
+            {% else %}
+              <button disabled class="w-full py-2 px-3 text-xs font-medium rounded-lg bg-[var(--surface-2)] text-[var(--text-muted)]">
+                {% trans "Plan Inactive" %}
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Subscription Invoices History -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-bold text-[var(--text)]">{% trans "Invoice History" %}</h2>
+        <p class="text-xs text-[var(--text-muted)]">{% trans "Past subscription invoices and transaction receipts." %}</p>
+      </div>
+    </div>
+
+    {% if invoices %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs sm:text-sm">
+          <thead>
+            <tr class="border-b border-[var(--border)] text-[var(--text-muted)] uppercase text-[11px] font-semibold">
+              <th class="py-2.5 px-3">{% trans "Invoice" %}</th>
+              <th class="py-2.5 px-3">{% trans "Period" %}</th>
+              <th class="py-2.5 px-3">{% trans "Amount" %}</th>
+              <th class="py-2.5 px-3">{% trans "Status" %}</th>
+              <th class="py-2.5 px-3 text-right">{% trans "Receipt" %}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]">
+            {% for inv in invoices %}
+              <tr class="hover:bg-[var(--surface-2)] transition-colors">
+                <td class="py-3 px-3 font-medium text-[var(--text)]">
+                  <a href="{% url 'billing:invoice_detail' invoice_id=inv.public_id %}" class="hover:underline text-[var(--brand-600)] font-mono">
+                    {{ inv.invoice_number }}
+                  </a>
+                </td>
+                <td class="py-3 px-3 text-[var(--text-muted)]">
+                  {{ inv.period_start|date:"M d, Y" }} &ndash; {{ inv.period_end|date:"M d, Y" }}
+                </td>
+                <td class="py-3 px-3 font-semibold text-[var(--text)]">
+                  ${{ inv.amount }} {{ inv.currency }}
+                </td>
+                <td class="py-3 px-3">
+                  {% if inv.status == 'paid' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      {% trans "Paid" %}
+                    </span>
+                  {% elif inv.status == 'open' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      {% trans "Open" %}
+                    </span>
+                  {% elif inv.status == 'void' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-500/10 text-gray-600 dark:text-gray-400 border border-gray-500/20">
+                      {% trans "Void" %}
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                      {{ inv.status|title }}
+                    </span>
+                  {% endif %}
+                </td>
+                <td class="py-3 px-3 text-right">
+                  {% if inv.hosted_invoice_url %}
+                    <a href="{{ inv.hosted_invoice_url }}" target="_blank" rel="noopener noreferrer" class="text-[var(--brand-600)] hover:underline inline-flex items-center gap-1">
+                      <span>{% trans "View" %}</span>
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
+                  {% else %}
+                    <a href="{% url 'billing:invoice_detail' invoice_id=inv.public_id %}" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+                      {% trans "Details" %}
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="py-8 text-center text-[var(--text-muted)] text-sm border border-dashed border-[var(--border)] rounded-lg">
+        <svg class="w-8 h-8 mx-auto text-[var(--text-subtle)] mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <p class="font-medium text-[var(--text)]">{% trans "No invoices generated yet" %}</p>
+        <p class="text-xs text-[var(--text-muted)] mt-0.5">{% trans "Invoices will automatically appear here following each billing cycle." %}</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

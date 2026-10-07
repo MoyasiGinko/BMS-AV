@@ -1,0 +1,52 @@
+{% load i18n %}
+<div class="p-6 space-y-4">
+  <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+    <h3 class="text-base font-bold text-[var(--text)]">
+      {% trans "Confirm Plan Change" %}
+    </h3>
+    <button type="button" @click="openModal = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <p class="text-sm text-[var(--text-muted)]">
+    {% trans "You are changing your subscription tier from" %}
+    <strong class="text-[var(--text)]">{{ subscription.plan.name }}</strong>
+    {% trans "to" %}
+    <strong class="text-[var(--text)]">{{ target_plan.name }}</strong>.
+  </p>
+
+  <div class="rounded-lg p-3 bg-[var(--surface-2)] border border-[var(--border)] text-xs space-y-1">
+    <div class="flex justify-between">
+      <span class="text-[var(--text-muted)]">{% trans "Monthly Rate" %}</span>
+      <span class="font-semibold text-[var(--text)]">${{ target_plan.price_monthly }}/month</span>
+    </div>
+    <div class="flex justify-between">
+      <span class="text-[var(--text-muted)]">{% trans "User Limit" %}</span>
+      <span class="font-semibold text-[var(--text)]">{{ target_plan.max_users }} users</span>
+    </div>
+    <div class="flex justify-between">
+      <span class="text-[var(--text-muted)]">{% trans "Branch / Warehouse Limit" %}</span>
+      <span class="font-semibold text-[var(--text)]">{{ target_plan.max_branches }} / {{ target_plan.max_warehouses }}</span>
+    </div>
+  </div>
+
+  <form method="post" action="{% url 'billing:change_plan' %}" class="pt-2 flex justify-end gap-3">
+    {% csrf_token %}
+    <input type="hidden" name="new_plan_slug" value="{{ target_plan.slug }}">
+    <input type="hidden" name="interval" value="{{ subscription.billing_interval|default:'monthly' }}">
+    <button
+      type="button"
+      @click="openModal = false"
+      class="px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]"
+    >
+      {% trans "Cancel" %}
+    </button>
+    <button
+      type="submit"
+      class="px-4 py-1.5 text-xs font-semibold rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs"
+    >
+      {% trans "Confirm & Apply Plan" %}
+    </button>
+  </form>
+</div>

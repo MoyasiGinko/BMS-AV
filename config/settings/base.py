@@ -63,6 +63,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "apps.core.middleware.TenantMiddleware",
+    "apps.billing.middleware.SubscriptionReadOnlyMiddleware",
     "apps.core.middleware.SecurityHeadersMiddleware",
 ]
 
