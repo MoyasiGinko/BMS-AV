@@ -16,4 +16,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("auth/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     # Core platform foundation endpoints
     path("core/", include("apps.core.api.urls")),
+    # Billing & plans
+    path("billing/", include("apps.billing.api.urls")),
 ]

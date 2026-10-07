@@ -55,6 +55,9 @@ class TenantScopedViewSet(viewsets.GenericViewSet):
 
     def get_tenant(self) -> Any:
         """Resolve and validate the active organization for the current request."""
+        if getattr(self, "swagger_fake_view", False):
+            return None
+
         request = self.request
         user = getattr(request, "user", None)
 
@@ -150,10 +153,12 @@ class TenantScopedViewSet(viewsets.GenericViewSet):
 
     def get_queryset(self) -> QuerySet[Any]:
         """Scope queryset strictly to the active tenant and user branch/warehouse scope."""
+        raw_qs: QuerySet[Any] = super().get_queryset()
+        if getattr(self, "swagger_fake_view", False):
+            return raw_qs.none()
+
         org = self.get_tenant()
         set_current_organization(org)
-
-        raw_qs: QuerySet[Any] = super().get_queryset()
         model: Any = getattr(raw_qs, "model", None)
         if model is not None:
             mgr: Any = getattr(model, "all_tenants", None)

@@ -1,0 +1,1192 @@
+openapi: 3.0.3
+info:
+  title: Business OS API
+  version: 1.0.0
+  description: Multi-tenant business management platform REST API (v1).
+paths:
+  /api/v1/auth/token/:
+    post:
+      operationId: auth_token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/token/verify/:
+    post:
+      operationId: auth_token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/billing/plans/:
+    get:
+      operationId: billing_plans_list
+      description: List and inspect available subscription plans.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlanList'
+          description: ''
+  /api/v1/billing/plans/{slug}/:
+    get:
+      operationId: billing_plans_retrieve
+      description: List and inspect available subscription plans.
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/v1/billing/subscription/:
+    get:
+      operationId: billing_subscription_list
+      description: Return the active subscription for the current organization.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSubscriptionList'
+          description: ''
+  /api/v1/billing/subscription/cancel/:
+    post:
+      operationId: billing_subscription_cancel_create
+      description: Cancel subscription immediately or at period end.
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/v1/billing/subscription/change-plan/:
+    post:
+      operationId: billing_subscription_change_plan_create
+      description: Upgrade or downgrade current organization's subscription tier.
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/v1/billing/subscription/current/:
+    get:
+      operationId: billing_subscription_current_retrieve
+      description: Alias for retrieving current subscription.
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+          description: ''
+  /api/v1/billing/usage/:
+    get:
+      operationId: billing_usage_list
+      description: Tenant resource usage counters.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsageCounterList'
+          description: ''
+  /api/v1/billing/usage/{public_id}/:
+    get:
+      operationId: billing_usage_retrieve
+      description: Tenant resource usage counters.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - billing
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageCounter'
+          description: ''
+  /api/v1/core/audit-logs/:
+    get:
+      operationId: core_audit_logs_list
+      description: Read-only access to tenant immutable audit logs.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - core
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuditLogList'
+          description: ''
+  /api/v1/core/audit-logs/{id}/:
+    get:
+      operationId: core_audit_logs_retrieve
+      description: Read-only access to tenant immutable audit logs.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - core
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLog'
+          description: ''
+  /api/v1/core/sequences/:
+    get:
+      operationId: core_sequences_list
+      description: Manage tenant number sequences and generate sequential document
+        numbers.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - in: query
+        name: name
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: reset_frequency
+        schema:
+          type: string
+          enum:
+          - monthly
+          - never
+          - yearly
+        description: |-
+          * `never` - Never
+          * `yearly` - Yearly
+          * `monthly` - Monthly
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - core
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNumberSequenceList'
+          description: ''
+    post:
+      operationId: core_sequences_create
+      description: Manage tenant number sequences and generate sequential document
+        numbers.
+      tags:
+      - core
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NumberSequenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NumberSequenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NumberSequenceRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NumberSequence'
+          description: ''
+  /api/v1/core/sequences/{id}/:
+    get:
+      operationId: core_sequences_retrieve
+      description: Manage tenant number sequences and generate sequential document
+        numbers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - core
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NumberSequence'
+          description: ''
+    put:
+      operationId: core_sequences_update
+      description: Manage tenant number sequences and generate sequential document
+        numbers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - core
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NumberSequenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NumberSequenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NumberSequenceRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NumberSequence'
+          description: ''
+    patch:
+      operationId: core_sequences_partial_update
+      description: Manage tenant number sequences and generate sequential document
+        numbers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - core
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNumberSequenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedNumberSequenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedNumberSequenceRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NumberSequence'
+          description: ''
+    delete:
+      operationId: core_sequences_destroy
+      description: Manage tenant number sequences and generate sequential document
+        numbers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - core
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/core/sequences/{id}/generate-next/:
+    post:
+      operationId: core_sequences_generate_next_create
+      description: Atomically increments and formats the next sequential number. Idempotent.
+      summary: Generate next sequential number
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - core
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateNumberResponse'
+          description: ''
+components:
+  schemas:
+    AuditLog:
+      type: object
+      description: Read-only serializer for tenant audit logs.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+        target_type:
+          type: string
+          readOnly: true
+          title: Target model type
+        target_id:
+          type: string
+          readOnly: true
+          title: Target object ID
+        object_repr:
+          type: string
+          readOnly: true
+          title: Object representation
+        changes:
+          readOnly: true
+          title: Changes diff
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+        ip_address:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor_email
+      - changes
+      - created_at
+      - id
+      - ip_address
+      - object_repr
+      - target_id
+      - target_type
+    BillingIntervalEnum:
+      enum:
+      - monthly
+      - yearly
+      type: string
+      description: |-
+        * `monthly` - Monthly
+        * `yearly` - Yearly
+    GenerateNumberResponse:
+      type: object
+      description: Response schema for generating the next sequential number.
+      properties:
+        formatted_number:
+          type: string
+        sequence_name:
+          type: string
+      required:
+      - formatted_number
+      - sequence_name
+    NumberSequence:
+      type: object
+      description: Serializer for tenant NumberSequence configuration.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: Sequence name
+          maxLength: 64
+        prefix:
+          type: string
+          maxLength: 32
+        suffix:
+          type: string
+          maxLength: 32
+        next_number:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        padding:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Padding digits
+        reset_frequency:
+          $ref: '#/components/schemas/ResetFrequencyEnum'
+        last_reset_date:
+          type: string
+          format: date
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    NumberSequenceRequest:
+      type: object
+      description: Serializer for tenant NumberSequence configuration.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Sequence name
+          maxLength: 64
+        prefix:
+          type: string
+          maxLength: 32
+        suffix:
+          type: string
+          maxLength: 32
+        next_number:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        padding:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Padding digits
+        reset_frequency:
+          $ref: '#/components/schemas/ResetFrequencyEnum'
+        last_reset_date:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - name
+    PaginatedAuditLogList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
+    PaginatedNumberSequenceList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/NumberSequence'
+    PaginatedPlanList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Plan'
+    PaginatedSubscriptionList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+    PaginatedUsageCounterList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsageCounter'
+    PatchedNumberSequenceRequest:
+      type: object
+      description: Serializer for tenant NumberSequence configuration.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Sequence name
+          maxLength: 64
+        prefix:
+          type: string
+          maxLength: 32
+        suffix:
+          type: string
+          maxLength: 32
+        next_number:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        padding:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Padding digits
+        reset_frequency:
+          $ref: '#/components/schemas/ResetFrequencyEnum'
+        last_reset_date:
+          type: string
+          format: date
+          nullable: true
+    Plan:
+      type: object
+      description: Serializer for public and internal subscription plan tiers.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+          title: Plan name
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        description:
+          type: string
+          readOnly: true
+        price_monthly:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          title: Monthly price
+        price_yearly:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+          title: Yearly price
+        currency:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Active
+        trial_days:
+          type: integer
+          readOnly: true
+          title: Trial period in days
+        max_users:
+          type: integer
+          readOnly: true
+          title: Maximum users
+        max_branches:
+          type: integer
+          readOnly: true
+          title: Maximum branches
+        max_warehouses:
+          type: integer
+          readOnly: true
+          title: Maximum warehouses
+        modules:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanModule'
+          readOnly: true
+      required:
+      - currency
+      - description
+      - id
+      - is_active
+      - max_branches
+      - max_users
+      - max_warehouses
+      - modules
+      - name
+      - price_monthly
+      - price_yearly
+      - slug
+      - trial_days
+    PlanModule:
+      type: object
+      description: Serializer representing module inclusion within a plan tier.
+      properties:
+        module_key:
+          type: string
+          readOnly: true
+        module_name:
+          type: string
+          readOnly: true
+        included:
+          type: boolean
+          title: Included in plan
+      required:
+      - module_key
+      - module_name
+    PlanModuleRequest:
+      type: object
+      description: Serializer representing module inclusion within a plan tier.
+      properties:
+        included:
+          type: boolean
+          title: Included in plan
+    ResetFrequencyEnum:
+      enum:
+      - never
+      - yearly
+      - monthly
+      type: string
+      description: |-
+        * `never` - Never
+        * `yearly` - Yearly
+        * `monthly` - Monthly
+    StatusEnum:
+      enum:
+      - trialing
+      - active
+      - past_due
+      - canceled
+      - paused
+      type: string
+      description: |-
+        * `trialing` - Trialing
+        * `active` - Active
+        * `past_due` - Past Due
+        * `canceled` - Canceled
+        * `paused` - Paused
+    Subscription:
+      type: object
+      description: Serializer for tenant subscription state and lifecycle.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        plan:
+          allOf:
+          - $ref: '#/components/schemas/Plan'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        billing_interval:
+          allOf:
+          - $ref: '#/components/schemas/BillingIntervalEnum'
+          readOnly: true
+        trial_start:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        trial_end:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        current_period_start:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Period start
+        current_period_end:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Period end
+        renews_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        cancel_at_period_end:
+          type: boolean
+          readOnly: true
+        canceled_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        is_active:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - billing_interval
+      - cancel_at_period_end
+      - canceled_at
+      - created_at
+      - current_period_end
+      - current_period_start
+      - id
+      - is_active
+      - plan
+      - renews_at
+      - status
+      - trial_end
+      - trial_start
+      - updated_at
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    TokenVerifyRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - token
+    UsageCounter:
+      type: object
+      description: Serializer for tenant resource usage metrics.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        metric:
+          type: string
+          readOnly: true
+          title: Metric name
+        value:
+          type: integer
+          readOnly: true
+          title: Current count
+        period_start:
+          type: string
+          format: date
+          readOnly: true
+          title: Period start date
+        period_end:
+          type: string
+          format: date
+          readOnly: true
+          title: Period end date
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - metric
+      - period_end
+      - period_start
+      - updated_at
+      - value
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -15,6 +15,7 @@ GLOBAL_ALLOWLIST = {
     "tenancy.Organization",
     "billing.Plan",
     "billing.Module",
+    "billing.PlanModule",
     "core.OutboxEvent",  # carries organization_id but is processed system-wide
 }
 
