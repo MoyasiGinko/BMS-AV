@@ -4,6 +4,7 @@ from collections.abc import Iterator
 
 import pytest
 from django.apps import apps as django_apps
+from django.db import connection
 from django.db import models as dj_models
 
 from apps.core.models import TenantManager, TenantModel
@@ -60,3 +61,34 @@ def test_no_float_fields_in_business_models() -> None:
         if isinstance(f, dj_models.FloatField)
     ]
     assert not offenders, f"Use DecimalField for money/quantity, not FloatField: {offenders}"
+
+
+@pytest.mark.django_db
+def test_every_tenant_model_has_rls_enabled() -> None:
+    """Every tenant model must have PostgreSQL Row-Level Security enabled with FORCE."""
+    if connection.vendor != "postgresql":
+        pytest.skip("RLS inspection requires PostgreSQL")
+
+    offenders = []
+    with connection.cursor() as cursor:
+        for model in _business_models():
+            label = model._meta.label
+            if label in GLOBAL_ALLOWLIST or model._meta.auto_created:
+                continue
+            if not issubclass(model, TenantModel):
+                continue
+            table = model._meta.db_table
+            cursor.execute(
+                """
+                SELECT c.relrowsecurity, c.relforcerowsecurity
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = 'public' AND c.relname = %s;
+                """,
+                [table],
+            )
+            row = cursor.fetchone()
+            if not row or not row[0] or not row[1]:
+                offenders.append(f"{label} ({table}): RLS or FORCE RLS not enabled in Postgres")
+
+    assert not offenders, "Models missing RLS in database:\n" + "\n".join(offenders)

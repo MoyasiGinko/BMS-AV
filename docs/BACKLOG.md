@@ -6,7 +6,7 @@ Format: `ID title: Done when ...`
 - [x] P0-02 core base: TenantModel, TenantManager, tenant context var, TenantMiddleware (subdomain + membership fallback), money utils, base exceptions, NumberSequence. Done when architecture tests pass with sample model.
 - [x] P0-03 accounts: custom User (email), allauth config, login/logout/password reset/email verify screens, optional TOTP 2FA. Done when tests + UI smoke login pass.
 - [x] P0-04 tenancy: Organization, Membership, Role (+default roles), Invitation, Branch, Department, Warehouse, OrganizationSettings; org switcher; invite flow. Done when two orgs fully isolated in tests.
-- [ ] P0-05 RLS: enable_rls helper + migration for all tenant tables + request/task context setter + test with raw SQL. Done when RLS test proves cross-org reads return nothing.
+- [x] P0-05 RLS: enable_rls helper + migration for all tenant tables + request/task context setter + test with raw SQL. Done when RLS test proves cross-org reads return nothing.
 - [ ] P0-06 AuditLog + OutboxEvent + events.publish/subscribe + dispatcher task + event catalog. Done when atomicity/idempotency tests pass.
 - [ ] P0-07 Permission engine: permission codes registry, role->permission, `permission_required`, `feature_required`, object scope helpers, view mixins. Done when 3-layer tests pass for web.
 - [ ] P0-08 Celery + Redis wiring: base tenant-aware task, queues, beat schedule skeleton, `/healthz` `/readyz`. Done when a tenant task test passes.
