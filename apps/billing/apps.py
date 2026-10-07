@@ -15,3 +15,6 @@ class BillingConfig(AppConfig):
         services_mod = importlib.import_module("apps.billing.services")
         core_perms_mod = importlib.import_module("apps.core.permissions")
         core_perms_mod.register_entitlement_checker(services_mod.check_organization_feature_entitlement)
+
+        core_hooks_mod = importlib.import_module("apps.core.hooks")
+        core_hooks_mod.register_provisioning_hook(services_mod.provision_billing_subscription)

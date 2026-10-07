@@ -101,7 +101,12 @@ _FEATURE_OVERRIDES: dict[tuple[int, str], bool] = {}
 
 def register_entitlement_checker(fn: Callable[[Any, str], bool | None]) -> None:
     """Register a custom checker hook for feature entitlements (used by billing)."""
-    _ENTITLEMENT_CHECKERS.append(fn)
+    _ENTITLEMENT_CHECKERS.insert(0, fn)
+
+
+def clear_entitlement_checkers() -> None:
+    """Clear all registered entitlement checkers."""
+    _ENTITLEMENT_CHECKERS.clear()
 
 
 def set_feature_override(organization_id: int, feature_code: str, is_allowed: bool) -> None:

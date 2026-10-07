@@ -52,22 +52,18 @@ def api_setup(db: None) -> dict[str, object]:
     )
 
     with tenant_context(org_a):
-        seq_a = NumberSequence.objects.create(
+        seq_a = NumberSequence.objects.get(
             organization=org_a,
             name="Invoices",
-            prefix="INV-",
-            next_number=1,
-            padding=5,
         )
 
     with tenant_context(org_b):
-        seq_b = NumberSequence.objects.create(
+        seq_b = NumberSequence.objects.get(
             organization=org_b,
             name="Invoices",
-            prefix="BETA-",
-            next_number=1,
-            padding=5,
         )
+        seq_b.prefix = "BETA-"
+        seq_b.save(update_fields=["prefix", "updated_at"])
 
     return {
         "user_a": user_a,

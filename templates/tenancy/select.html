@@ -36,6 +36,15 @@
     </div>
   {% endif %}
 
+  <div class="pt-2">
+    <a
+      href="{% url 'tenancy:onboarding' %}"
+      class="w-full flex items-center justify-center p-2.5 rounded-lg border border-dashed border-[var(--border)] text-sm font-semibold text-[var(--brand-600)] hover:bg-[var(--brand-50)]/20 hover:border-[var(--brand-600)] transition"
+    >
+      + {% trans "Create new organization" %}
+    </a>
+  </div>
+
   <div class="pt-4 border-t border-[var(--border)] text-center">
     <a
       href="{% url 'account_logout' %}"

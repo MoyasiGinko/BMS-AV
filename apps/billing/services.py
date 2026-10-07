@@ -409,3 +409,20 @@ def require_task_feature(feature_code: str) -> Callable[[Callable[..., Any]], Ca
         return wrapper
 
     return decorator
+
+
+def provision_billing_subscription(ctx: Any) -> None:
+    """Provision initial subscription and module access for newly created organization."""
+    plan_slug = ctx.extra_data.get("plan_slug")
+    if not plan_slug:
+        return
+
+    if not Plan.objects.exists():
+        seed_default_plans()
+
+    create_subscription(
+        organization=ctx.organization,
+        plan=plan_slug,
+        actor=ctx.owner,
+        interval="monthly",
+    )

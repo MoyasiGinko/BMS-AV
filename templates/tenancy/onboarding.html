@@ -1,0 +1,449 @@
+{% extends "layouts/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Setup Your Workspace - Business OS" %}{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative selection:bg-[var(--brand-500)] selection:text-white">
+  <!-- Theme Toggle in Header -->
+  <div class="absolute top-4 right-4">
+    <button
+      type="button"
+      @click="$store.theme.toggle()"
+      class="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
+      aria-label="Toggle theme"
+    >
+      <template x-if="$store.theme.mode === 'dark'">
+        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </template>
+      <template x-if="$store.theme.mode !== 'dark'">
+        <svg class="w-5 h-5 text-[var(--n-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </template>
+    </button>
+  </div>
+
+  <div class="max-w-3xl w-full mx-auto">
+    <!-- Header Brand & Title -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-[var(--brand-700)] to-[var(--brand-500)] text-white shadow-md mb-3">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold tracking-tight text-[var(--text)]">{% trans "Welcome to Business OS" %}</h1>
+      <p class="text-sm text-[var(--text-muted)] mt-1">{% trans "Let's set up your multi-tenant operating environment in 3 quick steps." %}</p>
+    </div>
+
+    <!-- Stepper Indicator -->
+    <div class="mb-8 bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 shadow-xs">
+      <div class="grid grid-cols-3 gap-2 text-center text-xs font-medium">
+        <div class="flex items-center space-x-2 justify-center {% if step >= 1 %}text-[var(--brand-600)] font-semibold{% else %}text-[var(--text-muted)]{% endif %}">
+          <span class="w-6 h-6 rounded-full flex items-center justify-center {% if step >= 1 %}bg-[var(--brand-600)] text-white{% else %}bg-[var(--surface-2)] text-[var(--text-muted)]{% endif %}">1</span>
+          <span class="hidden sm:inline">{% trans "Workspace & Plan" %}</span>
+        </div>
+        <div class="flex items-center space-x-2 justify-center {% if step >= 2 %}text-[var(--brand-600)] font-semibold{% else %}text-[var(--text-muted)]{% endif %}">
+          <span class="w-6 h-6 rounded-full flex items-center justify-center {% if step >= 2 %}bg-[var(--brand-600)] text-white{% else %}bg-[var(--surface-2)] text-[var(--text-muted)]{% endif %}">2</span>
+          <span class="hidden sm:inline">{% trans "Regional & Facilities" %}</span>
+        </div>
+        <div class="flex items-center space-x-2 justify-center {% if step >= 3 %}text-[var(--brand-600)] font-semibold{% else %}text-[var(--text-muted)]{% endif %}">
+          <span class="w-6 h-6 rounded-full flex items-center justify-center {% if step >= 3 %}bg-[var(--brand-600)] text-white{% else %}bg-[var(--surface-2)] text-[var(--text-muted)]{% endif %}">3</span>
+          <span class="hidden sm:inline">{% trans "Team & Launch" %}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Container for Step Form -->
+    <div id="onboarding-card" class="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-sm p-6 sm:p-8 transition-all">
+      {% if step == 1 %}
+        {% partial step_1 %}
+      {% elif step == 2 %}
+        {% partial step_2 %}
+      {% elif step == 3 %}
+        {% partial step_3 %}
+      {% endif %}
+    </div>
+
+    <div class="mt-8 text-center text-xs text-[var(--text-subtle)]">
+      &copy; {% now "Y" %} Business OS ERP. {% trans "All operations protected by PostgreSQL Row-Level Security." %}
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- PARTIALS -->
+<!-- ======================================================================= -->
+
+{% partialdef slug_status %}
+  {% if taken %}
+    <span class="text-xs text-[var(--danger)] flex items-center space-x-1 mt-1 font-medium">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      <span>{% trans "Slug is already taken. Try another." %}</span>
+    </span>
+  {% elif slug %}
+    <span class="text-xs text-[var(--success)] flex items-center space-x-1 mt-1 font-medium">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      <span>{% trans "Slug is available!" %}</span>
+    </span>
+  {% endif %}
+{% endpartialdef %}
+
+
+{% partialdef step_1 %}
+<form
+  hx-post="{% url 'tenancy:onboarding' %}"
+  hx-target="#onboarding-card"
+  hx-swap="innerHTML"
+  class="space-y-6"
+>
+  {% csrf_token %}
+  <input type="hidden" name="step" value="1">
+
+  <div class="border-b border-[var(--border)] pb-4 mb-6">
+    <h2 class="text-xl font-bold text-[var(--text)]">{% trans "Step 1: Workspace Identity & Plan Tier" %}</h2>
+    <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "Choose a brand name, URL identifier, and SaaS feature tier for your business." %}</p>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="p-3 bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)] rounded-xl text-xs">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <!-- Organization Name -->
+  <div>
+    <label for="id_name" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+      {% trans "Organization Name" %} <span class="text-[var(--danger)]">*</span>
+    </label>
+    <input
+      type="text"
+      name="name"
+      id="id_name"
+      required
+      value="{{ form.name.value|default:'' }}"
+      class="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)] text-sm transition"
+      placeholder="e.g. Apex Commerce Inc."
+      x-data
+      @input="if (!$refs.slug.dataset.manual) { $refs.slug.value = $el.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); htmx.trigger($refs.slug, 'input') }"
+    >
+    {% if form.name.errors %}
+      <p class="text-xs text-[var(--danger)] mt-1">{{ form.name.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <!-- Workspace Slug -->
+  <div>
+    <label for="id_slug" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+      {% trans "Workspace URL Identifier" %} <span class="text-[var(--danger)]">*</span>
+    </label>
+    <div class="flex rounded-xl border border-[var(--border)] bg-[var(--surface-2)] overflow-hidden focus-within:ring-2 focus-within:ring-[var(--brand-500)]">
+      <span class="inline-flex items-center px-3 text-xs text-[var(--text-muted)] border-r border-[var(--border)] bg-[var(--surface)]">
+        app.business-os.com/
+      </span>
+      <input
+        type="text"
+        name="slug"
+        id="id_slug"
+        required
+        x-ref="slug"
+        @input="$el.dataset.manual = 'true'"
+        value="{{ form.slug.value|default:'' }}"
+        hx-get="{% url 'tenancy:check_slug' %}"
+        hx-trigger="input changed delay:300ms"
+        hx-target="#slug-feedback"
+        class="w-full px-3.5 py-2.5 bg-transparent text-[var(--text)] focus:outline-none text-sm"
+        placeholder="apex-commerce"
+      >
+    </div>
+    <div id="slug-feedback"></div>
+    {% if form.slug.errors %}
+      <p class="text-xs text-[var(--danger)] mt-1">{{ form.slug.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <!-- Plan Tiers Matrix -->
+  <div>
+    <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+      {% trans "Select Subscription Plan (All include Free Trial)" %}
+    </label>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-data="{ selectedPlan: '{{ form.plan.value|default:'starter' }}' }">
+      {% for p in plans %}
+        <label
+          class="relative flex flex-col p-4 rounded-xl border cursor-pointer transition select-none hover:border-[var(--brand-500)]"
+          :class="selectedPlan === '{{ p.slug }}' ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/15 shadow-xs ring-2 ring-[var(--brand-500)]' : 'border-[var(--border)] bg-[var(--surface)]'"
+        >
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-bold text-sm text-[var(--text)]">{{ p.name }}</span>
+            <span class="text-xs font-semibold text-[var(--brand-600)] bg-[var(--brand-50)] px-2 py-0.5 rounded-full border border-[var(--brand-200)]">
+              {{ p.badge }}
+            </span>
+          </div>
+          <div class="text-lg font-extrabold text-[var(--text)] mb-1">
+            {{ p.price }}
+          </div>
+          <p class="text-xs text-[var(--text-muted)] mb-3 leading-relaxed">{{ p.description }}</p>
+          <ul class="text-xs text-[var(--text-muted)] space-y-1 mb-2">
+            {% for f in p.features %}
+              <li class="flex items-center space-x-1.5">
+                <svg class="w-3.5 h-3.5 text-[var(--brand-600)] shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>{{ f }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+          <input
+            type="radio"
+            name="plan"
+            value="{{ p.slug }}"
+            x-model="selectedPlan"
+            class="sr-only"
+          >
+        </label>
+      {% endfor %}
+    </div>
+    {% if form.plan.errors %}
+      <p class="text-xs text-[var(--danger)] mt-1">{{ form.plan.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div class="pt-4 border-t border-[var(--border)] flex justify-end">
+    <button
+      type="submit"
+      class="px-6 py-2.5 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white font-semibold text-sm shadow-sm transition inline-flex items-center space-x-2"
+    >
+      <span>{% trans "Continue to Step 2" %}</span>
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+    </button>
+  </div>
+</form>
+{% endpartialdef %}
+
+
+{% partialdef step_2 %}
+<form
+  hx-post="{% url 'tenancy:onboarding' %}"
+  hx-target="#onboarding-card"
+  hx-swap="innerHTML"
+  class="space-y-6"
+>
+  {% csrf_token %}
+  <input type="hidden" name="step" value="2">
+
+  <div class="border-b border-[var(--border)] pb-4 mb-6">
+    <h2 class="text-xl font-bold text-[var(--text)]">{% trans "Step 2: Regional Profile & Operational Locations" %}</h2>
+    <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "Configure your primary ledger currency, fiscal calendar, and initial branch." %}</p>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="p-3 bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)] rounded-xl text-xs">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <!-- Base Currency -->
+    <div>
+      <label for="id_base_currency" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+        {% trans "Base Currency" %} <span class="text-[var(--danger)]">*</span>
+      </label>
+      <select
+        name="base_currency"
+        id="id_base_currency"
+        class="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
+      >
+        {% for code, label in form.fields.base_currency.choices %}
+          <option value="{{ code }}" {% if form.base_currency.value == code %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Country -->
+    <div>
+      <label for="id_country" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+        {% trans "Country Code (ISO 3166-1)" %}
+      </label>
+      <input
+        type="text"
+        name="country"
+        id="id_country"
+        value="{{ form.country.value|default:'US' }}"
+        class="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)] uppercase"
+        placeholder="US"
+        maxlength="2"
+      >
+    </div>
+
+    <!-- Timezone -->
+    <div>
+      <label for="id_timezone" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+        {% trans "Primary Time Zone" %} <span class="text-[var(--danger)]">*</span>
+      </label>
+      <select
+        name="timezone"
+        id="id_timezone"
+        class="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
+      >
+        {% for tz, label in form.fields.timezone.choices %}
+          <option value="{{ tz }}" {% if form.timezone.value == tz %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Fiscal Year Start -->
+    <div>
+      <label for="id_fiscal_year_start" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+        {% trans "Fiscal Year Start Month" %} <span class="text-[var(--danger)]">*</span>
+      </label>
+      <select
+        name="fiscal_year_start"
+        id="id_fiscal_year_start"
+        class="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
+      >
+        <option value="1" {% if form.fiscal_year_start.value == 1 %}selected{% endif %}>{% trans "January (Calendar Year)" %}</option>
+        <option value="4" {% if form.fiscal_year_start.value == 4 %}selected{% endif %}>{% trans "April (UK/India/Japan)" %}</option>
+        <option value="7" {% if form.fiscal_year_start.value == 7 %}selected{% endif %}>{% trans "July (Australia)" %}</option>
+        <option value="10" {% if form.fiscal_year_start.value == 10 %}selected{% endif %}>{% trans "October (US Federal)" %}</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+    <!-- Branch Name -->
+    <div>
+      <label for="id_branch_name" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+        {% trans "Headquarters Branch Name" %} <span class="text-[var(--danger)]">*</span>
+      </label>
+      <input
+        type="text"
+        name="branch_name"
+        id="id_branch_name"
+        required
+        value="{{ form.branch_name.value|default:'Main Branch' }}"
+        class="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
+      >
+    </div>
+
+    <!-- Default Warehouse Name -->
+    <div>
+      <label for="id_warehouse_name" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+        {% trans "Primary Warehouse Name" %} <span class="text-[var(--danger)]">*</span>
+      </label>
+      <input
+        type="text"
+        name="warehouse_name"
+        id="id_warehouse_name"
+        required
+        value="{{ form.warehouse_name.value|default:'Main Warehouse' }}"
+        class="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
+      >
+    </div>
+  </div>
+
+  <div class="pt-4 border-t border-[var(--border)] flex items-center justify-between">
+    <a
+      href="{% url 'tenancy:onboarding' %}?step=1"
+      hx-get="{% url 'tenancy:onboarding' %}?step=1"
+      hx-target="#onboarding-card"
+      hx-swap="innerHTML"
+      class="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition font-medium"
+    >
+      &larr; {% trans "Back" %}
+    </a>
+    <button
+      type="submit"
+      class="px-6 py-2.5 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white font-semibold text-sm shadow-sm transition inline-flex items-center space-x-2"
+    >
+      <span>{% trans "Continue to Step 3" %}</span>
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+    </button>
+  </div>
+</form>
+{% endpartialdef %}
+
+
+{% partialdef step_3 %}
+<form
+  hx-post="{% url 'tenancy:onboarding' %}"
+  hx-target="#onboarding-card"
+  hx-swap="innerHTML"
+  class="space-y-6"
+>
+  {% csrf_token %}
+  <input type="hidden" name="step" value="3">
+
+  <div class="border-b border-[var(--border)] pb-4 mb-6">
+    <h2 class="text-xl font-bold text-[var(--text)]">{% trans "Step 3: Team Collaboration & Workspace Launch" %}</h2>
+    <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "Invite team members or launch directly into your configured environment." %}</p>
+  </div>
+
+  {% if error %}
+    <div class="p-3.5 bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)] rounded-xl text-xs font-medium">
+      {{ error }}
+    </div>
+  {% endif %}
+
+  <!-- Summary Card -->
+  <div class="p-4 rounded-xl border border-[var(--brand-200)] bg-[var(--brand-50)]/20 space-y-2">
+    <div class="flex items-center justify-between">
+      <span class="text-xs uppercase font-bold tracking-wider text-[var(--brand-700)]">{% trans "Workspace Ready To Launch" %}</span>
+      <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-[var(--brand-600)] text-white">
+        {{ selected_plan.name }} ({{ selected_plan.badge }})
+      </span>
+    </div>
+    <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+      <div>
+        <span class="text-[var(--text-muted)]">{% trans "Name:" %}</span>
+        <strong class="text-[var(--text)]">{{ onboarding_data.name }}</strong>
+      </div>
+      <div>
+        <span class="text-[var(--text-muted)]">{% trans "Slug:" %}</span>
+        <strong class="text-[var(--text)]">{{ onboarding_data.slug }}</strong>
+      </div>
+      <div>
+        <span class="text-[var(--text-muted)]">{% trans "Base Currency:" %}</span>
+        <strong class="text-[var(--text)]">{{ onboarding_data.base_currency }}</strong>
+      </div>
+      <div>
+        <span class="text-[var(--text-muted)]">{% trans "Headquarters:" %}</span>
+        <strong class="text-[var(--text)]">{{ onboarding_data.branch_name }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Member Invites -->
+  <div>
+    <label for="id_team_invites" class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
+      {% trans "Invite Team Members (Optional)" %}
+    </label>
+    <textarea
+      name="team_invites"
+      id="id_team_invites"
+      rows="3"
+      class="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-500)]"
+      placeholder="colleague@example.com, manager@example.com"
+    >{{ form.team_invites.value|default:'' }}</textarea>
+    <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "Comma or line-separated email addresses. We'll send standard invitation links." %}</p>
+    {% if form.team_invites.errors %}
+      <p class="text-xs text-[var(--danger)] mt-1">{{ form.team_invites.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div class="pt-4 border-t border-[var(--border)] flex items-center justify-between">
+    <a
+      href="{% url 'tenancy:onboarding' %}?step=2"
+      hx-get="{% url 'tenancy:onboarding' %}?step=2"
+      hx-target="#onboarding-card"
+      hx-swap="innerHTML"
+      class="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition font-medium"
+    >
+      &larr; {% trans "Back" %}
+    </a>
+    <button
+      type="submit"
+      class="px-8 py-3 rounded-xl bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white font-bold text-sm shadow-md transition inline-flex items-center space-x-2"
+    >
+      <span>{% trans "Launch Workspace" %}</span>
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    </button>
+  </div>
+</form>
+{% endpartialdef %}
+{% endblock %}

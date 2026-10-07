@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+from dataclasses import dataclass, field
 from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
@@ -12,7 +13,10 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from apps.core.events import publish
 from apps.core.exceptions import ConflictError, RecordNotFoundError, ValidationError
+from apps.core.hooks import run_provisioning_hooks
+from apps.core.models import NumberSequence
 from apps.tenancy.models import (
     Branch,
     Invitation,
@@ -101,64 +105,31 @@ def seed_default_roles(*, organization: Organization) -> dict[str, Role]:
     return created_roles
 
 
-@transaction.atomic
-def create_organization(
-    *,
-    name: str,
-    slug: str,
-    owner: AbstractBaseUser,
-    base_currency: str = "USD",
-    country: str = "",
-    timezone_str: str = "UTC",
-    actor: Any = None,
-) -> Organization:
-    """Provision a complete new organization workspace with default roles, branch, and warehouse."""
-    if Organization.objects.filter(slug=slug).exists():
-        raise ConflictError(_("An organization with this slug already exists."))
+DEFAULT_SEQUENCES: list[dict[str, Any]] = [
+    {"name": "Invoices", "prefix": "INV-", "padding": 5},
+    {"name": "Quotes", "prefix": "QTE-", "padding": 5},
+    {"name": "Orders", "prefix": "ORD-", "padding": 5},
+    {"name": "Purchase Orders", "prefix": "PO-", "padding": 5},
+    {"name": "Bills", "prefix": "BIL-", "padding": 5},
+    {"name": "Payments", "prefix": "PAY-", "padding": 5},
+    {"name": "Receipts", "prefix": "RCT-", "padding": 5},
+    {"name": "Journal Entries", "prefix": "JE-", "padding": 5},
+]
 
-    org = Organization.objects.create(
-        name=name,
-        slug=slug,
-        base_currency=base_currency,
-        country=country,
-        timezone=timezone_str,
-    )
 
-    # 1. Seed default roles
-    roles = seed_default_roles(organization=org)
+@dataclass
+class ProvisioningContext:
+    """Carries newly provisioned tenant objects to registered module hooks."""
 
-    # 2. Seed headquarters branch
-    branch = Branch.all_tenants.create(
-        organization=org,
-        name="Main Branch",
-        code="MAIN",
-        is_headquarters=True,
-    )
-
-    # 3. Seed default warehouse
-    Warehouse.all_tenants.create(
-        organization=org,
-        branch=branch,
-        name="Main Warehouse",
-        code="WH-MAIN",
-        is_default=True,
-    )
-
-    # 4. Seed default settings
-    OrganizationSettings.all_tenants.create(
-        organization=org,
-    )
-
-    # 5. Assign owner membership
-    Membership.all_tenants.create(
-        organization=org,
-        user=owner,
-        role=roles["Owner"],
-        is_owner=True,
-        status=Membership.STATUS_ACTIVE,
-    )
-
-    return org
+    organization: Organization
+    owner: AbstractBaseUser
+    roles: dict[str, Role]
+    headquarters_branch: Branch
+    default_warehouse: Warehouse
+    settings: OrganizationSettings
+    sequences: dict[str, NumberSequence] = field(default_factory=dict)
+    invitations: list[Invitation] = field(default_factory=list)
+    extra_data: dict[str, Any] = field(default_factory=dict)
 
 
 @transaction.atomic
@@ -214,6 +185,176 @@ def invite_member(
         logger.exception("Failed to send invitation email to %s", normalized_email)
 
     return invitation
+
+
+@transaction.atomic
+def provision_organization(
+    *,
+    name: str,
+    slug: str,
+    owner: AbstractBaseUser,
+    plan: str | None = "starter",
+    base_currency: str = "USD",
+    country: str = "",
+    timezone_str: str = "UTC",
+    fiscal_year_start: int = 1,
+    date_format: str = "Y-m-d",
+    branch_name: str = "Main Branch",
+    branch_code: str = "MAIN",
+    warehouse_name: str = "Main Warehouse",
+    warehouse_code: str = "WH-MAIN",
+    team_invites: list[str] | list[dict[str, str]] | None = None,
+    extra_data: dict[str, Any] | None = None,
+    actor: Any = None,
+) -> Organization:
+    """Transactionally provision a complete tenant organization workspace."""
+    clean_slug = slug.strip().lower()
+    if Organization.objects.filter(slug=clean_slug).exists():
+        raise ConflictError(_("An organization with this slug already exists."))
+
+    org = Organization.objects.create(
+        name=name.strip(),
+        slug=clean_slug,
+        base_currency=base_currency.upper(),
+        country=country.upper() if country else "",
+        timezone=timezone_str,
+        fiscal_year_start=fiscal_year_start,
+        date_format=date_format,
+    )
+
+    # 1. Seed system roles
+    roles = seed_default_roles(organization=org)
+
+    # 2. Assign owner membership
+    Membership.all_tenants.create(
+        organization=org,
+        user=owner,
+        role=roles["Owner"],
+        is_owner=True,
+        status=Membership.STATUS_ACTIVE,
+    )
+
+    # 3. Seed headquarters branch
+    branch = Branch.all_tenants.create(
+        organization=org,
+        name=branch_name.strip() or "Main Branch",
+        code=branch_code.strip() or "MAIN",
+        is_headquarters=True,
+    )
+
+    # 4. Seed default warehouse
+    warehouse = Warehouse.all_tenants.create(
+        organization=org,
+        branch=branch,
+        name=warehouse_name.strip() or "Main Warehouse",
+        code=warehouse_code.strip() or "WH-MAIN",
+        is_default=True,
+    )
+
+    # 5. Seed organization settings
+    settings_obj = OrganizationSettings.all_tenants.create(
+        organization=org,
+    )
+
+    # 6. Seed document number sequences
+    created_sequences: dict[str, NumberSequence] = {}
+    for seq_def in DEFAULT_SEQUENCES:
+        seq = NumberSequence.all_tenants.create(
+            organization=org,
+            name=seq_def["name"],
+            prefix=seq_def["prefix"],
+            padding=seq_def["padding"],
+            next_number=1,
+            reset_frequency=NumberSequence.RESET_NEVER,
+        )
+        created_sequences[seq_def["name"]] = seq
+
+    # 7. Process initial team invitations
+    invitations: list[Invitation] = []
+    if team_invites:
+        staff_role = roles.get("Staff") or roles.get("Viewer") or roles["Owner"]
+        for invite_item in team_invites:
+            if isinstance(invite_item, str):
+                target_email = invite_item.strip()
+                target_role = staff_role
+            elif isinstance(invite_item, dict):
+                target_email = invite_item.get("email", "").strip()
+                role_name = invite_item.get("role", "Staff")
+                target_role = roles.get(role_name, staff_role)
+            else:
+                continue
+
+            if target_email and target_email != getattr(owner, "email", ""):
+                try:
+                    inv = invite_member(
+                        organization=org,
+                        email=target_email,
+                        role=target_role,
+                        actor=owner,
+                    )
+                    invitations.append(inv)
+                except Exception as exc:
+                    logger.warning("Could not invite %s during provisioning: %s", target_email, exc)
+
+    # 8. Assemble context and execute downstream module hooks
+    combined_extra = extra_data.copy() if extra_data else {}
+    if plan:
+        combined_extra["plan_slug"] = plan
+    ctx = ProvisioningContext(
+        organization=org,
+        owner=owner,
+        roles=roles,
+        headquarters_branch=branch,
+        default_warehouse=warehouse,
+        settings=settings_obj,
+        sequences=created_sequences,
+        invitations=invitations,
+        extra_data=combined_extra,
+    )
+    run_provisioning_hooks(ctx)
+
+    # 9. Publish domain event
+    publish(
+        "organization.provisioned",
+        organization_id=org.pk,
+        actor_id=getattr(actor or owner, "pk", None),
+        payload={
+            "organization_id": org.pk,
+            "slug": org.slug,
+            "name": org.name,
+            "owner_id": getattr(owner, "pk", None),
+            "plan_slug": plan,
+        },
+    )
+
+    logger.info("Successfully provisioned organization '%s' (%s)", org.name, org.slug)
+    return org
+
+
+def create_organization(
+    *,
+    name: str,
+    slug: str,
+    owner: AbstractBaseUser,
+    plan: str | None = None,
+    base_currency: str = "USD",
+    country: str = "",
+    timezone_str: str = "UTC",
+    actor: Any = None,
+    **kwargs: Any,
+) -> Organization:
+    """Provision a complete new organization workspace."""
+    return provision_organization(
+        name=name,
+        slug=slug,
+        owner=owner,
+        plan=plan,
+        base_currency=base_currency,
+        country=country,
+        timezone_str=timezone_str,
+        actor=actor,
+        **kwargs,
+    )
 
 
 @transaction.atomic

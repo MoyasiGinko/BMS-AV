@@ -1,8 +1,8 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P1 SaaS shell
-- Last completed task: P1-01
-- Next task: P1-02
+- Last completed task: P1-02
+- Next task: P1-03
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (87.15% test coverage, 111 tests green, all architecture contracts kept, deploy check clean)
-- Notes: P1-01 implemented billing domain models (Plan, Module, PlanModule, Subscription [TenantModel], UsageCounter [TenantModel]), ModuleRegistry with 16 functional modules and nav permission filter, transactional services (seed_default_plans for Starter/Growth/Business/Enterprise, create_subscription, change_subscription_plan, cancel_subscription, increment_usage, check_organization_feature_entitlement), Celery task @require_task_feature decorator, Layer 1 entitlement check hook, REST API under /api/v1/billing/, migrations with RLS enabled, and 13 comprehensive tests. ADR 0004 recorded for PlanModule allowlist.
+- Last `make verify`: PASSED (87.24% test coverage, 122 tests green, all architecture contracts kept, deploy check clean)
+- Notes: P1-02 implemented the modular tenant provisioning engine and 3-step onboarding wizard. Built core provisioning hook registry in `apps.core.hooks`, transactional `provision_organization` service creating Organization, Owner Membership, 7 default system Roles, Headquarters Branch, Default Warehouse, OrganizationSettings, 8 standard NumberSequences (INV, QTE, ORD, PO, BIL, PAY, RCT, JE), team invitations, and downstream module provisioning hooks (e.g. automatic trial subscription via billing). Built HTMX-powered onboarding wizard (`/tenancy/onboarding/`) with real-time slug availability endpoint (`/tenancy/onboarding/check-slug/`), auto-redirect from select screen for users with 0 orgs, session persistence across steps, and launch to active workspace session. 122 tests green at 87.24% coverage.

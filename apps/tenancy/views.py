@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import AbstractBaseUser
@@ -10,9 +12,14 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 
+from apps.tenancy.forms import (
+    OnboardingStep1Form,
+    OnboardingStep2Form,
+    OnboardingStep3Form,
+)
 from apps.tenancy.models import Organization
 from apps.tenancy.selectors import get_invitation_by_token, list_user_organizations
-from apps.tenancy.services import accept_invitation, switch_organization
+from apps.tenancy.services import accept_invitation, provision_organization, switch_organization
 
 
 @login_required
@@ -22,6 +29,9 @@ def select_organization_view(request: HttpRequest) -> HttpResponse:
     assert isinstance(user, AbstractBaseUser)
 
     orgs = list_user_organizations(user=user)
+    if not orgs.exists():
+        return redirect("tenancy:onboarding")
+
     if orgs.count() == 1:
         # If user has only one organization, auto-select it and redirect
         only_org = orgs.first()
@@ -93,3 +103,232 @@ def accept_invitation_view(request: HttpRequest, token: str) -> HttpResponse:
             "invitation": invitation,
         },
     )
+
+
+PLANS_INFO = [
+    {
+        "slug": "starter",
+        "name": "Starter",
+        "price": "$29/mo",
+        "badge": "14-Day Free Trial",
+        "description": "Essential operations for single-location businesses.",
+        "features": ["Sales & POS terminal", "Product Catalog", "Customer Directory", "Up to 3 users"],
+        "popular": False,
+    },
+    {
+        "slug": "growth",
+        "name": "Growth",
+        "price": "$79/mo",
+        "badge": "Most Popular",
+        "description": "Multi-location operations with inventory and purchasing.",
+        "features": [
+            "Everything in Starter",
+            "Inventory & Warehouses",
+            "Purchasing & Vendor Bills",
+            "CRM Pipelines",
+            "Up to 10 users",
+        ],
+        "popular": True,
+    },
+    {
+        "slug": "business",
+        "name": "Business",
+        "price": "$199/mo",
+        "badge": "Full ERP",
+        "description": "Complete suite with general ledger, HR, and payroll.",
+        "features": [
+            "Everything in Growth",
+            "Double-Entry Accounting",
+            "HR & Payroll Processing",
+            "Workflow Automation",
+            "Up to 30 users",
+        ],
+        "popular": False,
+    },
+    {
+        "slug": "enterprise",
+        "name": "Enterprise",
+        "price": "$499/mo",
+        "badge": "Unlimited Scale",
+        "description": "Advanced integrations, API access, and AI Assistant.",
+        "features": [
+            "Everything in Business",
+            "AI Assistant Copilot",
+            "REST API & Webhooks",
+            "Dedicated Support",
+            "Unlimited users",
+        ],
+        "popular": False,
+    },
+]
+
+
+@login_required
+def check_slug_view(request: HttpRequest) -> HttpResponse:
+    """HTMX endpoint for live workspace slug validation."""
+    raw_slug = request.GET.get("slug", "").strip().lower()
+    if not raw_slug:
+        return HttpResponse("")
+
+    taken = Organization.objects.filter(slug=raw_slug).exists()
+    return render(
+        request,
+        "tenancy/onboarding.html#slug_status",
+        {
+            "slug": raw_slug,
+            "taken": taken,
+        },
+    )
+
+
+def _handle_step_1(request: HttpRequest, session_data: dict[str, Any], is_htmx: bool) -> HttpResponse:
+    form1 = OnboardingStep1Form(request.POST)
+    if form1.is_valid():
+        session_data.update(form1.cleaned_data)
+        request.session.modified = True
+        context = {
+            "step": 2,
+            "form": OnboardingStep2Form(initial=session_data),
+            "onboarding_data": session_data,
+            "plans": PLANS_INFO,
+        }
+        template_name = "tenancy/onboarding.html#step_2" if is_htmx else "tenancy/onboarding.html"
+        return render(request, template_name, context)
+
+    context = {
+        "step": 1,
+        "form": form1,
+        "onboarding_data": session_data,
+        "plans": PLANS_INFO,
+    }
+    template_name = "tenancy/onboarding.html#step_1" if is_htmx else "tenancy/onboarding.html"
+    return render(request, template_name, context, status=422)
+
+
+def _handle_step_2(request: HttpRequest, session_data: dict[str, Any], is_htmx: bool) -> HttpResponse:
+    form2 = OnboardingStep2Form(request.POST)
+    if form2.is_valid():
+        session_data.update(form2.cleaned_data)
+        request.session.modified = True
+        selected_plan_slug = session_data.get("plan", "starter")
+        selected_plan_info = next(
+            (p for p in PLANS_INFO if p["slug"] == selected_plan_slug),
+            PLANS_INFO[0],
+        )
+        context = {
+            "step": 3,
+            "form": OnboardingStep3Form(initial=session_data),
+            "onboarding_data": session_data,
+            "selected_plan": selected_plan_info,
+            "plans": PLANS_INFO,
+        }
+        template_name = "tenancy/onboarding.html#step_3" if is_htmx else "tenancy/onboarding.html"
+        return render(request, template_name, context)
+
+    context = {
+        "step": 2,
+        "form": form2,
+        "onboarding_data": session_data,
+        "plans": PLANS_INFO,
+    }
+    template_name = "tenancy/onboarding.html#step_2" if is_htmx else "tenancy/onboarding.html"
+    return render(request, template_name, context, status=422)
+
+
+def _handle_step_3(
+    request: HttpRequest,
+    user: AbstractBaseUser,
+    session_data: dict[str, Any],
+    is_htmx: bool,
+) -> HttpResponse:
+    form3 = OnboardingStep3Form(request.POST)
+    if form3.is_valid():
+        team_invites = form3.cleaned_data.get("team_invites", [])
+        try:
+            org = provision_organization(
+                name=session_data.get("name", "My Organization"),
+                slug=session_data.get("slug", "my-org"),
+                owner=user,
+                plan=session_data.get("plan", "starter"),
+                base_currency=session_data.get("base_currency", "USD"),
+                country=session_data.get("country", ""),
+                timezone_str=session_data.get("timezone", "UTC"),
+                fiscal_year_start=session_data.get("fiscal_year_start", 1),
+                date_format=session_data.get("date_format", "Y-m-d"),
+                branch_name=session_data.get("branch_name", "Main Branch"),
+                warehouse_name=session_data.get("warehouse_name", "Main Warehouse"),
+                team_invites=team_invites,
+                actor=user,
+            )
+        except Exception as exc:
+            messages.error(request, str(exc))
+            context = {
+                "step": 3,
+                "form": form3,
+                "onboarding_data": session_data,
+                "plans": PLANS_INFO,
+                "error": str(exc),
+            }
+            template_name = "tenancy/onboarding.html#step_3" if is_htmx else "tenancy/onboarding.html"
+            return render(request, template_name, context, status=422)
+
+        request.session.pop("onboarding_data", None)
+        switch_organization(user=user, organization_id=org.pk, session=request.session)
+        messages.success(request, _("Workspace '%(name)s' is ready!") % {"name": org.name})
+
+        if is_htmx:
+            response = HttpResponse()
+            response["HX-Redirect"] = "/"
+            return response
+        return redirect("/")
+
+    context = {
+        "step": 3,
+        "form": form3,
+        "onboarding_data": session_data,
+        "plans": PLANS_INFO,
+    }
+    template_name = "tenancy/onboarding.html#step_3" if is_htmx else "tenancy/onboarding.html"
+    return render(request, template_name, context, status=422)
+
+
+@login_required
+def onboarding_wizard_view(request: HttpRequest) -> HttpResponse:
+    """Multi-step onboarding wizard: Workspace & Plan -> Profile & Facilities -> Team & Launch."""
+    user = request.user
+    assert isinstance(user, AbstractBaseUser)
+
+    is_htmx = getattr(request, "htmx", False) or request.headers.get("HX-Request") == "true"
+    session_data = request.session.setdefault("onboarding_data", {})
+    step = int(request.POST.get("step") or request.GET.get("step") or 1)
+
+    if request.method == "POST":
+        if step == 1:
+            return _handle_step_1(request, session_data, is_htmx)
+        if step == 2:
+            return _handle_step_2(request, session_data, is_htmx)
+        if step == 3:
+            return _handle_step_3(request, user, session_data, is_htmx)
+
+    if step == 2 and "name" in session_data:
+        form: Any = OnboardingStep2Form(initial=session_data)
+    elif step == 3 and "name" in session_data:
+        form = OnboardingStep3Form(initial=session_data)
+    else:
+        step = 1
+        form = OnboardingStep1Form(initial=session_data)
+
+    selected_plan_slug = session_data.get("plan", "starter")
+    selected_plan_info = next(
+        (p for p in PLANS_INFO if p["slug"] == selected_plan_slug),
+        PLANS_INFO[0],
+    )
+
+    context = {
+        "step": step,
+        "form": form,
+        "onboarding_data": session_data,
+        "plans": PLANS_INFO,
+        "selected_plan": selected_plan_info,
+    }
+    return render(request, "tenancy/onboarding.html", context)
