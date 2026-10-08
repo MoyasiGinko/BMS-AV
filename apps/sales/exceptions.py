@@ -51,3 +51,31 @@ class EmptyDocumentError(SalesError):
 
 class WarehouseRequiredError(SalesError):
     """Raised when a warehouse is required for inventory tracking but none is specified or found."""
+
+
+class PaymentError(SalesError):
+    """Base exception for payment processing errors."""
+
+
+class PaymentNotFoundError(PaymentError):
+    """Raised when a payment cannot be found."""
+
+
+class PaymentAlreadyPostedError(PaymentError):
+    """Raised when attempting to re-post an already posted payment."""
+
+
+class PaymentAlreadyVoidError(PaymentError):
+    """Raised when attempting to void or modify an already void payment."""
+
+
+class InsufficientUnallocatedPaymentError(PaymentError):
+    """Raised when attempting to allocate or refund more than the unallocated payment balance."""
+
+
+class InvalidAllocationError(PaymentError):
+    """Raised when an allocation amount is invalid or exceeds invoice balance due."""
+
+
+class InvoiceNotPayableError(PaymentError):
+    """Raised when attempting to allocate payment to an unpaid/unposted/void invoice."""

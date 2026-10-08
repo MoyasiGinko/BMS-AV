@@ -351,3 +351,90 @@ def test_invoice_void_nullification_invariant(sales_inv_setup: dict[str, Any]) -
     # Invariant 3: Trial balance is still balanced
     tb = get_trial_balance(organization_id=org.pk)
     assert tb["is_balanced"] is True
+
+
+@pytest.mark.django_db(transaction=True)
+def test_payment_allocation_balance_invariant(sales_inv_setup: dict[str, Any]) -> None:
+    """Invariant: Payment allocations and invoices strictly balance, and AR matches subledger."""
+    org: Organization = sales_inv_setup["org"]
+    customer: Customer = sales_inv_setup["customer"]
+    prod_a: Product = sales_inv_setup["prod_a"]
+    warehouse: Warehouse = sales_inv_setup["warehouse"]
+
+    # 1. Create two invoices
+    inv1 = sales_services.create_invoice(
+        organization=org,
+        customer=customer,
+        warehouse=warehouse,
+        lines=[
+            {
+                "product": prod_a,
+                "quantity": Decimal("2.0000"),
+                "unit_price": Decimal("100.0000"),
+                "tax_rate": Decimal("10.00"),
+            }
+        ],
+    )
+    sales_services.post_invoice(organization=org, invoice=inv1)
+    inv1.refresh_from_db()
+
+    inv2 = sales_services.create_invoice(
+        organization=org,
+        customer=customer,
+        warehouse=warehouse,
+        lines=[
+            {
+                "product": prod_a,
+                "quantity": Decimal("3.0000"),
+                "unit_price": Decimal("100.0000"),
+                "tax_rate": Decimal("10.00"),
+            }
+        ],
+    )
+    sales_services.post_invoice(organization=org, invoice=inv2)
+    inv2.refresh_from_db()
+
+    # inv1 total: $220.0000, inv2 total: $330.0000, total customer debt: $550.0000
+    customer.refresh_from_db()
+    assert customer.current_balance == Decimal("550.0000")
+
+    # 2. Receive payment of $500: settle inv1 ($220) and inv2 ($200), leave $80 unallocated
+    pay = sales_services.receive_payment(
+        organization=org,
+        customer=customer,
+        amount=Decimal("500.0000"),
+        allocations=[
+            {"invoice_id": inv1.id, "amount": Decimal("220.0000")},
+            {"invoice_id": inv2.id, "amount": Decimal("200.0000")},
+        ],
+    )
+
+    pay.refresh_from_db()
+    inv1.refresh_from_db()
+    inv2.refresh_from_db()
+
+    # Invariant: Payment amount == allocated + unallocated + refunded
+    assert pay.amount == (pay.allocated_amount + pay.unallocated_amount + pay.refunded_amount)
+    assert pay.allocated_amount == Decimal("420.0000")
+    assert pay.unallocated_amount == Decimal("80.0000")
+
+    # Invariant: Each invoice grand_total == amount_paid + balance_due
+    assert inv1.grand_total == (inv1.amount_paid + inv1.balance_due)
+    assert inv1.balance_due == Decimal("0.0000")
+    assert inv1.status == "paid"
+
+    assert inv2.grand_total == (inv2.amount_paid + inv2.balance_due)
+    assert inv2.balance_due == Decimal("130.0000")
+    assert inv2.status == "partially_paid"
+
+    # Invariant: Customer subledger total debit - credit == current_balance
+    customer.refresh_from_db()
+    ledger_entries = CustomerBalanceEntry.all_tenants.filter(customer=customer)
+    tot_dr = ledger_entries.aggregate(s=Sum("debit"))["s"] or DECIMAL_ZERO
+    tot_cr = ledger_entries.aggregate(s=Sum("credit"))["s"] or DECIMAL_ZERO
+    assert customer.current_balance == (tot_dr - tot_cr)
+    assert customer.current_balance == Decimal("50.0000")  # $550 invoiced - $500 paid = $50 balance
+
+    # Invariant: Trial balance is balanced
+    tb = get_trial_balance(organization_id=org.pk)
+    assert tb["is_balanced"] is True

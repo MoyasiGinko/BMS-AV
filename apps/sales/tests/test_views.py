@@ -35,6 +35,7 @@ def view_setup(db: None) -> dict[str, Any]:
             "sales.delete",
             "sales.confirm",
             "sales.void",
+            "sales.payment",
             "sales.manage",
         ],
     )
@@ -243,3 +244,50 @@ def test_credit_note_views_and_post(view_setup: dict[str, Any]) -> None:
     assert post_res.status_code == 302
     cn.refresh_from_db()
     assert cn.status == "posted"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_customer_payment_views(view_setup: dict[str, Any]) -> None:
+    """Test customer payment list, create, detail, HTMX partial, and receipt views."""
+    client = view_setup["client"]
+    customer = view_setup["customer"]
+
+    # 1. Payment list view
+    list_res = client.get(reverse("sales:payment_list"))
+    assert list_res.status_code == 200
+    assert "Customer Payments" in list_res.content.decode()
+
+    # 2. Payment list HTMX partial
+    htmx_res = client.get(reverse("sales:payment_list"), HTTP_HX_REQUEST="true")
+    assert htmx_res.status_code == 200
+    assert "payment-table-container" in htmx_res.content.decode()
+
+    # 3. Payment create GET
+    create_get = client.get(reverse("sales:payment_create"))
+    assert create_get.status_code == 200
+
+    # 4. Receive payment POST
+    post_data = {
+        "customer": str(customer.pk),
+        "amount": "250.00",
+        "payment_date": "2026-10-09",
+        "payment_method": "cash",
+        "reference": "REF-WEB-001",
+        "currency": "USD",
+    }
+    create_post = client.post(reverse("sales:payment_create"), data=post_data)
+    assert create_post.status_code == 302
+
+    pay = customer.payments.first()
+    assert pay is not None
+    assert pay.amount == Decimal("250.0000")
+
+    # 5. Payment detail view
+    detail_res = client.get(reverse("sales:payment_detail", kwargs={"public_id": pay.public_id}))
+    assert detail_res.status_code == 200
+    assert pay.payment_number in detail_res.content.decode()
+
+    # 6. Payment receipt view
+    receipt_res = client.get(reverse("sales:payment_receipt", kwargs={"public_id": pay.public_id}))
+    assert receipt_res.status_code == 200
+    assert "PAYMENT RECEIPT" in receipt_res.content.decode()

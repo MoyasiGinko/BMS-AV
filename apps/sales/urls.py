@@ -39,4 +39,12 @@ urlpatterns = [
     path("credit-notes/create/", views.credit_note_create, name="credit_note_create"),
     path("credit-notes/<uuid:public_id>/", views.credit_note_detail, name="credit_note_detail"),
     path("credit-notes/<uuid:public_id>/post/", views.credit_note_post, name="credit_note_post"),
+    # Customer Payments
+    path("payments/", views.payment_list, name="payment_list"),
+    path("payments/create/", views.payment_create, name="payment_create"),
+    path("payments/<uuid:public_id>/", views.payment_detail, name="payment_detail"),
+    path("payments/<uuid:public_id>/allocate/", views.payment_allocate, name="payment_allocate"),
+    path("payments/<uuid:public_id>/refund/", views.payment_refund, name="payment_refund"),
+    path("payments/<uuid:public_id>/void/", views.payment_void, name="payment_void"),
+    path("payments/<uuid:public_id>/receipt/", views.payment_receipt, name="payment_receipt"),
 ]

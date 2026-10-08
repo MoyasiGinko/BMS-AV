@@ -9,5 +9,6 @@ router.register("quotes", views.QuoteViewSet, basename="quote")
 router.register("orders", views.SalesOrderViewSet, basename="sales-order")
 router.register("invoices", views.InvoiceViewSet, basename="invoice")
 router.register("credit-notes", views.CreditNoteViewSet, basename="credit-note")
+router.register("payments", views.PaymentViewSet, basename="payment")
 
 urlpatterns = router.urls

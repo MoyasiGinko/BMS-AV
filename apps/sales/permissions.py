@@ -8,7 +8,8 @@ PERMISSIONS = {
     "sales.update": "Edit draft sales documents",
     "sales.delete": "Delete draft sales documents",
     "sales.confirm": "Confirm sales orders and post invoices or credit notes to ledgers",
-    "sales.void": "Void posted invoices and credit notes",
+    "sales.payment": "Receive, allocate, refund, and void customer payments",
+    "sales.void": "Void posted invoices, credit notes, and payments",
     "sales.manage": "Full access to sales configurations and operations",
 }
 

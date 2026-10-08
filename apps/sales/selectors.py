@@ -12,6 +12,8 @@ from apps.sales.models import (
     CreditNote,
     Invoice,
     InvoiceStatus,
+    Payment,
+    PaymentStatus,
     Quote,
     QuoteStatus,
     SalesOrder,
@@ -32,7 +34,7 @@ def list_quotes(
     """Retrieve filtered quotes for an organization."""
     qs = (
         Quote.all_tenants.filter(organization=organization)
-        .select_related("customer", "branch", "warehouse")
+        .select_related("customer", "branch")
         .order_by("-date", "-id")
     )
     if status:
@@ -58,7 +60,7 @@ def get_quote(
     """Get single quotation with preloaded lines."""
     qs = (
         Quote.all_tenants.filter(organization=organization)
-        .select_related("customer", "branch", "warehouse")
+        .select_related("customer", "branch")
         .prefetch_related("lines__product", "lines__variant")
     )
     if quote_id:
@@ -271,4 +273,118 @@ def get_sales_summary_metrics(*, organization: Organization) -> dict[str, Any]:
         "overdue_count": inv_agg["overdue_count"] or 0,
         "open_orders": orders_count,
         "open_quotes": quotes_count,
+    }
+
+
+# ============================================================================
+# PAYMENT SELECTORS
+# ============================================================================
+
+
+def list_payments(
+    *,
+    organization: Organization,
+    customer_id: int | None = None,
+    payment_method: str | None = None,
+    status: str | None = None,
+    search: str | None = None,
+) -> QuerySet[Payment]:
+    """Retrieve filtered payments for an organization."""
+    qs = (
+        Payment.all_tenants.filter(organization=organization)
+        .select_related("customer", "branch", "journal_entry")
+        .prefetch_related("allocations__invoice")
+        .order_by("-payment_date", "-id")
+    )
+    if customer_id:
+        qs = qs.filter(customer_id=customer_id)
+    if payment_method:
+        qs = qs.filter(payment_method=payment_method)
+    if status:
+        qs = qs.filter(status=status)
+    if search:
+        search = search.strip()
+        qs = qs.filter(
+            Q(payment_number__icontains=search)
+            | Q(customer__name__icontains=search)
+            | Q(customer__code__icontains=search)
+            | Q(reference__icontains=search)
+        )
+    return qs
+
+
+def get_payment(
+    *,
+    organization: Organization,
+    payment_id: int | None = None,
+    public_id: str | None = None,
+) -> Payment | None:
+    """Get single payment with preloaded customer and allocations."""
+    qs = (
+        Payment.all_tenants.filter(organization=organization)
+        .select_related("customer", "branch", "journal_entry")
+        .prefetch_related("allocations__invoice", "refunds")
+    )
+    if payment_id:
+        return qs.filter(pk=payment_id).first()
+    if public_id:
+        return qs.filter(public_id=public_id).first()
+    return None
+
+
+def get_customer_unallocated_payments(
+    *,
+    organization: Organization,
+    customer_id: int,
+) -> QuerySet[Payment]:
+    """Get customer payments with positive unallocated balance available for allocation."""
+    return (
+        Payment.all_tenants.filter(
+            organization=organization,
+            customer_id=customer_id,
+            status=PaymentStatus.POSTED,
+            unallocated_amount__gt=DECIMAL_ZERO,
+        )
+        .select_related("customer")
+        .order_by("payment_date", "id")
+    )
+
+
+def get_customer_outstanding_invoices(
+    *,
+    organization: Organization,
+    customer_id: int,
+) -> QuerySet[Invoice]:
+    """Get customer invoices with outstanding balance due."""
+    return (
+        Invoice.all_tenants.filter(
+            organization=organization,
+            customer_id=customer_id,
+            status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID],
+            balance_due__gt=DECIMAL_ZERO,
+        )
+        .select_related("customer", "warehouse")
+        .order_by("invoice_date", "id")
+    )
+
+
+def get_payment_summary(
+    *,
+    organization: Organization,
+) -> dict[str, Any]:
+    """Get high-level payment metrics for organization."""
+    agg = Payment.all_tenants.filter(
+        organization=organization,
+        status=PaymentStatus.POSTED,
+    ).aggregate(
+        total_collected=Sum("amount"),
+        total_allocated=Sum("allocated_amount"),
+        total_unallocated=Sum("unallocated_amount"),
+        count=Count("id"),
+    )
+    return {
+        "total_collected": agg["total_collected"] or DECIMAL_ZERO,
+        "total_allocated": agg["total_allocated"] or DECIMAL_ZERO,
+        "total_unallocated": agg["total_unallocated"] or DECIMAL_ZERO,
+        "count": agg["count"] or 0,
     }

@@ -10,6 +10,7 @@ from django.utils.translation import gettext as _
 
 from apps.catalog.models import Product
 from apps.core.permissions import permission_required
+from apps.customers.models import Customer
 from apps.sales import selectors, services
 from apps.sales.exceptions import SalesError
 from apps.sales.forms import (
@@ -18,11 +19,14 @@ from apps.sales.forms import (
     InvoiceFilterForm,
     InvoiceForm,
     OrderFilterForm,
+    PaymentFilterForm,
+    PaymentForm,
+    PaymentRefundForm,
     QuoteFilterForm,
     QuoteForm,
     SalesOrderForm,
 )
-from apps.sales.models import CreditNote, Invoice, Quote, SalesOrder
+from apps.sales.models import CreditNote, Invoice, Payment, Quote, SalesOrder
 from apps.tenancy.models import Organization
 
 
@@ -552,3 +556,229 @@ def credit_note_post(request: HttpRequest, public_id: str) -> HttpResponse:
     except SalesError as err:
         messages.error(request, str(err))
     return redirect("sales:credit_note_detail", public_id=credit_note.public_id)
+
+
+# ============================================================================
+# CUSTOMER PAYMENTS
+# ============================================================================
+
+
+@permission_required("sales.view")
+def payment_list(request: HttpRequest) -> HttpResponse:
+    org = _get_org(request)
+
+    filter_form = PaymentFilterForm(request.GET)
+    status = request.GET.get("status") or None
+    payment_method = request.GET.get("payment_method") or None
+    search = request.GET.get("search") or None
+
+    payments = selectors.list_payments(
+        organization=org,
+        status=status,
+        payment_method=payment_method,
+        search=search,
+    )
+    summary = selectors.get_payment_summary(organization=org)
+
+    context = {
+        "payments": payments,
+        "filter_form": filter_form,
+        "summary": summary,
+    }
+
+    if request.headers.get("HX-Request") == "true":
+        return render(request, "sales/partials/payment_table.html", context)
+    return render(request, "sales/payment_list.html", context)
+
+
+@permission_required("sales.payment")
+def payment_create(request: HttpRequest) -> HttpResponse:
+    org = _get_org(request)
+
+    customer_id = request.GET.get("customer")
+    selected_customer = None
+    outstanding_invoices = []
+    if customer_id and customer_id.isdigit():
+        selected_customer = Customer.all_tenants.filter(organization=org, pk=int(customer_id)).first()
+        if selected_customer:
+            outstanding_invoices = list(
+                selectors.get_customer_outstanding_invoices(
+                    organization=org, customer_id=selected_customer.pk
+                )
+            )
+
+    if request.method == "POST":
+        form = PaymentForm(request.POST, organization=org)
+        if form.is_valid():
+            payment_data = form.cleaned_data
+            customer = payment_data["customer"]
+            amount = payment_data["amount"]
+
+            allocations = []
+            for key, val in request.POST.items():
+                if key.startswith("alloc_inv_") and val:
+                    try:
+                        inv_id = int(key.replace("alloc_inv_", ""))
+                        alloc_amount = Decimal(str(val))
+                        if alloc_amount > Decimal("0.0000"):
+                            allocations.append({"invoice_id": inv_id, "amount": alloc_amount})
+                    except ValueError, TypeError:
+                        continue
+
+            try:
+                payment = services.receive_payment(
+                    organization=org,
+                    customer=customer,
+                    amount=amount,
+                    payment_method=payment_data.get("payment_method", "cash"),
+                    payment_date=payment_data.get("payment_date"),
+                    allocations=allocations if allocations else None,
+                    branch=payment_data.get("branch"),
+                    currency=payment_data.get("currency", "USD"),
+                    reference=payment_data.get("reference", ""),
+                    notes=payment_data.get("notes", ""),
+                    actor=request.user,
+                )
+                messages.success(
+                    request,
+                    _("Payment %(num)s received and posted successfully.") % {"num": payment.payment_number},
+                )
+                return redirect("sales:payment_detail", public_id=payment.public_id)
+            except SalesError as err:
+                messages.error(request, str(err))
+        else:
+            messages.error(request, _("Please correct the errors below."))
+    else:
+        initial = {}
+        if selected_customer:
+            initial["customer"] = selected_customer
+        form = PaymentForm(initial=initial, organization=org)
+
+    context = {
+        "form": form,
+        "selected_customer": selected_customer,
+        "outstanding_invoices": outstanding_invoices,
+    }
+    return render(request, "sales/payment_form.html", context)
+
+
+@permission_required("sales.view")
+def payment_detail(request: HttpRequest, public_id: str) -> HttpResponse:
+    org = _get_org(request)
+
+    payment = selectors.get_payment(organization=org, public_id=public_id)
+    if not payment:
+        raise PermissionDenied(_("Payment not found."))
+
+    unpaid_invoices = selectors.get_customer_outstanding_invoices(
+        organization=org, customer_id=payment.customer_id
+    )
+
+    context = {
+        "payment": payment,
+        "allocations": payment.allocations.select_related("invoice").all(),
+        "refunds": payment.refunds.all(),
+        "unpaid_invoices": unpaid_invoices,
+        "refund_form": PaymentRefundForm(),
+    }
+    return render(request, "sales/payment_detail.html", context)
+
+
+@permission_required("sales.payment")
+def payment_allocate(request: HttpRequest, public_id: str) -> HttpResponse:
+    org = _get_org(request)
+
+    payment = get_object_or_404(Payment.all_tenants, public_id=public_id, organization=org)
+    if request.method == "POST":
+        allocations = []
+        for key, val in request.POST.items():
+            if key.startswith("alloc_inv_") and val:
+                try:
+                    inv_id = int(key.replace("alloc_inv_", ""))
+                    alloc_amount = Decimal(str(val))
+                    if alloc_amount > Decimal("0.0000"):
+                        allocations.append({"invoice_id": inv_id, "amount": alloc_amount})
+                except ValueError, TypeError:
+                    continue
+
+        try:
+            services.allocate_payment(
+                organization=org,
+                payment=payment,
+                allocations=allocations,
+                actor=request.user,
+            )
+            messages.success(request, _("Payment allocated successfully."))
+        except SalesError as err:
+            messages.error(request, str(err))
+
+    return redirect("sales:payment_detail", public_id=payment.public_id)
+
+
+@permission_required("sales.payment")
+def payment_refund(request: HttpRequest, public_id: str) -> HttpResponse:
+    org = _get_org(request)
+
+    payment = get_object_or_404(Payment.all_tenants, public_id=public_id, organization=org)
+    if request.method == "POST":
+        form = PaymentRefundForm(request.POST)
+        if form.is_valid():
+            try:
+                refund = services.refund_payment(
+                    organization=org,
+                    payment=payment,
+                    amount=form.cleaned_data["amount"],
+                    refund_date=form.cleaned_data.get("refund_date"),
+                    reason=form.cleaned_data.get("reason", ""),
+                    actor=request.user,
+                )
+                messages.success(
+                    request,
+                    _("Refund %(num)s processed successfully.") % {"num": refund.refund_number},
+                )
+            except SalesError as err:
+                messages.error(request, str(err))
+        else:
+            messages.error(request, _("Invalid refund data submitted."))
+
+    return redirect("sales:payment_detail", public_id=payment.public_id)
+
+
+@permission_required("sales.void")
+def payment_void(request: HttpRequest, public_id: str) -> HttpResponse:
+    org = _get_org(request)
+
+    payment = get_object_or_404(Payment.all_tenants, public_id=public_id, organization=org)
+    if request.method == "POST":
+        reason = request.POST.get("reason", "")
+        try:
+            services.void_payment(
+                organization=org,
+                payment=payment,
+                reason=reason,
+                actor=request.user,
+            )
+            messages.success(
+                request,
+                _("Payment %(num)s has been voided.") % {"num": payment.payment_number},
+            )
+        except SalesError as err:
+            messages.error(request, str(err))
+
+    return redirect("sales:payment_detail", public_id=payment.public_id)
+
+
+@permission_required("sales.view")
+def payment_receipt(request: HttpRequest, public_id: str) -> HttpResponse:
+    org = _get_org(request)
+
+    payment = selectors.get_payment(organization=org, public_id=public_id)
+    if not payment:
+        raise PermissionDenied(_("Payment not found."))
+
+    context = {
+        "org": org,
+        "payment": payment,
+        "allocations": payment.allocations.select_related("invoice").all(),
+    }
+    return render(request, "sales/payment_receipt.html", context)

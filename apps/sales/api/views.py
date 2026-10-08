@@ -13,13 +13,18 @@ from apps.sales.api.serializers import (
     CreditNoteSerializer,
     InvoiceCreateSerializer,
     InvoiceSerializer,
+    PaymentAllocateActionSerializer,
+    PaymentCreateSerializer,
+    PaymentRefundActionSerializer,
+    PaymentSerializer,
+    PaymentVoidActionSerializer,
     QuoteCreateSerializer,
     QuoteSerializer,
     SalesOrderCreateSerializer,
     SalesOrderSerializer,
 )
 from apps.sales.exceptions import SalesError
-from apps.sales.models import CreditNote, Invoice, Quote, SalesOrder
+from apps.sales.models import CreditNote, Invoice, Payment, Quote, SalesOrder
 
 
 class QuoteViewSet(TenantScopedModelViewSet):
@@ -253,5 +258,97 @@ class CreditNoteViewSet(TenantScopedModelViewSet):
                 actor=request.user,
             )
             return Response(CreditNoteSerializer(credit_note).data)
+        except SalesError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PaymentViewSet(TenantScopedModelViewSet):
+    """API endpoint for managing customer payments and allocations."""
+
+    queryset = Payment.all_tenants.all()
+    serializer_class = PaymentSerializer
+    lookup_field = "public_id"
+    required_permission = "sales.view"
+    filterset_fields = ["status", "payment_method", "customer"]
+    search_fields = ["payment_number", "customer__name", "customer__code", "reference"]
+    ordering_fields = ["payment_date", "amount", "created_at"]
+    ordering = ["-payment_date", "-id"]
+
+    def get_queryset(self) -> QuerySet[Payment]:
+        org = self.get_tenant()
+        return (
+            Payment.all_tenants.filter(organization=org)
+            .select_related("customer", "branch")
+            .prefetch_related("allocations__invoice", "refunds")
+        )
+
+    def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        serializer = PaymentCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            payment = serializer.save(
+                organization=self.get_tenant(),
+                created_by=request.user,
+            )
+            return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+        except SalesError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"])
+    def allocate(self, request: Request, public_id: str | None = None) -> Response:
+        payment = self.get_object()
+        serializer = PaymentAllocateActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        raw_allocations = serializer.validated_data["allocations"]
+        allocations = [
+            {"invoice_id": item["invoice"].pk, "amount": item["amount"]} for item in raw_allocations
+        ]
+
+        try:
+            payment = services.allocate_payment(
+                organization=self.get_tenant(),
+                payment=payment,
+                allocations=allocations,
+                actor=request.user,
+            )
+            return Response(PaymentSerializer(payment).data)
+        except SalesError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"])
+    def refund(self, request: Request, public_id: str | None = None) -> Response:
+        payment = self.get_object()
+        serializer = PaymentRefundActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            services.refund_payment(
+                organization=self.get_tenant(),
+                payment=payment,
+                amount=serializer.validated_data["amount"],
+                refund_date=serializer.validated_data.get("refund_date"),
+                reason=serializer.validated_data.get("reason", ""),
+                actor=request.user,
+            )
+            payment.refresh_from_db()
+            return Response(PaymentSerializer(payment).data)
+        except SalesError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"])
+    def void(self, request: Request, public_id: str | None = None) -> Response:
+        payment = self.get_object()
+        serializer = PaymentVoidActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            payment = services.void_payment(
+                organization=self.get_tenant(),
+                payment=payment,
+                reason=serializer.validated_data.get("reason", ""),
+                actor=request.user,
+            )
+            return Response(PaymentSerializer(payment).data)
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

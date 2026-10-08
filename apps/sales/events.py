@@ -73,3 +73,38 @@ class CreditNotePosted(DomainEvent):
     credit_note_number: str = ""
     total_amount: str = ""
     customer_id: int = 0
+
+
+@dataclass(frozen=True)
+class PaymentReceived(DomainEvent):
+    event_type: ClassVar[str] = "sales.payment_received"
+    payment_id: int = 0
+    payment_number: str = ""
+    amount: str = ""
+    customer_id: int = 0
+
+
+@dataclass(frozen=True)
+class PaymentAllocated(DomainEvent):
+    event_type: ClassVar[str] = "sales.payment_allocated"
+    payment_id: int = 0
+    invoice_id: int = 0
+    allocated_amount: str = ""
+
+
+@dataclass(frozen=True)
+class PaymentRefunded(DomainEvent):
+    event_type: ClassVar[str] = "sales.payment_refunded"
+    payment_id: int = 0
+    refund_id: int = 0
+    refund_number: str = ""
+    refund_amount: str = ""
+    customer_id: int = 0
+
+
+@dataclass(frozen=True)
+class PaymentVoided(DomainEvent):
+    event_type: ClassVar[str] = "sales.payment_voided"
+    payment_id: int = 0
+    payment_number: str = ""
+    customer_id: int = 0

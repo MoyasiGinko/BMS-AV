@@ -1,0 +1,266 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ payment.payment_number }} | {% trans "Customer Payment" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'sales:payment_list' %}" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">{{ payment.payment_number }}</h1>
+                    {% if payment.status == 'posted' %}
+                        {% if payment.unallocated_amount == 0 %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Fully Allocated" %}</span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-400">{% trans "Partially Allocated" %}</span>
+                        {% endif %}
+                    {% elif payment.status == 'void' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Voided" %}</span>
+                    {% endif %}
+                </div>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {% trans "Customer" %}: <a href="{% url 'customers:customer_detail' customer_id=payment.customer.pk %}" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">{{ payment.customer.name }}</a>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="{% url 'sales:payment_receipt' public_id=payment.public_id %}" target="_blank" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                {% trans "Print Receipt" %}
+            </a>
+
+            {% if payment.status == 'posted' %}
+            <form method="post" action="{% url 'sales:payment_void' public_id=payment.public_id %}" onsubmit="return confirm('{% trans "Are you sure you want to void this payment? This will revert all invoice balances and create GL reversal entries." %}');">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-3.5 py-2 border border-rose-300 dark:border-rose-800 rounded-lg text-sm font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 transition-colors">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    {% trans "Void Payment" %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Payment Amount" %}</span>
+            <div class="mt-2">
+                <span class="text-2xl font-bold text-slate-900 dark:text-white font-mono">${{ payment.amount }}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Allocated to Invoices" %}</span>
+            <div class="mt-2">
+                <span class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">${{ payment.allocated_amount }}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Unallocated Available" %}</span>
+            <div class="mt-2">
+                <span class="text-2xl font-bold {% if payment.unallocated_amount > 0 %}text-amber-600 dark:text-amber-400{% else %}text-slate-400{% endif %} font-mono">
+                    ${{ payment.unallocated_amount }}
+                </span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Refunded" %}</span>
+            <div class="mt-2">
+                <span class="text-2xl font-bold text-slate-900 dark:text-white font-mono">${{ payment.refunded_amount }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-4">{% trans "Payment Information" %}</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 text-sm">
+            <div>
+                <span class="text-slate-500 dark:text-slate-400 block text-xs uppercase font-medium">{% trans "Payment Date" %}</span>
+                <span class="font-medium text-slate-900 dark:text-white mt-1 block">{{ payment.payment_date }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500 dark:text-slate-400 block text-xs uppercase font-medium">{% trans "Payment Method" %}</span>
+                <span class="font-medium text-slate-900 dark:text-white mt-1 block capitalize">{{ payment.payment_method }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500 dark:text-slate-400 block text-xs uppercase font-medium">{% trans "Branch / Location" %}</span>
+                <span class="font-medium text-slate-900 dark:text-white mt-1 block">{{ payment.branch.name|default:"-" }}</span>
+            </div>
+            <div>
+                <span class="text-slate-500 dark:text-slate-400 block text-xs uppercase font-medium">{% trans "Reference" %}</span>
+                <span class="font-medium text-slate-900 dark:text-white mt-1 block font-mono">{{ payment.reference|default:"-" }}</span>
+            </div>
+            <div class="sm:col-span-4">
+                <span class="text-slate-500 dark:text-slate-400 block text-xs uppercase font-medium">{% trans "Notes" %}</span>
+                <p class="text-slate-700 dark:text-slate-300 mt-1">{{ payment.notes|default:"-" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Allocations Section -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Invoice Allocations" %}</h2>
+            <span class="text-xs text-slate-500 font-mono">{{ allocations.count }} {% trans "allocated" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th scope="col" class="py-3 px-4 font-semibold">{% trans "Invoice #" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold">{% trans "Invoice Date" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Grand Total" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Allocated Amount" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold">{% trans "Allocated At" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for alloc in allocations %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                        <td class="py-3.5 px-4 font-mono font-medium text-slate-900 dark:text-white">
+                            <a href="{% url 'sales:invoice_detail' public_id=alloc.invoice.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                {{ alloc.invoice.invoice_number }}
+                            </a>
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-500">{{ alloc.invoice.invoice_date }}</td>
+                        <td class="py-3.5 px-4 text-right font-mono text-slate-900 dark:text-white">${{ alloc.invoice.grand_total }}</td>
+                        <td class="py-3.5 px-4 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                            ${{ alloc.amount }}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-500">{{ alloc.created_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-slate-500 dark:text-slate-400">
+                            {% trans "No allocations yet. This payment is currently held as an unallocated customer advance deposit." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Allocate Available Balance Form (if unallocated > 0 and status is posted) -->
+    {% if payment.status == 'posted' and payment.unallocated_amount > 0 and unpaid_invoices %}
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-2">{% trans "Allocate Available Funds to Invoices" %}</h2>
+        <p class="text-sm text-slate-500 mb-4">
+            {% blocktrans with unalloc=payment.unallocated_amount %}You have <strong>${{ unalloc }}</strong> available to apply towards unpaid customer invoices.{% endblocktrans %}
+        </p>
+
+        <form method="post" action="{% url 'sales:payment_allocate' public_id=payment.public_id %}">
+            {% csrf_token %}
+            <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 mb-4">
+                <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                    <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                            <th scope="col" class="py-3 px-4 font-semibold">{% trans "Invoice #" %}</th>
+                            <th scope="col" class="py-3 px-4 font-semibold">{% trans "Date" %}</th>
+                            <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Grand Total" %}</th>
+                            <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Balance Due" %}</th>
+                            <th scope="col" class="py-3 px-4 font-semibold text-right w-44">{% trans "Amount to Allocate" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                        {% for inv in unpaid_invoices %}
+                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                            <td class="py-3 px-4 font-mono font-medium text-slate-900 dark:text-white">{{ inv.invoice_number }}</td>
+                            <td class="py-3 px-4 text-slate-500">{{ inv.invoice_date }}</td>
+                            <td class="py-3 px-4 text-right font-mono text-slate-900 dark:text-white">${{ inv.grand_total }}</td>
+                            <td class="py-3 px-4 text-right font-mono font-medium text-amber-600 dark:text-amber-400">${{ inv.balance_due }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" step="0.01" min="0" max="{{ inv.balance_due }}"
+                                       name="alloc_inv_{{ inv.pk }}"
+                                       class="w-32 text-right text-xs rounded-md border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                                       placeholder="0.00">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors">
+                {% trans "Apply Allocation" %}
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Refund Section (if unallocated > 0 and status is posted) -->
+    {% if payment.status == 'posted' and payment.unallocated_amount > 0 %}
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-2">{% trans "Issue Customer Refund" %}</h2>
+        <p class="text-sm text-slate-500 mb-4">
+            {% blocktrans with unalloc=payment.unallocated_amount %}Refund unallocated funds (up to <strong>${{ unalloc }}</strong>) back to the customer.{% endblocktrans %}
+        </p>
+
+        <form method="post" action="{% url 'sales:payment_refund' public_id=payment.public_id %}" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Refund Amount *" %}</label>
+                {{ refund_form.amount }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Refund Date *" %}</label>
+                {{ refund_form.refund_date }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Reason / Notes" %}</label>
+                {{ refund_form.reason }}
+            </div>
+            <div>
+                <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition-colors">
+                    {% trans "Process Refund" %}
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Existing Refunds List -->
+    {% if refunds %}
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Refund History" %}</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th scope="col" class="py-3 px-4 font-semibold">{% trans "Refund #" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold">{% trans "Date" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Amount" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold">{% trans "Reason" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for ref in refunds %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                        <td class="py-3 px-4 font-mono font-medium text-slate-900 dark:text-white">{{ ref.refund_number }}</td>
+                        <td class="py-3 px-4 text-slate-500">{{ ref.refund_date }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-semibold text-rose-600 dark:text-rose-400">${{ ref.amount }}</td>
+                        <td class="py-3 px-4 text-slate-700 dark:text-slate-300">{{ ref.reason|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

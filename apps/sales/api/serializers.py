@@ -13,6 +13,10 @@ from apps.sales.models import (
     CreditNoteLine,
     Invoice,
     InvoiceLine,
+    Payment,
+    PaymentAllocation,
+    PaymentMethod,
+    PaymentRefund,
     Quote,
     QuoteLine,
     SalesOrder,
@@ -533,3 +537,151 @@ class CreditNoteCreateSerializer(serializers.Serializer):
             notes=validated_data.get("notes", ""),
             actor=user,
         )
+
+
+# ============================================================================
+# CUSTOMER PAYMENT SERIALIZERS
+# ============================================================================
+
+
+class PaymentAllocationSerializer(serializers.ModelSerializer):
+    invoice_number = serializers.CharField(source="invoice.invoice_number", read_only=True)
+
+    class Meta:
+        model = PaymentAllocation
+        fields = [
+            "id",
+            "invoice",
+            "invoice_number",
+            "amount",
+            "created_at",
+        ]
+        read_only_fields = ["id", "invoice_number", "created_at"]
+
+
+class PaymentRefundSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentRefund
+        fields = [
+            "id",
+            "refund_number",
+            "amount",
+            "refund_date",
+            "reason",
+            "journal_entry",
+            "created_at",
+        ]
+        read_only_fields = ["id", "refund_number", "journal_entry", "created_at"]
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+    customer_code = serializers.CharField(source="customer.code", read_only=True)
+    allocations = PaymentAllocationSerializer(many=True, read_only=True)
+    refunds = PaymentRefundSerializer(many=True, read_only=True)
+    refunded_amount = serializers.DecimalField(max_digits=18, decimal_places=4, read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "public_id",
+            "payment_number",
+            "customer",
+            "customer_name",
+            "customer_code",
+            "branch",
+            "payment_date",
+            "payment_method",
+            "amount",
+            "allocated_amount",
+            "unallocated_amount",
+            "refunded_amount",
+            "currency",
+            "exchange_rate",
+            "status",
+            "reference",
+            "notes",
+            "journal_entry",
+            "allocations",
+            "refunds",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "public_id",
+            "payment_number",
+            "allocated_amount",
+            "unallocated_amount",
+            "refunded_amount",
+            "status",
+            "journal_entry",
+            "allocations",
+            "refunds",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class PaymentAllocationItemSerializer(serializers.Serializer):
+    invoice = serializers.PrimaryKeyRelatedField(queryset=Invoice.all_tenants.all())
+    amount = serializers.DecimalField(max_digits=18, decimal_places=4, min_value=Decimal("0.0001"))
+
+
+class PaymentCreateSerializer(serializers.Serializer):
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.all_tenants.all())
+    amount = serializers.DecimalField(max_digits=18, decimal_places=4, min_value=Decimal("0.01"))
+    payment_method = serializers.ChoiceField(
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.CASH,
+    )
+    payment_date = serializers.DateField(required=False)
+    branch = serializers.PrimaryKeyRelatedField(
+        queryset=Branch.all_tenants.all(),
+        required=False,
+        allow_null=True,
+    )
+    currency = serializers.CharField(max_length=3, default="USD")
+    reference = serializers.CharField(required=False, allow_blank=True, default="")
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+    allocations = PaymentAllocationItemSerializer(many=True, required=False)
+
+    def create(self, validated_data: dict[str, Any]) -> Payment:
+        org = validated_data.pop("organization", None)
+        user = validated_data.pop("created_by", None)
+        raw_allocations = validated_data.pop("allocations", None)
+
+        allocations = None
+        if raw_allocations:
+            allocations = [
+                {"invoice_id": item["invoice"].pk, "amount": item["amount"]} for item in raw_allocations
+            ]
+
+        return services.receive_payment(
+            organization=org,
+            customer=validated_data["customer"],
+            amount=validated_data["amount"],
+            payment_method=validated_data.get("payment_method", PaymentMethod.CASH),
+            payment_date=validated_data.get("payment_date"),
+            allocations=allocations,
+            branch=validated_data.get("branch"),
+            currency=validated_data.get("currency", "USD"),
+            reference=validated_data.get("reference", ""),
+            notes=validated_data.get("notes", ""),
+            actor=user,
+        )
+
+
+class PaymentAllocateActionSerializer(serializers.Serializer):
+    allocations = PaymentAllocationItemSerializer(many=True)
+
+
+class PaymentRefundActionSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=18, decimal_places=4, min_value=Decimal("0.01"))
+    refund_date = serializers.DateField(required=False)
+    reason = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class PaymentVoidActionSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False, allow_blank=True, default="")

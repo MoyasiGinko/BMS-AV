@@ -7,6 +7,9 @@ from apps.sales.models import (
     CreditNoteLine,
     Invoice,
     InvoiceLine,
+    Payment,
+    PaymentAllocation,
+    PaymentRefund,
     Quote,
     QuoteLine,
     SalesOrder,
@@ -96,3 +99,42 @@ class CreditNoteAdmin(admin.ModelAdmin):
     search_fields = ("credit_note_number", "customer__name")
     readonly_fields = ("subtotal", "tax_total", "grand_total", "public_id", "journal_entry")
     inlines = [CreditNoteLineInline]
+
+
+class PaymentAllocationInline(admin.TabularInline):
+    model = PaymentAllocation
+    extra = 0
+    readonly_fields = ("invoice", "amount", "created_at")
+
+
+class PaymentRefundInline(admin.TabularInline):
+    model = PaymentRefund
+    extra = 0
+    readonly_fields = ("refund_number", "amount", "refund_date", "reason", "journal_entry")
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = (
+        "payment_number",
+        "customer",
+        "payment_date",
+        "payment_method",
+        "amount",
+        "allocated_amount",
+        "unallocated_amount",
+        "status",
+        "organization",
+    )
+    list_filter = ("status", "payment_method", "organization")
+    search_fields = ("payment_number", "customer__name", "reference")
+    readonly_fields = (
+        "public_id",
+        "allocated_amount",
+        "unallocated_amount",
+        "refunded_amount",
+        "journal_entry",
+        "created_at",
+        "updated_at",
+    )
+    inlines = [PaymentAllocationInline, PaymentRefundInline]

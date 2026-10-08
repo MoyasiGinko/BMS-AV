@@ -770,3 +770,226 @@ class CreditNoteLine(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.credit_note.credit_note_number} - {self.product.name} ({self.quantity})"
+
+
+class PaymentMethod(models.TextChoices):
+    CASH = "cash", _("Cash")
+    BANK_TRANSFER = "bank_transfer", _("Bank Transfer")
+    CREDIT_CARD = "credit_card", _("Credit Card")
+    DEBIT_CARD = "debit_card", _("Debit Card")
+    CHECK = "check", _("Check / Cheque")
+    ONLINE = "online", _("Online Payment")
+    OTHER = "other", _("Other")
+
+
+class PaymentStatus(models.TextChoices):
+    DRAFT = "draft", _("Draft")
+    POSTED = "posted", _("Posted")
+    VOID = "void", _("Void")
+
+
+class Payment(TenantModel):
+    """Customer payment received against invoices or as advance deposit."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    payment_number = models.CharField(_("Payment Number"), max_length=32)
+    customer = models.ForeignKey(
+        "customers.Customer",
+        on_delete=models.PROTECT,
+        related_name="payments",
+        verbose_name=_("Customer"),
+    )
+    branch = models.ForeignKey(
+        "tenancy.Branch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payments",
+        verbose_name=_("Branch"),
+    )
+    payment_date = models.DateField(_("Payment Date"), default=timezone.now)
+    payment_method = models.CharField(
+        _("Payment Method"),
+        max_length=32,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.CASH,
+    )
+    amount = models.DecimalField(
+        _("Payment Amount"),
+        max_digits=18,
+        decimal_places=4,
+    )
+    allocated_amount = models.DecimalField(
+        _("Allocated Amount"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    unallocated_amount = models.DecimalField(
+        _("Unallocated Amount"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    currency = models.CharField(_("Currency"), max_length=3, default="USD")
+    exchange_rate = models.DecimalField(
+        _("Exchange Rate"),
+        max_digits=12,
+        decimal_places=6,
+        default=Decimal("1.000000"),
+    )
+    reference = models.CharField(_("Reference / Cheque No / Tx ID"), max_length=128, blank=True)
+    notes = models.TextField(_("Notes"), blank=True)
+    status = models.CharField(
+        _("Status"),
+        max_length=20,
+        choices=PaymentStatus.choices,
+        default=PaymentStatus.POSTED,
+    )
+    journal_entry = models.ForeignKey(
+        "accounting.JournalEntry",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="payments",
+        verbose_name=_("Journal Entry"),
+    )
+
+    class Meta:
+        verbose_name = _("Payment")
+        verbose_name_plural = _("Payments")
+        ordering = ["-payment_date", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "payment_number"],
+                name="uniq_payment_org_number",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0),
+                name="check_payment_amount_positive",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(allocated_amount__gte=0) & models.Q(allocated_amount__lte=models.F("amount"))
+                ),
+                name="check_payment_allocated_valid",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(unallocated_amount__gte=0),
+                name="check_payment_unallocated_non_negative",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "status", "-payment_date"]),
+            models.Index(fields=["organization", "customer", "-payment_date"]),
+        ]
+
+    @property
+    def refunded_amount(self) -> Decimal:
+        total = sum((r.amount for r in self.refunds.all()), Decimal("0.0000"))
+        return Decimal(str(total))
+
+    def __str__(self) -> str:
+        return f"{self.payment_number} - {self.customer.name} ({self.amount} {self.currency})"
+
+
+class PaymentAllocation(TenantModel):
+    """Allocation of a payment against a specific sales invoice."""
+
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.CASCADE,
+        related_name="allocations",
+        verbose_name=_("Payment"),
+    )
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.PROTECT,
+        related_name="payment_allocations",
+        verbose_name=_("Invoice"),
+    )
+    amount = models.DecimalField(
+        _("Allocated Amount"),
+        max_digits=18,
+        decimal_places=4,
+    )
+    allocated_at = models.DateTimeField(_("Allocated At"), default=timezone.now)
+
+    class Meta:
+        verbose_name = _("Payment Allocation")
+        verbose_name_plural = _("Payment Allocations")
+        ordering = ["-allocated_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "payment", "invoice"],
+                name="uniq_payment_invoice_allocation",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0),
+                name="check_allocation_amount_positive",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "payment"]),
+            models.Index(fields=["organization", "invoice"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.payment.payment_number} -> {self.invoice.invoice_number} ({self.amount})"
+
+
+class PaymentRefund(TenantModel):
+    """Refund issued to customer against an unallocated payment balance."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    refund_number = models.CharField(_("Refund Number"), max_length=32)
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.PROTECT,
+        related_name="refunds",
+        verbose_name=_("Payment"),
+    )
+    customer = models.ForeignKey(
+        "customers.Customer",
+        on_delete=models.PROTECT,
+        related_name="payment_refunds",
+        verbose_name=_("Customer"),
+    )
+    refund_date = models.DateField(_("Refund Date"), default=timezone.now)
+    amount = models.DecimalField(
+        _("Refund Amount"),
+        max_digits=18,
+        decimal_places=4,
+    )
+    reason = models.TextField(_("Reason for Refund"), blank=True)
+    status = models.CharField(_("Status"), max_length=20, default="posted")
+    journal_entry = models.ForeignKey(
+        "accounting.JournalEntry",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="payment_refunds",
+        verbose_name=_("Journal Entry"),
+    )
+
+    class Meta:
+        verbose_name = _("Payment Refund")
+        verbose_name_plural = _("Payment Refunds")
+        ordering = ["-refund_date", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "refund_number"],
+                name="uniq_refund_org_number",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0),
+                name="check_refund_amount_positive",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "payment"]),
+            models.Index(fields=["organization", "customer", "-refund_date"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.refund_number} - {self.customer.name} ({self.amount})"

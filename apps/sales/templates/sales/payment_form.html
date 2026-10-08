@@ -1,0 +1,189 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Receive Customer Payment" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'sales:payment_list' %}" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Receive Customer Payment" %}</h1>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <form method="post" class="space-y-6" id="payment-form" x-data="{
+            paymentAmount: 0.00,
+            allocations: {},
+            calculateAllocated() {
+                let total = 0;
+                for (let k in this.allocations) {
+                    let v = parseFloat(this.allocations[k]);
+                    if (!isNaN(v) && v > 0) total += v;
+                }
+                return total;
+            },
+            get unallocated() {
+                let amt = parseFloat(this.paymentAmount);
+                if (isNaN(amt)) amt = 0;
+                let alloc = this.calculateAllocated();
+                return Math.max(0, amt - alloc).toFixed(2);
+            },
+            applyBalance(invId, balance) {
+                this.allocations[invId] = parseFloat(balance).toFixed(2);
+            }
+        }">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Customer *" %}</label>
+                    {{ form.customer }}
+                    {% if form.customer.errors %}<span class="text-xs text-rose-500">{{ form.customer.errors.0 }}</span>{% endif %}
+                    <p class="text-xs text-slate-400 mt-1">{% trans "Tip: Selecting a customer and loading this page displays all unpaid invoices below." %}</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Payment Amount *" %}</label>
+                    <div class="relative rounded-md shadow-xs">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <span class="text-slate-500 sm:text-sm">$</span>
+                        </div>
+                        <input type="number" step="0.01" min="0.01" name="amount" required
+                               x-model="paymentAmount"
+                               class="w-full pl-7 text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-medium focus:border-indigo-500 focus:ring-indigo-500"
+                               placeholder="0.00" value="{{ form.amount.value|default:'' }}">
+                    </div>
+                    {% if form.amount.errors %}<span class="text-xs text-rose-500">{{ form.amount.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Payment Date *" %}</label>
+                    {{ form.payment_date }}
+                    {% if form.payment_date.errors %}<span class="text-xs text-rose-500">{{ form.payment_date.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Payment Method *" %}</label>
+                    {{ form.payment_method }}
+                    {% if form.payment_method.errors %}<span class="text-xs text-rose-500">{{ form.payment_method.errors.0 }}</span>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Branch / Location" %}</label>
+                    {{ form.branch }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Reference / Cheque # / Txn ID" %}</label>
+                    {{ form.reference }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Currency" %}</label>
+                    {{ form.currency }}
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Notes / Memo" %}</label>
+                    {{ form.notes }}
+                </div>
+            </div>
+
+            <!-- Invoice Allocation Section -->
+            <div class="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-900 dark:text-white">
+                            {% trans "Allocate to Outstanding Invoices" %}
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {% trans "Optional: You can allocate full or partial amounts to specific invoices, or leave unallocated as a customer advance deposit." %}
+                        </p>
+                    </div>
+                </div>
+
+                {% if outstanding_invoices %}
+                <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                    <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                        <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                            <tr>
+                                <th scope="col" class="py-3 px-4 font-semibold">{% trans "Invoice #" %}</th>
+                                <th scope="col" class="py-3 px-4 font-semibold">{% trans "Date" %}</th>
+                                <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Grand Total" %}</th>
+                                <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Balance Due" %}</th>
+                                <th scope="col" class="py-3 px-4 font-semibold text-right w-44">{% trans "Amount to Allocate" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                            {% for inv in outstanding_invoices %}
+                            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                                <td class="py-3 px-4 font-mono font-medium text-slate-900 dark:text-white">
+                                    {{ inv.invoice_number }}
+                                </td>
+                                <td class="py-3 px-4 text-slate-500">{{ inv.invoice_date }}</td>
+                                <td class="py-3 px-4 text-right font-mono text-slate-900 dark:text-white">${{ inv.grand_total }}</td>
+                                <td class="py-3 px-4 text-right font-mono font-medium text-amber-600 dark:text-amber-400">${{ inv.balance_due }}</td>
+                                <td class="py-3 px-4 text-right">
+                                    <div class="flex items-center gap-1 justify-end">
+                                        <input type="number" step="0.01" min="0" max="{{ inv.balance_due }}"
+                                               name="alloc_inv_{{ inv.pk }}"
+                                               x-model="allocations['{{ inv.pk }}']"
+                                               class="w-28 text-right text-xs rounded-md border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono focus:border-indigo-500 focus:ring-indigo-500"
+                                               placeholder="0.00">
+                                        <button type="button" @click="applyBalance('{{ inv.pk }}', '{{ inv.balance_due }}')"
+                                                class="px-2 py-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 rounded">
+                                            {% trans "Max" %}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-lg p-4 text-sm text-slate-500 text-center">
+                    {% if selected_customer %}
+                        {% trans "No unpaid invoices found for this customer. Any payment received will be credited as an unallocated customer advance deposit." %}
+                    {% else %}
+                        {% trans "Select a customer to view and allocate against outstanding invoices, or record an unallocated prepayment." %}
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+                <a href="{% url 'sales:payment_list' %}" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors">
+                    {% trans "Receive and Post Payment" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const custSelect = document.querySelector('select[name="customer"]');
+        if (custSelect) {
+            custSelect.addEventListener('change', function(e) {
+                if (e.target.value) {
+                    const currentUrl = new URL(window.location.href);
+                    currentUrl.searchParams.set('customer', e.target.value);
+                    window.location.href = currentUrl.toString();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

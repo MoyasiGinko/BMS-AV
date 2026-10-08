@@ -1,0 +1,136 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Payment Receipt {{ payment.payment_number }} - {{ org.name }}</title>
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+            font-size: 13px;
+            margin: 0;
+            padding: 24px;
+        }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
+        .org-name { font-size: 24px; font-weight: bold; color: #0f172a; }
+        .receipt-title { text-align: right; }
+        .receipt-title h1 { margin: 0; font-size: 28px; color: #4338ca; text-transform: uppercase; letter-spacing: 1px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .meta-box h3 { margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        th { background: #f8fafc; border-bottom: 2px solid #cbd5e1; text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; color: #475569; }
+        td { border-bottom: 1px solid #e2e8f0; padding: 10px 12px; }
+        .text-right { text-align: right; }
+        .totals-table { width: 320px; margin-left: auto; margin-bottom: 32px; }
+        .totals-table td { border: none; padding: 6px 12px; }
+        .totals-table .grand-total { font-size: 16px; font-weight: bold; color: #0f172a; border-top: 2px solid #cbd5e1; }
+        .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+        <button onclick="window.print()" style="padding: 8px 16px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            Print / Save as PDF
+        </button>
+    </div>
+
+    <div class="header">
+        <div>
+            <div class="org-name">{{ org.name }}</div>
+            <div style="color: #64748b; margin-top: 4px;">{{ org.base_currency }} &bull; {% trans "Customer Payment Receipt" %}</div>
+        </div>
+        <div class="receipt-title">
+            <h1>PAYMENT RECEIPT</h1>
+            <div style="font-weight: bold; font-size: 16px; margin-top: 4px; font-family: monospace;">{{ payment.payment_number }}</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Status: {{ payment.status|upper }}</div>
+        </div>
+    </div>
+
+    <div class="meta-grid">
+        <div class="meta-box">
+            <h3>{% trans "Received From" %}:</h3>
+            <div style="font-size: 15px; font-weight: bold;">{{ payment.customer.name }}</div>
+            <div>{% trans "Account Code" %}: {{ payment.customer.code }}</div>
+            <div>{% trans "Tax Registration" %}: {{ payment.customer.tax_id|default:"N/A" }}</div>
+        </div>
+        <div class="meta-box" style="text-align: right;">
+            <h3>{% trans "Payment Details" %}:</h3>
+            <div><strong>{% trans "Date" %}:</strong> {{ payment.payment_date }}</div>
+            <div><strong>{% trans "Payment Method" %}:</strong> {{ payment.payment_method|upper }}</div>
+            <div><strong>{% trans "Reference" %}:</strong> {{ payment.reference|default:"-" }}</div>
+            {% if payment.branch %}
+            <div><strong>{% trans "Branch" %}:</strong> {{ payment.branch.name }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <h3 style="font-size: 12px; text-transform: uppercase; color: #475569; margin-bottom: 8px; letter-spacing: 0.5px;">
+        {% trans "Applied Invoices & Allocations" %}
+    </h3>
+    <table>
+        <thead>
+            <tr>
+                <th>{% trans "Invoice Number" %}</th>
+                <th>{% trans "Invoice Date" %}</th>
+                <th class="text-right">{% trans "Invoice Total" %}</th>
+                <th class="text-right">{% trans "Amount Paid" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alloc in allocations %}
+            <tr>
+                <td style="font-family: monospace; font-weight: bold;">{{ alloc.invoice.invoice_number }}</td>
+                <td>{{ alloc.invoice.invoice_date }}</td>
+                <td class="text-right" style="font-family: monospace;">${{ alloc.invoice.grand_total }}</td>
+                <td class="text-right" style="font-family: monospace; font-weight: bold; color: #047857;">${{ alloc.amount }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; color: #64748b; padding: 24px;">
+                    {% trans "No specific invoice allocations. Payment received and held on customer account as advance deposit." %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="totals-table">
+        <tr>
+            <td>{% trans "Total Received" %}:</td>
+            <td class="text-right grand-total" style="font-family: monospace;">${{ payment.amount }}</td>
+        </tr>
+        <tr>
+            <td>{% trans "Total Allocated" %}:</td>
+            <td class="text-right" style="font-family: monospace; color: #047857;">${{ payment.allocated_amount }}</td>
+        </tr>
+        <tr>
+            <td>{% trans "Unallocated Advance Balance" %}:</td>
+            <td class="text-right" style="font-family: monospace; font-weight: bold;">${{ payment.unallocated_amount }}</td>
+        </tr>
+        {% if payment.refunded_amount > 0 %}
+        <tr>
+            <td>{% trans "Total Refunded" %}:</td>
+            <td class="text-right" style="font-family: monospace; color: #b91c1c;">${{ payment.refunded_amount }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    {% if payment.notes %}
+    <div style="margin-top: 24px; padding: 12px; background: #f8fafc; border-left: 3px solid #cbd5e1;">
+        <div style="font-weight: bold; font-size: 11px; text-transform: uppercase; color: #64748b;">{% trans "Notes" %}:</div>
+        <div style="margin-top: 4px;">{{ payment.notes }}</div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <div>{% trans "Thank you for your business!" %} &bull; {{ org.name }}</div>
+    </div>
+</body>
+</html>

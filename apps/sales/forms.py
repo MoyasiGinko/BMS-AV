@@ -9,6 +9,10 @@ from apps.sales.models import (
     CreditNoteStatus,
     Invoice,
     InvoiceStatus,
+    Payment,
+    PaymentMethod,
+    PaymentRefund,
+    PaymentStatus,
     Quote,
     QuoteStatus,
     SalesOrder,
@@ -261,3 +265,85 @@ class CreditNoteForm(forms.ModelForm):
                 _scope_choice_field(
                     self.fields["warehouse"], Warehouse.all_tenants.filter(organization=organization)
                 )
+
+
+class PaymentFilterForm(forms.Form):
+    """Filter form for customer payments list."""
+
+    status = forms.ChoiceField(
+        choices=[("", _("All Statuses")), *list(PaymentStatus.choices)],
+        required=False,
+        widget=forms.Select(
+            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+        ),
+    )
+    payment_method = forms.ChoiceField(
+        choices=[("", _("All Methods")), *list(PaymentMethod.choices)],
+        required=False,
+        widget=forms.Select(
+            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+        ),
+    )
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": _("Search payment #, customer, reference..."),
+                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600 w-64",
+            }
+        ),
+    )
+
+
+class PaymentForm(forms.ModelForm):
+    """Creation form for recording customer payments."""
+
+    class Meta:
+        model = Payment
+        fields = [
+            "customer",
+            "amount",
+            "payment_method",
+            "payment_date",
+            "currency",
+            "reference",
+            "branch",
+            "notes",
+        ]
+        widgets = {
+            "payment_date": forms.DateInput(attrs={"type": "date"}),
+            "amount": forms.NumberInput(attrs={"step": "0.01", "min": "0.01"}),
+            "reference": forms.TextInput(attrs={"placeholder": _("e.g. Check #, Transfer Ref")}),
+            "notes": forms.Textarea(attrs={"rows": 2}),
+        }
+
+    def __init__(self, *args: Any, organization: Organization | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        if "currency" in self.fields:
+            self.fields["currency"].required = False
+        if organization:
+            if "customer" in self.fields:
+                _scope_choice_field(
+                    self.fields["customer"], Customer.all_tenants.filter(organization=organization)
+                )
+            if "branch" in self.fields:
+                _scope_choice_field(
+                    self.fields["branch"], Branch.all_tenants.filter(organization=organization)
+                )
+
+
+class PaymentRefundForm(forms.ModelForm):
+    """Creation form for customer refunds."""
+
+    class Meta:
+        model = PaymentRefund
+        fields = [
+            "amount",
+            "refund_date",
+            "reason",
+        ]
+        widgets = {
+            "refund_date": forms.DateInput(attrs={"type": "date"}),
+            "amount": forms.NumberInput(attrs={"step": "0.01", "min": "0.01"}),
+            "reason": forms.Textarea(attrs={"rows": 2, "placeholder": _("Reason for refund...")}),
+        }

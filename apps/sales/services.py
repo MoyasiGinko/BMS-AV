@@ -25,6 +25,10 @@ from apps.sales.events import (
     InvoiceCreated,
     InvoicePosted,
     InvoiceVoided,
+    PaymentAllocated,
+    PaymentReceived,
+    PaymentRefunded,
+    PaymentVoided,
     QuoteAccepted,
     QuoteCreated,
     SalesOrderConfirmed,
@@ -37,8 +41,13 @@ from apps.sales.exceptions import (
     CustomerSuspendedError,
     EmptyDocumentError,
     InsufficientStockError,
+    InsufficientUnallocatedPaymentError,
+    InvalidAllocationError,
     InvalidStateTransitionError,
     InvoiceAlreadyPostedError,
+    InvoiceNotPayableError,
+    PaymentAlreadyVoidError,
+    PaymentError,
     VoidNotAllowedError,
     WarehouseRequiredError,
 )
@@ -49,6 +58,11 @@ from apps.sales.models import (
     Invoice,
     InvoiceLine,
     InvoiceStatus,
+    Payment,
+    PaymentAllocation,
+    PaymentMethod,
+    PaymentRefund,
+    PaymentStatus,
     Quote,
     QuoteLine,
     QuoteStatus,
@@ -1131,3 +1145,458 @@ def post_credit_note(
         )
     )
     return credit_note
+
+
+# ============================================================================
+# CUSTOMER PAYMENTS & ALLOCATIONS
+# ============================================================================
+
+
+def _resolve_payment_cash_or_bank(payment_method: str) -> str:
+    """Return GL account mapping key for payment method ('cash' or 'bank')."""
+    if payment_method == PaymentMethod.CASH:
+        return "cash"
+    return "bank"
+
+
+@transaction.atomic
+def receive_payment(
+    *,
+    organization: Organization,
+    customer: Customer,
+    amount: Decimal,
+    payment_method: str = PaymentMethod.CASH,
+    payment_date: datetime.date | None = None,
+    allocations: list[dict[str, Any]] | None = None,
+    branch: Branch | None = None,
+    currency: str = "USD",
+    exchange_rate: Decimal = Decimal("1.000000"),
+    reference: str = "",
+    notes: str = "",
+    actor: Any = None,
+) -> Payment:
+    """Record customer payment, post to double-entry ledger and subledger, and allocate to invoices."""
+    if amount <= DECIMAL_ZERO:
+        raise PaymentError("Payment amount must be greater than zero.")
+
+    pay_date = payment_date or timezone.now().date()
+
+    # 1. Verify accounting fiscal period is open
+    try:
+        accounting_services.check_fiscal_period_open(
+            organization=organization,
+            posting_date=pay_date,
+        )
+    except PeriodClosed as exc:
+        raise AccountingPeriodClosedError(str(exc)) from exc
+
+    # 2. Lock customer row
+    customer = Customer.all_tenants.select_for_update().get(pk=customer.pk, organization=organization)
+
+    # 3. Validate requested allocations total if provided
+    total_allocated = DECIMAL_ZERO
+    allocations_list = allocations or []
+    if allocations_list:
+        alloc_sum = sum(Decimal(str(item.get("amount", DECIMAL_ZERO))) for item in allocations_list)
+        if alloc_sum > amount:
+            raise InvalidAllocationError(
+                f"Total allocation ({alloc_sum}) cannot exceed payment amount ({amount})."
+            )
+
+    payment_number = generate_next_number(
+        organization_id=organization.pk,
+        name="customer_payment",
+        prefix="PMT-",
+        padding=4,
+    )
+
+    # 4. Post General Ledger double-entry journal entry
+    # Dr: Cash or Bank
+    # Cr: Accounts Receivable (AR)
+    asset_account_key = _resolve_payment_cash_or_bank(payment_method)
+    journal_lines = [
+        Dr(
+            asset_account_key,
+            amount,
+            memo=f"Payment {payment_number} from {customer.name}",
+            currency=currency,
+            fx_rate=exchange_rate,
+        ),
+        Cr(
+            "ar",
+            amount,
+            memo=f"AR - {customer.name}",
+            currency=currency,
+            fx_rate=exchange_rate,
+            party_type="Customer",
+            party_id=str(customer.pk),
+        ),
+    ]
+
+    journal_entry = accounting_services.post_entry(
+        organization=organization,
+        date=pay_date,
+        lines=journal_lines,
+        memo=f"Customer Payment {payment_number} - {customer.name}",
+        actor=actor,
+    )
+
+    # 5. Create Payment record
+    unallocated = amount - total_allocated
+    payment = Payment.objects.create(
+        organization=organization,
+        payment_number=payment_number,
+        customer=customer,
+        branch=branch,
+        payment_date=pay_date,
+        payment_method=payment_method,
+        amount=amount,
+        allocated_amount=total_allocated,
+        unallocated_amount=unallocated,
+        currency=currency,
+        exchange_rate=exchange_rate,
+        reference=reference,
+        notes=notes,
+        status=PaymentStatus.POSTED,
+        journal_entry=journal_entry,
+        created_by=actor,
+    )
+
+    # 6. Post customer balance subledger credit (reduces customer AR balance)
+    customers_services.post_customer_transaction(
+        organization=organization,
+        customer=customer,
+        entry_type=BalanceEntryType.PAYMENT,
+        debit=DECIMAL_ZERO,
+        credit=amount,
+        reference_type="Payment",
+        reference_id=str(payment.pk),
+        reference_number=payment.payment_number,
+        description=f"Customer Payment {payment.payment_number}",
+        occurred_at=timezone.now(),
+        actor=actor,
+    )
+
+    # 7. Apply allocations to invoices
+    if allocations_list:
+        allocated = _apply_payment_allocations(
+            organization=organization,
+            customer=customer,
+            payment=payment,
+            allocations_list=allocations_list,
+            actor=actor,
+        )
+        payment.allocated_amount = allocated
+        payment.unallocated_amount = amount - allocated
+        payment.save(update_fields=["allocated_amount", "unallocated_amount", "updated_at"])
+
+    publish(
+        PaymentReceived(
+            organization_id=organization.pk,
+            payment_id=payment.pk,
+            payment_number=payment.payment_number,
+            amount=str(payment.amount),
+            customer_id=customer.pk,
+        )
+    )
+
+    return payment
+
+
+def _apply_payment_allocations(
+    *,
+    organization: Organization,
+    customer: Customer,
+    payment: Payment,
+    allocations_list: list[dict[str, Any]],
+    actor: Any,
+) -> Decimal:
+    """Apply allocations to invoices, updating invoice balances and creating PaymentAllocation records."""
+    total_allocated = DECIMAL_ZERO
+    for alloc_item in allocations_list:
+        inv_obj = alloc_item.get("invoice")
+        if inv_obj is None and "invoice_id" in alloc_item:
+            inv_obj = Invoice.all_tenants.get(pk=alloc_item["invoice_id"], organization=organization)
+        if inv_obj is None:
+            raise InvalidAllocationError("Invoice is required for allocation.")
+
+        alloc_amt = Decimal(str(alloc_item.get("amount", DECIMAL_ZERO)))
+        if alloc_amt <= DECIMAL_ZERO:
+            raise InvalidAllocationError("Allocation amount must be greater than zero.")
+
+        inv = Invoice.all_tenants.select_for_update().get(pk=inv_obj.pk, organization=organization)
+        if inv.customer_id != customer.pk:
+            raise InvalidAllocationError(
+                f"Invoice {inv.invoice_number} does not belong to customer {customer.name}."
+            )
+
+        if inv.status not in (InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID):
+            raise InvoiceNotPayableError(
+                f"Invoice {inv.invoice_number} is in status '{inv.status}' and cannot receive payment."
+            )
+
+        if alloc_amt > inv.balance_due:
+            msg = (
+                f"Allocation of {alloc_amt} exceeds balance due "
+                f"({inv.balance_due}) on invoice {inv.invoice_number}."
+            )
+            raise InvalidAllocationError(msg)
+
+        inv.amount_paid += alloc_amt
+        inv.balance_due -= alloc_amt
+        inv.status = InvoiceStatus.PAID if inv.balance_due == DECIMAL_ZERO else InvoiceStatus.PARTIALLY_PAID
+        inv.save(update_fields=["amount_paid", "balance_due", "status", "updated_at"])
+
+        PaymentAllocation.objects.create(
+            organization=organization,
+            payment=payment,
+            invoice=inv,
+            amount=alloc_amt,
+            created_by=actor,
+        )
+
+        total_allocated += alloc_amt
+        publish(
+            PaymentAllocated(
+                organization_id=organization.pk,
+                payment_id=payment.pk,
+                invoice_id=inv.pk,
+                allocated_amount=str(alloc_amt),
+            )
+        )
+
+    return total_allocated
+
+
+@transaction.atomic
+def allocate_payment(
+    *,
+    organization: Organization,
+    payment: Payment,
+    allocations: list[dict[str, Any]],
+    actor: Any = None,
+) -> Payment:
+    """Allocate unallocated funds from an existing payment to outstanding customer invoices."""
+    payment = Payment.all_tenants.select_for_update().get(pk=payment.pk, organization=organization)
+    if payment.status != PaymentStatus.POSTED:
+        raise PaymentError(f"Payment is in status '{payment.status}' and cannot be allocated.")
+
+    if not allocations:
+        raise InvalidAllocationError("No allocations provided.")
+
+    alloc_sum = sum(Decimal(str(item.get("amount", DECIMAL_ZERO))) for item in allocations)
+    if alloc_sum <= DECIMAL_ZERO:
+        raise InvalidAllocationError("Allocation amount must be greater than zero.")
+
+    if alloc_sum > payment.unallocated_amount:
+        raise InsufficientUnallocatedPaymentError(
+            f"Requested allocation {alloc_sum} exceeds unallocated amount {payment.unallocated_amount}."
+        )
+
+    allocated = _apply_payment_allocations(
+        organization=organization,
+        customer=payment.customer,
+        payment=payment,
+        allocations_list=allocations,
+        actor=actor,
+    )
+    payment.allocated_amount += allocated
+    payment.unallocated_amount -= allocated
+    payment.save(update_fields=["allocated_amount", "unallocated_amount", "updated_at"])
+
+    return payment
+
+
+@transaction.atomic
+def refund_payment(
+    *,
+    organization: Organization,
+    payment: Payment,
+    amount: Decimal,
+    refund_date: datetime.date | None = None,
+    reason: str = "",
+    actor: Any = None,
+) -> PaymentRefund:
+    """Issue a refund to the customer against unallocated payment balance."""
+    payment = Payment.all_tenants.select_for_update().get(pk=payment.pk, organization=organization)
+    if payment.status != PaymentStatus.POSTED:
+        raise PaymentError(f"Cannot refund a payment in status '{payment.status}'.")
+
+    if amount <= DECIMAL_ZERO:
+        raise PaymentError("Refund amount must be greater than zero.")
+
+    if amount > payment.unallocated_amount:
+        raise InsufficientUnallocatedPaymentError(
+            f"Refund amount {amount} exceeds available unallocated balance {payment.unallocated_amount}."
+        )
+
+    ref_date = refund_date or timezone.now().date()
+
+    # 1. Verify accounting fiscal period is open
+    try:
+        accounting_services.check_fiscal_period_open(
+            organization=organization,
+            posting_date=ref_date,
+        )
+    except PeriodClosed as exc:
+        raise AccountingPeriodClosedError(str(exc)) from exc
+
+    customer = Customer.all_tenants.select_for_update().get(pk=payment.customer_id, organization=organization)
+
+    refund_number = generate_next_number(
+        organization_id=organization.pk,
+        name="payment_refund",
+        prefix="REF-",
+        padding=4,
+    )
+
+    # 2. General Ledger reversal entry
+    # Dr: Accounts Receivable (AR)
+    # Cr: Cash or Bank
+    asset_account_key = _resolve_payment_cash_or_bank(payment.payment_method)
+    journal_lines = [
+        Dr(
+            "ar",
+            amount,
+            memo=f"Refund {refund_number} for Payment {payment.payment_number}",
+            currency=payment.currency,
+            fx_rate=payment.exchange_rate,
+            party_type="Customer",
+            party_id=str(customer.pk),
+        ),
+        Cr(
+            asset_account_key,
+            amount,
+            memo=f"Refund {refund_number} to {customer.name}",
+            currency=payment.currency,
+            fx_rate=payment.exchange_rate,
+        ),
+    ]
+
+    journal_entry = accounting_services.post_entry(
+        organization=organization,
+        date=ref_date,
+        lines=journal_lines,
+        memo=f"Payment Refund {refund_number} - {customer.name}",
+        actor=actor,
+    )
+
+    # 3. Create PaymentRefund record
+    refund = PaymentRefund.objects.create(
+        organization=organization,
+        refund_number=refund_number,
+        payment=payment,
+        customer=customer,
+        refund_date=ref_date,
+        amount=amount,
+        reason=reason,
+        status="posted",
+        journal_entry=journal_entry,
+        created_by=actor,
+    )
+
+    # 4. Post customer subledger debit (increases customer AR balance back)
+    customers_services.post_customer_transaction(
+        organization=organization,
+        customer=customer,
+        entry_type=BalanceEntryType.REFUND,
+        debit=amount,
+        credit=DECIMAL_ZERO,
+        reference_type="PaymentRefund",
+        reference_id=str(refund.pk),
+        reference_number=refund_number,
+        description=f"Refund {refund_number}: {reason or 'Customer Refund'}",
+        occurred_at=timezone.now(),
+        actor=actor,
+    )
+
+    # 5. Update payment unallocated balance
+    payment.unallocated_amount -= amount
+    payment.save(update_fields=["unallocated_amount", "updated_at"])
+
+    publish(
+        PaymentRefunded(
+            organization_id=organization.pk,
+            payment_id=payment.pk,
+            refund_id=refund.pk,
+            refund_number=refund.refund_number,
+            refund_amount=str(refund.amount),
+            customer_id=customer.pk,
+        )
+    )
+
+    return refund
+
+
+@transaction.atomic
+def void_payment(
+    *,
+    organization: Organization,
+    payment: Payment,
+    reason: str = "",
+    actor: Any = None,
+) -> Payment:
+    """Void a posted payment: reverse GL entry, reverse customer balance, restore invoice balances."""
+    payment = Payment.all_tenants.select_for_update().get(pk=payment.pk, organization=organization)
+    if payment.status != PaymentStatus.POSTED:
+        raise PaymentAlreadyVoidError(f"Payment is in status '{payment.status}' and cannot be voided.")
+
+    if payment.refunds.filter(status="posted").exists():
+        raise VoidNotAllowedError(
+            "Cannot void a payment that has issued refunds. Reverse or cancel refunds first."
+        )
+
+    customer = Customer.all_tenants.select_for_update().get(pk=payment.customer_id, organization=organization)
+
+    # 1. Reverse double-entry journal entry
+    if payment.journal_entry:
+        accounting_services.reverse_entry(
+            organization=organization,
+            entry=payment.journal_entry,
+            reason=reason or f"Voided Payment {payment.payment_number}",
+            actor=actor,
+        )
+
+    # 2. Reverse customer subledger credit (debit back customer balance)
+    customers_services.post_customer_transaction(
+        organization=organization,
+        customer=customer,
+        entry_type=BalanceEntryType.ADJUSTMENT,
+        debit=payment.amount,
+        credit=DECIMAL_ZERO,
+        reference_type="PaymentVoid",
+        reference_id=str(payment.pk),
+        reference_number=payment.payment_number,
+        description=f"Voided Payment {payment.payment_number}: {reason or 'Void'}",
+        occurred_at=timezone.now(),
+        actor=actor,
+    )
+
+    # 3. Restore invoice balances from allocations
+    allocations = list(payment.allocations.select_related("invoice").all())
+    for alloc in allocations:
+        inv = Invoice.all_tenants.select_for_update().get(pk=alloc.invoice_id, organization=organization)
+        inv.amount_paid = max(DECIMAL_ZERO, inv.amount_paid - alloc.amount)
+        inv.balance_due += alloc.amount
+        if inv.amount_paid > DECIMAL_ZERO:
+            inv.status = InvoiceStatus.PARTIALLY_PAID
+        else:
+            inv.status = InvoiceStatus.POSTED
+        inv.save(update_fields=["amount_paid", "balance_due", "status", "updated_at"])
+
+    # 4. Update payment status to void
+    payment.status = PaymentStatus.VOID
+    payment.allocated_amount = DECIMAL_ZERO
+    payment.unallocated_amount = DECIMAL_ZERO
+    payment.save(update_fields=["status", "allocated_amount", "unallocated_amount", "updated_at"])
+
+    publish(
+        PaymentVoided(
+            organization_id=organization.pk,
+            payment_id=payment.pk,
+            payment_number=payment.payment_number,
+            customer_id=customer.pk,
+        )
+    )
+
+    return payment

@@ -1,0 +1,112 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Customer Payments" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Customer Payments" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Track cash & bank collections, allocate funds to customer invoices, and handle refunds." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'sales:payment_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "Receive Payment" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-slate-200 dark:border-slate-800">
+        <nav class="flex space-x-8" aria-label="Tabs">
+            <a href="{% url 'sales:invoice_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
+                {% trans "Invoices" %}
+            </a>
+            <a href="{% url 'sales:order_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
+                {% trans "Sales Orders" %}
+            </a>
+            <a href="{% url 'sales:quote_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
+                {% trans "Quotations" %}
+            </a>
+            <a href="{% url 'sales:credit_note_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
+                {% trans "Credit Notes" %}
+            </a>
+            <a href="{% url 'sales:payment_list' %}" class="border-indigo-500 text-indigo-600 dark:text-indigo-400 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
+                {% trans "Payments" %}
+            </a>
+        </nav>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Collected" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-slate-900 dark:text-white font-mono">${{ summary.total_collected }}</span>
+                <span class="text-xs text-emerald-600 font-medium">{% trans "Active" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Allocated to Invoices" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">${{ summary.total_allocated }}</span>
+                <span class="text-xs text-slate-400">{% trans "Applied" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Unallocated Advances" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold {% if summary.total_unallocated > 0 %}text-amber-600 dark:text-amber-400{% else %}text-slate-900 dark:text-white{% endif %} font-mono">
+                    ${{ summary.total_unallocated }}
+                </span>
+                <span class="text-xs text-slate-400">{% trans "On Account" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Refunded" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono">${{ summary.total_refunded }}</span>
+                <span class="text-xs text-slate-400">{% trans "Processed" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get" class="flex flex-col sm:flex-row gap-3 items-center justify-between"
+              hx-get="{% url 'sales:payment_list' %}"
+              hx-target="#payment-table-container"
+              hx-swap="outerHTML"
+              hx-trigger="keyup from:input[name='search'] delay:300ms, change from:select[name='status'], change from:select[name='payment_method']">
+            <div class="flex flex-1 w-full sm:w-auto gap-3 items-center flex-wrap">
+                <div class="w-full sm:w-64">
+                    {{ filter_form.search }}
+                </div>
+                <div class="w-full sm:w-44">
+                    {{ filter_form.status }}
+                </div>
+                <div class="w-full sm:w-44">
+                    {{ filter_form.payment_method }}
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="px-3.5 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg transition-colors">
+                    {% trans "Filter" %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        {% include "sales/partials/payment_table.html" %}
+    </div>
+</div>
+{% endblock %}
