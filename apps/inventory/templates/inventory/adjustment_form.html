@@ -1,0 +1,117 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "New Stock Adjustment" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div>
+        <a href="{% url 'inventory:adjustment_list' %}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+            &larr; {% trans "Back to Adjustments" %}
+        </a>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-2">{% trans "Record Stock Adjustment" %}</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {% trans "Adjust physical inventory counts, write off damages, or record shrinkage. Each adjustment creates an audit ledger entry." %}
+        </p>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="p-4 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-sm">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        {{ form.warehouse_id.label }}
+                    </label>
+                    {{ form.warehouse_id }}
+                    {% if form.warehouse_id.errors %}
+                    <p class="text-rose-500 text-xs mt-1">{{ form.warehouse_id.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        {{ form.reason.label }}
+                    </label>
+                    {{ form.reason }}
+                    {% if form.reason.errors %}
+                    <p class="text-rose-500 text-xs mt-1">{{ form.reason.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        {{ form.product_id.label }}
+                    </label>
+                    {{ form.product_id }}
+                    {% if form.product_id.errors %}
+                    <p class="text-rose-500 text-xs mt-1">{{ form.product_id.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        {{ form.variant_id.label }}
+                    </label>
+                    {{ form.variant_id }}
+                    {% if form.variant_id.errors %}
+                    <p class="text-rose-500 text-xs mt-1">{{ form.variant_id.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        {{ form.quantity.label }}
+                    </label>
+                    {{ form.quantity }}
+                    <p class="text-xs text-slate-400 mt-1">{% trans "Positive to increase stock (+), negative to write off (-)." %}</p>
+                    {% if form.quantity.errors %}
+                    <p class="text-rose-500 text-xs mt-1">{{ form.quantity.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                        {{ form.unit_cost.label }}
+                    </label>
+                    {{ form.unit_cost }}
+                    <p class="text-xs text-slate-400 mt-1">{% trans "Required only if adding stock without prior cost history." %}</p>
+                    {% if form.unit_cost.errors %}
+                    <p class="text-rose-500 text-xs mt-1">{{ form.unit_cost.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                    {{ form.notes.label }}
+                </label>
+                {{ form.notes }}
+                {% if form.notes.errors %}
+                <p class="text-rose-500 text-xs mt-1">{{ form.notes.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <a href="{% url 'inventory:adjustment_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                    {% trans "Confirm Adjustment" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

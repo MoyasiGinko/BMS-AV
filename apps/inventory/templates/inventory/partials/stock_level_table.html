@@ -1,0 +1,103 @@
+{% load i18n %}
+<div id="stock-level-table-container" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                    <th class="py-3.5 px-4">{% trans "Product / SKU" %}</th>
+                    <th class="py-3.5 px-4">{% trans "Warehouse" %}</th>
+                    <th class="py-3.5 px-4 text-right">{% trans "On Hand" %}</th>
+                    <th class="py-3.5 px-4 text-right">{% trans "Reserved" %}</th>
+                    <th class="py-3.5 px-4 text-right">{% trans "Available" %}</th>
+                    <th class="py-3.5 px-4 text-right">{% trans "Avg Cost" %}</th>
+                    <th class="py-3.5 px-4 text-right">{% trans "Total Valuation" %}</th>
+                    <th class="py-3.5 px-4 text-center">{% trans "Status" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {% for item in page_obj %}
+                <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3.5 px-4">
+                        <div class="font-medium text-slate-900 dark:text-white">
+                            {{ item.product.name }}
+                            {% if item.variant %}
+                            <span class="text-xs text-indigo-600 dark:text-indigo-400 font-normal">({{ item.variant.name }})</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                            {{ item.variant.sku|default:item.product.sku }}
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                        {{ item.warehouse.name }}
+                    </td>
+                    <td class="py-3.5 px-4 text-right font-medium text-slate-900 dark:text-white">
+                        {{ item.on_hand }}
+                    </td>
+                    <td class="py-3.5 px-4 text-right text-slate-500 dark:text-slate-400">
+                        {{ item.reserved }}
+                    </td>
+                    <td class="py-3.5 px-4 text-right font-semibold {% if item.available <= 0 %}text-rose-600 dark:text-rose-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                        {{ item.available }}
+                    </td>
+                    <td class="py-3.5 px-4 text-right text-slate-600 dark:text-slate-300 font-mono">
+                        ${{ item.avg_cost }}
+                    </td>
+                    <td class="py-3.5 px-4 text-right font-medium text-slate-900 dark:text-white font-mono">
+                        ${{ item.total_value }}
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                        {% if item.available <= 0 %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                            {% trans "Out of Stock" %}
+                        </span>
+                        {% elif item.is_low_stock %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            {% trans "Low Stock" %}
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            {% trans "Adequate" %}
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                        <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        <p class="text-base font-medium text-slate-900 dark:text-white">{% trans "No inventory records found" %}</p>
+                        <p class="text-xs text-slate-400 mt-1">{% trans "Receive items, create transfers, or adjust stock levels." %}</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <div>
+            {% trans "Showing" %} {{ page_obj.start_index }} - {{ page_obj.end_index }} {% trans "of" %} {{ page_obj.paginator.count }}
+        </div>
+        <div class="flex items-center space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&query={{ query }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if low_stock_only %}&low_stock_only=1{% endif %}"
+               class="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
+                {% trans "Previous" %}
+            </a>
+            {% endif %}
+            <span class="font-medium text-slate-700 dark:text-slate-300">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query %}&query={{ query }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if low_stock_only %}&low_stock_only=1{% endif %}"
+               class="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
+                {% trans "Next" %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>

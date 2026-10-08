@@ -1,0 +1,68 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Stock Movement Ledger" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'inventory:stock_level_list' %}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                    &larr; {% trans "Stock Levels" %}
+                </a>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">{% trans "Stock Movement Ledger" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Immutable audit trail of all receipts, issues, transfers, and inventory adjustments." %}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'inventory:adjustment_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "New Adjustment" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get"
+              hx-get="{% url 'inventory:movement_list' %}"
+              hx-target="#movement-table-container"
+              hx-swap="outerHTML"
+              hx-trigger="change from:select"
+              class="flex flex-col sm:flex-row sm:items-center gap-4">
+            
+            <div class="w-full sm:w-64">
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{% trans "Warehouse" %}</label>
+                <select name="warehouse" class="w-full text-sm py-2 px-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "All Warehouses" %}</option>
+                    {% for w in warehouses %}
+                    <option value="{{ w.pk }}" {% if selected_warehouse.pk == w.pk %}selected{% endif %}>{{ w.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="w-full sm:w-64">
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{% trans "Movement Type" %}</label>
+                <select name="type" class="w-full text-sm py-2 px-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "All Movement Types" %}</option>
+                    <option value="receipt" {% if movement_type == 'receipt' %}selected{% endif %}>{% trans "Receipt" %}</option>
+                    <option value="issue" {% if movement_type == 'issue' %}selected{% endif %}>{% trans "Issue" %}</option>
+                    <option value="transfer_in" {% if movement_type == 'transfer_in' %}selected{% endif %}>{% trans "Transfer In" %}</option>
+                    <option value="transfer_out" {% if movement_type == 'transfer_out' %}selected{% endif %}>{% trans "Transfer Out" %}</option>
+                    <option value="adjustment_in" {% if movement_type == 'adjustment_in' %}selected{% endif %}>{% trans "Adjustment In" %}</option>
+                    <option value="adjustment_out" {% if movement_type == 'adjustment_out' %}selected{% endif %}>{% trans "Adjustment Out" %}</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Movement Table -->
+    {% include "inventory/partials/movement_table.html" %}
+</div>
+{% endblock %}

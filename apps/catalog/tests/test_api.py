@@ -9,23 +9,18 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.billing.services import provision_billing_subscription, seed_default_plans
+from apps.billing.services import seed_default_plans
 from apps.catalog.models import Category, Unit
 from apps.catalog.services import (
     create_category,
     create_product,
-    provision_catalog,
 )
-from apps.core.hooks import clear_provisioning_hooks, register_provisioning_hook
 from apps.tenancy.models import Membership, Organization, Role
 from apps.tenancy.services import provision_organization
 
 
 @pytest.fixture
 def catalog_api_setup(db: None) -> dict[str, object]:
-    clear_provisioning_hooks()
-    register_provisioning_hook(provision_billing_subscription)
-    register_provisioning_hook(provision_catalog)
     seed_default_plans()
 
     admin_user = User.objects.create_user(email="api_admin@example.com", password="Password123!")

@@ -170,7 +170,32 @@ registry.register(
     description="Stock levels, warehouse locations, and stock movements",
     icon="archive-box",
     sort_order=40,
-    permissions=["inventory.view", "inventory.manage"],
+    nav_items=[
+        NavItem(
+            "Stock Levels", "inventory:stock_level_list", icon="archive-box", permission="inventory.view"
+        ),
+        NavItem(
+            "Movements", "inventory:movement_list", icon="arrows-right-left", permission="inventory.view"
+        ),
+        NavItem(
+            "Adjustments", "inventory:adjustment_list", icon="pencil-square", permission="inventory.adjust"
+        ),
+        NavItem("Transfers", "inventory:transfer_list", icon="truck", permission="inventory.transfer"),
+        NavItem(
+            "Cycle Counts",
+            "inventory:count_list",
+            icon="clipboard-document-check",
+            permission="inventory.count",
+        ),
+    ],
+    permissions=[
+        "inventory.view",
+        "inventory.create",
+        "inventory.adjust",
+        "inventory.transfer",
+        "inventory.count",
+        "inventory.manage",
+    ],
 )
 
 registry.register(
