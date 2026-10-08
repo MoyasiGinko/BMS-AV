@@ -48,6 +48,7 @@ LOCAL_APPS = [
     "apps.accounting",
     "apps.catalog",
     "apps.inventory",
+    "apps.customers",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -208,6 +209,18 @@ SPECTACULAR_SETTINGS = {
                 "bearerFormat": "JWT",
             },
         },
+    },
+    "ENUM_NAME_OVERRIDES": {
+        "CustomerStatusEnum": "apps.customers.models.CustomerStatus",
+        "CustomerTypeEnum": "apps.customers.models.CustomerType",
+        "CustomerAddressTypeEnum": "apps.customers.models.AddressType",
+        "CustomerBalanceEntryTypeEnum": "apps.customers.models.BalanceEntryType",
+        "ProductTypeEnum": "apps.catalog.models.ProductType",
+        "StockMovementTypeEnum": "apps.inventory.models.MovementType",
+        "StockTransferStatusEnum": "apps.inventory.models.TransferStatus",
+        "StockCountStatusEnum": "apps.inventory.models.CountStatus",
+        "StockReservationStatusEnum": "apps.inventory.models.ReservationStatus",
+        "StockAdjustmentReasonEnum": "apps.inventory.models.AdjustmentReason",
     },
     "SECURITY": [{"BearerAuth": []}],
 }

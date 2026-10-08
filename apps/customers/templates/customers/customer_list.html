@@ -1,0 +1,104 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Customers & Accounts" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Customer Accounts" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage client accounts, credit terms, contacts, and account statements." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'customers:customer_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "New Customer" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Customers" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-slate-900 dark:text-white">{{ metrics.total_customers }}</span>
+                <span class="text-xs text-emerald-600 font-medium">{{ metrics.active_customers }} {% trans "active" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Outstanding AR" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">${{ metrics.total_receivables }}</span>
+                <span class="text-xs text-slate-400">{% trans "Receivables due" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Over Credit Limit" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold {% if metrics.over_credit_count > 0 %}text-rose-600 dark:text-rose-400{% else %}text-slate-900 dark:text-white{% endif %}">
+                    {{ metrics.over_credit_count }}
+                </span>
+                <span class="text-xs text-slate-400">{% trans "Accounts flagged" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Currency" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-slate-900 dark:text-white font-mono">{{ request.organization.base_currency }}</span>
+                <span class="text-xs text-slate-400">{% trans "Base ledger" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form id="customer-filter-form"
+              method="get"
+              class="flex flex-wrap items-center gap-4"
+              hx-get="{% url 'customers:customer_list' %}"
+              hx-target="#customer-table-container"
+              hx-trigger="input from:input delay:250ms, change from:select, change from:input[type=checkbox]"
+              hx-indicator="#table-spinner">
+            <div class="flex-1 min-w-[220px]">
+                {{ form.query }}
+            </div>
+            <div class="w-40">
+                {{ form.status }}
+            </div>
+            <div class="w-44">
+                {{ form.type }}
+            </div>
+            <div class="flex items-center gap-2">
+                {{ form.has_balance_only }}
+                <label for="{{ form.has_balance_only.id_for_label }}" class="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {% trans "With Balance Only" %}
+                </label>
+            </div>
+            <div class="flex items-center gap-2">
+                {{ form.over_credit_only }}
+                <label for="{{ form.over_credit_only.id_for_label }}" class="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {% trans "Over Credit Limit" %}
+                </label>
+            </div>
+            <div id="table-spinner" class="htmx-indicator">
+                <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Container -->
+    <div id="customer-table-container">
+        {% include "customers/partials/customer_table.html" %}
+    </div>
+</div>
+{% endblock %}

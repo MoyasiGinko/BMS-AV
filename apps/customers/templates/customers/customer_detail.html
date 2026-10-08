@@ -1,0 +1,565 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ customer.name }} ({{ customer.code }}) | {% trans "Customers" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{ showAdjModal: false, showAddrModal: false, showContactModal: false, activeTab: '{{ tab }}' }">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'customers:customer_list' %}" class="hover:underline">{% trans "Customers" %}</a>
+                <span>/</span>
+                <span class="font-mono text-slate-700 dark:text-slate-300">{{ customer.code }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ customer.name }}</h1>
+                {% if customer.status == "active" %}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    {% trans "Active" %}
+                </span>
+                {% elif customer.status == "suspended" %}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+                    {% trans "Suspended (Credit Hold)" %}
+                </span>
+                {% else %}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    {% trans "Inactive" %}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button"
+                    @click="showAdjModal = true"
+                    class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                {% trans "Adjust Balance" %}
+            </button>
+            <a href="{% url 'customers:customer_update' customer.pk %}"
+               class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {% trans "Edit Profile" %}
+            </a>
+            <a href="{% url 'customers:customer_delete' customer.pk %}"
+               class="inline-flex items-center px-3 py-2 border border-rose-300 dark:border-rose-900/60 rounded-lg text-sm font-medium text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 shadow-xs">
+                {% trans "Delete" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Financial Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Current AR Balance" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold font-mono {% if customer.current_balance > 0 %}text-amber-600 dark:text-amber-400{% else %}text-slate-900 dark:text-white{% endif %}">
+                    ${{ customer.current_balance }}
+                </span>
+                <span class="text-xs text-slate-400">{% trans "Receivable due" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Credit Limit" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-slate-900 dark:text-white font-mono">
+                    {% if customer.has_credit_terms %}${{ customer.credit_limit }}{% else %}{% trans "Prepaid" %}{% endif %}
+                </span>
+                {% if customer.is_credit_exceeded %}
+                <span class="text-xs font-semibold text-rose-600">{% trans "Limit Exceeded" %}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Available Credit" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">
+                    {% if customer.has_credit_terms %}${{ customer.available_credit }}{% else %}$0.00{% endif %}
+                </span>
+                <span class="text-xs text-slate-400">{% trans "Remaining" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Lifetime Purchases" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                    ${{ customer.total_spent }}
+                </span>
+                <span class="text-xs text-slate-400">{% trans "Gross revenue" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-slate-200 dark:border-slate-800 flex items-center space-x-6 text-sm font-medium">
+        <button type="button"
+                @click="activeTab = 'overview'"
+                :class="activeTab === 'overview' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 border-b-2 pb-3' : 'text-slate-500 hover:text-slate-700 pb-3'">
+            {% trans "Overview" %}
+        </button>
+        <button type="button"
+                @click="activeTab = 'ledger'"
+                :class="activeTab === 'ledger' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 border-b-2 pb-3' : 'text-slate-500 hover:text-slate-700 pb-3'">
+            {% trans "Balance Ledger" %}
+        </button>
+        <button type="button"
+                @click="activeTab = 'statement'"
+                :class="activeTab === 'statement' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 border-b-2 pb-3' : 'text-slate-500 hover:text-slate-700 pb-3'">
+            {% trans "Account Statement" %}
+        </button>
+        <button type="button"
+                @click="activeTab = 'addresses'"
+                :class="activeTab === 'addresses' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 border-b-2 pb-3' : 'text-slate-500 hover:text-slate-700 pb-3'">
+            {% trans "Addresses" %} ({{ addresses|length }})
+        </button>
+        <button type="button"
+                @click="activeTab = 'contacts'"
+                :class="activeTab === 'contacts' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 border-b-2 pb-3' : 'text-slate-500 hover:text-slate-700 pb-3'">
+            {% trans "Contacts" %} ({{ contacts|length }})
+        </button>
+    </div>
+
+    <!-- Tab 1: Overview -->
+    <div x-show="activeTab === 'overview'" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                <h3 class="font-semibold text-slate-900 dark:text-white text-sm">{% trans "Commercial Profile" %}</h3>
+                <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                    <div>
+                        <dt class="text-slate-500">{% trans "Customer Type" %}</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white mt-0.5">{{ customer.get_type_display }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">{% trans "Tax / VAT ID" %}</dt>
+                        <dd class="font-mono text-slate-900 dark:text-white mt-0.5">{{ customer.tax_id|default:"-" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">{% trans "Payment Terms" %}</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white mt-0.5">
+                            {% if customer.payment_terms_days == 0 %}
+                                {% trans "Net 0 (Cash on Delivery / Prepaid)" %}
+                            {% else %}
+                                Net {{ customer.payment_terms_days }} {% trans "Days" %}
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">{% trans "Price List" %}</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white mt-0.5">
+                            {{ customer.price_list.name|default:_("Standard Retail") }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">{% trans "Default Currency" %}</dt>
+                        <dd class="font-mono text-slate-900 dark:text-white mt-0.5">{{ customer.currency }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">{% trans "Account Created" %}</dt>
+                        <dd class="text-slate-600 dark:text-slate-400 mt-0.5">{{ customer.created_at|date:"M d, Y" }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                <h3 class="font-semibold text-slate-900 dark:text-white text-sm">{% trans "Primary Contact & Notes" %}</h3>
+                <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                    <div>
+                        <dt class="text-slate-500">{% trans "Primary Email" %}</dt>
+                        <dd class="font-mono text-slate-900 dark:text-white mt-0.5">{{ customer.email|default:"-" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">{% trans "Primary Phone" %}</dt>
+                        <dd class="font-mono text-slate-900 dark:text-white mt-0.5">{{ customer.phone|default:"-" }}</dd>
+                    </div>
+                </dl>
+                {% if customer.notes %}
+                <div class="pt-3 border-t border-slate-200 dark:border-slate-800 text-xs">
+                    <span class="text-slate-500 block mb-1">{% trans "Internal Notes:" %}</span>
+                    <p class="text-slate-700 dark:text-slate-300 whitespace-pre-line">{{ customer.notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Balance Ledger -->
+    <div x-show="activeTab === 'ledger'" class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-slate-900 dark:text-white text-base">{% trans "Subledger Transactions" %}</h3>
+            <button type="button" @click="showAdjModal = true" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">
+                {% trans "Post Adjustment" %}
+            </button>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-sm">
+                    <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
+                        <tr>
+                            <th class="py-3 px-4">{% trans "Date" %}</th>
+                            <th class="py-3 px-4">{% trans "Type" %}</th>
+                            <th class="py-3 px-4">{% trans "Reference" %}</th>
+                            <th class="py-3 px-4">{% trans "Description" %}</th>
+                            <th class="py-3 px-4 text-right">{% trans "Debit (Dr)" %}</th>
+                            <th class="py-3 px-4 text-right">{% trans "Credit (Cr)" %}</th>
+                            <th class="py-3 px-4 text-right">{% trans "Balance After" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+                        {% for entry in ledger_page %}
+                        <tr class="hover:bg-slate-50/75 dark:hover:bg-slate-800/50">
+                            <td class="py-3 px-4 text-xs text-slate-500">{{ entry.occurred_at|date:"Y-m-d H:i" }}</td>
+                            <td class="py-3 px-4">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                    {{ entry.get_entry_type_display }}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 font-mono text-xs">{{ entry.reference_number|default:entry.reference_id|default:"-" }}</td>
+                            <td class="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{{ entry.description|default:"-" }}</td>
+                            <td class="py-3 px-4 text-right font-mono text-xs">
+                                {% if entry.debit > 0 %}<span class="text-amber-600 dark:text-amber-400 font-medium">${{ entry.debit }}</span>{% else %}-{% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-right font-mono text-xs">
+                                {% if entry.credit > 0 %}<span class="text-emerald-600 dark:text-emerald-400 font-medium">${{ entry.credit }}</span>{% else %}-{% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-right font-mono font-medium text-xs">${{ entry.balance_after }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="py-8 text-center text-slate-400 text-xs">{% trans "No transaction ledger entries recorded." %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Account Statement -->
+    <div x-show="activeTab === 'statement'" class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <form method="get" class="flex flex-wrap items-center gap-4">
+                <input type="hidden" name="tab" value="statement">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Start Date" %}</label>
+                    <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-input text-xs py-1.5">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "End Date" %}</label>
+                    <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-input text-xs py-1.5">
+                </div>
+                <div class="pt-5 flex items-center gap-2">
+                    <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">
+                        {% trans "Generate" %}
+                    </button>
+                    <a href="{% url 'customers:customer_statement_print' customer.pk %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}"
+                       target="_blank"
+                       class="px-4 py-1.5 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium hover:bg-slate-50">
+                        {% trans "Print / Full Page" %}
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Aging Analysis Summary -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center">
+                <span class="text-[11px] text-slate-400 uppercase">{% trans "Current (0-30)" %}</span>
+                <div class="text-base font-bold font-mono text-slate-900 dark:text-white mt-1">${{ statement_data.aging.current }}</div>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center">
+                <span class="text-[11px] text-slate-400 uppercase">{% trans "1-30 Days Due" %}</span>
+                <div class="text-base font-bold font-mono text-slate-900 dark:text-white mt-1">${{ statement_data.aging.days_1_30 }}</div>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center">
+                <span class="text-[11px] text-slate-400 uppercase">{% trans "31-60 Days Due" %}</span>
+                <div class="text-base font-bold font-mono text-slate-900 dark:text-white mt-1">${{ statement_data.aging.days_31_60 }}</div>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center">
+                <span class="text-[11px] text-slate-400 uppercase">{% trans "61-90 Days Due" %}</span>
+                <div class="text-base font-bold font-mono text-slate-900 dark:text-white mt-1">${{ statement_data.aging.days_61_90 }}</div>
+            </div>
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center">
+                <span class="text-[11px] text-rose-500 uppercase font-semibold">{% trans "> 90 Days Due" %}</span>
+                <div class="text-base font-bold font-mono text-rose-600 dark:text-rose-400 mt-1">${{ statement_data.aging.days_over_90 }}</div>
+            </div>
+        </div>
+
+        <!-- Statement Table -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 text-sm">
+                <div>
+                    <span class="text-slate-500">{% trans "Opening Balance:" %}</span>
+                    <span class="font-mono font-semibold text-slate-900 dark:text-white ml-1">${{ statement_data.opening_balance }}</span>
+                </div>
+                <div>
+                    <span class="text-slate-500">{% trans "Closing Balance:" %}</span>
+                    <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400 ml-1 text-base">${{ statement_data.closing_balance }}</span>
+                </div>
+            </div>
+
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-xs">
+                <thead class="text-slate-400 uppercase tracking-wider font-semibold">
+                    <tr>
+                        <th class="py-2">{% trans "Date" %}</th>
+                        <th class="py-2">{% trans "Type" %}</th>
+                        <th class="py-2">{% trans "Reference" %}</th>
+                        <th class="py-2">{% trans "Description" %}</th>
+                        <th class="py-2 text-right">{% trans "Debit" %}</th>
+                        <th class="py-2 text-right">{% trans "Credit" %}</th>
+                        <th class="py-2 text-right">{% trans "Running Balance" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for row in statement_data.lines %}
+                    <tr>
+                        <td class="py-2.5 font-mono text-slate-500">{{ row.entry.occurred_at|date:"Y-m-d" }}</td>
+                        <td class="py-2.5">{{ row.entry.get_entry_type_display }}</td>
+                        <td class="py-2.5 font-mono">{{ row.entry.reference_number|default:row.entry.reference_id|default:"-" }}</td>
+                        <td class="py-2.5 text-slate-600 dark:text-slate-400">{{ row.entry.description|default:"-" }}</td>
+                        <td class="py-2.5 text-right font-mono">{% if row.entry.debit > 0 %}${{ row.entry.debit }}{% else %}-{% endif %}</td>
+                        <td class="py-2.5 text-right font-mono">{% if row.entry.credit > 0 %}${{ row.entry.credit }}{% else %}-{% endif %}</td>
+                        <td class="py-2.5 text-right font-mono font-medium">${{ row.running_balance }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-6 text-center text-slate-400">{% trans "No transactions in this statement period." %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 4: Addresses -->
+    <div x-show="activeTab === 'addresses'" class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-slate-900 dark:text-white text-base">{% trans "Postal & Delivery Addresses" %}</h3>
+            <button type="button" @click="showAddrModal = true" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">
+                {% trans "Add Address" %}
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% for addr in addresses %}
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs relative space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        {{ addr.get_type_display }}
+                    </span>
+                    {% if addr.is_default %}
+                    <span class="text-[10px] font-semibold uppercase text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded">
+                        {% trans "Default" %}
+                    </span>
+                    {% endif %}
+                </div>
+                {% if addr.recipient_name %}
+                <div class="text-xs font-semibold text-slate-900 dark:text-white">{{ addr.recipient_name }}</div>
+                {% endif %}
+                <div class="text-xs text-slate-600 dark:text-slate-400">
+                    <div>{{ addr.line1 }}</div>
+                    {% if addr.line2 %}<div>{{ addr.line2 }}</div>{% endif %}
+                    <div>{{ addr.city }}, {{ addr.state_or_province }} {{ addr.postal_code }}</div>
+                    <div>{{ addr.country }}</div>
+                </div>
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <form method="post" action="{% url 'customers:customer_address_delete' customer.pk addr.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="text-xs text-rose-500 hover:underline">{% trans "Remove" %}</button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-2 py-8 text-center text-slate-400 text-xs">{% trans "No addresses registered." %}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab 5: Contacts -->
+    <div x-show="activeTab === 'contacts'" class="space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-slate-900 dark:text-white text-base">{% trans "Key Contact Persons" %}</h3>
+            <button type="button" @click="showContactModal = true" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">
+                {% trans "Add Contact" %}
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% for contact in contacts %}
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs relative space-y-2">
+                <div class="flex items-center justify-between">
+                    <div class="font-semibold text-sm text-slate-900 dark:text-white">{{ contact.full_name }}</div>
+                    {% if contact.is_primary %}
+                    <span class="text-[10px] font-semibold uppercase text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded">
+                        {% trans "Primary Contact" %}
+                    </span>
+                    {% endif %}
+                </div>
+                {% if contact.title %}
+                <div class="text-xs text-slate-500">{{ contact.title }}</div>
+                {% endif %}
+                <div class="text-xs text-slate-600 dark:text-slate-400 space-y-0.5">
+                    {% if contact.email %}<div>📧 {{ contact.email }}</div>{% endif %}
+                    {% if contact.phone %}<div>📞 {{ contact.phone }}</div>{% endif %}
+                </div>
+                {% if contact.notes %}
+                <div class="text-xs text-slate-400 pt-1 italic">{{ contact.notes }}</div>
+                {% endif %}
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <form method="post" action="{% url 'customers:customer_contact_delete' customer.pk contact.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="text-xs text-rose-500 hover:underline">{% trans "Remove" %}</button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-2 py-8 text-center text-slate-400 text-xs">{% trans "No contacts registered." %}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Balance Adjustment Modal -->
+    <div x-show="showAdjModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+            <div class="fixed inset-0 transition-opacity bg-slate-900/50" @click="showAdjModal = false"></div>
+            <div class="relative inline-block w-full max-w-md p-6 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">{% trans "Post Balance Adjustment" %}</h3>
+                <p class="text-xs text-slate-500 mb-4">{% trans "Post a manual debit or credit adjustment to the customer's AR subledger." %}</p>
+                <form method="post" action="{% url 'customers:customer_adjust_balance' customer.pk %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ adj_form.adjustment_type.label }}</label>
+                        {{ adj_form.adjustment_type }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ adj_form.amount.label }}</label>
+                        {{ adj_form.amount }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ adj_form.reference_number.label }}</label>
+                        {{ adj_form.reference_number }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ adj_form.reason.label }}</label>
+                        {{ adj_form.reason }}
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" @click="showAdjModal = false" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium">{% trans "Cancel" %}</button>
+                        <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">{% trans "Confirm Adjustment" %}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Address Modal -->
+    <div x-show="showAddrModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+            <div class="fixed inset-0 transition-opacity bg-slate-900/50" @click="showAddrModal = false"></div>
+            <div class="relative inline-block w-full max-w-lg p-6 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">{% trans "Add Customer Address" %}</h3>
+                <form method="post" action="{% url 'customers:customer_address_create' customer.pk %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ addr_form.type.label }}</label>
+                            {{ addr_form.type }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ addr_form.recipient_name.label }}</label>
+                            {{ addr_form.recipient_name }}
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ addr_form.line1.label }}</label>
+                            {{ addr_form.line1 }}
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ addr_form.line2.label }}</label>
+                            {{ addr_form.line2 }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ addr_form.city.label }}</label>
+                            {{ addr_form.city }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ addr_form.state_or_province.label }}</label>
+                            {{ addr_form.state_or_province }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ addr_form.postal_code.label }}</label>
+                            {{ addr_form.postal_code }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ addr_form.country.label }}</label>
+                            {{ addr_form.country }}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ addr_form.is_default }}
+                        <label class="text-xs text-slate-700 dark:text-slate-300">{{ addr_form.is_default.label }}</label>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" @click="showAddrModal = false" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium">{% trans "Cancel" %}</button>
+                        <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">{% trans "Save Address" %}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Modal -->
+    <div x-show="showContactModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
+            <div class="fixed inset-0 transition-opacity bg-slate-900/50" @click="showContactModal = false"></div>
+            <div class="relative inline-block w-full max-w-md p-6 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">{% trans "Add Customer Contact" %}</h3>
+                <form method="post" action="{% url 'customers:customer_contact_create' customer.pk %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ contact_form.first_name.label }}</label>
+                            {{ contact_form.first_name }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ contact_form.last_name.label }}</label>
+                            {{ contact_form.last_name }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ contact_form.title.label }}</label>
+                        {{ contact_form.title }}
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ contact_form.email.label }}</label>
+                            {{ contact_form.email }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ contact_form.phone.label }}</label>
+                            {{ contact_form.phone }}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ contact_form.is_primary }}
+                        <label class="text-xs text-slate-700 dark:text-slate-300">{{ contact_form.is_primary.label }}</label>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ contact_form.notes.label }}</label>
+                        {{ contact_form.notes }}
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" @click="showContactModal = false" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium">{% trans "Cancel" %}</button>
+                        <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700">{% trans "Save Contact" %}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

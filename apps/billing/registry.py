@@ -204,7 +204,23 @@ registry.register(
     description="Customer accounts, contact directory, and balances",
     icon="user-group",
     sort_order=50,
-    permissions=["customers.view", "customers.manage"],
+    nav_items=[
+        NavItem(
+            "Customer Directory",
+            "customers:customer_list",
+            icon="user-group",
+            permission="customers.view",
+        ),
+        NavItem("New Customer", "customers:customer_create", icon="user-plus", permission="customers.create"),
+    ],
+    permissions=[
+        "customers.view",
+        "customers.create",
+        "customers.update",
+        "customers.delete",
+        "customers.adjust_balance",
+        "customers.export",
+    ],
 )
 
 registry.register(
