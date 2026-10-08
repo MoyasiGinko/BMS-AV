@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from django.core.cache import cache
 
+from apps.accounting.services import provision_accounting
 from apps.accounts.models import User
 from apps.billing.models import Subscription
 from apps.billing.services import provision_billing_subscription
@@ -23,8 +24,11 @@ def clean_hooks() -> None:
     cache.clear()
     clear_provisioning_hooks()
     register_provisioning_hook(provision_billing_subscription)
+    register_provisioning_hook(provision_accounting)
     yield
     clear_provisioning_hooks()
+    register_provisioning_hook(provision_billing_subscription)
+    register_provisioning_hook(provision_accounting)
 
 
 @pytest.fixture

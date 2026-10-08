@@ -14,6 +14,7 @@ Covers:
 import pytest
 from django.test import Client
 
+from apps.accounting.services import provision_accounting
 from apps.accounts.models import User
 from apps.billing.models import ProcessedWebhookEvent, Subscription
 from apps.billing.services import provision_billing_subscription, seed_default_plans
@@ -26,6 +27,7 @@ from apps.tenancy.services import provision_organization
 @pytest.fixture
 def seeded_plans() -> None:
     register_provisioning_hook(provision_billing_subscription)
+    register_provisioning_hook(provision_accounting)
     seed_default_plans()
 
 

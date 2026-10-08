@@ -24,7 +24,7 @@ Format: `ID title: Done when ...`
 - [x] P1-07 Back-office (internal staff) app: tenant lookup, impersonation with audit + banner, subscription overrides, job/webhook inspection.
 
 ## P2 Small-shop MVP: Catalog, Inventory, Customers, Sales, POS
-- [ ] P2-00 accounting core minimal: Account, AccountMapping, JournalEntry/Line, post_entry/reverse_entry, FiscalPeriod, chart-of-accounts templates seeded at provisioning, invariants tests.
+- [x] P2-00 accounting core minimal: Account, AccountMapping, JournalEntry/Line, post_entry/reverse_entry, FiscalPeriod, chart-of-accounts templates seeded at provisioning, invariants tests.
 - [ ] P2-01 catalog: categories, units, tax codes, products (+variants, barcode, images), price lists; screens + API + CSV import/export.
 - [ ] P2-02 inventory ledger: StockMovement, StockLevel, costing strategy (weighted avg), reservations, services issue/receive/transfer/adjust/count; screens + API; reconciliation job + test.
 - [ ] P2-03 customers: customer CRUD, addresses/contacts, balance ledger, statements, credit limit checks; screens + API.
