@@ -34,6 +34,7 @@ EXEMPT_PREFIXES = (
     "/accounts/",
     "/tenancy/",
     "/admin/",
+    "/backoffice/",
     "/_styleguide/",
     "/healthz",
     "/readyz",

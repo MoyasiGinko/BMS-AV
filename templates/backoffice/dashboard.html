@@ -1,0 +1,263 @@
+{% extends "backoffice/base_backoffice.html" %}
+{% load i18n humanize %}
+
+{% block bo_title %}{% trans "Overview" %}{% endblock %}
+
+{% block bo_content %}
+<div class="space-y-8">
+
+  <!-- Header & Quick Search -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[var(--border)]">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{% trans "Operations Control Plane" %}</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+          {% trans "Internal Staff Only" %}
+        </span>
+      </div>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Cross-tenant supervision, impersonation, subscription overrides, and background job telemetry." %}
+      </p>
+    </div>
+
+    <!-- Quick Tenant Search Bar -->
+    <form method="get" action="{% url 'backoffice:tenant_list' %}" class="flex items-center gap-2 w-full md:w-80">
+      <div class="relative flex-1">
+        <svg class="w-4 h-4 absolute left-3 top-2.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input
+          type="text"
+          name="q"
+          placeholder="{% trans 'Search tenant name or slug...' %}"
+          class="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--brand-500)]"
+        />
+      </div>
+      <button
+        type="submit"
+        class="px-3 py-1.5 rounded-lg bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white text-xs font-semibold transition-colors shrink-0"
+      >
+        {% trans "Lookup" %}
+      </button>
+    </form>
+  </div>
+
+  <!-- KPI Overview Metrics (4 Cards) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+    <!-- Card 1: Organizations -->
+    <div class="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] flex flex-col justify-between">
+      <div class="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+        <span>{% trans "Organizations" %}</span>
+        <svg class="w-4 h-4 text-[var(--brand-500)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      </div>
+      <div class="my-3">
+        <div class="text-3xl font-bold tracking-tight text-[var(--text)] font-mono">
+          {{ metrics.total_tenants }}
+        </div>
+        <div class="text-xs text-[var(--text-muted)] mt-1">
+          <span class="text-emerald-600 dark:text-emerald-400 font-semibold">{{ metrics.active_tenants }}</span> {% trans "active workspaces" %}
+        </div>
+      </div>
+      <a href="{% url 'backoffice:tenant_list' %}" class="text-xs text-[var(--brand-600)] hover:underline pt-2 border-t border-[var(--border)]">
+        {% trans "View tenant directory →" %}
+      </a>
+    </div>
+
+    <!-- Card 2: Subscriptions -->
+    <div class="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] flex flex-col justify-between">
+      <div class="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+        <span>{% trans "Active Subscriptions" %}</span>
+        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+      </div>
+      <div class="my-3">
+        <div class="text-3xl font-bold tracking-tight text-[var(--text)] font-mono">
+          {{ metrics.active_subscriptions }}
+        </div>
+        <div class="text-xs text-[var(--text-muted)] mt-1">
+          {% trans "Paying & active trials" %}
+        </div>
+      </div>
+      <a href="{% url 'backoffice:tenant_list' %}?status=active" class="text-xs text-[var(--brand-600)] hover:underline pt-2 border-t border-[var(--border)]">
+        {% trans "Filter active tenants →" %}
+      </a>
+    </div>
+
+    <!-- Card 3: Outbox & Jobs -->
+    <div class="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] flex flex-col justify-between">
+      <div class="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+        <span>{% trans "Outbox & Jobs" %}</span>
+        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <div class="my-3">
+        <div class="text-3xl font-bold tracking-tight text-[var(--text)] font-mono">
+          {{ metrics.pending_outbox }}
+        </div>
+        <div class="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1.5">
+          <span>{% trans "pending" %}</span>
+          {% if metrics.failed_outbox > 0 %}
+            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-3xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+              {{ metrics.failed_outbox }} {% trans "failed" %}
+            </span>
+          {% else %}
+            <span class="text-emerald-600 dark:text-emerald-400 font-semibold">0 {% trans "errors" %}</span>
+          {% endif %}
+        </div>
+      </div>
+      <a href="{% url 'backoffice:outbox_list' %}" class="text-xs text-[var(--brand-600)] hover:underline pt-2 border-t border-[var(--border)]">
+        {% trans "Inspect jobs & outbox →" %}
+      </a>
+    </div>
+
+    <!-- Card 4: Webhooks Inbound -->
+    <div class="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] flex flex-col justify-between">
+      <div class="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+        <span>{% trans "Inbound Webhooks" %}</span>
+        <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+      <div class="my-3">
+        <div class="text-3xl font-bold tracking-tight text-[var(--text)] font-mono">
+          {{ metrics.total_webhooks }}
+        </div>
+        <div class="text-xs text-[var(--text-muted)] mt-1">
+          {% trans "Gateway events recorded" %}
+        </div>
+      </div>
+      <a href="{% url 'backoffice:webhook_list' %}" class="text-xs text-[var(--brand-600)] hover:underline pt-2 border-t border-[var(--border)]">
+        {% trans "Inspect inbound payloads →" %}
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Attention Banner if Outbox Failures Exist -->
+  {% if metrics.failed_outbox > 0 %}
+  <div class="p-5 rounded-xl border border-rose-300 bg-rose-50 dark:bg-rose-950/40 dark:border-rose-900 text-rose-900 dark:text-rose-200">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span class="font-bold text-sm">{% trans "Action Required: Failed background jobs detected" %}</span>
+      </div>
+      <a
+        href="{% url 'backoffice:outbox_list' %}?status=failed"
+        class="text-xs font-semibold px-3 py-1 rounded bg-rose-600 text-white hover:bg-rose-700 transition-colors"
+      >
+        {% trans "Inspect All Failed Events" %}
+      </a>
+    </div>
+    <div class="mt-3 space-y-2">
+      {% for event in metrics.recent_failed_events %}
+      <div class="flex items-center justify-between p-2 rounded bg-white/70 dark:bg-black/30 text-xs border border-rose-200 dark:border-rose-900/60">
+        <div class="truncate mr-4">
+          <span class="font-mono font-semibold">{{ event.event_type }}</span>
+          <span class="text-[var(--text-muted)]">({{ event.organization.name|default:"Global" }})</span>
+          <span class="text-rose-600 font-mono text-3xs ml-2 truncate">{{ event.last_error|truncatechars:80 }}</span>
+        </div>
+        <form method="post" action="{% url 'backoffice:outbox_retry' event.event_id %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button type="submit" class="px-2 py-0.5 rounded bg-rose-700 text-white text-3xs font-bold hover:bg-rose-800">
+            {% trans "Retry" %}
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Two-Column Operational Activity & Tools Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Left 2 Cols: Platform Live Audit Stream -->
+    <div class="lg:col-span-2 p-5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+        <div>
+          <h2 class="text-sm font-bold text-[var(--text)]">{% trans "Live Cross-Tenant Audit Log" %}</h2>
+          <p class="text-2xs text-[var(--text-muted)]">{% trans "Real-time ledger of actions and impersonation events" %}</p>
+        </div>
+        <span class="text-3xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)]">
+          {% trans "Platform-wide" %}
+        </span>
+      </div>
+
+      <div class="divide-y divide-[var(--border)] text-xs">
+        {% for item in metrics.recent_audit_logs %}
+        <div class="py-2.5 flex items-start justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-semibold text-[var(--brand-600)] dark:text-[var(--brand-400)]">{{ item.action }}</span>
+              <span class="text-2xs text-[var(--text-muted)]">in</span>
+              <span class="font-medium text-[var(--text)]">{{ item.organization.name }}</span>
+            </div>
+            <div class="text-2xs text-[var(--text-muted)]">
+              {% trans "Actor" %}: <span class="font-mono text-[var(--text)]">{{ item.actor.email|default:"System" }}</span>
+              {% if item.ip_address %} • IP: <span class="font-mono">{{ item.ip_address }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="text-2xs text-[var(--text-muted)] shrink-0 font-mono">
+            {{ item.created_at|naturaltime }}
+          </div>
+        </div>
+        {% empty %}
+        <div class="py-6 text-center text-xs text-[var(--text-muted)]">
+          {% trans "No audit log activity recorded yet." %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Right 1 Col: Operator Tools & Navigation -->
+    <div class="space-y-4">
+      <div class="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] space-y-3">
+        <h2 class="text-sm font-bold text-[var(--text)]">{% trans "Operator Utilities" %}</h2>
+        <div class="space-y-2 text-xs">
+          <a
+            href="{% url 'backoffice:tenant_list' %}"
+            class="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors no-underline"
+          >
+            <div class="flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-[var(--brand-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              <span class="font-medium">{% trans "Tenant Directory" %}</span>
+            </div>
+            <span>→</span>
+          </a>
+
+          <a
+            href="{% url 'backoffice:outbox_list' %}"
+            class="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors no-underline"
+          >
+            <div class="flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span class="font-medium">{% trans "Outbox & Jobs Dispatcher" %}</span>
+            </div>
+            <span>→</span>
+          </a>
+
+          <a
+            href="{% url 'backoffice:webhook_list' %}"
+            class="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors no-underline"
+          >
+            <div class="flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span class="font-medium">{% trans "Inbound Webhook Inspector" %}</span>
+            </div>
+            <span>→</span>
+          </a>
+
+          <a
+            href="/admin/"
+            class="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors no-underline"
+          >
+            <div class="flex items-center gap-2.5">
+              <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+              <span class="font-medium">{% trans "Django Admin System" %}</span>
+            </div>
+            <span>→</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

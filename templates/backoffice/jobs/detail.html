@@ -1,0 +1,81 @@
+{% extends "backoffice/base_backoffice.html" %}
+{% load i18n %}
+
+{% block bo_title %}{% trans "Outbox Event Detail" %} - {{ event.event_type }}{% endblock %}
+
+{% block bo_content %}
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between pb-4 border-b border-[var(--border)]">
+    <div>
+      <div class="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-1">
+        <a href="{% url 'backoffice:outbox_list' %}" class="hover:text-[var(--text)]">{% trans "Outbox & Jobs" %}</a>
+        <span>/</span>
+        <span class="font-mono text-[var(--text)]">{{ event.event_id }}</span>
+      </div>
+      <h1 class="text-xl font-bold font-mono tracking-tight text-[var(--text)]">{{ event.event_type }}</h1>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <form method="post" action="{% url 'backoffice:outbox_retry' event.event_id %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button
+          type="submit"
+          class="px-3 py-1.5 rounded-lg bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white text-xs font-semibold cursor-pointer"
+        >
+          {% trans "Trigger Immediate Retry" %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Metadata Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]">
+      <div class="text-[var(--text-muted)] mb-1">{% trans "Status" %}</div>
+      <div class="font-semibold uppercase font-mono">{{ event.status }}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]">
+      <div class="text-[var(--text-muted)] mb-1">{% trans "Organization" %}</div>
+      <div class="font-semibold">{{ event.organization.name|default:"Global System" }}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]">
+      <div class="text-[var(--text-muted)] mb-1">{% trans "Retry Count" %}</div>
+      <div class="font-semibold font-mono">{{ event.retry_count }}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)]">
+      <div class="text-[var(--text-muted)] mb-1">{% trans "Created Timestamp" %}</div>
+      <div class="font-mono">{{ event.created_at|date:"Y-m-d H:i:s" }}</div>
+    </div>
+  </div>
+
+  <!-- Error Alert if failed -->
+  {% if event.last_error %}
+  <div class="p-4 rounded-xl border border-rose-300 bg-rose-50 dark:bg-rose-950/40 dark:border-rose-900 text-rose-900 dark:text-rose-200 text-xs">
+    <div class="font-bold mb-1">{% trans "Last Error Traceback:" %}</div>
+    <pre class="font-mono whitespace-pre-wrap text-2xs overflow-x-auto">{{ event.last_error }}</pre>
+  </div>
+  {% endif %}
+
+  <!-- Payload Viewer -->
+  <div class="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] space-y-2">
+    <div class="flex items-center justify-between pb-2 border-b border-[var(--border)]">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Event Payload (JSON)" %}</h2>
+    </div>
+    <pre class="p-4 rounded-lg bg-[var(--surface-2)] text-[var(--text)] font-mono text-2xs overflow-x-auto">{{ event.payload }}</pre>
+  </div>
+
+  <!-- Headers Viewer -->
+  {% if event.headers %}
+  <div class="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] space-y-2">
+    <div class="flex items-center justify-between pb-2 border-b border-[var(--border)]">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Event Headers (JSON)" %}</h2>
+    </div>
+    <pre class="p-4 rounded-lg bg-[var(--surface-2)] text-[var(--text)] font-mono text-2xs overflow-x-auto">{{ event.headers }}</pre>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

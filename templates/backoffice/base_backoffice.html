@@ -1,0 +1,91 @@
+{% extends "layouts/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% block bo_title %}{% trans "Back-Office Operations" %}{% endblock %} | Business OS{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col">
+  <!-- Back-Office Top Navigation Bar -->
+  <header class="bg-neutral-900 text-white border-b border-neutral-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+      <!-- Left: Logo & Operator Title -->
+      <div class="flex items-center gap-6">
+        <a href="{% url 'backoffice:dashboard' %}" class="flex items-center gap-2.5 text-white no-underline">
+          <div class="w-7 h-7 rounded bg-amber-500 text-black flex items-center justify-center font-black text-sm">
+            BO
+          </div>
+          <span class="font-bold tracking-tight text-sm uppercase">Business OS <span class="text-amber-400 font-mono text-xs">Operator</span></span>
+        </a>
+
+        <!-- Navigation Links -->
+        <nav class="hidden md:flex items-center gap-1 text-xs font-medium">
+          <a
+            href="{% url 'backoffice:dashboard' %}"
+            class="px-3 py-1.5 rounded transition-colors {% if request.path == '/backoffice/' %}bg-neutral-800 text-white font-semibold{% else %}text-neutral-400 hover:text-white hover:bg-neutral-850{% endif %}"
+          >
+            {% trans "Overview" %}
+          </a>
+          <a
+            href="{% url 'backoffice:tenant_list' %}"
+            class="px-3 py-1.5 rounded transition-colors {% if '/backoffice/tenants/' in request.path %}bg-neutral-800 text-white font-semibold{% else %}text-neutral-400 hover:text-white hover:bg-neutral-850{% endif %}"
+          >
+            {% trans "Tenants" %}
+          </a>
+          <a
+            href="{% url 'backoffice:outbox_list' %}"
+            class="px-3 py-1.5 rounded transition-colors {% if '/backoffice/jobs/' in request.path %}bg-neutral-800 text-white font-semibold{% else %}text-neutral-400 hover:text-white hover:bg-neutral-850{% endif %}"
+          >
+            {% trans "Jobs & Outbox" %}
+          </a>
+          <a
+            href="{% url 'backoffice:webhook_list' %}"
+            class="px-3 py-1.5 rounded transition-colors {% if '/backoffice/webhooks/' in request.path %}bg-neutral-800 text-white font-semibold{% else %}text-neutral-400 hover:text-white hover:bg-neutral-850{% endif %}"
+          >
+            {% trans "Inbound Webhooks" %}
+          </a>
+        </nav>
+      </div>
+
+      <!-- Right: Operator Info & Return to App -->
+      <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center gap-2 text-xs text-neutral-400 border-r border-neutral-800 pr-3">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="truncate max-w-[150px]">{{ request.user.email }}</span>
+          <span class="px-1.5 py-0.5 rounded text-3xs font-semibold bg-neutral-800 text-amber-400 uppercase">Staff</span>
+        </div>
+
+        <a
+          href="/"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-neutral-800 text-neutral-200 hover:text-white hover:bg-neutral-700 text-xs font-medium transition-colors"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          {% trans "Return to Workspace" %}
+        </a>
+
+        <button
+          type="button"
+          onclick="window.toggleTheme()"
+          class="p-1.5 rounded text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+          title="Toggle theme"
+          aria-label="Toggle theme"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Subnav Bar -->
+  <div class="md:hidden bg-neutral-850 border-b border-neutral-800 px-4 py-2 flex items-center gap-2 overflow-x-auto text-xs">
+    <a href="{% url 'backoffice:dashboard' %}" class="px-2.5 py-1 rounded text-neutral-300 hover:text-white shrink-0">{% trans "Overview" %}</a>
+    <a href="{% url 'backoffice:tenant_list' %}" class="px-2.5 py-1 rounded text-neutral-300 hover:text-white shrink-0">{% trans "Tenants" %}</a>
+    <a href="{% url 'backoffice:outbox_list' %}" class="px-2.5 py-1 rounded text-neutral-300 hover:text-white shrink-0">{% trans "Jobs" %}</a>
+    <a href="{% url 'backoffice:webhook_list' %}" class="px-2.5 py-1 rounded text-neutral-300 hover:text-white shrink-0">{% trans "Webhooks" %}</a>
+  </div>
+
+  <!-- Main View Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {% block bo_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

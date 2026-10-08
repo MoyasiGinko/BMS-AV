@@ -1,0 +1,83 @@
+{% extends "backoffice/base_backoffice.html" %}
+{% load i18n %}
+
+{% block bo_title %}{% trans "Tenant Directory" %}{% endblock %}
+
+{% block bo_content %}
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-[var(--text)]">{% trans "Tenant Directory" %}</h1>
+      <p class="text-xs text-[var(--text-muted)] mt-0.5">
+        {% trans "Directory of all provisioned organizations and workspaces across the platform." %}
+      </p>
+    </div>
+    <div class="text-xs text-[var(--text-muted)] font-mono">
+      Total Workspaces: <span class="font-bold text-[var(--text)]">{{ total_count }}</span>
+    </div>
+  </div>
+
+  <!-- Search and Filters Form -->
+  <form
+    method="get"
+    action="{% url 'backoffice:tenant_list' %}"
+    class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] flex flex-wrap items-center gap-3"
+    hx-get="{% url 'backoffice:tenant_list' %}"
+    hx-trigger="input from:input[name='q'] delay:300ms, change from:select"
+    hx-target="#tenant-table-container"
+  >
+    <!-- Search Query -->
+    <div class="relative flex-1 min-w-[240px]">
+      <svg class="w-4 h-4 absolute left-3 top-2.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input
+        type="text"
+        name="q"
+        value="{{ query }}"
+        placeholder="{% trans 'Filter by organization name or slug...' %}"
+        class="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-hidden focus:border-[var(--brand-500)]"
+      />
+    </div>
+
+    <!-- Status Filter -->
+    <div class="w-40">
+      <select
+        name="status"
+        class="w-full px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-xs text-[var(--text)] focus:outline-hidden"
+      >
+        <option value="">{% trans "All Statuses" %}</option>
+        <option value="active" {% if status == 'active' %}selected{% endif %}>{% trans "Active" %}</option>
+        <option value="suspended" {% if status == 'suspended' %}selected{% endif %}>{% trans "Suspended" %}</option>
+        <option value="archived" {% if status == 'archived' %}selected{% endif %}>{% trans "Archived" %}</option>
+      </select>
+    </div>
+
+    <!-- Plan Filter -->
+    <div class="w-40">
+      <select
+        name="plan"
+        class="w-full px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-xs text-[var(--text)] focus:outline-hidden"
+      >
+        <option value="">{% trans "All Plans" %}</option>
+        <option value="starter" {% if plan_slug == 'starter' %}selected{% endif %}>Starter</option>
+        <option value="growth" {% if plan_slug == 'growth' %}selected{% endif %}>Growth</option>
+        <option value="business" {% if plan_slug == 'business' %}selected{% endif %}>Business</option>
+        <option value="enterprise" {% if plan_slug == 'enterprise' %}selected{% endif %}>Enterprise</option>
+      </select>
+    </div>
+
+    <noscript>
+      <button type="submit" class="px-3 py-1.5 rounded bg-[var(--brand-600)] text-white text-xs font-semibold">
+        {% trans "Filter" %}
+      </button>
+    </noscript>
+  </form>
+
+  <!-- Table Container (Replaced via HTMX) -->
+  <div id="tenant-table-container" class="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs">
+    {% include "backoffice/tenants/_table.html" %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% load i18n humanize %}
+<div class="overflow-x-auto">
+  <table class="w-full text-left text-xs border-collapse">
+    <thead>
+      <tr class="border-b border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wider font-semibold text-3xs">
+        <th class="py-3 px-4">{% trans "Organization" %}</th>
+        <th class="py-3 px-4">{% trans "Status" %}</th>
+        <th class="py-3 px-4">{% trans "Plan & Billing" %}</th>
+        <th class="py-3 px-4">{% trans "Members" %}</th>
+        <th class="py-3 px-4">{% trans "Created" %}</th>
+        <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-[var(--border)]">
+      {% for item in results %}
+      <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+        <!-- Name & Slug -->
+        <td class="py-3.5 px-4">
+          <div class="font-semibold text-sm text-[var(--text)]">
+            <a href="{% url 'backoffice:tenant_detail' item.org.public_id %}" class="hover:text-[var(--brand-600)]">
+              {{ item.org.name }}
+            </a>
+          </div>
+          <div class="font-mono text-2xs text-[var(--text-muted)]">
+            {{ item.org.slug }} • <span class="text-3xs">{{ item.org.public_id }}</span>
+          </div>
+        </td>
+
+        <!-- Status -->
+        <td class="py-3.5 px-4">
+          {% if item.org.status == 'active' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              {% trans "Active" %}
+            </span>
+          {% elif item.org.status == 'suspended' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              {% trans "Suspended" %}
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300">
+              {{ item.org.status|title }}
+            </span>
+          {% endif %}
+        </td>
+
+        <!-- Plan -->
+        <td class="py-3.5 px-4">
+          {% if item.subscription %}
+            <div class="font-medium text-[var(--text)]">
+              {{ item.subscription.plan.name }}
+            </div>
+            <div class="text-3xs text-[var(--text-muted)] font-mono">
+              Status: {{ item.subscription.status|title }}
+            </div>
+          {% else %}
+            <span class="text-[var(--text-muted)] italic">{% trans "No plan" %}</span>
+          {% endif %}
+        </td>
+
+        <!-- Members Count -->
+        <td class="py-3.5 px-4 font-mono">
+          {{ item.org.members_count }}
+        </td>
+
+        <!-- Created Date -->
+        <td class="py-3.5 px-4 text-[var(--text-muted)]">
+          {{ item.org.created_at|date:"M d, Y" }}
+        </td>
+
+        <!-- Actions -->
+        <td class="py-3.5 px-4 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <a
+              href="{% url 'backoffice:tenant_detail' item.org.public_id %}"
+              class="px-2.5 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-medium text-[var(--text)] no-underline transition-colors"
+            >
+              {% trans "Inspect" %}
+            </a>
+
+            <!-- Impersonate Button -->
+            <form method="post" action="{% url 'backoffice:impersonate_tenant' item.org.public_id %}" class="inline">
+              {% csrf_token %}
+              <input type="hidden" name="reason" value="Back-office operator session for {{ item.org.name }}">
+              <button
+                type="submit"
+                onclick="return confirm('{% trans "Start staff impersonation for this organization?" %}')"
+                class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold transition-colors cursor-pointer"
+                title="{% trans 'Impersonate this workspace' %}"
+              >
+                {% trans "Impersonate" %}
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="py-12 text-center text-[var(--text-muted)]">
+          <svg class="w-8 h-8 mx-auto text-[var(--text-muted)]/50 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          <div class="font-medium text-sm">{% trans "No matching organizations found" %}</div>
+          <div class="text-2xs mt-1">{% trans "Try adjusting your search query or status filter." %}</div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination Controls -->
+{% if page_obj.has_other_pages %}
+<div class="p-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+  <div>
+    {% blocktrans with start=page_obj.start_index end=page_obj.end_index count=total_count %}
+      Showing {{ start }}-{{ end }} of {{ count }} organizations
+    {% endblocktrans %}
+  </div>
+  <div class="flex items-center gap-2">
+    {% if page_obj.has_previous %}
+      <a
+        href="?page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ status }}&plan={{ plan_slug }}"
+        hx-get="{% url 'backoffice:tenant_list' %}?page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ status }}&plan={{ plan_slug }}"
+        hx-target="#tenant-table-container"
+        class="px-2.5 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-[var(--text)]"
+      >
+        {% trans "Previous" %}
+      </a>
+    {% endif %}
+    <span class="font-mono text-2xs">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a
+        href="?page={{ page_obj.next_page_number }}&q={{ query }}&status={{ status }}&plan={{ plan_slug }}"
+        hx-get="{% url 'backoffice:tenant_list' %}?page={{ page_obj.next_page_number }}&q={{ query }}&status={{ status }}&plan={{ plan_slug }}"
+        hx-target="#tenant-table-container"
+        class="px-2.5 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-[var(--text)]"
+      >
+        {% trans "Next" %}
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}

@@ -71,6 +71,35 @@
   <!-- Global HTMX Loading Bar -->
   <div id="global-indicator" class="htmx-indicator fixed top-0 left-0 right-0 h-0.5 bg-[var(--brand-600)] z-50"></div>
 
+  {% if request.session.impersonator_id %}
+  <!-- Staff Impersonation Alert Banner -->
+  <aside
+    class="bg-amber-500 text-amber-950 px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between sticky top-0 z-50 shadow-md border-b border-amber-600"
+    role="alert"
+    aria-label="Staff impersonation active"
+  >
+    <div class="flex items-center gap-2 truncate">
+      <svg class="w-4 h-4 shrink-0 text-amber-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <span class="truncate">
+        <strong>STAFF IMPERSONATION:</strong> Acting as <strong>{{ request.user.email }}</strong>
+        {% if request.tenant %} in <strong>{{ request.tenant.name }}</strong>{% endif %}.
+        Audited under operator <strong>{{ request.session.impersonator_email|default:"Staff" }}</strong>.
+      </span>
+    </div>
+    <form method="post" action="/backoffice/impersonate/stop/" class="shrink-0 ml-4">
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="bg-amber-950 text-amber-100 hover:bg-black px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer"
+      >
+        Exit Impersonation
+      </button>
+    </form>
+  </aside>
+  {% endif %}
+
   <!-- Main Body Content -->
   {% block body %}
     {% block content %}{% endblock %}

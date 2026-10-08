@@ -21,7 +21,7 @@ Format: `ID title: Done when ...`
 - [x] P1-04 Settings screens: organization, branches, warehouses, departments, users & roles (custom roles), numbering, tax codes, currencies, notification prefs.
 - [x] P1-05 API keys (scoped, hashed, last-used, rotation) + API key auth backend + usage metering + rate limits per plan; UI to manage.
 - [x] P1-06 Dashboard shell with widget registry (module/permission aware) and empty-state onboarding checklist.
-- [ ] P1-07 Back-office (internal staff) app: tenant lookup, impersonation with audit + banner, subscription overrides, job/webhook inspection.
+- [x] P1-07 Back-office (internal staff) app: tenant lookup, impersonation with audit + banner, subscription overrides, job/webhook inspection.
 
 ## P2 Small-shop MVP: Catalog, Inventory, Customers, Sales, POS
 - [ ] P2-00 accounting core minimal: Account, AccountMapping, JournalEntry/Line, post_entry/reverse_entry, FiscalPeriod, chart-of-accounts templates seeded at provisioning, invariants tests.

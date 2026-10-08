@@ -21,6 +21,7 @@ def clean_onboarding_env() -> None:
     register_provisioning_hook(provision_billing_subscription)
     yield
     clear_provisioning_hooks()
+    register_provisioning_hook(provision_billing_subscription)
 
 
 @pytest.fixture

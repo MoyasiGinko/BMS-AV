@@ -1,0 +1,213 @@
+{% extends "backoffice/base_backoffice.html" %}
+{% load i18n humanize %}
+
+{% block bo_title %}{% trans "Outbox & Jobs" %}{% endblock %}
+
+{% block bo_content %}
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-[var(--text)]">{% trans "Outbox & Background Jobs" %}</h1>
+      <p class="text-xs text-[var(--text-muted)] mt-0.5">
+        {% trans "Telemetry and inspection of transactional outbox domain events and asynchronous tasks." %}
+      </p>
+    </div>
+    <div class="text-xs text-[var(--text-muted)] font-mono">
+      Total Events: <span class="font-bold text-[var(--text)]">{{ total_count }}</span>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] flex flex-wrap items-center justify-between gap-4">
+    <!-- Status Filter Pills -->
+    <div class="flex items-center gap-1.5 overflow-x-auto text-xs">
+      <a
+        href="{% url 'backoffice:outbox_list' %}"
+        class="px-3 py-1.5 rounded-lg transition-colors {% if not status %}bg-[var(--brand-600)] text-white font-semibold{% else %}bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]{% endif %}"
+      >
+        {% trans "All" %}
+      </a>
+      <a
+        href="{% url 'backoffice:outbox_list' %}?status=pending"
+        class="px-3 py-1.5 rounded-lg transition-colors {% if status == 'pending' %}bg-amber-500 text-black font-semibold{% else %}bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]{% endif %}"
+      >
+        {% trans "Pending" %}
+      </a>
+      <a
+        href="{% url 'backoffice:outbox_list' %}?status=processing"
+        class="px-3 py-1.5 rounded-lg transition-colors {% if status == 'processing' %}bg-blue-600 text-white font-semibold{% else %}bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]{% endif %}"
+      >
+        {% trans "Processing" %}
+      </a>
+      <a
+        href="{% url 'backoffice:outbox_list' %}?status=processed"
+        class="px-3 py-1.5 rounded-lg transition-colors {% if status == 'processed' %}bg-emerald-600 text-white font-semibold{% else %}bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]{% endif %}"
+      >
+        {% trans "Processed" %}
+      </a>
+      <a
+        href="{% url 'backoffice:outbox_list' %}?status=failed"
+        class="px-3 py-1.5 rounded-lg transition-colors {% if status == 'failed' %}bg-rose-600 text-white font-semibold{% else %}bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]{% endif %}"
+      >
+        {% trans "Failed" %}
+      </a>
+    </div>
+
+    <!-- Search input -->
+    <form method="get" action="{% url 'backoffice:outbox_list' %}" class="flex items-center gap-2">
+      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+      <input
+        type="text"
+        name="q"
+        value="{{ search }}"
+        placeholder="{% trans 'Search event type or error...' %}"
+        class="px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-xs text-[var(--text)] focus:outline-hidden w-64"
+      />
+      <button type="submit" class="px-3 py-1.5 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] border border-[var(--border)]">
+        {% trans "Filter" %}
+      </button>
+    </form>
+  </div>
+
+  <!-- Outbox Events Table -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-[var(--border)] text-[var(--text-muted)] uppercase tracking-wider font-semibold text-3xs">
+            <th class="py-3 px-4">{% trans "Event ID & Type" %}</th>
+            <th class="py-3 px-4">{% trans "Organization" %}</th>
+            <th class="py-3 px-4">{% trans "Status" %}</th>
+            <th class="py-3 px-4">{% trans "Retries" %}</th>
+            <th class="py-3 px-4">{% trans "Created" %}</th>
+            <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for item in page_obj %}
+          <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+            <!-- Event ID & Type -->
+            <td class="py-3 px-4">
+              <div class="font-mono font-bold text-sm text-[var(--text)]">
+                <a href="{% url 'backoffice:outbox_detail' item.event_id %}" class="hover:text-[var(--brand-600)]">
+                  {{ item.event_type }}
+                </a>
+              </div>
+              <div class="font-mono text-3xs text-[var(--text-muted)]">
+                {{ item.event_id }}
+              </div>
+              {% if item.last_error %}
+                <div class="text-3xs text-rose-500 font-mono mt-1 max-w-md truncate">
+                  Error: {{ item.last_error|truncatechars:100 }}
+                </div>
+              {% endif %}
+            </td>
+
+            <!-- Organization -->
+            <td class="py-3 px-4">
+              {% if item.organization %}
+                <a href="{% url 'backoffice:tenant_detail' item.organization.public_id %}" class="font-medium text-[var(--text)] hover:underline">
+                  {{ item.organization.name }}
+                </a>
+              {% else %}
+                <span class="text-[var(--text-muted)] italic">{% trans "Global System" %}</span>
+              {% endif %}
+            </td>
+
+            <!-- Status -->
+            <td class="py-3 px-4">
+              {% if item.status == 'processed' %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  {% trans "Processed" %}
+                </span>
+              {% elif item.status == 'failed' %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  {% trans "Failed" %}
+                </span>
+              {% elif item.status == 'processing' %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                  {% trans "Processing" %}
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  {% trans "Pending" %}
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- Retries -->
+            <td class="py-3 px-4 font-mono">
+              {{ item.retry_count }}
+            </td>
+
+            <!-- Created -->
+            <td class="py-3 px-4 text-[var(--text-muted)] font-mono text-2xs">
+              {{ item.created_at|date:"Y-m-d H:i" }}
+            </td>
+
+            <!-- Actions -->
+            <td class="py-3 px-4 text-right">
+              <div class="flex items-center justify-end gap-2">
+                <a
+                  href="{% url 'backoffice:outbox_detail' item.event_id %}"
+                  class="px-2.5 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-medium text-[var(--text)] no-underline"
+                >
+                  {% trans "Inspect" %}
+                </a>
+
+                {% if item.status == 'failed' or item.status == 'pending' %}
+                <form method="post" action="{% url 'backoffice:outbox_retry' item.event_id %}" class="inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button
+                    type="submit"
+                    class="px-2.5 py-1 rounded bg-[var(--brand-600)] hover:bg-[var(--brand-700)] text-white text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    {% trans "Retry" %}
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="py-12 text-center text-[var(--text-muted)]">
+              {% trans "No outbox events match the criteria." %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="p-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+      <div>
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </div>
+      <div class="flex items-center gap-2">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}&status={{ status }}&q={{ search }}" class="px-2.5 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-[var(--text)]">
+            {% trans "Previous" %}
+          </a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&status={{ status }}&q={{ search }}" class="px-2.5 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-[var(--text)]">
+            {% trans "Next" %}
+          </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
