@@ -1,0 +1,157 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ invoice.invoice_number }} | {% trans "Sales Invoices" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'sales:invoice_list' %}" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">{{ invoice.invoice_number }}</h1>
+                {% if invoice.status == 'posted' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Posted" %}</span>
+                {% elif invoice.status == 'draft' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{% trans "Draft" %}</span>
+                {% elif invoice.status == 'paid' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-400">{% trans "Paid" %}</span>
+                {% elif invoice.status == 'partially_paid' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400">{% trans "Partially Paid" %}</span>
+                {% elif invoice.status == 'void' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Void" %}</span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Invoice for" %} <a href="{% url 'customers:customer_detail' customer_id=invoice.customer.pk %}" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">{{ invoice.customer.name }}</a>
+                &bull; {% trans "Date:" %} {{ invoice.invoice_date }}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'sales:invoice_print' public_id=invoice.public_id %}" target="_blank" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                {% trans "Print PDF" %}
+            </a>
+
+            {% if invoice.status == 'draft' %}
+            <form method="post" action="{% url 'sales:invoice_post' public_id=invoice.public_id %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {% trans "Post to Ledger & Issue Stock" %}
+                </button>
+            </form>
+            {% endif %}
+
+            {% if invoice.status == 'posted' %}
+            <a href="{% url 'sales:credit_note_from_invoice' invoice_public_id=invoice.public_id %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                {% trans "Create Credit Note" %}
+            </a>
+            <form method="post" action="{% url 'sales:invoice_void' public_id=invoice.public_id %}" onsubmit="return confirm('{% trans "Voiding will reverse stock and general ledger entries. Proceed?" %}');">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-3.5 py-2 border border-rose-300 dark:border-rose-800 rounded-lg text-sm font-medium text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 transition-colors">
+                    {% trans "Void Invoice" %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div>
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Warehouse" %}</span>
+            <p class="text-sm font-medium text-slate-900 dark:text-white mt-1">{{ invoice.warehouse.name }}</p>
+        </div>
+        <div>
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Payment Due Date" %}</span>
+            <p class="text-sm font-medium text-slate-900 dark:text-white mt-1">{{ invoice.due_date|default:"-" }}</p>
+        </div>
+        <div>
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Balance Due" %}</span>
+            <p class="text-sm font-mono font-bold {% if invoice.balance_due > 0 %}text-amber-600 dark:text-amber-400{% else %}text-emerald-600{% endif %} mt-1">
+                ${{ invoice.balance_due }}
+            </p>
+        </div>
+        <div>
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "General Ledger Entry" %}</span>
+            <p class="text-sm font-mono text-slate-700 dark:text-slate-300 mt-1">
+                {% if invoice.journal_entry %}
+                    #{{ invoice.journal_entry.entry_number }}
+                {% else %}
+                    <span class="text-slate-400">{% trans "Unposted" %}</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Line Items" %}</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th scope="col" class="py-3 px-4 font-semibold">{% trans "Product / Description" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Qty" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Unit Price" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Disc %" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Tax" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Line Total" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for line in invoice.lines.all %}
+                    <tr>
+                        <td class="py-3 px-4">
+                            <span class="font-medium text-slate-900 dark:text-white">{{ line.product.name }}</span>
+                            <span class="block text-xs text-slate-400 font-mono">{{ line.product.sku }}</span>
+                        </td>
+                        <td class="py-3 px-4 text-right font-mono">{{ line.quantity }}</td>
+                        <td class="py-3 px-4 text-right font-mono">${{ line.unit_price }}</td>
+                        <td class="py-3 px-4 text-right font-mono">{{ line.discount_percent }}%</td>
+                        <td class="py-3 px-4 text-right font-mono">${{ line.tax_amount }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium text-slate-900 dark:text-white">${{ line.line_total }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totals Breakdown -->
+        <div class="p-6 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+            <div class="w-full sm:w-80 space-y-2 text-sm">
+                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>{% trans "Subtotal:" %}</span>
+                    <span class="font-mono">${{ invoice.subtotal }}</span>
+                </div>
+                {% if invoice.discount_total > 0 %}
+                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>{% trans "Discount Total:" %}</span>
+                    <span class="font-mono text-emerald-600">-${{ invoice.discount_total }}</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>{% trans "Tax Total:" %}</span>
+                    <span class="font-mono">${{ invoice.tax_total }}</span>
+                </div>
+                <div class="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-base font-bold text-slate-900 dark:text-white">
+                    <span>{% trans "Grand Total:" %}</span>
+                    <span class="font-mono text-indigo-600 dark:text-indigo-400">${{ invoice.grand_total }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

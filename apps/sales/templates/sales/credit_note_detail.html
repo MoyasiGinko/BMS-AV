@@ -1,0 +1,146 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ credit_note.credit_note_number }} | {% trans "Credit Notes" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'sales:credit_note_list' %}" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">{{ credit_note.credit_note_number }}</h1>
+                {% if credit_note.status == 'posted' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Posted" %}</span>
+                {% elif credit_note.status == 'draft' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{% trans "Draft" %}</span>
+                {% elif credit_note.status == 'void' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Void" %}</span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Credit Note for" %} <a href="{% url 'customers:customer_detail' customer_id=credit_note.customer.pk %}" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">{{ credit_note.customer.name }}</a>
+                &bull; {% trans "Date:" %} {{ credit_note.credit_note_date }}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if credit_note.status == 'draft' %}
+            <form method="post" action="{% url 'sales:credit_note_post' public_id=credit_note.public_id %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {% trans "Post Credit to Ledger" %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div>
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Warehouse" %}</span>
+            <p class="text-sm font-medium text-slate-900 dark:text-white mt-1">{{ credit_note.warehouse.name }}</p>
+        </div>
+        <div>
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Origin Invoice" %}</span>
+            <p class="text-sm font-mono mt-1">
+                {% if credit_note.invoice %}
+                    <a href="{% url 'sales:invoice_detail' public_id=credit_note.invoice.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                        {{ credit_note.invoice.invoice_number }}
+                    </a>
+                {% else %}
+                    <span class="text-slate-400">-</span>
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Total Credit" %}</span>
+            <p class="text-sm font-mono font-bold text-slate-900 dark:text-white mt-1">
+                ${{ credit_note.grand_total }}
+            </p>
+        </div>
+        <div>
+            <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "General Ledger Entry" %}</span>
+            <p class="text-sm font-mono text-slate-700 dark:text-slate-300 mt-1">
+                {% if credit_note.journal_entry %}
+                    #{{ credit_note.journal_entry.entry_number }}
+                {% else %}
+                    <span class="text-slate-400">{% trans "Unposted" %}</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Reason banner -->
+    {% if credit_note.reason %}
+    <div class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+        <span class="text-xs font-semibold uppercase text-amber-700 dark:text-amber-400">{% trans "Reason / Justification:" %}</span>
+        <p class="text-sm text-amber-900 dark:text-amber-200 mt-0.5">{{ credit_note.reason }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Line Items Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Credited Line Items" %}</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th scope="col" class="py-3 px-4 font-semibold">{% trans "Product" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Quantity" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Unit Price" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-center">{% trans "Restocked" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Tax" %}</th>
+                        <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Line Total" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for line in credit_note.lines.all %}
+                    <tr>
+                        <td class="py-3 px-4 font-medium text-slate-900 dark:text-white">{{ line.product.name }}</td>
+                        <td class="py-3 px-4 text-right font-mono">{{ line.quantity }}</td>
+                        <td class="py-3 px-4 text-right font-mono">${{ line.unit_price }}</td>
+                        <td class="py-3 px-4 text-center">
+                            {% if line.restock %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Yes" %}</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{% trans "No" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right font-mono">${{ line.tax_amount }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium text-slate-900 dark:text-white">${{ line.line_total }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-6 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+            <div class="w-full sm:w-80 space-y-2 text-sm">
+                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>{% trans "Subtotal:" %}</span>
+                    <span class="font-mono">${{ credit_note.subtotal }}</span>
+                </div>
+                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>{% trans "Tax Total:" %}</span>
+                    <span class="font-mono">${{ credit_note.tax_total }}</span>
+                </div>
+                <div class="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-base font-bold text-slate-900 dark:text-white">
+                    <span>{% trans "Total Credit:" %}</span>
+                    <span class="font-mono text-indigo-600 dark:text-indigo-400">${{ credit_note.grand_total }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

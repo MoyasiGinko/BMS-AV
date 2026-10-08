@@ -291,6 +291,10 @@ class JournalEntry(TenantModel):
     def __str__(self) -> str:
         return f"{self.entry_number} ({self.date}) [{self.status}]"
 
+    @property
+    def is_balanced(self) -> bool:
+        return self.total_debit == self.total_credit
+
 
 class JournalLine(TenantModel):
     """Individual debit or credit posting in a journal entry."""

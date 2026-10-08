@@ -203,6 +203,14 @@ class Product(TenantModel):
         return self.type == ProductType.STOCK
 
     @property
+    def price(self) -> Decimal:
+        return self.selling_price
+
+    @property
+    def cost(self) -> Decimal:
+        return self.cost_price
+
+    @property
     def margin_percent(self) -> Decimal:
         if self.cost_price and self.cost_price > Decimal("0"):
             return ((self.selling_price - self.cost_price) / self.cost_price) * Decimal("100")

@@ -49,6 +49,7 @@ LOCAL_APPS = [
     "apps.catalog",
     "apps.inventory",
     "apps.customers",
+    "apps.sales",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -221,6 +222,10 @@ SPECTACULAR_SETTINGS = {
         "StockCountStatusEnum": "apps.inventory.models.CountStatus",
         "StockReservationStatusEnum": "apps.inventory.models.ReservationStatus",
         "StockAdjustmentReasonEnum": "apps.inventory.models.AdjustmentReason",
+        "QuoteStatusEnum": "apps.sales.models.QuoteStatus",
+        "SalesOrderStatusEnum": "apps.sales.models.SalesOrderStatus",
+        "InvoiceStatusEnum": "apps.sales.models.InvoiceStatus",
+        "CreditNoteStatusEnum": "apps.sales.models.CreditNoteStatus",
     },
     "SECURITY": [{"BearerAuth": []}],
 }

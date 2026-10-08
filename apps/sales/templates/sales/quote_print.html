@@ -1,0 +1,131 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Quotation {{ quote.quote_number }} - {{ org.name }}</title>
+    <style>
+        @page { size: A4; margin: 20mm; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            line-height: 1.5;
+            font-size: 13px;
+            margin: 0;
+            padding: 24px;
+        }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
+        .org-name { font-size: 24px; font-weight: bold; color: #0f172a; }
+        .quote-title { text-align: right; }
+        .quote-title h1 { margin: 0; font-size: 28px; color: #4338ca; text-transform: uppercase; letter-spacing: 1px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .meta-box h3 { margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        th { background: #f8fafc; border-bottom: 2px solid #cbd5e1; text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; color: #475569; }
+        td { border-bottom: 1px solid #e2e8f0; padding: 10px 12px; }
+        .text-right { text-align: right; }
+        .totals-table { width: 280px; margin-left: auto; margin-bottom: 32px; }
+        .totals-table td { border: none; padding: 6px 12px; }
+        .totals-table .grand-total { font-size: 16px; font-weight: bold; color: #0f172a; border-top: 2px solid #cbd5e1; }
+        .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+        <button onclick="window.print()" style="padding: 8px 16px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            Print / Save as PDF
+        </button>
+    </div>
+
+    <div class="header">
+        <div>
+            <div class="org-name">{{ org.name }}</div>
+            <div style="color: #64748b; margin-top: 4px;">{{ org.base_currency }}</div>
+        </div>
+        <div class="quote-title">
+            <h1>PRICE QUOTATION</h1>
+            <div style="font-weight: bold; font-size: 16px; margin-top: 4px; font-family: monospace;">{{ quote.quote_number }}</div>
+        </div>
+    </div>
+
+    <div class="meta-grid">
+        <div class="meta-box">
+            <h3>Prepared For:</h3>
+            <div style="font-size: 15px; font-weight: bold;">{{ quote.customer.name }}</div>
+            <div>Account Code: {{ quote.customer.code }}</div>
+        </div>
+        <div class="meta-box" style="text-align: right;">
+            <h3>Quote Details:</h3>
+            <div><strong>Date:</strong> {{ quote.date }}</div>
+            <div><strong>Valid Until:</strong> {{ quote.valid_until|default:"30 days from date" }}</div>
+            <div><strong>Status:</strong> {{ quote.get_status_display }}</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Item / Description</th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">Unit Price</th>
+                <th class="text-right">Disc %</th>
+                <th class="text-right">Tax</th>
+                <th class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in quote.lines.all %}
+            <tr>
+                <td>
+                    <strong>{{ line.product.name }}</strong>
+                    {% if line.description and line.description != line.product.name %}
+                    <div style="font-size: 11px; color: #64748b;">{{ line.description }}</div>
+                    {% endif %}
+                </td>
+                <td class="text-right" style="font-family: monospace;">{{ line.quantity }}</td>
+                <td class="text-right" style="font-family: monospace;">${{ line.unit_price }}</td>
+                <td class="text-right" style="font-family: monospace;">{{ line.discount_percent }}%</td>
+                <td class="text-right" style="font-family: monospace;">${{ line.tax_amount }}</td>
+                <td class="text-right" style="font-family: monospace; font-weight: 500;">${{ line.line_total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="totals-table">
+        <tr>
+            <td>Subtotal:</td>
+            <td class="text-right" style="font-family: monospace;">${{ quote.subtotal }}</td>
+        </tr>
+        {% if quote.discount_total > 0 %}
+        <tr>
+            <td>Discount:</td>
+            <td class="text-right" style="font-family: monospace; color: #059669;">-${{ quote.discount_total }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td>Tax:</td>
+            <td class="text-right" style="font-family: monospace;">${{ quote.tax_total }}</td>
+        </tr>
+        <tr class="grand-total">
+            <td>Estimated Total:</td>
+            <td class="text-right" style="font-family: monospace; color: #4338ca;">${{ quote.grand_total }}</td>
+        </tr>
+    </table>
+
+    {% if quote.terms %}
+    <div style="margin-top: 32px; font-size: 11px; color: #64748b;">
+        <strong>Terms & Conditions:</strong><br>
+        {{ quote.terms|linebreaksbr }}
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        This quote is an estimate and subject to acceptance terms. Generated by Business OS ERP.
+    </div>
+</body>
+</html>

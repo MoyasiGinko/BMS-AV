@@ -229,7 +229,21 @@ registry.register(
     description="Quotes, orders, invoices, and credit notes",
     icon="document-text",
     sort_order=60,
-    permissions=["sales.view", "sales.create", "sales.manage"],
+    nav_items=[
+        NavItem("Invoices", "sales:invoice_list", icon="document-text", permission="sales.view"),
+        NavItem("Sales Orders", "sales:order_list", icon="clipboard-document-list", permission="sales.view"),
+        NavItem("Quotations", "sales:quote_list", icon="chat-bubble-left-right", permission="sales.view"),
+        NavItem("Credit Notes", "sales:credit_note_list", icon="arrow-uturn-left", permission="sales.view"),
+    ],
+    permissions=[
+        "sales.view",
+        "sales.create",
+        "sales.update",
+        "sales.delete",
+        "sales.confirm",
+        "sales.void",
+        "sales.manage",
+    ],
 )
 
 registry.register(
