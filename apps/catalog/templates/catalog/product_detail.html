@@ -1,0 +1,286 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ product.name }} ({{ product.sku }}) | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{ showVariantModal: false }">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'catalog:product_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                    &larr; {% trans "Back to Products" %}
+                </a>
+            </div>
+            <div class="flex items-center gap-3 mt-1">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ product.name }}</h1>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                    {% if product.type == 'stock' %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300
+                    {% elif product.type == 'service' %}bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300
+                    {% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
+                    {{ product.get_type_display }}
+                </span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+                    {% if product.is_active %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
+                    {% else %}bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400{% endif %}">
+                    {% if product.is_active %}{% trans "Active" %}{% else %}{% trans "Archived" %}{% endif %}
+                </span>
+            </div>
+            <p class="text-sm font-mono text-slate-500 dark:text-slate-400 mt-0.5">SKU: {{ product.sku }}</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button type="button" @click="showVariantModal = true" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 shadow-xs">
+                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "Add Variant" %}
+            </button>
+            <a href="{% url 'catalog:product_edit' pk=product.pk %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {% trans "Edit Product" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stat Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Selling Price" %}</p>
+            <p class="text-xl font-bold text-slate-900 dark:text-white mt-1">{{ request.organization.currency }} {{ product.selling_price|floatformat:2 }}</p>
+            <p class="text-xs text-slate-500 mt-1">{% trans "Standard unit price" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Cost Price" %}</p>
+            <p class="text-xl font-bold text-slate-900 dark:text-white mt-1">{{ request.organization.currency }} {{ product.cost_price|floatformat:2 }}</p>
+            <p class="text-xs text-slate-500 mt-1">{% trans "Standard purchase cost" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Gross Margin" %}</p>
+            <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                {{ product.margin_percent|floatformat:1 }}%
+            </p>
+            <p class="text-xs text-slate-500 mt-1">{% trans "Markup over cost" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Unit of Measure" %}</p>
+            <p class="text-xl font-bold text-slate-900 dark:text-white mt-1">{{ product.unit.name }} ({{ product.unit.code }})</p>
+            <p class="text-xs text-slate-500 mt-1">{% trans "Decimal precision" %}: {{ product.unit.precision }}</p>
+        </div>
+    </div>
+
+    <!-- Specifications & Metadata -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main details -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Details card -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">{% trans "Product Details" %}</h3>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Category" %}</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white mt-0.5">
+                            {% if product.category %}{{ product.category.name }}{% else %}<span class="text-slate-400">{% trans "Uncategorized" %}</span>{% endif %}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Barcode / UPC" %}</dt>
+                        <dd class="font-mono text-slate-900 dark:text-white mt-0.5">
+                            {{ product.barcode|default:"-" }}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Tax Code" %}</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white mt-0.5">
+                            {% if product.tax_code %}{{ product.tax_code.name }} ({{ product.tax_code.rate }}%){% else %}<span class="text-slate-400">{% trans "Default Tax" %}</span>{% endif %}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Reorder Point" %}</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white mt-0.5">
+                            {{ product.reorder_level }} {% trans "units" %} (Target: {{ product.reorder_quantity }})
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Batch / Lot Tracking" %}</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white mt-0.5">
+                            {% if product.track_batch %}<span class="text-emerald-600 dark:text-emerald-400">{% trans "Enabled" %}</span>{% else %}{% trans "Disabled" %}{% endif %}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Serial Number Tracking" %}</dt>
+                        <dd class="font-medium text-slate-900 dark:text-white mt-0.5">
+                            {% if product.track_serial %}<span class="text-emerald-600 dark:text-emerald-400">{% trans "Enabled" %}</span>{% else %}{% trans "Disabled" %}{% endif %}
+                        </dd>
+                    </div>
+                </dl>
+
+                {% if product.description %}
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">{% trans "Description" %}</h4>
+                    <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">{{ product.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Product Variants -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+                <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Product Variants" %}</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            {% trans "Color, size, or material variations that share base characteristics." %}
+                        </p>
+                    </div>
+                    <button type="button" @click="showVariantModal = true" class="inline-flex items-center px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                        + {% trans "Add Variant" %}
+                    </button>
+                </div>
+
+                {% if variants %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-sm">
+                        <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                            <tr>
+                                <th class="px-6 py-3">{% trans "Variant SKU" %}</th>
+                                <th class="px-6 py-3">{% trans "Variant Name" %}</th>
+                                <th class="px-6 py-3">{% trans "Barcode" %}</th>
+                                <th class="px-6 py-3">{% trans "Selling Price" %}</th>
+                                <th class="px-6 py-3">{% trans "Cost Price" %}</th>
+                                <th class="px-6 py-3 text-right">{% trans "Status" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                            {% for v in variants %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="px-6 py-3.5 font-mono text-xs font-medium text-slate-900 dark:text-white">{{ v.sku }}</td>
+                                <td class="px-6 py-3.5 font-medium">{{ v.name }}</td>
+                                <td class="px-6 py-3.5 font-mono text-xs">{{ v.barcode|default:"-" }}</td>
+                                <td class="px-6 py-3.5 font-medium">
+                                    {% if v.selling_price_override %}
+                                        {{ request.organization.currency }} {{ v.selling_price_override|floatformat:2 }}
+                                    {% else %}
+                                        <span class="text-slate-400">{{ request.organization.currency }} {{ product.selling_price|floatformat:2 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-3.5">
+                                    {% if v.cost_price_override %}
+                                        {{ request.organization.currency }} {{ v.cost_price_override|floatformat:2 }}
+                                    {% else %}
+                                        <span class="text-slate-400">{{ request.organization.currency }} {{ product.cost_price|floatformat:2 }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-3.5 text-right">
+                                    {% if v.is_active %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">{% trans "Active" %}</span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{% trans "Inactive" %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                    {% trans "No variants configured for this product. Use the button above to add variant options." %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar Meta -->
+        <div class="space-y-6">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">{% trans "System Information" %}</h3>
+                <dl class="space-y-3 text-xs">
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Public ID" %}</dt>
+                        <dd class="font-mono text-slate-700 dark:text-slate-300 break-all mt-0.5">{{ product.public_id }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Created At" %}</dt>
+                        <dd class="text-slate-700 dark:text-slate-300 mt-0.5">{{ product.created_at|date:"Y-m-d H:i" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500 dark:text-slate-400">{% trans "Last Updated" %}</dt>
+                        <dd class="text-slate-700 dark:text-slate-300 mt-0.5">{{ product.updated_at|date:"Y-m-d H:i" }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Variant Modal -->
+    <div x-show="showVariantModal"
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+         x-cloak>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-xl"
+             @click.away="showVariantModal = false">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Add Product Variant" %}</h3>
+                <button type="button" @click="showVariantModal = false" class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <form method="post" action="{% url 'catalog:product_variant_create' pk=product.pk %}" class="mt-4 space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Variant SKU" %} *</label>
+                    {{ variant_form.sku }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Variant Name (e.g. Blue / XL)" %} *</label>
+                    {{ variant_form.name }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Barcode" %}</label>
+                    {{ variant_form.barcode }}
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Selling Price Override" %}</label>
+                        {{ variant_form.selling_price_override }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Cost Price Override" %}</label>
+                        {{ variant_form.cost_price_override }}
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    {{ variant_form.is_active }}
+                    <label class="text-sm text-slate-700 dark:text-slate-300">{% trans "Variant is Active" %}</label>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button type="button" @click="showVariantModal = false" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                        {% trans "Cancel" %}
+                    </button>
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                        {% trans "Save Variant" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% if is_new %}{% trans "New Product" %}{% else %}{% trans "Edit" %} {{ product.name }}{% endif %} | {{ request.organization.name }}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                    &larr; {% trans "Back" %}
+                </a>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+                {% if is_new %}{% trans "Create New Product" %}{% else %}{% trans "Edit Product" %}: {{ product.name }}{% endif %}
+            </h1>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-sm text-red-600 dark:text-red-400">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- Basic Info Section -->
+            <div>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
+                    {% trans "General Information" %}
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.sku.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "SKU" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.sku }}
+                        {% if form.sku.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.sku.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.barcode.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Barcode / UPC" %}
+                        </label>
+                        {{ form.barcode }}
+                        {% if form.barcode.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.barcode.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label for="{{ form.name.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Product Name" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.category_id.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Category" %}
+                        </label>
+                        {{ form.category_id }}
+                        {% if form.category_id.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.category_id.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.type.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Product Type" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.type }}
+                        {% if form.type.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.type.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing & Measurement Section -->
+            <div>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
+                    {% trans "Pricing & Measurement" %}
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="{{ form.cost_price.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Cost Price" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.cost_price }}
+                        {% if form.cost_price.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.cost_price.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.selling_price.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Selling Price" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.selling_price }}
+                        {% if form.selling_price.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.selling_price.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.unit_id.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Unit of Measure" %} <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.unit_id }}
+                        {% if form.unit_id.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.unit_id.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <label for="{{ form.tax_code_id.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Tax Code" %}
+                        </label>
+                        {{ form.tax_code_id }}
+                        {% if form.tax_code_id.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.tax_code_id.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Controls Section -->
+            <div>
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
+                    {% trans "Inventory Management" %}
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="{{ form.reorder_level.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Reorder Alert Level" %}
+                        </label>
+                        {{ form.reorder_level }}
+                        {% if form.reorder_level.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.reorder_level.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.reorder_quantity.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                            {% trans "Reorder Quantity Target" %}
+                        </label>
+                        {{ form.reorder_quantity }}
+                        {% if form.reorder_quantity.errors %}
+                        <p class="text-xs text-red-500 mt-1">{{ form.reorder_quantity.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex items-center gap-3 pt-2">
+                        {{ form.track_batch }}
+                        <label for="{{ form.track_batch.id_for_label }}" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {% trans "Track Batch / Lots" %}
+                        </label>
+                    </div>
+
+                    <div class="flex items-center gap-3 pt-2">
+                        {{ form.track_serial }}
+                        <label for="{{ form.track_serial.id_for_label }}" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {% trans "Track Serial Numbers" %}
+                        </label>
+                    </div>
+
+                    <div class="flex items-center gap-3 pt-2">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {% trans "Active in Catalog" %}
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    {% trans "Description & Notes" %}
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                <p class="text-xs text-red-500 mt-1">{{ form.description.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">
+                    {% if is_new %}{% trans "Create Product" %}{% else %}{% trans "Save Changes" %}{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

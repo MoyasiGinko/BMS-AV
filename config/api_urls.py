@@ -18,4 +18,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("core/", include("apps.core.api.urls")),
     # Billing & plans
     path("billing/", include("apps.billing.api.urls")),
+    # Product catalog
+    path("catalog/", include("apps.catalog.api.urls")),
 ]

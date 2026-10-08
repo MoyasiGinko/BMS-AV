@@ -1,0 +1,116 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ price_list.name }} | {% trans "Price List" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'catalog:pricelist_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                    &larr; {% trans "Back to Price Lists" %}
+                </a>
+            </div>
+            <div class="flex items-center gap-3 mt-1">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ price_list.name }}</h1>
+                <span class="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {{ price_list.currency }}
+                </span>
+                {% if price_list.is_default %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    {% trans "Default" %}
+                </span>
+                {% endif %}
+            </div>
+            {% if price_list.description %}
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ price_list.description }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Overrides Table -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+            <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <h3 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Price Schedule Rules" %}</h3>
+                <span class="text-xs text-slate-500">{{ items|length }} {% trans "items" %}</span>
+            </div>
+
+            {% if items %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-sm">
+                    <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        <tr>
+                            <th class="px-6 py-3">{% trans "Product" %}</th>
+                            <th class="px-6 py-3">{% trans "Min Quantity" %}</th>
+                            <th class="px-6 py-3">{% trans "Scheduled Price" %}</th>
+                            <th class="px-6 py-3 text-right">{% trans "Base Price" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                        {% for item in items %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td class="px-6 py-3.5">
+                                <a href="{% url 'catalog:product_detail' pk=item.product.pk %}" class="font-medium text-slate-900 dark:text-white hover:underline">
+                                    {{ item.product.name }}
+                                </a>
+                                <p class="text-xs font-mono text-slate-400">SKU: {{ item.product.sku }}</p>
+                            </td>
+                            <td class="px-6 py-3.5 font-medium">
+                                {{ item.min_quantity }} {% trans "units" %}
+                            </td>
+                            <td class="px-6 py-3.5 font-semibold text-emerald-600 dark:text-emerald-400">
+                                {{ price_list.currency }} {{ item.price|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-3.5 text-right font-mono text-xs text-slate-500">
+                                {{ request.organization.currency }} {{ item.product.selling_price|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                {% trans "No price overrides defined yet. Add product pricing rules using the form." %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add Rule Form -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+            <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">{% trans "Add Price Rule" %}</h3>
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Product" %} *</label>
+                    {{ form.product_id }}
+                    {% if form.product_id.errors %}<p class="text-xs text-red-500 mt-1">{{ form.product_id.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Unit Price" %} *</label>
+                    {{ form.price }}
+                    {% if form.price.errors %}<p class="text-xs text-red-500 mt-1">{{ form.price.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Minimum Quantity Tier" %} *</label>
+                    {{ form.min_quantity }}
+                    {% if form.min_quantity.errors %}<p class="text-xs text-red-500 mt-1">{{ form.min_quantity.errors.0 }}</p>{% endif %}
+                    <p class="text-xs text-slate-400 mt-1">{% trans "Enter 1 for standard tier, or higher for bulk quantity pricing." %}</p>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">
+                        {% trans "Save Price Rule" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

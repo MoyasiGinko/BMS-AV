@@ -155,6 +155,12 @@ registry.register(
     description="Products, variants, barcodes, pricing, and units",
     icon="cube",
     sort_order=30,
+    nav_items=[
+        NavItem("Products", "catalog:product_list", icon="cube", permission="catalog.view"),
+        NavItem("Categories", "catalog:category_list", icon="folder", permission="catalog.view"),
+        NavItem("Price Lists", "catalog:pricelist_list", icon="tag", permission="catalog.view"),
+        NavItem("Units", "catalog:unit_list", icon="scale", permission="catalog.view"),
+    ],
     permissions=["catalog.view", "catalog.manage"],
 )
 

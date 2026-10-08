@@ -10,6 +10,7 @@ from apps.accounting.services import provision_accounting
 from apps.accounts.models import User
 from apps.billing.models import Subscription
 from apps.billing.services import provision_billing_subscription
+from apps.catalog.services import provision_catalog
 from apps.core.hooks import clear_provisioning_hooks, register_provisioning_hook
 from apps.core.models import NumberSequence
 from apps.tenancy.models import Branch, Invitation, Organization, Warehouse
@@ -21,10 +22,12 @@ def clean_onboarding_env() -> None:
     clear_provisioning_hooks()
     register_provisioning_hook(provision_billing_subscription)
     register_provisioning_hook(provision_accounting)
+    register_provisioning_hook(provision_catalog)
     yield
     clear_provisioning_hooks()
     register_provisioning_hook(provision_billing_subscription)
     register_provisioning_hook(provision_accounting)
+    register_provisioning_hook(provision_catalog)
 
 
 @pytest.fixture

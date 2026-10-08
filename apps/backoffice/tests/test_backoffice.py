@@ -18,6 +18,7 @@ from apps.accounting.services import provision_accounting
 from apps.accounts.models import User
 from apps.billing.models import ProcessedWebhookEvent, Subscription
 from apps.billing.services import provision_billing_subscription, seed_default_plans
+from apps.catalog.services import provision_catalog
 from apps.core.hooks import register_provisioning_hook
 from apps.core.models import AuditLog, OutboxEvent
 from apps.tenancy.models import Organization
@@ -28,6 +29,7 @@ from apps.tenancy.services import provision_organization
 def seeded_plans() -> None:
     register_provisioning_hook(provision_billing_subscription)
     register_provisioning_hook(provision_accounting)
+    register_provisioning_hook(provision_catalog)
     seed_default_plans()
 
 

@@ -15,6 +15,7 @@ from apps.core.exceptions import ValidationError
 MONEY_DECIMAL_PLACES = Decimal("0.0001")
 CURRENCY_DECIMAL_PLACES = Decimal("0.01")
 QUANTITY_DECIMAL_PLACES = Decimal("0.0001")
+FOUR_PLACES = Decimal("0.0001")
 
 
 def to_decimal(value: Any) -> Decimal:
