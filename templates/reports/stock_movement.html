@@ -1,0 +1,172 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb / Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Stock Movement Ledger" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Stock Movement Ledger" %}</h1>
+        </div>
+        <div class="flex items-center gap-2" x-data="{ exportOpen: false }">
+            <div class="relative inline-block text-left">
+                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                    <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    {% trans "Export Report" %}
+                    <svg class="w-4 h-4 ml-1.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700 z-50">
+                    <div class="py-1">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "CSV Spreadsheet" %}
+                        </button>
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "Excel (XLSX)" %}
+                        </button>
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "PDF Document" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Container -->
+    <div id="export-container"></div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form id="filter-form" method="get" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "From Date" %}</label>
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "To Date" %}</label>
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Warehouse" %}</label>
+                <select name="warehouse_id" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "All Warehouses" %}</option>
+                    {% for w in warehouses %}
+                    <option value="{{ w.id }}" {% if selected_warehouse_id == w.id %}selected{% endif %}>{{ w.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Movement Type" %}</label>
+                <select name="movement_type" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "All Types" %}</option>
+                    <option value="receipt" {% if selected_movement_type == 'receipt' %}selected{% endif %}>{% trans "Receipt" %}</option>
+                    <option value="issue" {% if selected_movement_type == 'issue' %}selected{% endif %}>{% trans "Issue" %}</option>
+                    <option value="adjustment" {% if selected_movement_type == 'adjustment' %}selected{% endif %}>{% trans "Adjustment" %}</option>
+                    <option value="transfer_in" {% if selected_movement_type == 'transfer_in' %}selected{% endif %}>{% trans "Transfer In" %}</option>
+                    <option value="transfer_out" {% if selected_movement_type == 'transfer_out' %}selected{% endif %}>{% trans "Transfer Out" %}</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Product" %}</label>
+                <select name="product_id" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "All Products" %}</option>
+                    {% for p in products %}
+                    <option value="{{ p.id }}" {% if selected_product_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">
+                    {% trans "Filter" %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Movements" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white font-mono">{{ data.summary.movement_count }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Inflow Quantity" %}</span>
+            <div class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">+{{ data.summary.total_inflow_qty|floatformat:2 }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Outflow Quantity" %}</span>
+            <div class="mt-2 text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono">-{{ data.summary.total_outflow_qty|floatformat:2 }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Net Stock Change" %}</span>
+            <div class="mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">{{ data.summary.net_qty|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        <th class="py-3 px-4">{% trans "Date & Time" %}</th>
+                        <th class="py-3 px-4">{% trans "Type" %}</th>
+                        <th class="py-3 px-4">{% trans "Reference" %}</th>
+                        <th class="py-3 px-4">{% trans "Warehouse" %}</th>
+                        <th class="py-3 px-4">{% trans "Product" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Quantity" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Unit Cost" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Total Cost" %}</th>
+                        <th class="py-3 px-4">{% trans "User" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for row in data.rows %}
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="py-3 px-4 text-xs font-mono text-slate-500">{{ row.occurred_at|date:'Y-m-d H:i' }}</td>
+                        <td class="py-3 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                  {% if row.movement_type == 'receipt' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400
+                                  {% elif row.movement_type == 'issue' %}bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400
+                                  {% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                {{ row.movement_type_display }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-300">{{ row.reference_id }}</td>
+                        <td class="py-3 px-4 text-slate-600 dark:text-slate-400">{{ row.warehouse_name }}</td>
+                        <td class="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                            {{ row.product_name }}
+                            <span class="block text-xs font-mono text-slate-400">{{ row.product_sku }}</span>
+                        </td>
+                        <td class="py-3 px-4 text-right font-mono font-semibold 
+                                  {% if row.quantity > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                            {{ row.quantity|floatformat:2 }} {{ row.unit_code }}
+                        </td>
+                        <td class="py-3 px-4 text-right font-mono text-slate-500">${{ row.unit_cost|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium text-slate-900 dark:text-white">${{ row.total_cost|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-xs text-slate-500">{{ row.actor_name }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="py-12 text-center text-slate-400">
+                            {% trans "No stock movement ledger records found for this period." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

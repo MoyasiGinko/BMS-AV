@@ -10,7 +10,9 @@ from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 
 from apps.core.models import OutboxEvent
-from apps.inventory.models import StockLevel
+from apps.customers import selectors as customer_selectors
+from apps.customers.models import Customer
+from apps.inventory.models import StockLevel, StockMovement
 from apps.pos.models import POSSale
 from apps.sales.models import Invoice, InvoiceLine, InvoiceStatus
 from apps.tenancy.models import Organization
@@ -366,3 +368,598 @@ def _format_event_summary(event_type: str, payload: dict[str, Any]) -> str:
     if formatter:
         return formatter(payload)
     return f"Event {event_type} logged"
+
+
+# ===========================================================================
+# Reports v1 Selectors
+# ===========================================================================
+
+
+def get_sales_by_product_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    branch_id: int | None = None,
+    category_id: int | None = None,
+) -> dict[str, Any]:
+    """Report: Sales breakdown by product with quantity sold, revenue, tax, and average price."""
+    lines_qs = InvoiceLine.all_tenants.filter(
+        organization=organization,
+        invoice__status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID],
+    )
+    if start_date:
+        lines_qs = lines_qs.filter(invoice__invoice_date__gte=start_date)
+    if end_date:
+        lines_qs = lines_qs.filter(invoice__invoice_date__lte=end_date)
+    if branch_id:
+        lines_qs = lines_qs.filter(
+            Q(invoice__branch_id=branch_id) | Q(invoice__warehouse__branch_id=branch_id)
+        )
+    if category_id:
+        lines_qs = lines_qs.filter(product__category_id=category_id)
+
+    aggregated = (
+        lines_qs.values(
+            "product__id",
+            "product__sku",
+            "product__name",
+            "product__category__name",
+            "product__unit__code",
+        )
+        .annotate(
+            quantity_sold=Sum("quantity"),
+            gross_sales=Sum("line_total"),
+            tax_total=Sum("tax_amount"),
+        )
+        .order_by("-gross_sales", "product__name")
+    )
+
+    rows: list[dict[str, Any]] = []
+    total_qty = ZERO_DECIMAL
+    total_gross = ZERO_DECIMAL
+    total_tax = ZERO_DECIMAL
+
+    for item in aggregated:
+        qty = item["quantity_sold"] or ZERO_DECIMAL
+        gross = item["gross_sales"] or ZERO_DECIMAL
+        tax = item["tax_total"] or ZERO_DECIMAL
+        net = gross - tax
+        avg_price = (gross / qty).quantize(Decimal("0.0001")) if qty > ZERO_DECIMAL else ZERO_DECIMAL
+
+        total_qty += qty
+        total_gross += gross
+        total_tax += tax
+
+        rows.append(
+            {
+                "product_id": item["product__id"],
+                "sku": item["product__sku"],
+                "name": item["product__name"],
+                "category_name": item["product__category__name"] or "Uncategorized",
+                "unit_code": item["product__unit__code"] or "ea",
+                "quantity_sold": qty,
+                "gross_sales": gross,
+                "tax_total": tax,
+                "net_sales": net,
+                "avg_price": avg_price,
+            }
+        )
+
+    return {
+        "rows": rows,
+        "summary": {
+            "product_count": len(rows),
+            "total_quantity": total_qty,
+            "total_gross_sales": total_gross,
+            "total_tax": total_tax,
+            "total_net_sales": total_gross - total_tax,
+        },
+        "filters": {
+            "start_date": start_date,
+            "end_date": end_date,
+            "branch_id": branch_id,
+            "category_id": category_id,
+        },
+    }
+
+
+def get_sales_by_customer_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    branch_id: int | None = None,
+    customer_id: int | None = None,
+) -> dict[str, Any]:
+    """Report: Sales breakdown by customer with total invoiced, paid, and balance due."""
+    inv_qs = Invoice.all_tenants.filter(
+        organization=organization,
+        status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID],
+    )
+    if start_date:
+        inv_qs = inv_qs.filter(invoice_date__gte=start_date)
+    if end_date:
+        inv_qs = inv_qs.filter(invoice_date__lte=end_date)
+    if branch_id:
+        inv_qs = inv_qs.filter(Q(branch_id=branch_id) | Q(warehouse__branch_id=branch_id))
+    if customer_id:
+        inv_qs = inv_qs.filter(customer_id=customer_id)
+
+    aggregated = (
+        inv_qs.values(
+            "customer__id",
+            "customer__code",
+            "customer__name",
+            "customer__email",
+            "customer__phone",
+        )
+        .annotate(
+            invoice_count=Count("id"),
+            gross_sales=Sum("grand_total"),
+            tax_total=Sum("tax_total"),
+            balance_due=Sum("balance_due"),
+        )
+        .order_by("-gross_sales", "customer__name")
+    )
+
+    rows: list[dict[str, Any]] = []
+    tot_invoices = 0
+    tot_gross = ZERO_DECIMAL
+    tot_tax = ZERO_DECIMAL
+    tot_balance = ZERO_DECIMAL
+    tot_paid = ZERO_DECIMAL
+
+    for item in aggregated:
+        cnt = item["invoice_count"] or 0
+        gross = item["gross_sales"] or ZERO_DECIMAL
+        tax = item["tax_total"] or ZERO_DECIMAL
+        bal = item["balance_due"] or ZERO_DECIMAL
+        paid = gross - bal
+
+        tot_invoices += cnt
+        tot_gross += gross
+        tot_tax += tax
+        tot_balance += bal
+        tot_paid += paid
+
+        rows.append(
+            {
+                "customer_id": item["customer__id"],
+                "code": item["customer__code"],
+                "name": item["customer__name"],
+                "email": item["customer__email"] or "",
+                "phone": item["customer__phone"] or "",
+                "invoice_count": cnt,
+                "gross_sales": gross,
+                "tax_total": tax,
+                "paid_amount": paid,
+                "balance_due": bal,
+            }
+        )
+
+    return {
+        "rows": rows,
+        "summary": {
+            "customer_count": len(rows),
+            "total_invoices": tot_invoices,
+            "total_gross_sales": tot_gross,
+            "total_tax": tot_tax,
+            "total_paid": tot_paid,
+            "total_balance_due": tot_balance,
+        },
+        "filters": {
+            "start_date": start_date,
+            "end_date": end_date,
+            "branch_id": branch_id,
+            "customer_id": customer_id,
+        },
+    }
+
+
+def get_sales_by_branch_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Report: Sales breakdown by operational branch with POS vs direct breakdown."""
+    inv_qs = Invoice.all_tenants.filter(
+        organization=organization,
+        status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID],
+    )
+    if start_date:
+        inv_qs = inv_qs.filter(invoice_date__gte=start_date)
+    if end_date:
+        inv_qs = inv_qs.filter(invoice_date__lte=end_date)
+
+    aggregated = (
+        inv_qs.values(
+            "warehouse__branch__id",
+            "warehouse__branch__code",
+            "warehouse__branch__name",
+        )
+        .annotate(
+            invoice_count=Count("id"),
+            direct_sales=Sum("grand_total", filter=Q(pos_sales__isnull=True)),
+            pos_sales=Sum("grand_total", filter=Q(pos_sales__isnull=False)),
+            gross_sales=Sum("grand_total"),
+            tax_total=Sum("tax_total"),
+            net_sales=Sum("subtotal"),
+        )
+        .order_by("-gross_sales")
+    )
+
+    rows: list[dict[str, Any]] = []
+    tot_invoices = 0
+    tot_direct = ZERO_DECIMAL
+    tot_pos = ZERO_DECIMAL
+    tot_gross = ZERO_DECIMAL
+    tot_tax = ZERO_DECIMAL
+    tot_net = ZERO_DECIMAL
+
+    for item in aggregated:
+        cnt = item["invoice_count"] or 0
+        direct = item["direct_sales"] or ZERO_DECIMAL
+        pos = item["pos_sales"] or ZERO_DECIMAL
+        gross = item["gross_sales"] or ZERO_DECIMAL
+        tax = item["tax_total"] or ZERO_DECIMAL
+        net = item["net_sales"] or (gross - tax)
+
+        tot_invoices += cnt
+        tot_direct += direct
+        tot_pos += pos
+        tot_gross += gross
+        tot_tax += tax
+        tot_net += net
+
+        branch_name = item["warehouse__branch__name"] or "HQ / Unassigned"
+        branch_code = item["warehouse__branch__code"] or "MAIN"
+
+        rows.append(
+            {
+                "branch_id": item["warehouse__branch__id"],
+                "code": branch_code,
+                "name": branch_name,
+                "invoice_count": cnt,
+                "direct_sales": direct,
+                "pos_sales": pos,
+                "gross_sales": gross,
+                "tax_total": tax,
+                "net_sales": net,
+            }
+        )
+
+    return {
+        "rows": rows,
+        "summary": {
+            "branch_count": len(rows),
+            "total_invoices": tot_invoices,
+            "total_direct_sales": tot_direct,
+            "total_pos_sales": tot_pos,
+            "total_gross_sales": tot_gross,
+            "total_tax": tot_tax,
+            "total_net_sales": tot_net,
+        },
+        "filters": {
+            "start_date": start_date,
+            "end_date": end_date,
+        },
+    }
+
+
+def get_sales_by_day_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    branch_id: int | None = None,
+) -> dict[str, Any]:
+    """Report: Daily sales trends showing order volume, POS vs direct sales, and net revenue."""
+    inv_qs = Invoice.all_tenants.filter(
+        organization=organization,
+        status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID],
+    )
+    if start_date:
+        inv_qs = inv_qs.filter(invoice_date__gte=start_date)
+    if end_date:
+        inv_qs = inv_qs.filter(invoice_date__lte=end_date)
+    if branch_id:
+        inv_qs = inv_qs.filter(Q(branch_id=branch_id) | Q(warehouse__branch_id=branch_id))
+
+    aggregated = (
+        inv_qs.values("invoice_date")
+        .annotate(
+            invoice_count=Count("id"),
+            direct_sales=Sum("grand_total", filter=Q(pos_sales__isnull=True)),
+            pos_sales=Sum("grand_total", filter=Q(pos_sales__isnull=False)),
+            gross_sales=Sum("grand_total"),
+            tax_total=Sum("tax_total"),
+            net_sales=Sum("subtotal"),
+        )
+        .order_by("invoice_date")
+    )
+
+    rows: list[dict[str, Any]] = []
+    tot_invoices = 0
+    tot_direct = ZERO_DECIMAL
+    tot_pos = ZERO_DECIMAL
+    tot_gross = ZERO_DECIMAL
+    tot_tax = ZERO_DECIMAL
+    tot_net = ZERO_DECIMAL
+
+    for item in aggregated:
+        cnt = item["invoice_count"] or 0
+        direct = item["direct_sales"] or ZERO_DECIMAL
+        pos = item["pos_sales"] or ZERO_DECIMAL
+        gross = item["gross_sales"] or ZERO_DECIMAL
+        tax = item["tax_total"] or ZERO_DECIMAL
+        net = item["net_sales"] or (gross - tax)
+
+        tot_invoices += cnt
+        tot_direct += direct
+        tot_pos += pos
+        tot_gross += gross
+        tot_tax += tax
+        tot_net += net
+
+        rows.append(
+            {
+                "date": item["invoice_date"],
+                "invoice_count": cnt,
+                "direct_sales": direct,
+                "pos_sales": pos,
+                "gross_sales": gross,
+                "tax_total": tax,
+                "net_sales": net,
+            }
+        )
+
+    return {
+        "rows": rows,
+        "summary": {
+            "days_count": len(rows),
+            "total_invoices": tot_invoices,
+            "total_direct_sales": tot_direct,
+            "total_pos_sales": tot_pos,
+            "total_gross_sales": tot_gross,
+            "total_tax": tot_tax,
+            "total_net_sales": tot_net,
+        },
+        "filters": {
+            "start_date": start_date,
+            "end_date": end_date,
+            "branch_id": branch_id,
+        },
+    }
+
+
+def get_stock_valuation_report(
+    organization: Organization,
+    *,
+    warehouse_id: int | None = None,
+    category_id: int | None = None,
+    low_stock_only: bool = False,
+) -> dict[str, Any]:
+    """Report: Inventory stock valuation with on-hand, reserved, unit cost, and total value."""
+    stock_qs = (
+        StockLevel.all_tenants.filter(organization=organization)
+        .select_related("product", "product__category", "product__unit", "warehouse")
+        .order_by("warehouse__name", "product__name")
+    )
+    if warehouse_id:
+        stock_qs = stock_qs.filter(warehouse_id=warehouse_id)
+    if category_id:
+        stock_qs = stock_qs.filter(product__category_id=category_id)
+
+    rows: list[dict[str, Any]] = []
+    tot_on_hand = ZERO_DECIMAL
+    tot_reserved = ZERO_DECIMAL
+    tot_available = ZERO_DECIMAL
+    tot_valuation = ZERO_DECIMAL
+    low_stock_count = 0
+
+    for level in stock_qs:
+        prod = level.product
+        reorder_point = prod.reorder_level or ZERO_DECIMAL
+        is_low = level.on_hand <= reorder_point
+
+        if low_stock_only and not is_low:
+            continue
+
+        unit_cost = prod.cost_price or ZERO_DECIMAL
+        val = (level.on_hand * unit_cost).quantize(Decimal("0.0001"))
+        avail = level.on_hand - level.reserved
+
+        tot_on_hand += level.on_hand
+        tot_reserved += level.reserved
+        tot_available += avail
+        tot_valuation += val
+        if is_low:
+            low_stock_count += 1
+
+        rows.append(
+            {
+                "product_id": prod.pk,
+                "sku": prod.sku,
+                "name": prod.name,
+                "category_name": prod.category.name if prod.category else "Uncategorized",
+                "unit_code": prod.unit.code if prod.unit else "ea",
+                "warehouse_id": level.warehouse.pk,
+                "warehouse_name": level.warehouse.name,
+                "on_hand": level.on_hand,
+                "reserved": level.reserved,
+                "available": avail,
+                "unit_cost": unit_cost,
+                "valuation": val,
+                "reorder_level": reorder_point,
+                "is_low_stock": is_low,
+            }
+        )
+
+    return {
+        "rows": rows,
+        "summary": {
+            "item_count": len(rows),
+            "total_on_hand": tot_on_hand,
+            "total_reserved": tot_reserved,
+            "total_available": tot_available,
+            "total_valuation": tot_valuation,
+            "low_stock_count": low_stock_count,
+        },
+        "filters": {
+            "warehouse_id": warehouse_id,
+            "category_id": category_id,
+            "low_stock_only": low_stock_only,
+        },
+    }
+
+
+def get_stock_movement_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    product_id: int | None = None,
+    warehouse_id: int | None = None,
+    movement_type: str | None = None,
+) -> dict[str, Any]:
+    """Report: Complete inventory ledger / stock movement audit log."""
+    mov_qs = (
+        StockMovement.all_tenants.filter(organization=organization)
+        .select_related("product", "product__unit", "warehouse", "created_by")
+        .order_by("-occurred_at", "-id")
+    )
+    if start_date:
+        mov_qs = mov_qs.filter(occurred_at__date__gte=start_date)
+    if end_date:
+        mov_qs = mov_qs.filter(occurred_at__date__lte=end_date)
+    if product_id:
+        mov_qs = mov_qs.filter(product_id=product_id)
+    if warehouse_id:
+        mov_qs = mov_qs.filter(warehouse_id=warehouse_id)
+    if movement_type:
+        mov_qs = mov_qs.filter(type=movement_type)
+
+    rows: list[dict[str, Any]] = []
+    tot_inflow_qty = ZERO_DECIMAL
+    tot_outflow_qty = ZERO_DECIMAL
+    net_qty = ZERO_DECIMAL
+    tot_inflow_cost = ZERO_DECIMAL
+    tot_outflow_cost = ZERO_DECIMAL
+
+    for m in mov_qs:
+        qty = m.quantity
+        cost = m.total_cost or (abs(qty) * m.unit_cost)
+
+        if qty >= ZERO_DECIMAL:
+            tot_inflow_qty += qty
+            tot_inflow_cost += cost
+        else:
+            tot_outflow_qty += abs(qty)
+            tot_outflow_cost += cost
+        net_qty += qty
+
+        actor = m.created_by.email if m.created_by else "System"
+        ref = m.reference_id or m.reference_type or "Direct"
+
+        rows.append(
+            {
+                "id": m.pk,
+                "occurred_at": m.occurred_at,
+                "movement_type": m.type,
+                "movement_type_display": m.get_type_display(),
+                "reference_type": m.reference_type,
+                "reference_id": ref,
+                "warehouse_name": m.warehouse.name,
+                "product_sku": m.product.sku,
+                "product_name": m.product.name,
+                "unit_code": m.product.unit.code if m.product.unit else "ea",
+                "quantity": qty,
+                "unit_cost": m.unit_cost,
+                "total_cost": cost,
+                "actor_name": actor,
+                "notes": m.notes,
+            }
+        )
+
+    return {
+        "rows": rows,
+        "summary": {
+            "movement_count": len(rows),
+            "total_inflow_qty": tot_inflow_qty,
+            "total_outflow_qty": tot_outflow_qty,
+            "net_qty": net_qty,
+            "total_inflow_cost": tot_inflow_cost,
+            "total_outflow_cost": tot_outflow_cost,
+        },
+        "filters": {
+            "start_date": start_date,
+            "end_date": end_date,
+            "product_id": product_id,
+            "warehouse_id": warehouse_id,
+            "movement_type": movement_type,
+        },
+    }
+
+
+def get_customer_statement_report(
+    organization: Organization,
+    *,
+    customer_id: int,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> dict[str, Any]:
+    """Report: Customer statement with opening balance, ledger rows, closing balance, and aging."""
+    customer = Customer.all_tenants.filter(organization=organization, pk=customer_id).first()
+    if not customer:
+        raise ValueError(f"Customer with ID {customer_id} does not exist in this organization.")
+
+    stmt = customer_selectors.get_customer_statement(
+        organization=organization,
+        customer=customer,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    lines: list[dict[str, Any]] = []
+    for line_dict in stmt["lines"]:
+        entry = line_dict["entry"]
+        lines.append(
+            {
+                "occurred_at": entry.occurred_at,
+                "entry_type": entry.entry_type,
+                "entry_type_display": entry.get_entry_type_display(),
+                "reference_number": entry.reference_number or entry.reference_id or "-",
+                "description": entry.description or entry.get_entry_type_display(),
+                "debit": entry.debit,
+                "credit": entry.credit,
+                "running_balance": line_dict["running_balance"],
+            }
+        )
+
+    return {
+        "customer": {
+            "id": customer.pk,
+            "code": customer.code,
+            "name": customer.name,
+            "email": customer.email,
+            "phone": customer.phone,
+            "tax_id": customer.tax_id,
+            "current_balance": customer.current_balance,
+            "credit_limit": customer.credit_limit,
+        },
+        "period": {
+            "start_date": start_date,
+            "end_date": end_date,
+        },
+        "opening_balance": stmt["opening_balance"],
+        "lines": lines,
+        "closing_balance": stmt["closing_balance"],
+        "summary": {
+            "total_debits": stmt["total_debits"],
+            "total_credits": stmt["total_credits"],
+            "net_change": stmt["total_debits"] - stmt["total_credits"],
+        },
+        "aging": stmt["aging"],
+    }
