@@ -1,0 +1,111 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "New Register" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-6">
+    <div class="mb-4">
+        <a href="{% url 'pos:register_list' %}" class="text-sm text-slate-500 hover:text-slate-700">
+            &larr; {% trans "Back to Registers" %}
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-6 bg-indigo-600 text-white">
+            <h1 class="text-xl font-bold">{% trans "Create POS Terminal" %}</h1>
+            <p class="text-xs text-indigo-100 mt-1">{% trans "Configure register code, location, warehouse, and receipt header/footer." %}</p>
+        </div>
+
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="id_name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {% trans "Register Name" %} *
+                    </label>
+                    <div class="mt-1">
+                        {{ form.name }}
+                    </div>
+                    {% if form.name.errors %}
+                    <p class="mt-1 text-xs text-rose-500">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="id_code" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {% trans "Register Code (e.g. POS-01)" %}
+                    </label>
+                    <div class="mt-1">
+                        {{ form.code }}
+                    </div>
+                    {% if form.code.errors %}
+                    <p class="mt-1 text-xs text-rose-500">{{ form.code.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="id_branch" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {% trans "Branch" %} *
+                    </label>
+                    <div class="mt-1">
+                        {{ form.branch }}
+                    </div>
+                    {% if form.branch.errors %}
+                    <p class="mt-1 text-xs text-rose-500">{{ form.branch.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="id_warehouse" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {% trans "Stock Deduction Warehouse" %} *
+                    </label>
+                    <div class="mt-1">
+                        {{ form.warehouse }}
+                    </div>
+                    {% if form.warehouse.errors %}
+                    <p class="mt-1 text-xs text-rose-500">{{ form.warehouse.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label for="id_receipt_header" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {% trans "Receipt Header Text" %}
+                </label>
+                <div class="mt-1">
+                    {{ form.receipt_header }}
+                </div>
+            </div>
+
+            <div>
+                <label for="id_receipt_footer" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {% trans "Receipt Footer Text" %}
+                </label>
+                <div class="mt-1">
+                    {{ form.receipt_footer }}
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                {{ form.is_active }}
+                <label for="id_is_active" class="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {% trans "Register is active and available for shifts" %}
+                </label>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end space-x-3">
+                <a href="{% url 'pos:register_list' %}" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                    {% trans "Save Register" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

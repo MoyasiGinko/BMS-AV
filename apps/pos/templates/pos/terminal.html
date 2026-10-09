@@ -1,0 +1,654 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "POS Terminal" %} | {{ register.code }} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div x-data="posTerminal({
+        shiftId: {{ shift.pk }},
+        shiftPublicId: '{{ shift.public_id }}',
+        currency: '$'
+     })"
+     class="flex flex-col h-[calc(100vh-5rem)] -m-4 sm:-m-6 lg:-m-8 bg-slate-100 dark:bg-slate-950 overflow-hidden">
+
+    <!-- Top POS Toolbar -->
+    <header class="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    {{ register.code }}
+                </span>
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:inline">
+                    {{ register.name }}
+                </span>
+            </div>
+            <span class="text-slate-300 dark:text-slate-700">|</span>
+            <div class="text-xs text-slate-500 dark:text-slate-400">
+                {% trans "Shift" %}: <strong class="text-slate-700 dark:text-slate-200">{{ shift.shift_number }}</strong>
+            </div>
+            <span class="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
+            <div class="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
+                {% trans "Cashier" %}: <strong class="text-slate-700 dark:text-slate-200">{{ shift.cashier.get_full_name|default:shift.cashier.email }}</strong>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <!-- Held Carts button -->
+            <button type="button"
+                    @click="openHeldCartsModal = true"
+                    class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                <svg class="w-4 h-4 mr-1.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {% trans "Parked Carts" %}
+                <span x-show="heldCartsCount > 0"
+                      x-text="heldCartsCount"
+                      class="ml-1.5 px-1.5 py-0.2 bg-amber-500 text-white rounded-full text-[10px] font-bold">
+                    {{ held_carts.count }}
+                </span>
+            </button>
+
+            <!-- Shift List link -->
+            <a href="{% url 'pos:shift_list' %}"
+               class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                {% trans "Shifts" %}
+            </a>
+
+            <!-- Close Shift button -->
+            <button type="button"
+                    @click="openCloseShiftModal = true"
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900 transition">
+                <svg class="w-3.5 h-3.5 mr-1 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                {% trans "End Shift" %}
+            </button>
+        </div>
+    </header>
+
+    <!-- Main 2-Pane Work Area -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+
+        <!-- LEFT PANE: Catalog & Search (60%) -->
+        <div class="flex-1 md:w-3/5 lg:w-2/3 flex flex-col border-r border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-900/50">
+
+            <!-- Search & Filter bar -->
+            <div class="p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-2 shrink-0">
+                <div class="relative flex-1">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text"
+                           x-ref="barcodeInput"
+                           name="search"
+                           placeholder="{% trans 'Scan barcode or search SKU/name (Enter to add)...' %}"
+                           hx-get="{% url 'pos:terminal' %}"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           hx-target="#product-grid"
+                           hx-swap="outerHTML"
+                           @keydown.enter.prevent="handleBarcodeInput($event)"
+                           class="block w-full pl-9 pr-4 py-2 rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm shadow-xs focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Category Pills (Horizontal scroll) -->
+                <div class="flex items-center space-x-1.5 overflow-x-auto py-0.5 no-scrollbar">
+                    <button type="button"
+                            hx-get="{% url 'pos:terminal' %}"
+                            hx-target="#product-grid"
+                            hx-swap="outerHTML"
+                            class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap bg-indigo-600 text-white shadow-xs">
+                        {% trans "All" %}
+                    </button>
+                    {% for cat in categories %}
+                    <button type="button"
+                            hx-get="{% url 'pos:terminal' %}?category={{ cat.pk }}"
+                            hx-target="#product-grid"
+                            hx-swap="outerHTML"
+                            class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 transition">
+                        {{ cat.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Products Grid Container -->
+            <div class="flex-1 p-3 overflow-y-auto">
+                {% include "pos/partials/product_grid.html" %}
+            </div>
+        </div>
+
+        <!-- RIGHT PANE: Cart & Checkout (40%) -->
+        <div class="w-full md:w-2/5 lg:w-1/3 flex flex-col bg-white dark:bg-slate-900 border-t md:border-t-0 shrink-0">
+
+            <!-- Customer Selector Bar -->
+            <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-2 flex-1 mr-2">
+                    <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <select x-model="selectedCustomerId" class="block w-full py-1 text-xs rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white shadow-xs focus:ring-indigo-500">
+                        <option value="">{% trans "Walk-in Customer" %}</option>
+                        {% for c in customers %}
+                        <option value="{{ c.pk }}">{{ c.name }} ({{ c.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button"
+                        @click="holdCurrentCart()"
+                        :disabled="cart.length === 0"
+                        class="px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 rounded-md border border-amber-200 dark:border-amber-900/50 disabled:opacity-50 transition">
+                    {% trans "Hold" %}
+                </button>
+            </div>
+
+            <!-- Cart Items List (Scrollable) -->
+            <div class="flex-1 overflow-y-auto p-3 space-y-2 divide-y divide-slate-100 dark:divide-slate-800/60">
+                <template x-if="cart.length === 0">
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-12">
+                        <svg class="w-12 h-12 mb-2 stroke-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <p class="text-sm font-medium">{% trans "Cart is empty" %}</p>
+                        <p class="text-xs text-slate-400">{% trans "Scan barcode or click items to add" %}</p>
+                    </div>
+                </template>
+
+                <template x-for="(item, index) in cart" :key="item.id">
+                    <div class="pt-2 first:pt-0 flex items-center justify-between text-xs">
+                        <div class="flex-1 pr-2">
+                            <div class="font-semibold text-slate-900 dark:text-white truncate" x-text="item.name"></div>
+                            <div class="text-[11px] text-slate-400 font-mono">
+                                <span x-text="item.sku"></span> &bull; $<span x-text="formatDec(item.price)"></span> ea
+                            </div>
+                        </div>
+
+                        <!-- Quantity Stepper -->
+                        <div class="flex items-center space-x-1">
+                            <button type="button"
+                                    @click="changeQty(index, -1)"
+                                    class="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                                -
+                            </button>
+                            <span class="w-8 text-center font-mono font-bold text-slate-800 dark:text-slate-200" x-text="item.quantity"></span>
+                            <button type="button"
+                                    @click="changeQty(index, 1)"
+                                    class="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                                +
+                            </button>
+                        </div>
+
+                        <!-- Item Total & Remove -->
+                        <div class="w-20 text-right pl-2">
+                            <div class="font-mono font-bold text-slate-900 dark:text-white">
+                                $<span x-text="formatDec(getItemTotal(item))"></span>
+                            </div>
+                            <button type="button"
+                                    @click="removeItem(index)"
+                                    class="text-[10px] text-rose-500 hover:text-rose-700">
+                                {% trans "Remove" %}
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Cart Totals & Checkout Actions (Sticky bottom) -->
+            <div class="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 shrink-0 space-y-3">
+                <div class="space-y-1.5 text-xs">
+                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>{% trans "Subtotal" %}</span>
+                        <span class="font-mono font-medium">$<span x-text="formatDec(subtotal)"></span></span>
+                    </div>
+                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>{% trans "Tax" %}</span>
+                        <span class="font-mono font-medium">$<span x-text="formatDec(taxTotal)"></span></span>
+                    </div>
+                    <div class="flex justify-between text-base font-bold text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <span>{% trans "Total Due" %}</span>
+                        <span class="font-mono text-xl text-indigo-600 dark:text-indigo-400">$<span x-text="formatDec(grandTotal)"></span></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 pt-1">
+                    <button type="button"
+                            @click="clearCart()"
+                            :disabled="cart.length === 0"
+                            class="col-span-1 py-3 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 disabled:opacity-40 transition">
+                        {% trans "Clear" %}
+                    </button>
+                    <button type="button"
+                            @click="openTenderModal = true; setupTenders()"
+                            :disabled="cart.length === 0"
+                            class="col-span-3 py-3 text-base font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center space-x-2">
+                        <span>{% trans "Charge" %}</span>
+                        <span>$<span x-text="formatDec(grandTotal)"></span></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TENDER & PAYMENT MODAL -->
+    <div x-show="openTenderModal"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="openTenderModal = false"
+             class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div class="p-6 bg-emerald-600 text-white flex justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-bold">{% trans "Payment & Checkout" %}</h3>
+                    <p class="text-xs text-emerald-100">{% trans "Select tender method and confirm cash count" %}</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-emerald-100 uppercase font-semibold">{% trans "Total Due" %}</span>
+                    <div class="text-3xl font-extrabold font-mono">$<span x-text="formatDec(grandTotal)"></span></div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- Quick Cash Presets -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                        {% trans "Quick Cash Tender" %}
+                    </label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button"
+                                @click="setCashTender(grandTotal)"
+                                class="py-2.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-slate-700 rounded-lg text-xs font-bold font-mono transition">
+                            {% trans "Exact" %}
+                        </button>
+                        <template x-for="preset in [10, 20, 50, 100]" :key="preset">
+                            <button type="button"
+                                    x-show="preset >= grandTotal"
+                                    @click="setCashTender(preset)"
+                                    class="py-2.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-slate-700 rounded-lg text-xs font-bold font-mono transition">
+                                $<span x-text="preset"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Tenders Configuration -->
+                <div class="space-y-3">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        {% trans "Payment Tender Breakdown" %}
+                    </label>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-24 text-xs font-medium text-slate-700 dark:text-slate-300">{% trans "Cash" %}</span>
+                            <div class="relative flex-1">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-sm">$</span>
+                                <input type="number" step="0.01" min="0" x-model.number="tenders.cash"
+                                       class="w-full pl-7 pr-3 py-1.5 text-sm font-mono font-bold rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <span class="w-24 text-xs font-medium text-slate-700 dark:text-slate-300">{% trans "Credit Card" %}</span>
+                            <div class="relative flex-1">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-sm">$</span>
+                                <input type="number" step="0.01" min="0" x-model.number="tenders.card"
+                                       class="w-full pl-7 pr-3 py-1.5 text-sm font-mono font-bold rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <span class="w-24 text-xs font-medium text-slate-700 dark:text-slate-300">{% trans "Bank / Other" %}</span>
+                            <div class="relative flex-1">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-sm">$</span>
+                                <input type="number" step="0.01" min="0" x-model.number="tenders.other"
+                                       class="w-full pl-7 pr-3 py-1.5 text-sm font-mono font-bold rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Change Due / Balance -->
+                <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-slate-500 uppercase font-semibold">{% trans "Change Due" %}</span>
+                        <div class="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                            $<span x-text="formatDec(changeDue)"></span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-500 uppercase font-semibold">{% trans "Total Tendered" %}</span>
+                        <div class="text-base font-bold font-mono text-slate-800 dark:text-slate-200">
+                            $<span x-text="formatDec(totalTendered)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit / Cancel -->
+                <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <button type="button"
+                            @click="openTenderModal = false"
+                            class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        {% trans "Cancel" %}
+                    </button>
+                    <button type="button"
+                            @click="submitCheckout()"
+                            :disabled="isSubmitting || totalTendered < grandTotal"
+                            class="inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md disabled:opacity-40 transition">
+                        <span x-show="!isSubmitting">{% trans "Complete Sale & Print Receipt" %}</span>
+                        <span x-show="isSubmitting">{% trans "Processing..." %}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PARKED / HELD CARTS MODAL -->
+    <div x-show="openHeldCartsModal"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="openHeldCartsModal = false"
+             class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 p-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Parked / Held Carts" %}</h3>
+                <button type="button" @click="openHeldCartsModal = false" class="text-slate-400 hover:text-slate-600">&times;</button>
+            </div>
+
+            <div class="py-4 space-y-2 max-h-80 overflow-y-auto">
+                {% for hc in held_carts %}
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-between hover:bg-indigo-50 dark:hover:bg-slate-700 transition">
+                    <div>
+                        <div class="font-semibold text-sm text-slate-900 dark:text-white">{{ hc.cart_label }}</div>
+                        <div class="text-xs text-slate-400 font-mono">{{ hc.created_at|date:"H:i:s" }} &bull; ${{ hc.total_amount }}</div>
+                    </div>
+                    <button type="button"
+                            @click="resumeCart({{ hc.pk }})"
+                            class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold">
+                        {% trans "Resume" %}
+                    </button>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-slate-400 text-sm">
+                    {% trans "No parked carts for this shift." %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- CLOSE SHIFT MODAL -->
+    <div x-show="openCloseShiftModal"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="openCloseShiftModal = false"
+             class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-800 p-6">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "End & Reconcile Shift" %}</h3>
+            <p class="text-xs text-slate-500 mt-1">{% trans "Count all physical cash in the drawer to close." %}</p>
+
+            <form method="post" action="{% url 'pos:shift_close' shift.public_id %}" class="mt-4 space-y-4">
+                {% csrf_token %}
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-1 text-xs">
+                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>{% trans "Opening Float" %}:</span>
+                        <span class="font-mono font-bold">${{ shift.opening_cash }}</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>{% trans "Cash Sales" %}:</span>
+                        <span class="font-mono font-bold">${{ shift.total_cash_sales }}</span>
+                    </div>
+                    <div class="flex justify-between font-semibold text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-700 pt-1">
+                        <span>{% trans "Expected Cash" %}:</span>
+                        <span class="font-mono">${{ shift.expected_cash }}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {% trans "Physical Cash Counted ($)" %}
+                    </label>
+                    <input type="number" step="0.01" min="0" required name="closing_cash_counted"
+                           class="mt-1 block w-full py-2.5 px-3 rounded-xl border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono font-bold text-lg">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {% trans "Closing Notes" %}
+                    </label>
+                    <input type="text" name="notes" placeholder="{% trans 'Optional notes' %}"
+                           class="mt-1 block w-full py-2 px-3 rounded-xl border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-xs">
+                </div>
+
+                <div class="flex items-center justify-end space-x-2 pt-2">
+                    <button type="button" @click="openCloseShiftModal = false" class="px-4 py-2 text-xs font-medium text-slate-600">
+                        {% trans "Cancel" %}
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs">
+                        {% trans "Close Shift & Post Variance" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function posTerminal(config) {
+    return {
+        shiftId: config.shiftId,
+        shiftPublicId: config.shiftPublicId,
+        currency: config.currency || '$',
+        cart: [],
+        selectedCustomerId: '',
+        heldCartsCount: {{ held_carts.count }},
+        openTenderModal: false,
+        openHeldCartsModal: false,
+        openCloseShiftModal: false,
+        isSubmitting: false,
+        tenders: {
+            cash: 0,
+            card: 0,
+            other: 0
+        },
+
+        init() {
+            this.$nextTick(() => {
+                if (this.$refs.barcodeInput) {
+                    this.$refs.barcodeInput.focus();
+                }
+            });
+        },
+
+        addToCart(item) {
+            const existing = this.cart.find(i => i.id === item.id);
+            if (existing) {
+                existing.quantity += 1;
+            } else {
+                this.cart.push({
+                    id: item.id,
+                    sku: item.sku,
+                    name: item.name,
+                    price: parseFloat(item.price),
+                    tax_rate: parseFloat(item.tax_rate || 0),
+                    quantity: 1,
+                    discount_percent: 0
+                });
+            }
+        },
+
+        changeQty(index, delta) {
+            if (this.cart[index]) {
+                this.cart[index].quantity += delta;
+                if (this.cart[index].quantity <= 0) {
+                    this.cart.splice(index, 1);
+                }
+            }
+        },
+
+        removeItem(index) {
+            this.cart.splice(index, 1);
+        },
+
+        clearCart() {
+            if (confirm('Clear all items from the current cart?')) {
+                this.cart = [];
+            }
+        },
+
+        getItemTotal(item) {
+            const base = item.price * item.quantity;
+            const disc = base * (item.discount_percent / 100);
+            return base - disc;
+        },
+
+        get subtotal() {
+            return this.cart.reduce((sum, item) => sum + this.getItemTotal(item), 0);
+        },
+
+        get taxTotal() {
+            return this.cart.reduce((sum, item) => {
+                const lineTotal = this.getItemTotal(item);
+                return sum + (lineTotal * (item.tax_rate / 100));
+            }, 0);
+        },
+
+        get grandTotal() {
+            return this.subtotal + this.taxTotal;
+        },
+
+        get totalTendered() {
+            return (parseFloat(this.tenders.cash) || 0) +
+                   (parseFloat(this.tenders.card) || 0) +
+                   (parseFloat(this.tenders.other) || 0);
+        },
+
+        get changeDue() {
+            const total = this.grandTotal;
+            const tendered = this.totalTendered;
+            return Math.max(0, tendered - total);
+        },
+
+        setupTenders() {
+            this.tenders.cash = parseFloat(this.grandTotal.toFixed(2));
+            this.tenders.card = 0;
+            this.tenders.other = 0;
+        },
+
+        setCashTender(amount) {
+            this.tenders.cash = parseFloat(amount);
+            this.tenders.card = 0;
+            this.tenders.other = 0;
+        },
+
+        formatDec(val) {
+            return (parseFloat(val) || 0).toFixed(2);
+        },
+
+        async holdCurrentCart() {
+            if (this.cart.length === 0) return;
+            const label = prompt('Enter a label for this cart:', 'Customer ' + (this.heldCartsCount + 1));
+            if (!label) return;
+
+            try {
+                const res = await fetch("{% url 'pos:hold_cart' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        shift_id: this.shiftId,
+                        cart_label: label,
+                        total_amount: this.grandTotal.toFixed(4),
+                        cart_data: {
+                            cart: this.cart,
+                            customer_id: this.selectedCustomerId
+                        }
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.cart = [];
+                    this.selectedCustomerId = '';
+                    this.heldCartsCount += 1;
+                    location.reload();
+                } else {
+                    alert('Error holding cart: ' + data.error);
+                }
+            } catch (e) {
+                alert('Request failed: ' + e);
+            }
+        },
+
+        async resumeCart(heldCartId) {
+            try {
+                const res = await fetch(`/pos/cart/${heldCartId}/resume/`, {
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                const data = await res.json();
+                if (data.success && data.cart) {
+                    this.cart = data.cart.cart || [];
+                    this.selectedCustomerId = data.cart.customer_id || '';
+                    this.openHeldCartsModal = false;
+                    this.heldCartsCount = Math.max(0, this.heldCartsCount - 1);
+                } else {
+                    alert('Error resuming cart: ' + (data.error || 'Unknown'));
+                }
+            } catch (e) {
+                alert('Request failed: ' + e);
+            }
+        },
+
+        async submitCheckout() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
+
+            const payments = [];
+            if (this.tenders.cash > 0) {
+                payments.push({ payment_method: 'cash', amount: Math.min(this.tenders.cash, this.grandTotal).toFixed(4) });
+            }
+            if (this.tenders.card > 0) {
+                payments.push({ payment_method: 'credit_card', amount: this.tenders.card.toFixed(4) });
+            }
+            if (this.tenders.other > 0) {
+                payments.push({ payment_method: 'bank_transfer', amount: this.tenders.other.toFixed(4) });
+            }
+
+            const payload = {
+                shift_id: this.shiftId,
+                customer_id: this.selectedCustomerId || null,
+                amount_tendered: this.totalTendered.toFixed(4),
+                lines: this.cart.map(i => ({
+                    product_id: i.id,
+                    quantity: i.quantity.toFixed(4),
+                    unit_price: i.price.toFixed(4),
+                    discount_percent: (i.discount_percent || 0).toFixed(2),
+                    tax_rate: (i.tax_rate || 0).toFixed(2)
+                })),
+                payments: payments
+            };
+
+            try {
+                const res = await fetch("{% url 'pos:checkout' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    window.location.href = result.receipt_url;
+                } else {
+                    alert('Checkout failed: ' + (result.error || 'Validation error'));
+                    this.isSubmitting = false;
+                }
+            } catch (e) {
+                alert('Checkout network error: ' + e);
+                this.isSubmitting = false;
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

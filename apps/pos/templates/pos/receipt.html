@@ -1,0 +1,143 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Receipt" %} #{{ sale.receipt_number }} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-6">
+    <!-- Action buttons above receipt -->
+    <div class="mb-4 flex items-center justify-between no-print">
+        <a href="{% url 'pos:terminal' %}"
+           class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs transition">
+            <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            {% trans "Back to Terminal" %}
+        </a>
+        <button type="button"
+                onclick="window.print()"
+                class="inline-flex items-center px-5 py-2 border border-transparent rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm hover:shadow transition">
+            <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            {% trans "Print Receipt" %}
+        </button>
+    </div>
+
+    <!-- 80mm Receipt Card -->
+    <div id="receipt-paper" class="bg-white text-slate-900 border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 font-mono text-xs space-y-4">
+        <!-- Header -->
+        <div class="text-center space-y-1 border-b border-dashed border-slate-300 pb-4">
+            <h2 class="text-base font-bold uppercase tracking-wider text-black">{{ org.name }}</h2>
+            {% if register.receipt_header %}
+            <p class="text-[11px] text-slate-600 whitespace-pre-line">{{ register.receipt_header }}</p>
+            {% endif %}
+            <div class="text-[11px] text-slate-500 pt-1">
+                <div>{% trans "Receipt" %}: <strong>{{ sale.receipt_number }}</strong></div>
+                <div>{% trans "Date" %}: {{ sale.created_at|date:"Y-m-d H:i:s" }}</div>
+                <div>{% trans "Terminal" %}: {{ register.code }} &bull; {% trans "Shift" %}: {{ shift.shift_number }}</div>
+                <div>{% trans "Cashier" %}: {{ shift.cashier.get_full_name|default:shift.cashier.email }}</div>
+                {% if sale.customer %}
+                <div>{% trans "Customer" %}: {{ sale.customer.name }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Line items table -->
+        <div class="border-b border-dashed border-slate-300 pb-4 space-y-2">
+            <div class="flex justify-between font-bold text-slate-700 border-b border-slate-200 pb-1">
+                <span>{% trans "Item" %}</span>
+                <span>{% trans "Total" %}</span>
+            </div>
+            {% for line in lines %}
+            <div class="space-y-0.5">
+                <div class="flex justify-between font-medium">
+                    <span class="truncate pr-2">{{ line.product.name }}</span>
+                    <span>${{ line.line_total }}</span>
+                </div>
+                <div class="text-[10px] text-slate-500 flex justify-between">
+                    <span>{{ line.quantity }} &times; ${{ line.unit_price }}{% if line.discount_percent > 0 %} (-{{ line.discount_percent }}%){% endif %}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Totals breakdown -->
+        <div class="border-b border-dashed border-slate-300 pb-4 space-y-1.5">
+            <div class="flex justify-between text-slate-600">
+                <span>{% trans "Subtotal" %}</span>
+                <span>${{ invoice.subtotal }}</span>
+            </div>
+            {% if invoice.discount_total > 0 %}
+            <div class="flex justify-between text-slate-600">
+                <span>{% trans "Discount" %}</span>
+                <span>-${{ invoice.discount_total }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between text-slate-600">
+                <span>{% trans "Tax" %}</span>
+                <span>${{ invoice.tax_total }}</span>
+            </div>
+            <div class="flex justify-between text-sm font-bold text-black pt-1 border-t border-slate-200">
+                <span>{% trans "TOTAL" %}</span>
+                <span>${{ sale.total_amount }}</span>
+            </div>
+        </div>
+
+        <!-- Payments / Tenders -->
+        <div class="border-b border-dashed border-slate-300 pb-4 space-y-1">
+            <div class="font-bold text-[11px] text-slate-700 uppercase">{% trans "Payment Details" %}</div>
+            {% for tender in sale.tenders %}
+            <div class="flex justify-between text-slate-600">
+                <span class="capitalize">{{ tender.payment_method|default:"Cash" }}</span>
+                <span>${{ tender.amount }}</span>
+            </div>
+            {% endfor %}
+            {% if sale.amount_tendered %}
+            <div class="flex justify-between text-slate-600 pt-1">
+                <span>{% trans "Amount Tendered" %}</span>
+                <span>${{ sale.amount_tendered }}</span>
+            </div>
+            <div class="flex justify-between font-bold text-slate-900">
+                <span>{% trans "Change Given" %}</span>
+                <span>${{ sale.change_given }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-[11px] text-slate-500 pt-2 space-y-1">
+            {% if register.receipt_footer %}
+            <p class="whitespace-pre-line">{{ register.receipt_footer }}</p>
+            {% else %}
+            <p>{% trans "Thank you for your business!" %}</p>
+            {% endif %}
+            <p class="text-[9px] text-slate-400">Powered by Business OS</p>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .no-print {
+        display: none !important;
+    }
+    #receipt-paper, #receipt-paper * {
+        visibility: visible;
+    }
+    #receipt-paper {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm;
+        margin: 0;
+        padding: 10px;
+        box-shadow: none;
+        border: none;
+    }
+}
+</style>
+{% endblock %}

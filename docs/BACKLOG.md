@@ -30,7 +30,7 @@ Format: `ID title: Done when ...`
 - [x] P2-03 customers: customer CRUD, addresses/contacts, balance ledger, statements, credit limit checks; screens + API.
 - [x] P2-04 sales documents: quote -> order -> invoice -> credit note, document numbering, discounts, taxes, confirm service with stock effect (posts through the accounting core from P2-00).
 - [x] P2-05 payments: customer payments, allocations to invoices, partial/over payments, refunds; balance + journal effects.
-- [ ] P2-06 POS: registers, shifts (open/close with cash count and variance), fast checkout screen (barcode, quick keys, hold/resume, split tenders, discounts, returns), receipt (print CSS + PDF), POS checkout service reusing sales confirm. Done when POS checkout UI smoke passes and stock/ledger/balance update atomically.
+- [x] P2-06 POS: registers, shifts (open/close with cash count and variance), fast checkout screen (barcode, quick keys, hold/resume, split tenders, discounts, returns), receipt (print CSS + PDF), POS checkout service reusing sales confirm. Done when POS checkout UI smoke passes and stock/ledger/balance update atomically.
 - [ ] P2-07 Dashboard widgets v1: sales today, top products, low stock, receivables, recent activity. Reconciliation tests vs ledgers.
 - [ ] P2-08 Reports v1: sales by product/customer/branch/day, stock valuation, stock movement, customer statement; export CSV/XLSX/PDF in background.
 - [ ] P2-09 Import/Export framework (ImportJob/ExportJob, validate-preview-commit) + products/customers import.

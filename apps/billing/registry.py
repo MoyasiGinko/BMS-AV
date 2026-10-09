@@ -252,7 +252,18 @@ registry.register(
     description="Fast counter checkout, registers, cash shifts, and receipts",
     icon="calculator",
     sort_order=70,
-    permissions=["pos.access", "pos.manage"],
+    nav_items=[
+        NavItem("Terminal", "pos:terminal", icon="calculator", permission="pos.access"),
+        NavItem("Registers", "pos:register_list", icon="computer-desktop", permission="pos.manage"),
+        NavItem("Shifts", "pos:shift_list", icon="clock", permission="pos.access"),
+    ],
+    permissions=[
+        "pos.access",
+        "pos.manage",
+        "pos.checkout",
+        "pos.shift_open",
+        "pos.shift_close",
+    ],
 )
 
 registry.register(

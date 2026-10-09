@@ -1,16 +1,15 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P2 Small-shop MVP (in progress)
-- Last completed task: P2-05
-- Next task: P2-06
+- Last completed task: P2-06
+- Next task: P2-07
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (87.54% test coverage, 340 tests green, all architecture contracts kept, openapi valid, deploy check clean)
-- Notes: P2-05 implemented customer payments, allocations to invoices, partial/over payments, refunds, and void reversals within `apps.sales` (governed by ADR 0012). Highlights:
-  - Models: Payment, PaymentAllocation, PaymentRefund with positive amount check constraints and strict allocation validity bounds.
-  - PostgreSQL Row Level Security (RLS) enabled on all payment tables with tenant isolation policies.
-  - Double-entry postings: Payment receives cash/bank debit and Accounts Receivable credit; customer subledger posts payment credits; invoice amount_paid, balance_due, and status (POSTED -> PARTIALLY_PAID -> PAID) update atomically.
-  - Overpayments safely captured as unallocated customer advance deposits with ability to allocate to subsequent invoices or process customer refunds (Dr AR, Cr Cash).
-  - Void reversals cleanly reinstate invoice balances, post GL reversal journals, and update customer subledger balances.
-  - Full server-rendered templates with HTMX partials: payment list with metrics header, filter bar, create form with dynamic invoice allocation table, detail page with allocation & refund history, and printable payment receipt view.
-  - Versioned REST API under `/api/v1/sales/payments/` with allocate, refund, and void actions.
-  - Complete test coverage across services, views, REST API, tenant isolation, and mathematical/financial invariants (340 tests passed). Next task: P2-06 POS.
+- Last `make verify`: PASSED (87.55% test coverage, 360 tests green, all architecture contracts kept, openapi valid, deploy check clean)
+- Notes: P2-06 implemented full POS (Point of Sale) sub-system (governed by ADR 0013):
+  - Models: POSRegister, POSShift (with opening float, cash count, cash variance tracking), POSHeldCart, and POSSale with multi-tender split payment logging.
+  - PostgreSQL Row Level Security (RLS) enabled on all POS tables with tenant isolation policies.
+  - Shift workflows: Opening float verification, cashier active shift locking, closing cash reconciliation posting GL suspense entries for cash variances.
+  - POS Checkout service: Atomically generates and confirms sales invoices, moves stock via inventory issue lines, processes split tender payments (cash, card, mobile money, customer balance), updates drawer totals, and publishes domain events.
+  - UI: Fast counter checkout 2-pane terminal with live category filter, product search, keypad/numpad, hold/resume cart, modal tender checkout, and 80mm printable thermal receipt. Shift list/detail/open/close views and register CRUD screens.
+  - REST API: Endpoints under `/api/v1/pos/` with OpenAPI documentation and permission enforcement.
+  - Tests: Comprehensive unit, views, API, tenant isolation, and financial/inventory invariants across shifts and sales (360 tests passed). Next task: P2-07 Dashboard widgets v1.

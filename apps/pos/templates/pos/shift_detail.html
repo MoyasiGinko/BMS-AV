@@ -1,0 +1,231 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Shift" %} {{ shift.shift_number }} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'pos:shift_list' %}" class="text-slate-400 hover:text-slate-600 transition">
+                    &larr; {% trans "Back to Shifts" %}
+                </a>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    {% trans "Shift" %} {{ shift.shift_number }}
+                </h1>
+                {% if shift.status == "OPEN" %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    {% trans "Open" %}
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                    {% trans "Closed" %}
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {{ shift.register.code }} &bull; {{ shift.register.name }} &bull; {% trans "Cashier" %}: {{ shift.cashier.get_full_name|default:shift.cashier.email }}
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            {% if shift.status == "OPEN" %}
+            <a href="{% url 'pos:terminal' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                {% trans "Go to Terminal" %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Reconciliation & Financial Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Cash Drawer Reconciliation -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Cash Drawer Reconciliation" %}</h3>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                    <span class="text-xs text-slate-500 uppercase font-semibold">{% trans "Opening Float" %}</span>
+                    <div class="text-lg font-bold font-mono text-slate-900 dark:text-white mt-1">${{ shift.opening_cash }}</div>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                    <span class="text-xs text-slate-500 uppercase font-semibold">{% trans "Cash Sales" %}</span>
+                    <div class="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">${{ shift.total_cash_sales }}</div>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                    <span class="text-xs text-slate-500 uppercase font-semibold">{% trans "Card Sales" %}</span>
+                    <div class="text-lg font-bold font-mono text-indigo-600 dark:text-indigo-400 mt-1">${{ shift.total_card_sales }}</div>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                    <span class="text-xs text-slate-500 uppercase font-semibold">{% trans "Total Sales" %}</span>
+                    <div class="text-lg font-bold font-mono text-slate-900 dark:text-white mt-1">${{ shift.total_sales_amount }}</div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 dark:border-slate-800 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <span class="text-xs text-slate-500 font-semibold uppercase">{% trans "Expected Cash in Drawer" %}</span>
+                    <div class="text-xl font-bold font-mono text-slate-900 dark:text-white mt-0.5">${{ shift.expected_cash }}</div>
+                    <span class="text-[11px] text-slate-400">Opening float + Cash sales</span>
+                </div>
+
+                <div>
+                    <span class="text-xs text-slate-500 font-semibold uppercase">{% trans "Closing Cash Counted" %}</span>
+                    <div class="text-xl font-bold font-mono text-slate-900 dark:text-white mt-0.5">
+                        {% if shift.status == "CLOSED" %}
+                            ${{ shift.closing_cash_counted }}
+                        {% else %}
+                            <span class="text-slate-400 text-sm italic">{% trans "Pending close" %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-xs text-slate-500 font-semibold uppercase">{% trans "Cash Variance" %}</span>
+                    <div class="text-xl font-bold font-mono mt-0.5">
+                        {% if shift.status == "CLOSED" %}
+                            {% if shift.cash_variance == 0 %}
+                                <span class="text-emerald-600">$0.00</span>
+                            {% elif shift.cash_variance < 0 %}
+                                <span class="text-rose-600">-${{ shift.cash_variance|stringformat:".2f"|slice:"1:" }} (Shortage)</span>
+                            {% else %}
+                                <span class="text-amber-600">+${{ shift.cash_variance }} (Overage)</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-slate-400 text-sm italic">—</span>
+                        {% endif %}
+                    </div>
+                    {% if shift.variance_journal_entry %}
+                    <span class="text-[11px] text-indigo-500">
+                        {% trans "Posted to GL Suspense" %} #{{ shift.variance_journal_entry.entry_number }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Shift Metadata & Actions -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xs space-y-4">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Shift Information" %}</h3>
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-500">{% trans "Terminal" %}:</span>
+                    <span class="font-medium text-slate-900 dark:text-white">{{ shift.register.code }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-500">{% trans "Opened At" %}:</span>
+                    <span class="font-medium text-slate-900 dark:text-white">{{ shift.opened_at|date:"Y-m-d H:i" }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
+                    <span class="text-slate-500">{% trans "Closed At" %}:</span>
+                    <span class="font-medium text-slate-900 dark:text-white">
+                        {% if shift.closed_at %}{{ shift.closed_at|date:"Y-m-d H:i" }}{% else %}&mdash;{% endif %}
+                    </span>
+                </div>
+                {% if shift.notes %}
+                <div class="pt-2">
+                    <span class="text-slate-500 block">{% trans "Notes" %}:</span>
+                    <p class="text-slate-700 dark:text-slate-300 italic mt-0.5">{{ shift.notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if shift.status == "OPEN" and close_form %}
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">{% trans "Close This Shift" %}</h4>
+                <form method="post" action="{% url 'pos:shift_close' shift.public_id %}" class="space-y-3">
+                    {% csrf_token %}
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {% trans "Closing Cash Counted ($)" %}
+                        </label>
+                        <input type="number" step="0.01" min="0" required name="closing_cash_counted"
+                               class="mt-1 block w-full py-2 px-3 rounded-xl border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white font-mono font-bold text-base">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {% trans "Closing Notes" %}
+                        </label>
+                        <input type="text" name="notes" placeholder="{% trans 'Optional notes' %}"
+                               class="mt-1 block w-full py-1.5 px-3 rounded-xl border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-xs">
+                    </div>
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition">
+                        {% trans "Close Shift & Audit Variance" %}
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sales History in this Shift -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Transactions in this Shift" %}</h3>
+            <span class="text-xs text-slate-500">{{ sales.count }} {% trans "sales" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase font-semibold text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3.5">{% trans "Receipt #" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Invoice #" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Customer" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Time" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Total" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Tendered" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Change" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Action" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for s in sales %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+                        <td class="px-6 py-3.5 font-mono font-bold text-slate-900 dark:text-white">
+                            <a href="{% url 'pos:receipt' s.public_id %}" class="hover:text-indigo-600">
+                                {{ s.receipt_number }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-3.5 text-slate-600 dark:text-slate-400 font-mono">
+                            {{ s.invoice.invoice_number }}
+                        </td>
+                        <td class="px-6 py-3.5 text-slate-700 dark:text-slate-300">
+                            {{ s.customer.name|default:"Walk-in Customer" }}
+                        </td>
+                        <td class="px-6 py-3.5 text-slate-500 text-xs">
+                            {{ s.created_at|date:"H:i:s" }}
+                        </td>
+                        <td class="px-6 py-3.5 font-mono font-bold text-right text-slate-900 dark:text-white">
+                            ${{ s.total_amount }}
+                        </td>
+                        <td class="px-6 py-3.5 font-mono text-right text-slate-600 dark:text-slate-400">
+                            ${{ s.amount_tendered|default:s.total_amount }}
+                        </td>
+                        <td class="px-6 py-3.5 font-mono text-right text-emerald-600">
+                            ${{ s.change_given }}
+                        </td>
+                        <td class="px-6 py-3.5 text-right">
+                            <a href="{% url 'pos:receipt' s.public_id %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                                {% trans "Receipt" %} &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-8 text-center text-slate-400">
+                            {% trans "No sales registered in this shift yet." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
