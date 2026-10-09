@@ -118,6 +118,20 @@ layers = [
 ]
 ignore_imports = [
   # api/ subpackages and tests may use core; nothing else is exempt without an ADR
+  # ADR 0019: seed_demo command orchestrates demo data across all domain modules
+  "apps.core.management.commands.seed_demo -> apps.accounts.models",
+  "apps.core.management.commands.seed_demo -> apps.accounting.services",
+  "apps.core.management.commands.seed_demo -> apps.billing.services",
+  "apps.core.management.commands.seed_demo -> apps.catalog.models",
+  "apps.core.management.commands.seed_demo -> apps.customers.models",
+  "apps.core.management.commands.seed_demo -> apps.customers.services",
+  "apps.core.management.commands.seed_demo -> apps.inventory.services",
+  "apps.core.management.commands.seed_demo -> apps.pos.models",
+  "apps.core.management.commands.seed_demo -> apps.pos.services",
+  "apps.core.management.commands.seed_demo -> apps.sales.models",
+  "apps.core.management.commands.seed_demo -> apps.sales.services",
+  "apps.core.management.commands.seed_demo -> apps.tenancy.models",
+  "apps.core.management.commands.seed_demo -> apps.tenancy.services",
 ]
 
 [[tool.importlinter.contracts]]

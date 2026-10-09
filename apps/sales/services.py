@@ -237,7 +237,11 @@ def convert_quote_to_order(
         raise EmptyDocumentError("A warehouse is required to generate a sales order.")
 
     lines = []
-    for ql in quote.lines.select_related("product", "variant").all():
+    for ql in (
+        QuoteLine.all_tenants.filter(quote=quote, organization=organization)
+        .select_related("product", "variant")
+        .all()
+    ):
         lines.append(
             {
                 "product": ql.product,
@@ -443,7 +447,11 @@ def convert_order_to_invoice(
         raise InvalidStateTransitionError(f"Cannot generate invoice from order with status '{order.status}'.")
 
     lines = []
-    for sol in order.lines.select_related("product", "variant").all():
+    for sol in (
+        SalesOrderLine.all_tenants.filter(order=order, organization=organization)
+        .select_related("product", "variant")
+        .all()
+    ):
         lines.append(
             {
                 "product": sol.product,

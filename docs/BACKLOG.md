@@ -35,7 +35,7 @@ Format: `ID title: Done when ...`
 - [x] P2-08 Reports v1: sales by product/customer/branch/day, stock valuation, stock movement, customer statement; export CSV/XLSX/PDF in background.
 - [x] P2-09 Import/Export framework (ImportJob/ExportJob, validate-preview-commit) + products/customers import.
 - [x] P2-10 Public API v1 for P2 modules (catalog, inventory, customers, sales, pos) fully documented in OpenAPI with idempotency on sales/payments.
-- [ ] P2-11 seed_demo for "small shop" org + E2E: sell via POS and invoice, stock and balances correct.
+- [x] P2-11 seed_demo for "small shop" org + E2E: sell via POS and invoice, stock and balances correct.
 - [ ] P2-R Phase review: `/verify` + `/review-module` for each module.
 
 ## P3 Growth bundle: Purchasing + full Accounting
