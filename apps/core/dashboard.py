@@ -23,8 +23,8 @@ class DashboardWidget(ABC):
     """Abstract base class for all dashboard widgets."""
 
     widget_id: str
-    title: str
-    description: str = ""
+    title: Any
+    description: Any = ""
     module: str | None = None  # Feature entitlement code (e.g. "sales", "billing")
     permission: str | None = None  # User role permission code (e.g. "settings.view")
     col_span: int = 12  # Out of 12 columns in responsive dashboard grid
