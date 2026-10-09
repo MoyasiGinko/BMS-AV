@@ -1,0 +1,127 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ bill.bill_number }} | {% trans "Supplier Bill" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'purchasing:supplier_bill_list' %}" class="hover:underline">{% trans "Supplier Bills" %}</a>
+                <span>/</span>
+                <span class="font-mono text-slate-700 dark:text-slate-300">{{ bill.bill_number }}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                {{ bill.bill_number }}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                    {{ bill.get_status_display }}
+                </span>
+            </h1>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if bill.status == 'draft' %}
+            <form method="post" action="{% url 'purchasing:supplier_bill_post' pk=bill.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
+                    {% trans "Post Bill to Ledger" %}
+                </button>
+            </form>
+            {% endif %}
+
+            {% if bill.status in 'posted,partially_paid' and bill.balance_due > 0 %}
+            <a href="{% url 'purchasing:supplier_payment_create' %}?supplier_id={{ bill.supplier.pk }}&bill_id={{ bill.pk }}" class="inline-flex items-center px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium shadow-sm">
+                {% trans "Pay Bill" %}
+            </a>
+            {% endif %}
+
+            {% if bill.status in 'draft,posted' and bill.balance_due == bill.total_amount %}
+            <form method="post" action="{% url 'purchasing:supplier_bill_void' pk=bill.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-3 py-2 border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg text-sm font-medium">
+                    {% trans "Void Bill" %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Overview Details -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Supplier" %}</span>
+            <div class="mt-1 font-medium text-slate-900 dark:text-white">
+                <a href="{% url 'purchasing:supplier_detail' pk=bill.supplier.pk %}" class="text-indigo-600 hover:underline">
+                    {{ bill.supplier.name }}
+                </a>
+            </div>
+            {% if bill.supplier_reference %}
+            <div class="text-xs text-slate-500 font-mono">Ref: {{ bill.supplier_reference }}</div>
+            {% endif %}
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Dates" %}</span>
+            <div class="mt-1 text-slate-900 dark:text-white text-sm">{% trans "Issued:" %} {{ bill.issue_date }}</div>
+            <div class="text-xs text-rose-600 font-medium">{% trans "Due:" %} {{ bill.due_date }}</div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Total Bill Amount" %}</span>
+            <div class="mt-1 text-xl font-bold font-mono text-slate-900 dark:text-white">${{ bill.total_amount }}</div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Balance Due" %}</span>
+            <div class="mt-1 text-xl font-bold font-mono {% if bill.balance_due > 0 %}text-rose-600{% else %}text-emerald-600{% endif %}">
+                ${{ bill.balance_due }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Billed Items" %}</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3 text-left">{% trans "Item / Description" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Quantity" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Unit Price" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Tax Rate" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Total" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for line in bill.lines.all %}
+                    <tr>
+                        <td class="px-6 py-3.5">
+                            <span class="font-medium text-slate-900 dark:text-white">{{ line.description }}</span>
+                            {% if line.product %}<span class="block text-xs font-mono text-slate-400">{{ line.product.sku }}</span>{% endif %}
+                        </td>
+                        <td class="px-6 py-3.5 text-right font-mono">{{ line.quantity }}</td>
+                        <td class="px-6 py-3.5 text-right font-mono">${{ line.unit_price }}</td>
+                        <td class="px-6 py-3.5 text-right font-mono text-xs text-slate-500">{{ line.tax_rate }}% (${{ line.tax_amount }})</td>
+                        <td class="px-6 py-3.5 text-right font-mono font-semibold">${{ line.total_amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 font-medium">
+                    <tr>
+                        <td colspan="4" class="px-6 py-2 text-right text-xs uppercase text-slate-500">{% trans "Subtotal" %}</td>
+                        <td class="px-6 py-2 text-right font-mono">${{ bill.subtotal }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="px-6 py-2 text-right text-xs uppercase text-slate-500">{% trans "Tax Total" %}</td>
+                        <td class="px-6 py-2 text-right font-mono">${{ bill.tax_total }}</td>
+                    </tr>
+                    <tr class="text-base font-bold text-slate-900 dark:text-white">
+                        <td colspan="4" class="px-6 py-3 text-right text-xs uppercase text-slate-700">{% trans "Total Amount" %}</td>
+                        <td class="px-6 py-3 text-right font-mono">${{ bill.total_amount }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

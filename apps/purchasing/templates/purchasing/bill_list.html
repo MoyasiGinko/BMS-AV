@@ -1,0 +1,45 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Supplier Bills" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Vendor & Supplier Bills" %}</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                {% trans "Review incoming supplier invoices, post payables to general ledger, and disburse payments." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'purchasing:supplier_payment_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 shadow-xs">
+                {% trans "Disbursements / Payments" %}
+            </a>
+            <a href="{% url 'purchasing:purchase_return_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 shadow-xs">
+                {% trans "Purchase Returns" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get" class="flex flex-col sm:flex-row gap-3" hx-get="{% url 'purchasing:supplier_bill_list' %}" hx-target="#bill-table-container" hx-push-url="true">
+            <div class="flex-1">
+                {{ filter_form.search }}
+            </div>
+            <div class="w-full sm:w-48">
+                {{ filter_form.status }}
+            </div>
+            <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg">
+                {% trans "Filter" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Table Container -->
+    <div id="bill-table-container" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        {% include "purchasing/partials/bill_table.html" %}
+    </div>
+</div>
+{% endblock %}

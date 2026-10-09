@@ -1,0 +1,124 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ supplier.name }} | {% trans "Supplier" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'purchasing:supplier_list' %}" class="hover:underline">{% trans "Suppliers" %}</a>
+                <span>/</span>
+                <span class="font-mono text-slate-700 dark:text-slate-300">{{ supplier.code }}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                {{ supplier.name }}
+                {% if supplier.is_active %}
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    {% trans "Active" %}
+                </span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">
+                    {% trans "Inactive" %}
+                </span>
+                {% endif %}
+            </h1>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'purchasing:supplier_update' pk=supplier.pk %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                {% trans "Edit Supplier" %}
+            </a>
+            <a href="{% url 'purchasing:purchase_order_create' %}?supplier_id={{ supplier.pk }}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "New Purchase Order" %}
+            </a>
+            <a href="{% url 'purchasing:supplier_payment_create' %}?supplier_id={{ supplier.pk }}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-800 hover:bg-emerald-50 shadow-xs">
+                {% trans "Record Payment" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Overview Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Balance Card -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Current AP Balance" %}</span>
+            <div class="mt-2 text-3xl font-bold font-mono {% if supplier.current_balance > 0 %}text-rose-600 dark:text-rose-400{% else %}text-slate-900 dark:text-white{% endif %}">
+                ${{ supplier.current_balance }}
+            </div>
+            <p class="mt-1 text-xs text-slate-400">
+                {% trans "Net balance owed across all posted bills and payments." %}
+            </p>
+        </div>
+
+        <!-- Contact Card -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Contact & Terms" %}</span>
+            <div class="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                <div><span class="text-slate-400 text-xs">{% trans "Contact Person:" %}</span> {{ supplier.contact_person|default:"-" }}</div>
+                <div><span class="text-slate-400 text-xs">{% trans "Email:" %}</span> {{ supplier.email|default:"-" }}</div>
+                <div><span class="text-slate-400 text-xs">{% trans "Phone:" %}</span> {{ supplier.phone|default:"-" }}</div>
+                <div><span class="text-slate-400 text-xs">{% trans "Terms:" %}</span> {{ supplier.payment_terms_days }} {% trans "days" %}</div>
+            </div>
+        </div>
+
+        <!-- Address Card -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Address & Tax" %}</span>
+            <div class="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                <div><span class="text-slate-400 text-xs">{% trans "Tax / VAT ID:" %}</span> {{ supplier.tax_id|default:"-" }}</div>
+                <div><span class="text-slate-400 text-xs">{% trans "City, Country:" %}</span> {{ supplier.city|default:"" }} {{ supplier.country|default:"" }}</div>
+                <div class="text-xs text-slate-500 mt-2">{{ supplier.address|default:"" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Bills Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Recent Vendor Bills" %}</h2>
+            <a href="{% url 'purchasing:supplier_bill_list' %}?supplier_id={{ supplier.pk }}" class="text-xs text-indigo-600 hover:underline">{% trans "View all" %}</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3 text-left">{% trans "Bill #" %}</th>
+                        <th class="px-6 py-3 text-left">{% trans "Date" %}</th>
+                        <th class="px-6 py-3 text-left">{% trans "Due Date" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Total" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Balance Due" %}</th>
+                        <th class="px-6 py-3 text-center">{% trans "Status" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for bill in bills %}
+                    <tr>
+                        <td class="px-6 py-3">
+                            <a href="{% url 'purchasing:supplier_bill_detail' pk=bill.pk %}" class="font-medium text-indigo-600 hover:underline">
+                                {{ bill.bill_number }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-3 text-slate-500">{{ bill.issue_date }}</td>
+                        <td class="px-6 py-3 text-slate-500">{{ bill.due_date }}</td>
+                        <td class="px-6 py-3 text-right font-mono">${{ bill.total_amount }}</td>
+                        <td class="px-6 py-3 text-right font-mono font-semibold text-rose-600">${{ bill.balance_due }}</td>
+                        <td class="px-6 py-3 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                {{ bill.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="px-6 py-6 text-center text-slate-400 text-xs">{% trans "No bills recorded yet." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

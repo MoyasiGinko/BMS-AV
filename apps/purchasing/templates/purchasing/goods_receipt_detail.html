@@ -1,0 +1,86 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ receipt.receipt_number }} | {% trans "Goods Receipt" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'purchasing:goods_receipt_list' %}" class="hover:underline">{% trans "Goods Receipts" %}</a>
+                <span>/</span>
+                <span class="font-mono text-slate-700 dark:text-slate-300">{{ receipt.receipt_number }}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                {{ receipt.receipt_number }}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800">
+                    {{ receipt.get_status_display }}
+                </span>
+            </h1>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if receipt.status == 'draft' %}
+            <form method="post" action="{% url 'purchasing:goods_receipt_receive' pk=receipt.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
+                    {% trans "Confirm Receipt Into Stock" %}
+                </button>
+            </form>
+            {% else %}
+            <span class="text-xs text-emerald-600 font-medium">{% trans "Inventory movements recorded at moving-average cost." %}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Supplier" %}</span>
+            <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ receipt.supplier.name }}</div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Warehouse" %}</span>
+            <div class="mt-1 text-slate-900 dark:text-white">{{ receipt.warehouse.name }}</div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Date" %}</span>
+            <div class="mt-1 text-slate-900 dark:text-white">{{ receipt.date }}</div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Total Inventory Cost" %}</span>
+            <div class="mt-1 text-xl font-bold font-mono text-slate-900 dark:text-white">${{ receipt.total_cost }}</div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Received Items" %}</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3 text-left">{% trans "Product" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Quantity Received" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Unit Cost" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Total Cost" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for line in receipt.lines.all %}
+                    <tr>
+                        <td class="px-6 py-3.5">
+                            <span class="font-medium text-slate-900 dark:text-white">{{ line.product.name }}</span>
+                            <span class="block text-xs font-mono text-slate-400">{{ line.product.sku }}</span>
+                        </td>
+                        <td class="px-6 py-3.5 text-right font-mono">{{ line.quantity }}</td>
+                        <td class="px-6 py-3.5 text-right font-mono">${{ line.unit_cost }}</td>
+                        <td class="px-6 py-3.5 text-right font-mono font-semibold">${{ line.total_cost }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

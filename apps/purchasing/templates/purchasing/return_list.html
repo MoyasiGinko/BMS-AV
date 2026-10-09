@@ -1,0 +1,65 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Purchase Returns" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Purchase Returns" %}</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                {% trans "Return defective or excess merchandise to vendors and adjust accounts payable." %}
+            </p>
+        </div>
+        <a href="{% url 'purchasing:supplier_bill_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">
+            {% trans "Vendor Bills" %}
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Return #" %}</th>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Warehouse" %}</th>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Date" %}</th>
+                        <th class="px-6 py-3.5 text-right font-semibold">{% trans "Amount" %}</th>
+                        <th class="px-6 py-3.5 text-center font-semibold">{% trans "Status" %}</th>
+                        <th class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+                    {% for ret in returns %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td class="px-6 py-4 font-medium text-indigo-600">
+                            <a href="{% url 'purchasing:purchase_return_detail' pk=ret.pk %}" class="hover:underline">
+                                {{ ret.return_number }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4">{{ ret.supplier.name }}</td>
+                        <td class="px-6 py-4 text-xs text-slate-500">{{ ret.warehouse.name }}</td>
+                        <td class="px-6 py-4 text-xs text-slate-500">{{ ret.return_date }}</td>
+                        <td class="px-6 py-4 text-right font-mono font-semibold">${{ ret.total_amount }}</td>
+                        <td class="px-6 py-4 text-center">
+                            {% if ret.status == 'posted' %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">{% trans "Posted" %}</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">{% trans "Draft" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right text-xs">
+                            <a href="{% url 'purchasing:purchase_return_detail' pk=ret.pk %}" class="text-indigo-600 hover:underline font-medium">{% trans "View" %}</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">{% trans "No purchase returns recorded." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

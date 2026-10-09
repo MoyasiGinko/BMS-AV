@@ -1,0 +1,91 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ payment.payment_number }} | {% trans "Supplier Payment" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'purchasing:supplier_payment_list' %}" class="hover:underline">{% trans "Supplier Payments" %}</a>
+                <span>/</span>
+                <span class="font-mono text-slate-700 dark:text-slate-300">{{ payment.payment_number }}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                {{ payment.payment_number }}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                    {% trans "Paid" %}
+                </span>
+            </h1>
+        </div>
+        <a href="{% url 'purchasing:supplier_payment_list' %}" class="text-sm text-slate-500 hover:text-slate-800">
+            &larr; {% trans "Back to Payments" %}
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Supplier" %}</span>
+            <div class="mt-1 font-medium text-slate-900 dark:text-white">
+                <a href="{% url 'purchasing:supplier_detail' pk=payment.supplier.pk %}" class="text-indigo-600 hover:underline">
+                    {{ payment.supplier.name }}
+                </a>
+            </div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Payment Details" %}</span>
+            <div class="mt-1 text-slate-900 dark:text-white text-sm">{{ payment.get_payment_method_display }}</div>
+            <div class="text-xs text-slate-500">{{ payment.payment_date }}</div>
+            {% if payment.reference %}<div class="text-xs font-mono text-slate-400">Ref: {{ payment.reference }}</div>{% endif %}
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "Disbursed Amount" %}</span>
+            <div class="mt-1 text-2xl font-bold font-mono text-emerald-600">${{ payment.amount }}</div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase">{% trans "General Ledger" %}</span>
+            <div class="mt-1 text-xs text-slate-500">
+                {% if payment.journal_entry %}
+                {% trans "Journal posted successfully" %} ({{ payment.journal_entry.entry_number }})
+                {% else %}
+                -
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bill Allocations Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800">
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Applied Bill Allocations" %}</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3 text-left">{% trans "Bill #" %}</th>
+                        <th class="px-6 py-3 text-left">{% trans "Bill Date" %}</th>
+                        <th class="px-6 py-3 text-right">{% trans "Allocated Amount" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for alloc in payment.allocations.all %}
+                    <tr>
+                        <td class="px-6 py-3.5 font-medium text-indigo-600">
+                            <a href="{% url 'purchasing:supplier_bill_detail' pk=alloc.bill.pk %}" class="hover:underline">
+                                {{ alloc.bill.bill_number }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-3.5 text-slate-500 text-xs">{{ alloc.bill.issue_date }}</td>
+                        <td class="px-6 py-3.5 text-right font-mono font-semibold text-emerald-600">${{ alloc.allocated_amount }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="px-6 py-6 text-center text-slate-400 text-xs">{% trans "Unallocated payment / deposit on account." %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

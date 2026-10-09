@@ -1,0 +1,115 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ title }}</h1>
+            <p class="text-sm text-slate-500 mt-1">{% trans "Vendor profile, address, payment terms, and contact details." %}</p>
+        </div>
+        <a href="{% url 'purchasing:supplier_list' %}" class="text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+            &larr; {% trans "Back to Suppliers" %}
+        </a>
+    </div>
+
+    <form method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg text-rose-700 dark:text-rose-300 text-sm">
+            {% trans "Please correct the errors below:" %}
+            <ul class="list-disc pl-5 mt-1">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Supplier Name" %} *</label>
+                {{ form.name }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Supplier Code" %} (Optional)</label>
+                {{ form.code }}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Contact Person" %}</label>
+                {{ form.contact_person }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Email" %}</label>
+                {{ form.email }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Phone" %}</label>
+                {{ form.phone }}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "City" %}</label>
+                {{ form.city }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Country" %}</label>
+                {{ form.country }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Postal Code" %}</label>
+                {{ form.postal_code }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Street Address" %}</label>
+            {{ form.address }}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Tax / VAT ID" %}</label>
+                {{ form.tax_id }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Currency" %}</label>
+                {{ form.currency }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Payment Terms (Days)" %}</label>
+                {{ form.payment_terms_days }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Internal Notes" %}</label>
+            {{ form.notes }}
+        </div>
+
+        <div class="flex items-center gap-2">
+            {{ form.is_active }}
+            <label class="text-sm text-slate-700 dark:text-slate-300">{% trans "Active supplier (can receive purchase orders)" %}</label>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <a href="{% url 'purchasing:supplier_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
+                {% trans "Save Supplier" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -53,6 +53,7 @@ LOCAL_APPS = [
     "apps.pos",
     "apps.reports",
     "apps.integrations",
+    "apps.purchasing",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -229,6 +230,11 @@ SPECTACULAR_SETTINGS = {
         "SalesOrderStatusEnum": "apps.sales.models.SalesOrderStatus",
         "InvoiceStatusEnum": "apps.sales.models.InvoiceStatus",
         "CreditNoteStatusEnum": "apps.sales.models.CreditNoteStatus",
+        "PaymentMethodEnum": "apps.sales.models.PaymentMethod",
+        "PurchaseOrderStatusEnum": "apps.purchasing.models.PurchaseOrderStatus",
+        "GoodsReceiptStatusEnum": "apps.purchasing.models.GoodsReceiptStatus",
+        "SupplierPaymentMethodEnum": "apps.purchasing.models.SupplierPaymentMethod",
+        "PurchaseReturnStatusEnum": "apps.purchasing.models.PurchaseReturnStatus",
     },
     "SECURITY": [{"BearerAuth": []}],
 }

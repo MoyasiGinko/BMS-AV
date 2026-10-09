@@ -1,0 +1,66 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Supplier Payments" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Supplier Payments & Disbursements" %}</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                {% trans "Vendor payments, bank transfers, check disbursements, and bill allocations." %}
+            </p>
+        </div>
+        <a href="{% url 'purchasing:supplier_payment_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+            <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            {% trans "Record Payment" %}
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Payment #" %}</th>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Date" %}</th>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Method" %}</th>
+                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Reference" %}</th>
+                        <th class="px-6 py-3.5 text-right font-semibold">{% trans "Amount" %}</th>
+                        <th class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+                    {% for pay in payments %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td class="px-6 py-4 font-medium text-indigo-600">
+                            <a href="{% url 'purchasing:supplier_payment_detail' pk=pay.pk %}" class="hover:underline">
+                                {{ pay.payment_number }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4">{{ pay.supplier.name }}</td>
+                        <td class="px-6 py-4 text-xs text-slate-500">{{ pay.payment_date }}</td>
+                        <td class="px-6 py-4 text-xs">
+                            <span class="px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-800">
+                                {{ pay.get_payment_method_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-xs font-mono text-slate-500">{{ pay.reference|default:"-" }}</td>
+                        <td class="px-6 py-4 text-right font-mono font-bold text-emerald-600">${{ pay.amount }}</td>
+                        <td class="px-6 py-4 text-right text-xs">
+                            <a href="{% url 'purchasing:supplier_payment_detail' pk=pay.pk %}" class="text-indigo-600 hover:underline font-medium">{% trans "View" %}</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">{% trans "No disbursements recorded yet" %}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

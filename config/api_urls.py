@@ -28,4 +28,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("sales/", include("apps.sales.api.urls")),
     # Point of Sale (POS)
     path("pos/", include("apps.pos.api.urls")),
+    # Purchasing & Vendor Management
+    path("purchasing/", include("apps.purchasing.api.urls")),
 ]

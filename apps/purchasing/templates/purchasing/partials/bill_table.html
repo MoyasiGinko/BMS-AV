@@ -1,0 +1,63 @@
+{% load i18n %}
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+        <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
+            <tr>
+                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Bill #" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Vendor Invoice #" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Issue Date" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Due Date" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Total" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Balance Due" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-center font-semibold">{% trans "Status" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+            {% for bill in bills %}
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                <td class="px-6 py-4 whitespace-nowrap font-medium text-indigo-600">
+                    <a href="{% url 'purchasing:supplier_bill_detail' pk=bill.pk %}" class="hover:underline">
+                        {{ bill.bill_number }}
+                    </a>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-slate-500 font-mono text-xs">
+                    {{ bill.supplier_reference|default:"-" }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap font-medium">
+                    <a href="{% url 'purchasing:supplier_detail' pk=bill.supplier.pk %}" class="hover:underline">
+                        {{ bill.supplier.name }}
+                    </a>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">{{ bill.issue_date }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">{{ bill.due_date }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-medium">${{ bill.total_amount }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-semibold {% if bill.balance_due > 0 %}text-rose-600{% else %}text-emerald-600{% endif %}">
+                    ${{ bill.balance_due }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                    {% if bill.status == 'posted' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{% trans "Posted" %}</span>
+                    {% elif bill.status == 'partially_paid' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">{% trans "Partially Paid" %}</span>
+                    {% elif bill.status == 'paid' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">{% trans "Paid" %}</span>
+                    {% elif bill.status == 'void' %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">{% trans "Void" %}</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">{% trans "Draft" %}</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-xs">
+                    <a href="{% url 'purchasing:supplier_bill_detail' pk=bill.pk %}" class="text-indigo-600 hover:underline font-medium">
+                        {% trans "View" %}
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="px-6 py-12 text-center text-slate-400">{% trans "No supplier bills found" %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
