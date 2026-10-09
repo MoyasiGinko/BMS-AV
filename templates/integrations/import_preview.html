@@ -1,0 +1,289 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Import Preview" %} - {{ job.file_name }} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{ activeTab: '{% if job.error_rows > 0 and job.valid_rows == 0 %}errors{% else %}preview{% endif %}' }">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'integrations:imports_list' %}" class="hover:text-indigo-600">{% trans "Imports" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Preview & Commit" %}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    {% trans "Import Preview" %}: {{ job.get_entity_type_display }}
+                </h1>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase font-mono {% if job.file_format == 'xlsx' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300{% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                    {{ job.file_format }}
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1 font-mono">
+                {% trans "File" %}: {{ job.file_name }} &bull; {{ job.file_size|filesizeformat }} &bull; {{ job.created_at|date:"Y-m-d H:i:s" }}
+            </p>
+        </div>
+
+        <!-- Live Status Polling (if processing) -->
+        {% if job.status == 'validating' or job.status == 'committing' %}
+        <div hx-get="{% url 'integrations:import_status' job.public_id %}"
+             hx-trigger="every 1s"
+             hx-swap="innerHTML">
+            {% include "integrations/partials/import_status.html" %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Status Alert Banner -->
+    {% if job.status == 'completed' %}
+    <div class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <div>
+                <h4 class="text-sm font-bold text-emerald-900 dark:text-emerald-200">{% trans "Import Completed Successfully" %}</h4>
+                <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">
+                    {% trans "Created" %}: <strong>{{ job.created_count }}</strong> &bull;
+                    {% trans "Updated" %}: <strong>{{ job.updated_count }}</strong> &bull;
+                    {% trans "Skipped" %}: <strong>{{ job.skipped_count }}</strong>
+                </p>
+            </div>
+        </div>
+        <div>
+            {% if job.entity_type == 'products' %}
+            <a href="{% url 'catalog:product_list' %}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs">
+                {% trans "View Products Catalog" %} &rarr;
+            </a>
+            {% elif job.entity_type == 'customers' %}
+            <a href="{% url 'customers:customer_list' %}" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs">
+                {% trans "View Customers Directory" %} &rarr;
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% elif job.status == 'failed' %}
+    <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl p-4 flex items-center gap-3 text-rose-800 dark:text-rose-200">
+        <svg class="w-5 h-5 text-rose-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <div>
+            <h4 class="text-sm font-bold">{% trans "Import Processing Failed" %}</h4>
+            <p class="text-xs font-mono mt-0.5">{{ job.error_message }}</p>
+        </div>
+    </div>
+    {% elif job.error_rows > 0 %}
+    <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3 text-amber-800 dark:text-amber-200">
+        <svg class="w-5 h-5 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <div>
+            <h4 class="text-sm font-bold">{% trans "Validation Warnings Found" %}</h4>
+            <p class="text-xs mt-0.5">
+                {{ job.error_rows }} {% trans "row(s) failed validation and will be skipped during commit. You can review exact errors in the Validation Errors tab." %}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Metric Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Rows" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white font-mono">{{ job.total_rows }}</div>
+            <p class="text-xs text-slate-400 mt-1">{% trans "Records in upload" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{% trans "Valid Rows" %}</span>
+            <div class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">{{ job.valid_rows }}</div>
+            <p class="text-xs text-slate-400 mt-1">{% trans "Ready for database write" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">{% trans "Error Rows" %}</span>
+            <div class="mt-2 text-2xl font-bold {% if job.error_rows > 0 %}text-rose-600 dark:text-rose-400{% else %}text-slate-400{% endif %} font-mono">
+                {{ job.error_rows }}
+            </div>
+            <p class="text-xs text-slate-400 mt-1">{% trans "Failed validation checks" %}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Status" %}</span>
+            <div class="mt-2 text-lg font-bold text-slate-900 dark:text-white capitalize">
+                {{ job.get_status_display }}
+            </div>
+            <p class="text-xs text-slate-400 mt-1">
+                {% if job.completed_at %}{{ job.completed_at|date:"H:i:s" }}{% else %}{% trans "In progress" %}{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-slate-200 dark:border-slate-800 flex items-center gap-6">
+        <button @click="activeTab = 'preview'"
+                :class="{ 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold': activeTab === 'preview', 'border-transparent text-slate-500 hover:text-slate-700': activeTab !== 'preview' }"
+                class="py-3 px-1 border-b-2 text-sm font-semibold transition-colors flex items-center gap-2">
+            {% trans "Preview Sample Records" %}
+            <span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs px-2 py-0.5 rounded-full font-mono">
+                {{ job.preview_data|length }}
+            </span>
+        </button>
+
+        {% if job.error_rows > 0 %}
+        <button @click="activeTab = 'errors'"
+                :class="{ 'border-rose-600 text-rose-600 dark:text-rose-400 font-bold': activeTab === 'errors', 'border-transparent text-slate-500 hover:text-slate-700': activeTab !== 'errors' }"
+                class="py-3 px-1 border-b-2 text-sm font-semibold transition-colors flex items-center gap-2">
+            {% trans "Validation Errors" %}
+            <span class="bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-xs px-2 py-0.5 rounded-full font-mono">
+                {{ job.validation_errors|length }}
+            </span>
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Tab 1: Preview Sample Table -->
+    <div x-show="activeTab === 'preview'" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 bg-slate-50/50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+            <span>{% trans "Showing up to 20 representative rows from parsed file:" %}</span>
+            <span class="font-mono text-slate-400">{% trans "Options: Update existing" %} = {{ job.options.update_existing }}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
+                        <th class="py-2.5 px-3">#</th>
+                        <th class="py-2.5 px-3">{% trans "Status" %}</th>
+                        {% if job.entity_type == 'products' %}
+                        <th class="py-2.5 px-3">{% trans "SKU" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Name" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Type" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Category" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Unit" %}</th>
+                        <th class="py-2.5 px-3 text-right">{% trans "Cost" %}</th>
+                        <th class="py-2.5 px-3 text-right">{% trans "Price" %}</th>
+                        {% elif job.entity_type == 'customers' %}
+                        <th class="py-2.5 px-3">{% trans "Code" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Name" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Email" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Phone" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Tax ID" %}</th>
+                        <th class="py-2.5 px-3 text-right">{% trans "Credit Limit" %}</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                    {% for row in job.preview_data %}
+                    <tr class="{% if not row.is_valid %}bg-rose-50/40 dark:bg-rose-950/20{% else %}hover:bg-slate-50/50 dark:hover:bg-slate-800/50{% endif %}">
+                        <td class="py-2.5 px-3 font-mono text-slate-400">{{ row.row_number }}</td>
+                        <td class="py-2.5 px-3">
+                            {% if row.is_valid %}
+                                {% if row.is_update %}
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                    {% trans "UPDATE" %}
+                                </span>
+                                {% else %}
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                    {% trans "NEW" %}
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                                {% trans "ERROR" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        {% if job.entity_type == 'products' %}
+                        <td class="py-2.5 px-3 font-mono font-bold text-slate-900 dark:text-white">{{ row.sku }}</td>
+                        <td class="py-2.5 px-3 font-medium">{{ row.name }}</td>
+                        <td class="py-2.5 px-3 uppercase text-[10px] text-slate-500">{{ row.type }}</td>
+                        <td class="py-2.5 px-3">{{ row.category|default:"-" }}</td>
+                        <td class="py-2.5 px-3 font-mono">{{ row.unit|default:"pcs" }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono">${{ row.cost_price }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono font-semibold">${{ row.selling_price }}</td>
+                        {% elif job.entity_type == 'customers' %}
+                        <td class="py-2.5 px-3 font-mono font-bold text-slate-900 dark:text-white">{{ row.code|default:"Auto" }}</td>
+                        <td class="py-2.5 px-3 font-medium">{{ row.name }}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-500">{{ row.email|default:"-" }}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-500">{{ row.phone|default:"-" }}</td>
+                        <td class="py-2.5 px-3 font-mono text-slate-500">{{ row.tax_id|default:"-" }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono font-semibold">${{ row.credit_limit }}</td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="py-8 text-center text-slate-400">{% trans "No preview rows available." %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 2: Validation Errors Table -->
+    {% if job.error_rows > 0 %}
+    <div x-show="activeTab === 'errors'" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 bg-rose-50/50 dark:bg-rose-950/20 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-rose-700 dark:text-rose-300">
+            <span class="font-semibold">{% trans "The following rows will be ignored during commit:" %}</span>
+            <span class="font-mono">{{ job.validation_errors|length }} {% trans "errors detected" %}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
+                        <th class="py-2.5 px-3">{% trans "Row #" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Field" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Validation Error" %}</th>
+                        <th class="py-2.5 px-3">{% trans "Supplied Values" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                    {% for err in job.validation_errors %}
+                    <tr class="hover:bg-rose-50/20 dark:hover:bg-rose-950/10">
+                        <td class="py-2.5 px-3 font-mono font-bold text-rose-600 dark:text-rose-400">
+                            {{ err.row_number }}
+                        </td>
+                        <td class="py-2.5 px-3 font-mono font-semibold text-slate-900 dark:text-white">
+                            {{ err.field }}
+                        </td>
+                        <td class="py-2.5 px-3 text-rose-700 dark:text-rose-300 font-medium">
+                            {{ err.message }}
+                        </td>
+                        <td class="py-2.5 px-3 font-mono text-[11px] text-slate-500 max-w-md truncate">
+                            {{ err.raw_data }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Commit Action Footer -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <a href="{% url 'integrations:imports_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+            &larr; {% trans "Back to Imports List" %}
+        </a>
+
+        {% if can_commit %}
+        <form method="post" action="{% url 'integrations:import_commit' job_id=job.public_id %}" class="flex items-center gap-3">
+            {% csrf_token %}
+            <a href="{% url 'integrations:import_upload' entity_type=job.entity_type %}" class="px-3 py-2 text-xs text-rose-600 hover:text-rose-700 font-medium">
+                {% trans "Discard & Upload New File" %}
+            </a>
+            <button type="submit"
+                    onclick="return confirm('{% trans "Are you sure you want to commit these records to your organization database?" %}');"
+                    class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {% trans "Commit Valid Rows" %} ({{ job.valid_rows }})
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

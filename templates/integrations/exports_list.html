@@ -1,0 +1,172 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Data Exports" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'integrations:imports_list' %}" class="hover:text-indigo-600">{% trans "Integrations" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Entity Data Exports" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Entity Data Exports" %}</h1>
+            <p class="text-xs text-slate-500 mt-1">{% trans "Download your organization's business records in CSV or formatted Excel spreadsheets." %}</p>
+        </div>
+
+        <div class="flex items-center gap-2" x-data="{ exportModal: false }">
+            <a href="{% url 'integrations:imports_list' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                &larr; {% trans "Back to Imports" %}
+            </a>
+            <button @click="exportModal = true" type="button" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                {% trans "Generate Export" %}
+            </button>
+
+            <!-- Export Modal -->
+            <div x-show="exportModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-xl" @click.away="exportModal = false">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Export Dataset" %}</h3>
+                        <button type="button" @click="exportModal = false" class="text-slate-400 hover:text-slate-600">
+                            <span class="sr-only">{% trans "Close" %}</span>
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="mt-4 space-y-4">
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{% trans "Products Catalog" %}</h4>
+                            <div class="flex items-center gap-2">
+                                <form method="post" action="{% url 'integrations:export_trigger' entity_type='products' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="file_format" value="csv">
+                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 shadow-xs">
+                                        {% trans "Export CSV" %}
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'integrations:export_trigger' entity_type='products' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="file_format" value="xlsx">
+                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-slate-100 shadow-xs">
+                                        {% trans "Export Excel (.xlsx)" %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{% trans "Customers Directory" %}</h4>
+                            <div class="flex items-center gap-2">
+                                <form method="post" action="{% url 'integrations:export_trigger' entity_type='customers' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="file_format" value="csv">
+                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 shadow-xs">
+                                        {% trans "Export CSV" %}
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'integrations:export_trigger' entity_type='customers' %}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="file_format" value="xlsx">
+                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-slate-100 shadow-xs">
+                                        {% trans "Export Excel (.xlsx)" %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exports Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        <th class="py-3 px-4">{% trans "Entity Type" %}</th>
+                        <th class="py-3 px-4">{% trans "File Name" %}</th>
+                        <th class="py-3 px-4">{% trans "Format" %}</th>
+                        <th class="py-3 px-4">{% trans "Status" %}</th>
+                        <th class="py-3 px-4 text-center">{% trans "Rows" %}</th>
+                        <th class="py-3 px-4 text-center">{% trans "File Size" %}</th>
+                        <th class="py-3 px-4">{% trans "Generated At" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Action" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                    {% for job in jobs %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td class="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                            {{ job.get_entity_type_display }}
+                        </td>
+                        <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-400">
+                            {{ job.file_name|default:"Generating..." }}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium uppercase {% if job.file_format == 'xlsx' %}bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">
+                                {{ job.file_format }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if job.status == 'completed' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                {% trans "Completed" %}
+                            </span>
+                            {% elif job.status == 'processing' or job.status == 'pending' %}
+                            <div hx-get="{% url 'integrations:export_status' job.public_id %}" hx-trigger="every 1s" hx-swap="outerHTML">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 animate-pulse">
+                                    {{ job.get_status_display }}
+                                </span>
+                            </div>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+                                {{ job.get_status_display }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center font-mono text-xs">
+                            {{ job.row_count }}
+                        </td>
+                        <td class="py-3 px-4 text-center font-mono text-xs text-slate-500">
+                            {% if job.file_size %}{{ job.file_size|filesizeformat }}{% else %}-{% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-500 whitespace-nowrap">
+                            {{ job.created_at|date:"Y-m-d H:i" }}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            {% if job.status == 'completed' and job.file %}
+                            <a href="{% url 'integrations:export_download' job_id=job.public_id %}" class="inline-flex items-center px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 dark:text-indigo-300 rounded text-xs font-semibold shadow-2xs">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                {% trans "Download" %}
+                            </a>
+                            {% else %}
+                            <span class="text-xs text-slate-400">{% trans "Not ready" %}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-500">
+                            <p class="text-base font-semibold text-slate-700 dark:text-slate-300">{% trans "No exports generated yet" %}</p>
+                            <p class="text-xs text-slate-400 mt-1">{% trans "Click 'Generate Export' to download your products or customers dataset." %}</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

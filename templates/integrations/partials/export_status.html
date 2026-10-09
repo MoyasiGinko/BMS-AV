@@ -1,0 +1,20 @@
+{% load i18n %}
+{% if job.status == 'completed' %}
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+    {% trans "Completed" %}
+</span>
+{% elif job.status == 'failed' %}
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+    {% trans "Failed" %}
+</span>
+{% else %}
+<div hx-get="{% url 'integrations:export_status' job.public_id %}" hx-trigger="every 1s" hx-swap="outerHTML">
+    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 animate-pulse">
+        <svg class="animate-spin -ml-0.5 mr-1.5 h-3 w-3 text-amber-700" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+        {{ job.get_status_display }}
+    </span>
+</div>
+{% endif %}

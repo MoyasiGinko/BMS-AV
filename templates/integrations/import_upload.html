@@ -1,0 +1,112 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Import" %} {{ importer.display_name }} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div>
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+            <a href="{% url 'integrations:imports_list' %}" class="hover:text-indigo-600">{% trans "Imports" %}</a>
+            <span>&rsaquo;</span>
+            <span class="text-slate-700 dark:text-slate-300 font-medium">{{ importer.display_name }}</span>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {% trans "Import" %} {{ importer.display_name }}
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+            {% trans "Step 1 of 2: Upload your spreadsheet for schema validation and preview before any data is written." %}
+        </p>
+    </div>
+
+    <!-- Upload Form Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs p-6 space-y-6">
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Dropzone Area -->
+            <div x-data="{ isDragging: false, fileName: '' }">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                    {% trans "Select File (CSV or XLSX)" %}
+                </label>
+                <div @dragover.prevent="isDragging = true"
+                     @dragleave.prevent="isDragging = false"
+                     @drop.prevent="isDragging = false; if ($event.dataTransfer.files.length) { $refs.fileInput.files = $event.dataTransfer.files; fileName = $event.dataTransfer.files[0].name; }"
+                     :class="{ 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20': isDragging }"
+                     class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors cursor-pointer"
+                     @click="$refs.fileInput.click()">
+                    
+                    <svg class="mx-auto h-12 w-12 text-slate-400 dark:text-slate-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+
+                    <div class="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        <span x-text="fileName ? fileName : '{% trans "Click to browse or drag and drop your file here" %}'"></span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">{% trans "Supports comma-separated .csv and Excel .xlsx files up to 25MB" %}</p>
+
+                    <input type="file"
+                           name="file"
+                           x-ref="fileInput"
+                           accept=".csv,.xlsx"
+                           required
+                           class="hidden"
+                           @change="if ($refs.fileInput.files.length) fileName = $refs.fileInput.files[0].name" />
+                </div>
+            </div>
+
+            <!-- Configuration Options -->
+            <div class="border-t border-slate-100 dark:border-slate-800 pt-5 space-y-3">
+                <span class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                    {% trans "Import Configuration" %}
+                </span>
+
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" name="update_existing" value="1" checked class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800" />
+                    <div>
+                        <div class="text-sm font-medium text-slate-800 dark:text-slate-200">{% trans "Update existing records" %}</div>
+                        <p class="text-xs text-slate-400">{% trans "If a unique record (SKU or Customer Code) already exists, update its attributes instead of generating an error." %}</p>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" name="create_missing" value="1" checked class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-800" />
+                    <div>
+                        <div class="text-sm font-medium text-slate-800 dark:text-slate-200">{% trans "Auto-create missing references" %}</div>
+                        <p class="text-xs text-slate-400">{% trans "Automatically create missing product categories or units of measure referenced in rows." %}</p>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                <a href="{% url 'integrations:imports_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-2">
+                    {% trans "Upload & Validate Preview" %} &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Download Sample Template Box -->
+    <div class="bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="text-sm font-bold text-indigo-950 dark:text-indigo-200">{% trans "Need a starting template?" %}</h3>
+            <p class="text-xs text-indigo-700 dark:text-indigo-400 mt-0.5">
+                {% trans "Download official blank templates pre-filled with correct column headers and instructive sample rows." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{% url 'integrations:template_download' entity_type=entity_type file_format='csv' %}" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 shadow-xs">
+                {% trans "Download CSV" %}
+            </a>
+            <a href="{% url 'integrations:template_download' entity_type=entity_type file_format='xlsx' %}" class="px-3 py-1.5 bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 shadow-xs">
+                {% trans "Download Excel (.xlsx)" %}
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

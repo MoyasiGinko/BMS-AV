@@ -335,7 +335,23 @@ registry.register(
     description="API keys, webhooks, external connectors, and import/export",
     icon="arrow-path",
     sort_order=150,
-    permissions=["settings.manage"],
+    nav_items=[
+        NavItem(
+            "Data Imports", "integrations:imports_list", icon="arrow-up-tray", permission="integrations.view"
+        ),
+        NavItem(
+            "Data Exports",
+            "integrations:exports_list",
+            icon="arrow-down-tray",
+            permission="integrations.view",
+        ),
+    ],
+    permissions=[
+        "integrations.view",
+        "integrations.import",
+        "integrations.export",
+        "integrations.manage",
+    ],
 )
 
 registry.register(

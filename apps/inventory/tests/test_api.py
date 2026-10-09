@@ -31,7 +31,8 @@ def inventory_api_setup(db: None) -> dict[str, Any]:
     assert wh is not None
 
     unit = Unit.all_tenants.filter(organization=org, code="pcs").first()
-    assert unit is not None
+    if not unit:
+        unit = Unit.objects.create(organization=org, name="Piece", code="pcs")
     cat = Category.all_tenants.filter(organization=org, slug="general").first()
     if not cat:
         cat = Category.objects.create(organization=org, name="Tools", slug="tools")

@@ -1,0 +1,162 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Data Imports" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <span>{% trans "Integrations & Tools" %}</span>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Data Imports" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Data Imports" %}</h1>
+            <p class="text-xs text-slate-500 mt-1">{% trans "Bulk upload, validate, preview, and commit business records with safe rollback." %}</p>
+        </div>
+
+        <div class="flex items-center gap-2" x-data="{ openDropdown: false }">
+            <a href="{% url 'integrations:exports_list' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                {% trans "View Exports" %}
+            </a>
+            <div class="relative">
+                <button @click="openDropdown = !openDropdown" type="button" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {% trans "New Import" %}
+                    <svg class="w-4 h-4 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="openDropdown" @click.outside="openDropdown = false" class="origin-top-right absolute right-0 mt-2 w-52 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 py-1.5 z-50" x-cloak>
+                    <a href="{% url 'integrations:import_upload' entity_type='products' %}" class="flex items-center px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/40">
+                        <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        {% trans "Import Products Catalog" %}
+                    </a>
+                    <a href="{% url 'integrations:import_upload' entity_type='customers' %}" class="flex items-center px-4 py-2 text-xs text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/40">
+                        <svg class="w-4 h-4 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        {% trans "Import Customers Directory" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs flex flex-wrap items-center gap-3">
+        <a href="{% url 'integrations:imports_list' %}" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if not selected_entity %}bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
+            {% trans "All Entities" %}
+        </a>
+        <a href="{% url 'integrations:imports_list' %}?entity_type=products" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if selected_entity == 'products' %}bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
+            {% trans "Products" %}
+        </a>
+        <a href="{% url 'integrations:imports_list' %}?entity_type=customers" class="px-3 py-1.5 rounded-lg text-xs font-semibold {% if selected_entity == 'customers' %}bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
+            {% trans "Customers" %}
+        </a>
+    </div>
+
+    <!-- Imports Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        <th class="py-3 px-4">{% trans "Entity Type" %}</th>
+                        <th class="py-3 px-4">{% trans "File Name" %}</th>
+                        <th class="py-3 px-4">{% trans "Format" %}</th>
+                        <th class="py-3 px-4">{% trans "Status" %}</th>
+                        <th class="py-3 px-4 text-center">{% trans "Rows (Total / Valid / Error)" %}</th>
+                        <th class="py-3 px-4 text-center">{% trans "Committed" %}</th>
+                        <th class="py-3 px-4">{% trans "Uploaded At" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Action" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                    {% for job in jobs %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td class="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                            {{ job.get_entity_type_display }}
+                        </td>
+                        <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-400">
+                            {{ job.file_name }}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium uppercase {% if job.file_format == 'xlsx' %}bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">
+                                {{ job.file_format }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if job.status == 'completed' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                {% trans "Completed" %}
+                            </span>
+                            {% elif job.status == 'validated' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+                                {% trans "Ready to Commit" %}
+                            </span>
+                            {% elif job.status == 'validating' or job.status == 'committing' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 animate-pulse">
+                                {{ job.get_status_display }}
+                            </span>
+                            {% elif job.status == 'failed' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+                                {% trans "Failed" %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                                {{ job.get_status_display }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center font-mono text-xs">
+                            <span class="text-slate-900 dark:text-white font-semibold">{{ job.total_rows }}</span>
+                            <span class="text-slate-400">/</span>
+                            <span class="text-emerald-600 font-semibold">{{ job.valid_rows }}</span>
+                            <span class="text-slate-400">/</span>
+                            <span class="{% if job.error_rows > 0 %}text-rose-600 font-bold{% else %}text-slate-400{% endif %}">{{ job.error_rows }}</span>
+                        </td>
+                        <td class="py-3 px-4 text-center font-mono text-xs">
+                            {% if job.status == 'completed' %}
+                            <span class="text-emerald-600 font-semibold">+{{ job.created_count }}</span>
+                            {% if job.updated_count > 0 %}<span class="text-indigo-600 ml-1">~{{ job.updated_count }}</span>{% endif %}
+                            {% else %}
+                            <span class="text-slate-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-500 whitespace-nowrap">
+                            {{ job.created_at|date:"Y-m-d H:i" }}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <a href="{% url 'integrations:import_preview' job_id=job.public_id %}" class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">
+                                {% if job.status == 'validated' %}
+                                {% trans "Preview & Commit" %} &rarr;
+                                {% else %}
+                                {% trans "View Report" %} &rarr;
+                                {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-500">
+                            <svg class="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <p class="text-base font-semibold text-slate-700 dark:text-slate-300">{% trans "No imports recorded yet" %}</p>
+                            <p class="text-xs text-slate-400 mt-1">{% trans "Upload a CSV or Excel spreadsheet to onboard your products or customers." %}</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
