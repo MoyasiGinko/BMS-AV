@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from drf_spectacular.utils import extend_schema, extend_schema_view
+
 from apps.catalog.api.serializers import (
     CategorySerializer,
     PriceListSerializer,
@@ -17,6 +19,14 @@ from apps.catalog.models import (
 from apps.core.api.viewsets import TenantScopedModelViewSet
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Catalog"], summary="List product categories"),
+    retrieve=extend_schema(tags=["Catalog"], summary="Retrieve product category"),
+    create=extend_schema(tags=["Catalog"], summary="Create product category"),
+    update=extend_schema(tags=["Catalog"], summary="Update product category"),
+    partial_update=extend_schema(tags=["Catalog"], summary="Partially update product category"),
+    destroy=extend_schema(tags=["Catalog"], summary="Delete product category"),
+)
 class CategoryViewSet(TenantScopedModelViewSet):
     """API endpoint for managing product categories."""
 
@@ -37,6 +47,14 @@ class CategoryViewSet(TenantScopedModelViewSet):
     ordering = ["sort_order", "name"]
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Catalog"], summary="List units of measure"),
+    retrieve=extend_schema(tags=["Catalog"], summary="Retrieve unit of measure"),
+    create=extend_schema(tags=["Catalog"], summary="Create unit of measure"),
+    update=extend_schema(tags=["Catalog"], summary="Update unit of measure"),
+    partial_update=extend_schema(tags=["Catalog"], summary="Partially update unit of measure"),
+    destroy=extend_schema(tags=["Catalog"], summary="Delete unit of measure"),
+)
 class UnitViewSet(TenantScopedModelViewSet):
     """API endpoint for managing units of measure."""
 
@@ -57,6 +75,14 @@ class UnitViewSet(TenantScopedModelViewSet):
     ordering = ["name"]
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Catalog"], summary="List products and services"),
+    retrieve=extend_schema(tags=["Catalog"], summary="Retrieve product or service"),
+    create=extend_schema(tags=["Catalog"], summary="Create product or service"),
+    update=extend_schema(tags=["Catalog"], summary="Update product or service"),
+    partial_update=extend_schema(tags=["Catalog"], summary="Partially update product or service"),
+    destroy=extend_schema(tags=["Catalog"], summary="Delete product or service"),
+)
 class ProductViewSet(TenantScopedModelViewSet):
     """API endpoint for products."""
 
@@ -78,6 +104,14 @@ class ProductViewSet(TenantScopedModelViewSet):
     ordering = ["name"]
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Catalog"], summary="List customer price lists"),
+    retrieve=extend_schema(tags=["Catalog"], summary="Retrieve price list"),
+    create=extend_schema(tags=["Catalog"], summary="Create price list"),
+    update=extend_schema(tags=["Catalog"], summary="Update price list"),
+    partial_update=extend_schema(tags=["Catalog"], summary="Partially update price list"),
+    destroy=extend_schema(tags=["Catalog"], summary="Delete price list"),
+)
 class PriceListViewSet(TenantScopedModelViewSet):
     """API endpoint for price lists."""
 

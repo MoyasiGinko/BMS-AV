@@ -417,6 +417,10 @@ class InvoiceCreateSerializer(serializers.Serializer):
         )
 
 
+class InvoiceVoidActionSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False, allow_blank=True, default="Voided via API")
+
+
 # ============================================================================
 # CREDIT NOTE SERIALIZERS
 # ============================================================================

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from drf_spectacular.utils import extend_schema, extend_schema_view
+
 from apps.core.api.viewsets import TenantScopedModelViewSet
 from apps.inventory.api.serializers import (
     StockAdjustmentSerializer,
@@ -19,6 +21,10 @@ from apps.inventory.models import (
 )
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Inventory"], summary="List stock levels across warehouses"),
+    retrieve=extend_schema(tags=["Inventory"], summary="Retrieve stock level for warehouse item"),
+)
 class StockLevelViewSet(TenantScopedModelViewSet):
     """API endpoint for inspecting warehouse stock levels."""
 
@@ -35,6 +41,10 @@ class StockLevelViewSet(TenantScopedModelViewSet):
     ordering = ["product__name"]
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Inventory"], summary="List stock movement ledger entries"),
+    retrieve=extend_schema(tags=["Inventory"], summary="Retrieve stock movement entry"),
+)
 class StockMovementViewSet(TenantScopedModelViewSet):
     """API endpoint for reading the immutable stock movement ledger."""
 
@@ -51,6 +61,14 @@ class StockMovementViewSet(TenantScopedModelViewSet):
     ordering = ["-occurred_at"]
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Inventory"], summary="List warehouse stock transfers"),
+    retrieve=extend_schema(tags=["Inventory"], summary="Retrieve stock transfer document"),
+    create=extend_schema(tags=["Inventory"], summary="Create stock transfer document"),
+    update=extend_schema(tags=["Inventory"], summary="Update stock transfer document"),
+    partial_update=extend_schema(tags=["Inventory"], summary="Partially update stock transfer document"),
+    destroy=extend_schema(tags=["Inventory"], summary="Delete draft stock transfer document"),
+)
 class StockTransferViewSet(TenantScopedModelViewSet):
     """API endpoint for stock transfer documents."""
 
@@ -72,6 +90,14 @@ class StockTransferViewSet(TenantScopedModelViewSet):
     ordering = ["-created_at"]
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Inventory"], summary="List stock adjustment records"),
+    retrieve=extend_schema(tags=["Inventory"], summary="Retrieve stock adjustment record"),
+    create=extend_schema(tags=["Inventory"], summary="Create stock adjustment record"),
+    update=extend_schema(tags=["Inventory"], summary="Update stock adjustment record"),
+    partial_update=extend_schema(tags=["Inventory"], summary="Partially update stock adjustment record"),
+    destroy=extend_schema(tags=["Inventory"], summary="Delete draft stock adjustment record"),
+)
 class StockAdjustmentViewSet(TenantScopedModelViewSet):
     """API endpoint for stock adjustments."""
 
@@ -89,6 +115,10 @@ class StockAdjustmentViewSet(TenantScopedModelViewSet):
     ordering = ["-created_at"]
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Inventory"], summary="List inventory reservations"),
+    retrieve=extend_schema(tags=["Inventory"], summary="Retrieve inventory reservation"),
+)
 class StockReservationViewSet(TenantScopedModelViewSet):
     """API endpoint for stock reservations."""
 

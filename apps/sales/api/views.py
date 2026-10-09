@@ -1,11 +1,13 @@
 from typing import Any
 
 from django.db.models import QuerySet
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from apps.core.api.idempotency import IDEMPOTENCY_KEY_PARAMETER, idempotent
 from apps.core.api.viewsets import TenantScopedModelViewSet
 from apps.sales import services
 from apps.sales.api.serializers import (
@@ -13,6 +15,7 @@ from apps.sales.api.serializers import (
     CreditNoteSerializer,
     InvoiceCreateSerializer,
     InvoiceSerializer,
+    InvoiceVoidActionSerializer,
     PaymentAllocateActionSerializer,
     PaymentCreateSerializer,
     PaymentRefundActionSerializer,
@@ -27,6 +30,13 @@ from apps.sales.exceptions import SalesError
 from apps.sales.models import CreditNote, Invoice, Payment, Quote, SalesOrder
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Sales"], summary="List sales quotes"),
+    retrieve=extend_schema(tags=["Sales"], summary="Retrieve sales quote"),
+    update=extend_schema(tags=["Sales"], summary="Update sales quote"),
+    partial_update=extend_schema(tags=["Sales"], summary="Partially update sales quote"),
+    destroy=extend_schema(tags=["Sales"], summary="Delete sales quote"),
+)
 class QuoteViewSet(TenantScopedModelViewSet):
     """API endpoint for managing sales quotations."""
 
@@ -46,6 +56,14 @@ class QuoteViewSet(TenantScopedModelViewSet):
             .prefetch_related("lines__product", "lines__variant")
         )
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Create sales quote",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=QuoteCreateSerializer,
+        responses={201: QuoteSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
+    @idempotent
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = QuoteCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -58,7 +76,15 @@ class QuoteViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Accept sales quote",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=None,
+        responses={200: QuoteSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def accept(self, request: Request, public_id: str | None = None) -> Response:
         quote = self.get_object()
         try:
@@ -71,7 +97,15 @@ class QuoteViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Convert sales quote to sales order",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=None,
+        responses={201: SalesOrderSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def convert(self, request: Request, public_id: str | None = None) -> Response:
         quote = self.get_object()
         try:
@@ -85,6 +119,13 @@ class QuoteViewSet(TenantScopedModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Sales"], summary="List sales orders"),
+    retrieve=extend_schema(tags=["Sales"], summary="Retrieve sales order"),
+    update=extend_schema(tags=["Sales"], summary="Update sales order"),
+    partial_update=extend_schema(tags=["Sales"], summary="Partially update sales order"),
+    destroy=extend_schema(tags=["Sales"], summary="Delete sales order"),
+)
 class SalesOrderViewSet(TenantScopedModelViewSet):
     """API endpoint for managing sales orders."""
 
@@ -104,6 +145,14 @@ class SalesOrderViewSet(TenantScopedModelViewSet):
             .prefetch_related("lines__product", "lines__variant")
         )
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Create sales order",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=SalesOrderCreateSerializer,
+        responses={201: SalesOrderSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
+    @idempotent
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = SalesOrderCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -116,7 +165,15 @@ class SalesOrderViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Confirm sales order and allocate inventory",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=None,
+        responses={200: SalesOrderSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def confirm(self, request: Request, public_id: str | None = None) -> Response:
         order = self.get_object()
         try:
@@ -129,7 +186,15 @@ class SalesOrderViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Cancel sales order and release stock",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=None,
+        responses={200: SalesOrderSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def cancel(self, request: Request, public_id: str | None = None) -> Response:
         order = self.get_object()
         try:
@@ -142,7 +207,15 @@ class SalesOrderViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Convert sales order to invoice",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=None,
+        responses={201: InvoiceSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def convert_to_invoice(self, request: Request, public_id: str | None = None) -> Response:
         order = self.get_object()
         try:
@@ -156,6 +229,13 @@ class SalesOrderViewSet(TenantScopedModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Sales"], summary="List sales invoices"),
+    retrieve=extend_schema(tags=["Sales"], summary="Retrieve sales invoice"),
+    update=extend_schema(tags=["Sales"], summary="Update sales invoice"),
+    partial_update=extend_schema(tags=["Sales"], summary="Partially update sales invoice"),
+    destroy=extend_schema(tags=["Sales"], summary="Delete draft sales invoice"),
+)
 class InvoiceViewSet(TenantScopedModelViewSet):
     """API endpoint for managing sales invoices and posting to ledger."""
 
@@ -175,6 +255,14 @@ class InvoiceViewSet(TenantScopedModelViewSet):
             .prefetch_related("lines__product", "lines__variant")
         )
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Create draft sales invoice",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=InvoiceCreateSerializer,
+        responses={201: InvoiceSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
+    @idempotent
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = InvoiceCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -187,7 +275,15 @@ class InvoiceViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Post sales invoice to general ledger and AR",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=None,
+        responses={200: InvoiceSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"], url_path="post")
+    @idempotent
     def post_invoice(self, request: Request, public_id: str | None = None) -> Response:
         invoice = self.get_object()
         try:
@@ -200,7 +296,15 @@ class InvoiceViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Void sales invoice and reverse ledger postings",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=InvoiceVoidActionSerializer,
+        responses={200: InvoiceSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def void(self, request: Request, public_id: str | None = None) -> Response:
         invoice = self.get_object()
         data = request.data if isinstance(request.data, dict) else {}
@@ -217,6 +321,13 @@ class InvoiceViewSet(TenantScopedModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Sales"], summary="List credit notes"),
+    retrieve=extend_schema(tags=["Sales"], summary="Retrieve credit note"),
+    update=extend_schema(tags=["Sales"], summary="Update credit note"),
+    partial_update=extend_schema(tags=["Sales"], summary="Partially update credit note"),
+    destroy=extend_schema(tags=["Sales"], summary="Delete draft credit note"),
+)
 class CreditNoteViewSet(TenantScopedModelViewSet):
     """API endpoint for managing sales credit notes and returns."""
 
@@ -236,6 +347,14 @@ class CreditNoteViewSet(TenantScopedModelViewSet):
             .prefetch_related("lines__product", "lines__variant")
         )
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Create draft credit note",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=CreditNoteCreateSerializer,
+        responses={201: CreditNoteSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
+    @idempotent
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = CreditNoteCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -248,7 +367,15 @@ class CreditNoteViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Post credit note to general ledger",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=None,
+        responses={200: CreditNoteSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"], url_path="post")
+    @idempotent
     def post_credit_note(self, request: Request, public_id: str | None = None) -> Response:
         credit_note = self.get_object()
         try:
@@ -262,6 +389,13 @@ class CreditNoteViewSet(TenantScopedModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Sales"], summary="List customer payments"),
+    retrieve=extend_schema(tags=["Sales"], summary="Retrieve customer payment"),
+    update=extend_schema(tags=["Sales"], summary="Update customer payment"),
+    partial_update=extend_schema(tags=["Sales"], summary="Partially update customer payment"),
+    destroy=extend_schema(tags=["Sales"], summary="Delete customer payment"),
+)
 class PaymentViewSet(TenantScopedModelViewSet):
     """API endpoint for managing customer payments and allocations."""
 
@@ -282,6 +416,14 @@ class PaymentViewSet(TenantScopedModelViewSet):
             .prefetch_related("allocations__invoice", "refunds")
         )
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Record customer payment",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=PaymentCreateSerializer,
+        responses={201: PaymentSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
+    @idempotent
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         serializer = PaymentCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -294,7 +436,15 @@ class PaymentViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Allocate payment against open invoices",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=PaymentAllocateActionSerializer,
+        responses={200: PaymentSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def allocate(self, request: Request, public_id: str | None = None) -> Response:
         payment = self.get_object()
         serializer = PaymentAllocateActionSerializer(data=request.data)
@@ -316,7 +466,15 @@ class PaymentViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Refund customer payment",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=PaymentRefundActionSerializer,
+        responses={200: PaymentSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def refund(self, request: Request, public_id: str | None = None) -> Response:
         payment = self.get_object()
         serializer = PaymentRefundActionSerializer(data=request.data)
@@ -336,7 +494,15 @@ class PaymentViewSet(TenantScopedModelViewSet):
         except SalesError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["Sales"],
+        summary="Void unallocated customer payment",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=PaymentVoidActionSerializer,
+        responses={200: PaymentSerializer, 400: OpenApiResponse(description="Sales error")},
+    )
     @action(detail=True, methods=["post"])
+    @idempotent
     def void(self, request: Request, public_id: str | None = None) -> Response:
         payment = self.get_object()
         serializer = PaymentVoidActionSerializer(data=request.data)

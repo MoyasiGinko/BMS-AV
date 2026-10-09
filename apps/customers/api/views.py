@@ -6,12 +6,14 @@ import datetime
 from typing import Any
 
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
+from apps.core.api.idempotency import IDEMPOTENCY_KEY_PARAMETER, idempotent
 from apps.core.api.viewsets import TenantScopedModelViewSet
 from apps.customers import selectors, services
 from apps.customers.api.serializers import (
@@ -32,6 +34,14 @@ from apps.customers.models import (
 )
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Customers"], summary="List customer accounts"),
+    retrieve=extend_schema(tags=["Customers"], summary="Retrieve customer account detail"),
+    create=extend_schema(tags=["Customers"], summary="Create customer account"),
+    update=extend_schema(tags=["Customers"], summary="Update customer account"),
+    partial_update=extend_schema(tags=["Customers"], summary="Partially update customer account"),
+    destroy=extend_schema(tags=["Customers"], summary="Delete customer account"),
+)
 class CustomerViewSet(TenantScopedModelViewSet):
     """API endpoint for managing customer accounts, ledgers, and statements."""
 
@@ -66,6 +76,11 @@ class CustomerViewSet(TenantScopedModelViewSet):
         org = self.get_tenant()
         services.delete_customer(organization=org, customer=instance, actor=self.request.user)
 
+    @extend_schema(
+        tags=["Customers"],
+        summary="Retrieve chronological customer accounts receivable ledger",
+        responses={200: CustomerBalanceEntrySerializer(many=True)},
+    )
     @action(detail=True, methods=["get"], url_path="ledger")
     def ledger(self, request: Request, public_id: str | None = None) -> Response:
         """Retrieve chronological accounts receivable ledger for this customer."""
@@ -92,6 +107,11 @@ class CustomerViewSet(TenantScopedModelViewSet):
         serializer = CustomerBalanceEntrySerializer(qs, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        tags=["Customers"],
+        summary="Generate period statement with aging breakdown",
+        responses={200: OpenApiResponse(description="Customer account statement with aging analysis")},
+    )
     @action(detail=True, methods=["get"], url_path="statement")
     def statement(self, request: Request, public_id: str | None = None) -> Response:
         """Generate period statement with aging breakdown."""
@@ -146,7 +166,15 @@ class CustomerViewSet(TenantScopedModelViewSet):
             }
         )
 
+    @extend_schema(
+        tags=["Customers"],
+        summary="Post manual customer balance adjustment",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=CustomerAdjustmentInputSerializer,
+        responses={201: CustomerBalanceEntrySerializer, 400: OpenApiResponse(description="Customer error")},
+    )
     @action(detail=True, methods=["post"], url_path="adjust-balance")
+    @idempotent
     def adjust_balance(self, request: Request, public_id: str | None = None) -> Response:
         """Post a manual balance debit or credit adjustment."""
         customer = self.get_object()
@@ -171,6 +199,14 @@ class CustomerViewSet(TenantScopedModelViewSet):
             return Response({"detail": str(err)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Customers"], summary="List customer addresses"),
+    retrieve=extend_schema(tags=["Customers"], summary="Retrieve customer address"),
+    create=extend_schema(tags=["Customers"], summary="Create customer address"),
+    update=extend_schema(tags=["Customers"], summary="Update customer address"),
+    partial_update=extend_schema(tags=["Customers"], summary="Partially update customer address"),
+    destroy=extend_schema(tags=["Customers"], summary="Delete customer address"),
+)
 class CustomerAddressViewSet(TenantScopedModelViewSet):
     """API endpoint for managing customer physical, billing, and shipping addresses."""
 
@@ -188,6 +224,14 @@ class CustomerAddressViewSet(TenantScopedModelViewSet):
     }
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Customers"], summary="List customer contacts"),
+    retrieve=extend_schema(tags=["Customers"], summary="Retrieve customer contact"),
+    create=extend_schema(tags=["Customers"], summary="Create customer contact"),
+    update=extend_schema(tags=["Customers"], summary="Update customer contact"),
+    partial_update=extend_schema(tags=["Customers"], summary="Partially update customer contact"),
+    destroy=extend_schema(tags=["Customers"], summary="Delete customer contact"),
+)
 class CustomerContactViewSet(TenantScopedModelViewSet):
     """API endpoint for managing customer contact persons."""
 
@@ -205,6 +249,10 @@ class CustomerContactViewSet(TenantScopedModelViewSet):
     }
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Customers"], summary="List customer ledger entries"),
+    retrieve=extend_schema(tags=["Customers"], summary="Retrieve customer ledger entry"),
+)
 class CustomerBalanceEntryViewSet(TenantScopedModelViewSet):
     """API endpoint for inspecting the immutable customer AR ledger."""
 

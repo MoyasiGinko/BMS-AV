@@ -6,12 +6,14 @@ from decimal import Decimal
 from typing import Any
 
 from django.db.models import QuerySet
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.catalog.models import Product
+from apps.core.api.idempotency import IDEMPOTENCY_KEY_PARAMETER, idempotent
 from apps.core.api.viewsets import TenantScopedModelViewSet
 from apps.customers.models import Customer
 from apps.pos import selectors, services
@@ -29,6 +31,13 @@ from apps.pos.exceptions import POSError
 from apps.pos.models import POSHeldCart, POSRegister, POSSale, POSShift
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["POS"], summary="List POS registers"),
+    retrieve=extend_schema(tags=["POS"], summary="Retrieve POS register"),
+    update=extend_schema(tags=["POS"], summary="Update POS register"),
+    partial_update=extend_schema(tags=["POS"], summary="Partially update POS register"),
+    destroy=extend_schema(tags=["POS"], summary="Delete POS register"),
+)
 class POSRegisterViewSet(TenantScopedModelViewSet):
     """API endpoint for managing POS registers / terminals."""
 
@@ -44,6 +53,12 @@ class POSRegisterViewSet(TenantScopedModelViewSet):
         org = self.get_tenant()
         return POSRegister.all_tenants.filter(organization=org).select_related("branch", "warehouse")
 
+    @extend_schema(
+        tags=["POS"],
+        summary="Create POS register",
+        request=POSRegisterCreateSerializer,
+        responses={201: POSRegisterSerializer, 400: OpenApiResponse(description="POS error")},
+    )
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         org = self.get_tenant()
         serializer = POSRegisterCreateSerializer(data=request.data, context={"organization": org})
@@ -67,6 +82,13 @@ class POSRegisterViewSet(TenantScopedModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["POS"], summary="List POS shifts"),
+    retrieve=extend_schema(tags=["POS"], summary="Retrieve POS shift"),
+    update=extend_schema(tags=["POS"], summary="Update POS shift"),
+    partial_update=extend_schema(tags=["POS"], summary="Partially update POS shift"),
+    destroy=extend_schema(tags=["POS"], summary="Delete POS shift"),
+)
 class POSShiftViewSet(TenantScopedModelViewSet):
     """API endpoint for cashier shifts and cash audits."""
 
@@ -82,6 +104,11 @@ class POSShiftViewSet(TenantScopedModelViewSet):
         org = self.get_tenant()
         return POSShift.all_tenants.filter(organization=org).select_related("register", "cashier")
 
+    @extend_schema(
+        tags=["POS"],
+        summary="Retrieve active shift for current user",
+        responses={200: POSShiftSerializer, 404: OpenApiResponse(description="No active shift open")},
+    )
     @action(detail=False, methods=["get"], url_path="active")
     def active(self, request: Request) -> Response:
         """Retrieve current user's active open shift."""
@@ -91,7 +118,15 @@ class POSShiftViewSet(TenantScopedModelViewSet):
             return Response({"detail": "No active shift open."}, status=status.HTTP_404_NOT_FOUND)
         return Response(POSShiftSerializer(active_shift).data)
 
+    @extend_schema(
+        tags=["POS"],
+        summary="Open a cashier shift",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=POSOpenShiftSerializer,
+        responses={201: POSShiftSerializer, 400: OpenApiResponse(description="Shift error")},
+    )
     @action(detail=False, methods=["post"], url_path="open")
+    @idempotent
     def open_shift(self, request: Request) -> Response:
         """Open a new cashier shift."""
         org = self.get_tenant()
@@ -110,7 +145,15 @@ class POSShiftViewSet(TenantScopedModelViewSet):
         except POSError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        tags=["POS"],
+        summary="Close cashier shift and balance cash",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=POSCloseShiftSerializer,
+        responses={200: POSShiftSerializer, 400: OpenApiResponse(description="Shift error")},
+    )
     @action(detail=True, methods=["post"], url_path="close")
+    @idempotent
     def close_shift(self, request: Request, public_id: str | None = None) -> Response:
         """Close an active cashier shift."""
         org = self.get_tenant()
@@ -130,6 +173,13 @@ class POSShiftViewSet(TenantScopedModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["POS"], summary="List POS sales"),
+    retrieve=extend_schema(tags=["POS"], summary="Retrieve POS sale"),
+    update=extend_schema(tags=["POS"], summary="Update POS sale"),
+    partial_update=extend_schema(tags=["POS"], summary="Partially update POS sale"),
+    destroy=extend_schema(tags=["POS"], summary="Delete POS sale"),
+)
 class POSSaleViewSet(TenantScopedModelViewSet):
     """API endpoint for POS sales and fast counter checkout."""
 
@@ -147,7 +197,15 @@ class POSSaleViewSet(TenantScopedModelViewSet):
             "register", "shift", "invoice", "customer"
         )
 
+    @extend_schema(
+        tags=["POS"],
+        summary="Process atomic POS checkout and sale",
+        parameters=[IDEMPOTENCY_KEY_PARAMETER],
+        request=POSCheckoutSerializer,
+        responses={201: POSSaleSerializer, 400: OpenApiResponse(description="Checkout error")},
+    )
     @action(detail=False, methods=["post"], url_path="checkout")
+    @idempotent
     def checkout(self, request: Request) -> Response:
         """Atomic POS checkout."""
         org = self.get_tenant()
@@ -199,6 +257,14 @@ class POSSaleViewSet(TenantScopedModelViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["POS"], summary="List parked / held carts"),
+    retrieve=extend_schema(tags=["POS"], summary="Retrieve parked cart"),
+    create=extend_schema(tags=["POS"], summary="Park a cart"),
+    update=extend_schema(tags=["POS"], summary="Update parked cart"),
+    partial_update=extend_schema(tags=["POS"], summary="Partially update parked cart"),
+    destroy=extend_schema(tags=["POS"], summary="Discard parked cart"),
+)
 class POSHeldCartViewSet(TenantScopedModelViewSet):
     """API endpoint for parked / held carts."""
 
@@ -212,6 +278,12 @@ class POSHeldCartViewSet(TenantScopedModelViewSet):
         org = self.get_tenant()
         return POSHeldCart.all_tenants.filter(organization=org)
 
+    @extend_schema(
+        tags=["POS"],
+        summary="Resume and unpack held cart",
+        request=None,
+        responses={200: OpenApiResponse(description="Cart resumed with cart data")},
+    )
     @action(detail=True, methods=["post"], url_path="resume")
     def resume(self, request: Request, id: int | None = None) -> Response:
         """Resume a held cart and remove it from parking list."""

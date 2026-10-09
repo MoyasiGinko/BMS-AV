@@ -8,6 +8,7 @@ raises a ConflictError (409/400).
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 from collections.abc import Callable
@@ -15,10 +16,23 @@ from functools import wraps
 from typing import Any
 
 from django.core.cache import cache
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.core.exceptions import ConflictError, ValidationError
+from apps.core.tenant_context import get_current_organization
+
+IDEMPOTENCY_KEY_PARAMETER = OpenApiParameter(
+    name="Idempotency-Key",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.HEADER,
+    required=False,
+    description=(
+        "Unique idempotency key (UUID or client token) ensuring mutating operations "
+        "execute at most once. Cached for 24 hours."
+    ),
+)
 
 
 def _compute_request_hash(request: Request) -> str:
@@ -108,6 +122,11 @@ def idempotent(
                 return view_func(*args, **kwargs)
 
             org = getattr(request, "organization", None)
+            if org is None and args and hasattr(args[0], "get_tenant"):
+                with contextlib.suppress(Exception):
+                    org = args[0].get_tenant()
+            if org is None:
+                org = get_current_organization()
             org_id = getattr(org, "pk", getattr(org, "id", "no_org"))
             user = getattr(request, "user", None)
             user_id = getattr(user, "pk", getattr(user, "id", "anon"))
