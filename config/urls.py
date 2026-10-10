@@ -52,6 +52,7 @@ urlpatterns = [
     path("reports/", include("apps.reports.urls", namespace="reports")),
     path("integrations/", include("apps.integrations.urls", namespace="integrations")),
     path("purchasing/", include("apps.purchasing.urls", namespace="purchasing")),
+    path("accounting/", include("apps.accounting.urls", namespace="accounting")),
     path("api/v1/", include("config.api_urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),

@@ -235,6 +235,13 @@ SPECTACULAR_SETTINGS = {
         "GoodsReceiptStatusEnum": "apps.purchasing.models.GoodsReceiptStatus",
         "SupplierPaymentMethodEnum": "apps.purchasing.models.SupplierPaymentMethod",
         "PurchaseReturnStatusEnum": "apps.purchasing.models.PurchaseReturnStatus",
+        "AccountTypeEnum": "apps.accounting.models.AccountType",
+        "JournalEntryStatusEnum": "apps.accounting.models.JournalEntryStatus",
+        "FiscalPeriodStatusEnum": "apps.accounting.models.FiscalPeriodStatus",
+        "BankTransactionTypeEnum": "apps.accounting.models.BankTransactionType",
+        "BankReconciliationStatusEnum": "apps.accounting.models.BankReconciliationStatus",
+        "ExpensePaymentMethodEnum": "apps.accounting.models.ExpensePaymentMethod",
+        "TaxSummaryStatusEnum": "apps.accounting.models.TaxSummaryStatus",
     },
     "SECURITY": [{"BearerAuth": []}],
 }

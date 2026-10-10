@@ -37,3 +37,15 @@ class EmptyEntryError(AccountingError):
 
 class InvalidEntryError(AccountingError):
     """Raised when an entry does not meet basic structural requirements."""
+
+
+class ExpenseAlreadyPostedError(AccountingError):
+    """Raised when attempting to post an expense that is not in draft status."""
+
+
+class ExpenseAlreadyVoidError(AccountingError):
+    """Raised when attempting to void an already voided or invalid expense."""
+
+
+class BankReconciliationError(AccountingError):
+    """Raised when reconciliation parameters or transactions are invalid."""

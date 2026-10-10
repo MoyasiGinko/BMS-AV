@@ -40,7 +40,7 @@ Format: `ID title: Done when ...`
 
 ## P3 Growth bundle: Purchasing + full Accounting
 - [x] P3-01 purchasing: suppliers, PO (approval optional), goods receipt (stock in at cost), supplier bill, supplier payments, purchase returns; journal + balance effects; screens + API.
-- [ ] P3-02 accounting full: manual journals, chart of accounts UI, bank accounts, reconciliation basics, expenses (+categories, receipts), multi-currency with exchange rates, period closing, tax summary.
+- [x] P3-02 accounting full: manual journals, chart of accounts UI, bank accounts, reconciliation basics, expenses (+categories, receipts), multi-currency with exchange rates, period closing, tax summary.
 - [ ] P3-03 financial reports: trial balance, P&L, balance sheet, cash flow, general ledger, aged receivables/payables, tax summary; reconcile tests; export.
 - [ ] P3-04 Dashboard widgets v2: payables, expense trend, cash position, profit trend, branch performance.
 - [ ] P3-05 Webhooks v1: endpoints UI, subscriptions, signed deliveries, retries, delivery log, redelivery; event catalog complete for P1-P3.

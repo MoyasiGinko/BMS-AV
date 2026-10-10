@@ -6,7 +6,10 @@ from apps.core.permissions import register_permission
 
 PERMISSIONS = {
     "accounting.view": "View chart of accounts, journal entries, and general ledger reports",
-    "accounting.post": "Post journal entries to the general ledger",
+    "accounting.create": "Create accounts, expenses, bank accounts, and manual journal entries",
+    "accounting.update": "Update accounts, expenses, bank accounts, and exchange rates",
+    "accounting.delete": "Delete draft accounting records",
+    "accounting.post": "Post journal entries and expenses to the general ledger",
     "accounting.close_period": "Close and reopen accounting fiscal periods",
     "accounting.manage": "Create, update, and manage accounts and mappings",
 }

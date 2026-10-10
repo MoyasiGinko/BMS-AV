@@ -1,0 +1,139 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "New Journal Entry" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6" x-data="{
+    lines: [
+        { account_id: '', debit: '0.00', credit: '0.00', memo: '' },
+        { account_id: '', debit: '0.00', credit: '0.00', memo: '' }
+    ],
+    addLine() {
+        this.lines.push({ account_id: '', debit: '0.00', credit: '0.00', memo: '' });
+    },
+    removeLine(index) {
+        if (this.lines.length > 2) {
+            this.lines.splice(index, 1);
+        }
+    },
+    get totalDebits() {
+        return this.lines.reduce((sum, l) => sum + (parseFloat(l.debit) || 0), 0).toFixed(2);
+    },
+    get totalCredits() {
+        return this.lines.reduce((sum, l) => sum + (parseFloat(l.credit) || 0), 0).toFixed(2);
+    },
+    get isBalanced() {
+        return Math.abs(parseFloat(this.totalDebits) - parseFloat(this.totalCredits)) < 0.001 && parseFloat(this.totalDebits) > 0;
+    }
+}">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "New Journal Entry" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{% trans "Record manual debits and credits across general ledger accounts." %}</p>
+        </div>
+        <a href="{% url 'accounting:journal_list' %}" class="text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+            &larr; {% trans "Back to Journals" %}
+        </a>
+    </div>
+
+    <form method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-sm">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                    {% trans "Posting Date" %} *
+                </label>
+                {{ form.date }}
+                {% if form.date.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.date.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                    {% trans "Description / Memo" %} *
+                </label>
+                {{ form.memo }}
+                {% if form.memo.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.memo.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <!-- Lines Entry Section -->
+        <div>
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{% trans "Journal Lines" %}</h3>
+                <button type="button" @click="addLine()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+                    + {% trans "Add Line" %}
+                </button>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                    <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left font-semibold">{% trans "Account" %}</th>
+                            <th scope="col" class="px-4 py-3 text-left font-semibold">{% trans "Line Memo" %}</th>
+                            <th scope="col" class="px-4 py-3 text-right font-semibold w-32">{% trans "Debit" %}</th>
+                            <th scope="col" class="px-4 py-3 text-right font-semibold w-32">{% trans "Credit" %}</th>
+                            <th scope="col" class="px-4 py-3 text-center w-12"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                        <template x-for="(line, index) in lines" :key="index">
+                            <tr>
+                                <td class="px-4 py-2">
+                                    <select name="account_id[]" x-model="line.account_id" required class="w-full text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                        <option value="">{% trans "Select Account..." %}</option>
+                                        {% for acct in accounts %}
+                                        <option value="{{ acct.pk }}">{{ acct.code }} - {{ acct.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <input type="text" name="line_memo[]" x-model="line.memo" placeholder="{% trans 'Optional memo' %}" class="w-full text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                </td>
+                                <td class="px-4 py-2">
+                                    <input type="number" step="0.01" min="0" name="debit[]" x-model="line.debit" class="w-full text-right font-mono text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                </td>
+                                <td class="px-4 py-2">
+                                    <input type="number" step="0.01" min="0" name="credit[]" x-model="line.credit" class="w-full text-right font-mono text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                </td>
+                                <td class="px-4 py-2 text-center">
+                                    <button type="button" @click="removeLine(index)" class="text-slate-400 hover:text-rose-600 transition-colors" title="{% trans 'Remove' %}">
+                                        &times;
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot class="bg-slate-50 dark:bg-slate-800/50 font-mono font-bold text-sm border-t border-slate-200 dark:border-slate-800">
+                        <tr>
+                            <td colspan="2" class="px-4 py-3 text-right uppercase text-xs tracking-wider">
+                                <span x-show="isBalanced" class="text-emerald-600 dark:text-emerald-400 font-sans font-medium mr-4">&#10003; {% trans "Balanced" %}</span>
+                                <span x-show="!isBalanced" class="text-rose-500 font-sans font-medium mr-4">&#9888; {% trans "Out of Balance" %}</span>
+                                {% trans "Totals:" %}
+                            </td>
+                            <td class="px-4 py-3 text-right" x-text="'$' + totalDebits"></td>
+                            <td class="px-4 py-3 text-right" x-text="'$' + totalCredits"></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+            <a href="{% url 'accounting:journal_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
+                {% trans "Post Journal Entry" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

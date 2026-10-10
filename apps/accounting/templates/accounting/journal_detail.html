@@ -1,0 +1,116 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Journal Entry" %} {{ entry.entry_number }} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">{{ entry.entry_number }}</h1>
+                {% if entry.status == 'posted' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    {% trans "Posted" %}
+                </span>
+                {% elif entry.status == 'reversed' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">
+                    {% trans "Reversed" %}
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">
+                    {{ entry.get_status_display }}
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Date:" %} {{ entry.date }} &bull; {% trans "Source:" %} {{ entry.source_type|default:"Manual" }}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'accounting:journal_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                &larr; {% trans "Back to Journals" %}
+            </a>
+            {% if entry.status == 'posted' and not entry.reversed_by %}
+            <form method="post" action="{% url 'accounting:journal_reverse' pk=entry.pk %}" onsubmit="return confirm('{% trans "Are you sure you want to reverse this journal entry?" %}');">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-rose-300 dark:border-rose-800 rounded-lg text-sm font-medium text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 shadow-xs transition-colors">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                    {% trans "Reverse Entry" %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Metadata Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <div>
+            <span class="block text-xs text-slate-400 uppercase tracking-wider">{% trans "Description / Memo" %}</span>
+            <p class="mt-1 font-medium text-slate-800 dark:text-slate-200">{{ entry.memo|default:"-" }}</p>
+        </div>
+        <div>
+            <span class="block text-xs text-slate-400 uppercase tracking-wider">{% trans "Posted At" %}</span>
+            <p class="mt-1 text-slate-800 dark:text-slate-200">{{ entry.posted_at|default:"-" }}</p>
+        </div>
+        <div>
+            <span class="block text-xs text-slate-400 uppercase tracking-wider">{% trans "Reversal Info" %}</span>
+            <p class="mt-1 text-slate-800 dark:text-slate-200">
+                {% if entry.reversed_by %}
+                <span class="text-rose-600 dark:text-rose-400">{% trans "Reversed by" %} {{ entry.reversed_by.entry_number }}</span>
+                {% elif entry.reversal_of %}
+                <span class="text-indigo-600 dark:text-indigo-400">{% trans "Reversal of" %} {{ entry.reversal_of.entry_number }}</span>
+                {% else %}
+                -
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Lines Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-white text-sm">
+            {% trans "General Ledger Lines" %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Account" %}</th>
+                        <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Line Description" %}</th>
+                        <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Debit" %}</th>
+                        <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Credit" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+                    {% for line in entry.lines.all %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td class="px-6 py-3.5 whitespace-nowrap">
+                            <span class="font-mono font-medium text-slate-900 dark:text-white">{{ line.account.code }}</span>
+                            <span class="text-slate-500 dark:text-slate-400 ml-1.5">{{ line.account.name }}</span>
+                        </td>
+                        <td class="px-6 py-3.5 text-slate-600 dark:text-slate-400 text-xs">
+                            {{ line.memo|default:"-" }}
+                        </td>
+                        <td class="px-6 py-3.5 whitespace-nowrap text-right font-mono font-medium {% if line.debit > 0 %}text-slate-900 dark:text-white{% else %}text-slate-400{% endif %}">
+                            ${{ line.debit }}
+                        </td>
+                        <td class="px-6 py-3.5 whitespace-nowrap text-right font-mono font-medium {% if line.credit > 0 %}text-slate-900 dark:text-white{% else %}text-slate-400{% endif %}">
+                            ${{ line.credit }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-slate-50 dark:bg-slate-800/50 font-bold font-mono text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <td colspan="2" class="px-6 py-3 text-right uppercase text-xs tracking-wider">{% trans "Total" %}</td>
+                        <td class="px-6 py-3 text-right">${{ entry.total_debits }}</td>
+                        <td class="px-6 py-3 text-right">${{ entry.total_credits }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

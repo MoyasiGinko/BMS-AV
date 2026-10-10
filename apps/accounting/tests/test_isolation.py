@@ -8,9 +8,17 @@ import pytest
 from django.utils import timezone
 
 from apps.accounting.exceptions import AccountNotFoundError, InvalidEntryStateError
-from apps.accounting.models import Account, JournalEntry
-from apps.accounting.selectors import list_accounts, list_journal_entries
-from apps.accounting.services import Cr, Dr, post_entry, reverse_entry
+from apps.accounting.models import Account, BankAccount, Expense, ExpenseCategory, JournalEntry
+from apps.accounting.selectors import list_accounts, list_bank_accounts, list_expenses, list_journal_entries
+from apps.accounting.services import (
+    Cr,
+    Dr,
+    create_bank_account,
+    create_expense,
+    create_expense_category,
+    post_entry,
+    reverse_entry,
+)
 from apps.accounts.models import User
 from apps.core.tenant_context import tenant_context
 from apps.tenancy.models import Organization
@@ -147,3 +155,55 @@ def test_ambient_context_manager_scoping(
         assert not JournalEntry.objects.filter(pk=entry_a.pk).exists()
         assert Account.objects.filter(organization=org_a).count() == 0
         assert Account.objects.filter(organization=org_b).count() > 0
+
+
+@pytest.mark.django_db
+def test_bank_and_expense_cross_tenant_isolation(
+    org_a: Organization,
+    org_b: Organization,
+    user_a: User,
+    user_b: User,
+) -> None:
+    with tenant_context(org_a):
+        cash_a = Account.all_tenants.get(organization=org_a, code="1010")
+        exp_gl_a = Account.all_tenants.get(organization=org_a, code="6000")
+
+        ba_a = create_bank_account(
+            organization=org_a,
+            name="Org A Operating Bank",
+            account_number="A-1111",
+            bank_name="Bank A",
+            gl_account=cash_a,
+            actor=user_a,
+        )
+
+        cat_a = create_expense_category(
+            organization=org_a,
+            name="Org A Travel",
+            code="TRAVEL-A",
+            gl_account=exp_gl_a,
+            actor=user_a,
+        )
+
+        exp_a = create_expense(
+            organization=org_a,
+            category=cat_a,
+            paid_from_account=cash_a,
+            bank_account=ba_a,
+            date=timezone.now().date(),
+            amount=Decimal("100.0000"),
+            payment_method="bank_transfer",
+            actor=user_a,
+        )
+
+    # Scoped querysets
+    assert ba_a in list_bank_accounts(organization_id=org_a.pk)
+    assert ba_a not in list_bank_accounts(organization_id=org_b.pk)
+
+    assert exp_a in list_expenses(organization_id=org_a.pk)
+    assert exp_a not in list_expenses(organization_id=org_b.pk)
+
+    with tenant_context(org_b):
+        assert not BankAccount.objects.filter(pk=ba_a.pk).exists()
+        assert not Expense.objects.filter(pk=exp_a.pk).exists()
+        assert not ExpenseCategory.objects.filter(pk=cat_a.pk).exists()

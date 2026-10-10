@@ -1,0 +1,88 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Fiscal Periods & Closing" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Fiscal Periods & Period Closing" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage accounting period lock dates to prevent backdated modifications after books are closed." %}
+            </p>
+        </div>
+        <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+            &larr; {% trans "Dashboard" %}
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-white text-sm">
+            {% trans "Fiscal Periods" %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Period Name" %}</th>
+                        <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Fiscal Year" %}</th>
+                        <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Date Range" %}</th>
+                        <th scope="col" class="px-6 py-3.5 text-center font-semibold">{% trans "Status" %}</th>
+                        <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+                    {% for p in periods %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900 dark:text-white">
+                            {{ p.name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-mono text-xs">
+                            {{ p.year }} (P#{{ p.period_number }})
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-mono text-xs">
+                            {{ p.start_date }} &rarr; {{ p.end_date }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            {% if p.is_closed %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">
+                                {% trans "Closed / Locked" %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                {% trans "Open" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-xs">
+                            {% if p.is_closed %}
+                            <form method="post" action="{% url 'accounting:fiscal_period_reopen' pk=p.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                                    {% trans "Reopen" %}
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="post" action="{% url 'accounting:fiscal_period_close' pk=p.pk %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="text-rose-600 hover:text-rose-800 font-medium" onclick="return confirm('{% trans "Close this fiscal period? Entries within this date range cannot be posted." %}');">
+                                    {% trans "Close Period" %}
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-10 text-center text-slate-400 text-xs">
+                            {% trans "No fiscal periods configured." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
