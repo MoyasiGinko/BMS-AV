@@ -7,8 +7,10 @@ from typing import Any
 
 from celery import shared_task
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from apps.integrations import services
+from apps.integrations.models import WebhookDelivery, WebhookDeliveryStatus
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -49,3 +51,42 @@ def process_entity_export_job(self: Any, export_job_public_id: str) -> str:
     except Exception as exc:
         logger.exception("Failed processing entity export job %s", export_job_public_id)
         raise self.retry(exc=exc, countdown=5) from exc
+
+
+@shared_task(bind=True, max_retries=1)
+def deliver_webhook_task(self: Any, delivery_id: int) -> bool:
+    """Execute a single webhook delivery attempt in the background."""
+    delivery = (
+        WebhookDelivery.all_tenants.select_related("endpoint", "organization").filter(id=delivery_id).first()
+    )
+    if not delivery:
+        logger.warning("Webhook delivery with id %s not found", delivery_id)
+        return False
+
+    services.deliver_webhook(delivery=delivery)
+    return delivery.status == WebhookDeliveryStatus.SUCCESS
+
+
+@shared_task
+def retry_due_webhooks_task(batch_size: int = 50) -> int:
+    """Find retrying webhook deliveries that are due and trigger next attempt."""
+    now = timezone.now()
+    due_deliveries = list(
+        WebhookDelivery.all_tenants.select_related("endpoint")
+        .filter(
+            status=WebhookDeliveryStatus.RETRYING,
+            next_retry_at__lte=now,
+            endpoint__is_active=True,
+        )
+        .order_by("next_retry_at")[:batch_size]
+    )
+
+    count = 0
+    for delivery in due_deliveries:
+        delivery.attempt += 1
+        delivery.status = WebhookDeliveryStatus.PENDING
+        delivery.save(update_fields=["attempt", "status", "updated_at"])
+        deliver_webhook_task.delay(delivery.id)
+        count += 1
+
+    return count

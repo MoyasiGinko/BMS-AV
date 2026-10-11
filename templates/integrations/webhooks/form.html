@@ -1,0 +1,135 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}
+{% if action == "edit" %}{% trans "Edit Webhook Endpoint" %}{% else %}{% trans "Add Webhook Endpoint" %}{% endif %} | {{ organization.name }}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-xs text-slate-500">
+        <a href="{% url 'integrations:imports_list' %}" class="hover:text-indigo-600">{% trans "Integrations" %}</a>
+        <span>&rsaquo;</span>
+        <a href="{% url 'integrations:webhook_endpoints_list' %}" class="hover:text-indigo-600">{% trans "Webhooks" %}</a>
+        <span>&rsaquo;</span>
+        <span class="text-slate-700 dark:text-slate-300 font-medium">
+            {% if action == "edit" %}{% trans "Edit Endpoint" %}{% else %}{% trans "New Endpoint" %}{% endif %}
+        </span>
+    </div>
+
+    <!-- Header -->
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {% if action == "edit" %}{% trans "Edit Webhook Endpoint" %}{% else %}{% trans "Register Webhook Endpoint" %}{% endif %}
+        </h1>
+        <p class="text-xs text-slate-500 mt-1">
+            {% trans "Configure the HTTPS endpoint URL and subscribe to the specific domain events your integration requires." %}
+        </p>
+    </div>
+
+    <!-- Main Form Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <form method="post" class="space-y-6" x-data="{ selectAll: {% if '*' in form.selected_events.initial %}true{% else %}false{% endif %} }">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg text-xs text-rose-700 dark:text-rose-300">
+                <div class="font-semibold mb-1">{% trans "Please resolve the following errors:" %}</div>
+                <ul class="list-disc list-inside space-y-0.5">
+                    {% for field, errors in form.errors.items %}
+                    <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Payload URL -->
+            <div>
+                <label for="{{ form.url.id_for_label }}" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    {{ form.url.label }} <span class="text-rose-500">*</span>
+                </label>
+                {{ form.url }}
+                {% if form.url.help_text %}
+                <p class="text-2xs text-slate-500 mt-1">{{ form.url.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    {{ form.description.label }}
+                </label>
+                {{ form.description }}
+                {% if form.description.help_text %}
+                <p class="text-2xs text-slate-500 mt-1">{{ form.description.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Active Checkbox -->
+            <div class="flex items-center gap-2 pt-1">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" class="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                    {% trans "Enable this endpoint immediately upon saving" %}
+                </label>
+            </div>
+
+            <!-- Event Subscriptions Selection -->
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Event Subscriptions" %}</h3>
+                        <p class="text-2xs text-slate-500 mt-0.5">{% trans "Choose which domain events will trigger a POST request to this endpoint." %}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-semibold cursor-pointer">
+                            <input type="checkbox" name="selected_events" value="*" x-model="selectAll" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            {% trans "Subscribe to ALL events (*)" %}
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Event Category Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" x-show="!selectAll">
+                    {% for module, events in events_by_module.items %}
+                    <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-slate-50/50 dark:bg-slate-800/30">
+                        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-between">
+                            <span>{{ module|title }}</span>
+                            <span class="text-3xs text-slate-400">({{ events|length }})</span>
+                        </h4>
+                        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                            {% for evt in events %}
+                            <label class="flex items-start gap-2 text-2xs text-slate-600 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded">
+                                <input type="checkbox" name="selected_events" value="{{ evt.event_type }}" 
+                                       {% if evt.event_type in form.selected_events.initial and '*' not in form.selected_events.initial %}checked{% endif %} 
+                                       class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="flex-1">
+                                    <span class="font-mono font-semibold text-slate-900 dark:text-slate-100">{{ evt.event_type }}</span>
+                                    <span class="block text-3xs text-slate-500">{{ evt.description }}</span>
+                                </span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div x-show="selectAll" class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs text-indigo-700 dark:text-indigo-300">
+                    <p class="font-semibold">{% trans "Wildcard Mode Active" %}</p>
+                    <p class="mt-0.5 text-2xs">{% trans "This endpoint will receive all existing domain events as well as any future events added to the platform catalog." %}</p>
+                </div>
+            </div>
+
+            <!-- Submit buttons -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <a href="{% url 'integrations:webhook_endpoints_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-5 py-2 border border-transparent rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    {% if action == "edit" %}{% trans "Save Changes" %}{% else %}{% trans "Create Endpoint" %}{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

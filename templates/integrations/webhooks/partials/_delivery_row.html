@@ -1,0 +1,66 @@
+{% load i18n %}
+<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors" id="delivery-row-{{ delivery.public_id }}">
+    <td class="px-4 py-3 whitespace-nowrap">
+        <span class="inline-flex items-center px-2 py-0.5 rounded font-mono text-3xs font-semibold bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
+            {{ delivery.event_type }}
+        </span>
+    </td>
+    <td class="px-4 py-3 font-mono text-2xs text-slate-600 dark:text-slate-400 max-w-xs truncate">
+        {{ delivery.endpoint.url }}
+    </td>
+    <td class="px-4 py-3 whitespace-nowrap">
+        {% if delivery.status == "success" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-semibold bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+            <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>
+            {% trans "Success" %}
+        </span>
+        {% elif delivery.status == "retrying" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-semibold bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+            <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>
+            {% trans "Retrying" %} ({{ delivery.attempt }})
+        </span>
+        {% elif delivery.status == "failed" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-semibold bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300">
+            <svg class="w-2.5 h-2.5 mr-1" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3"/></svg>
+            {% trans "Failed" %}
+        </span>
+        {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            {% trans "Pending" %}
+        </span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 text-center whitespace-nowrap">
+        {% if delivery.response_status_code %}
+        <span class="font-mono text-xs font-semibold {% if delivery.response_status_code >= 200 and delivery.response_status_code < 300 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+            {{ delivery.response_status_code }}
+        </span>
+        {% else %}
+        <span class="text-3xs text-slate-400">&mdash;</span>
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 text-right font-mono text-2xs text-slate-500 whitespace-nowrap">
+        {% if delivery.execution_time_ms > 0 %}
+        {{ delivery.execution_time_ms }} ms
+        {% else %}
+        &mdash;
+        {% endif %}
+    </td>
+    <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+        {{ delivery.created_at|date:"M d, H:i:s" }}
+    </td>
+    <td class="px-4 py-3 text-right whitespace-nowrap">
+        <div class="flex items-center justify-end gap-2">
+            <a href="{% url 'integrations:webhook_delivery_detail' delivery.public_id %}" 
+               class="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-3xs font-semibold">
+                {% trans "Inspect" %}
+            </a>
+            <form method="post" action="{% url 'integrations:webhook_delivery_redeliver' delivery.public_id %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded text-3xs font-semibold">
+                    {% trans "Redeliver" %}
+                </button>
+            </form>
+        </div>
+    </td>
+</tr>

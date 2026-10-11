@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from apps.integrations.models import ExportJob, ImportJob
+from apps.integrations.models import (
+    ExportJob,
+    ImportJob,
+    WebhookDelivery,
+    WebhookEndpoint,
+)
 
 
 @admin.register(ImportJob)
@@ -53,4 +58,48 @@ class ExportJobAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
         "completed_at",
+    )
+
+
+@admin.register(WebhookEndpoint)
+class WebhookEndpointAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "url",
+        "is_active",
+        "consecutive_failures",
+        "created_at",
+    )
+    list_filter = ("is_active", "organization")
+    search_fields = ("url", "description", "organization__name")
+    readonly_fields = (
+        "public_id",
+        "created_at",
+        "updated_at",
+        "disabled_at",
+    )
+
+
+@admin.register(WebhookDelivery)
+class WebhookDeliveryAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "endpoint",
+        "event_type",
+        "status",
+        "response_status_code",
+        "execution_time_ms",
+        "attempt",
+        "created_at",
+    )
+    list_filter = ("status", "event_type", "organization")
+    search_fields = ("event_id", "endpoint__url", "organization__name")
+    readonly_fields = (
+        "public_id",
+        "created_at",
+        "updated_at",
+        "delivered_at",
+        "next_retry_at",
     )

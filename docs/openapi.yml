@@ -4632,6 +4632,415 @@ paths:
               schema:
                 $ref: '#/components/schemas/CustomerBalanceEntry'
           description: ''
+  /api/v1/integrations/webhooks/:
+    get:
+      operationId: integrations_webhooks_list
+      description: Endpoints management for outbound signed webhook notifications.
+      summary: List registered webhook endpoints
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWebhookEndpointList'
+          description: ''
+    post:
+      operationId: integrations_webhooks_create
+      description: Endpoints management for outbound signed webhook notifications.
+      summary: Register a new webhook endpoint
+      tags:
+      - Webhooks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointCreateRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpointCreate'
+          description: ''
+  /api/v1/integrations/webhooks/{public_id}/:
+    get:
+      operationId: integrations_webhooks_retrieve
+      description: Endpoints management for outbound signed webhook notifications.
+      summary: Retrieve webhook endpoint details
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpoint'
+          description: ''
+    put:
+      operationId: integrations_webhooks_update
+      description: Endpoints management for outbound signed webhook notifications.
+      summary: Update webhook endpoint configuration
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Webhooks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WebhookEndpointRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpoint'
+          description: ''
+    patch:
+      operationId: integrations_webhooks_partial_update
+      description: Endpoints management for outbound signed webhook notifications.
+      summary: Partially update webhook endpoint
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Webhooks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedWebhookEndpointRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedWebhookEndpointRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedWebhookEndpointRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEndpoint'
+          description: ''
+    delete:
+      operationId: integrations_webhooks_destroy
+      description: Endpoints management for outbound signed webhook notifications.
+      summary: Delete a webhook endpoint
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/integrations/webhooks/{public_id}/deliveries/:
+    get:
+      operationId: integrations_webhook_endpoint_deliveries_list
+      description: List historical deliveries for this endpoint.
+      summary: List deliveries for this webhook endpoint
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWebhookDeliveryList'
+          description: ''
+  /api/v1/integrations/webhooks/{public_id}/ping/:
+    post:
+      operationId: integrations_webhooks_ping_create
+      description: Dispatch immediate test ping event.
+      summary: Send test ping event to endpoint
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+          description: ''
+  /api/v1/integrations/webhooks/{public_id}/rotate-secret/:
+    post:
+      operationId: integrations_webhooks_rotate_secret_create
+      description: Regenerate signing secret token.
+      summary: Rotate signing secret for a webhook endpoint
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecretRotationResponse'
+          description: ''
+  /api/v1/integrations/webhooks/deliveries/:
+    get:
+      operationId: integrations_webhooks_deliveries_list
+      description: Read-only and redelivery operations for delivery audit logs.
+      summary: List all historical webhook delivery attempts
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedWebhookDeliveryList'
+          description: ''
+    post:
+      operationId: integrations_webhooks_deliveries_create
+      description: Read-only and redelivery operations for delivery audit logs.
+      tags:
+      - integrations
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDelivery'
+          description: ''
+  /api/v1/integrations/webhooks/deliveries/{public_id}/:
+    get:
+      operationId: integrations_webhooks_deliveries_retrieve
+      description: Read-only and redelivery operations for delivery audit logs.
+      summary: Retrieve details and transcript of a delivery attempt
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDelivery'
+          description: ''
+  /api/v1/integrations/webhooks/deliveries/{public_id}/redeliver/:
+    post:
+      operationId: integrations_webhooks_deliveries_redeliver_create
+      description: Re-attempt delivery of an existing payload.
+      summary: Manually trigger redelivery of this payload
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Webhooks
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDelivery'
+          description: ''
   /api/v1/inventory/adjustments/:
     get:
       operationId: inventory_adjustments_list
@@ -13618,6 +14027,44 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UsageCounter'
+    PaginatedWebhookDeliveryList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookDelivery'
+    PaginatedWebhookEndpointList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookEndpoint'
     PatchedAccountRequest:
       type: object
       properties:
@@ -14542,6 +14989,24 @@ components:
             pieces, 2-4 for weight/vol).
         is_active:
           type: boolean
+    PatchedWebhookEndpointRequest:
+      type: object
+      description: Full detail representation of a tenant webhook endpoint.
+      properties:
+        url:
+          type: string
+          format: uri
+          minLength: 1
+          title: Endpoint URL
+          maxLength: 512
+        description:
+          type: string
+          maxLength: 255
+        events:
+          title: Subscribed events
+          description: List of subscribed event types or ['*'] for all events
+        is_active:
+          type: boolean
     Payment:
       type: object
       properties:
@@ -14868,6 +15333,22 @@ components:
         reason:
           type: string
           default: ''
+    PingResponse:
+      type: object
+      description: Result of triggering a test ping delivery.
+      properties:
+        delivery_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        response_status_code:
+          type: integer
+          nullable: true
+      required:
+      - delivery_id
+      - response_status_code
+      - status
     Plan:
       type: object
       description: Serializer for public and internal subscription plan tiers.
@@ -16482,6 +16963,14 @@ components:
         * `confirmed` - Confirmed
         * `fulfilled` - Fulfilled
         * `cancelled` - Cancelled
+    SecretRotationResponse:
+      type: object
+      description: Result of rotating a webhook signing secret.
+      properties:
+        secret:
+          type: string
+      required:
+      - secret
     StockAdjustment:
       type: object
       description: Serializer for stock adjustment documents.
@@ -18052,6 +18541,215 @@ components:
       - period_start
       - updated_at
       - value
+    WebhookDelivery:
+      type: object
+      description: Log record representing an attempted HTTP event delivery.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        endpoint_id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_type:
+          type: string
+          readOnly: true
+        event_id:
+          type: string
+          readOnly: true
+        payload:
+          readOnly: true
+        request_headers:
+          readOnly: true
+        response_status_code:
+          type: integer
+          readOnly: true
+          nullable: true
+        response_headers:
+          readOnly: true
+        response_body:
+          type: string
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+        execution_time_ms:
+          type: integer
+          readOnly: true
+          title: Execution time (ms)
+        attempt:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/WebhookDeliveryStatusEnum'
+          readOnly: true
+        next_retry_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        delivered_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - attempt
+      - created_at
+      - delivered_at
+      - endpoint_id
+      - error_message
+      - event_id
+      - event_type
+      - execution_time_ms
+      - id
+      - next_retry_at
+      - payload
+      - request_headers
+      - response_body
+      - response_headers
+      - response_status_code
+      - status
+    WebhookDeliveryStatusEnum:
+      enum:
+      - pending
+      - success
+      - failed
+      - retrying
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `success` - Success
+        * `failed` - Failed
+        * `retrying` - Retrying
+    WebhookEndpoint:
+      type: object
+      description: Full detail representation of a tenant webhook endpoint.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        url:
+          type: string
+          format: uri
+          title: Endpoint URL
+          maxLength: 512
+        description:
+          type: string
+          maxLength: 255
+        events:
+          title: Subscribed events
+          description: List of subscribed event types or ['*'] for all events
+        is_active:
+          type: boolean
+        consecutive_failures:
+          type: integer
+          readOnly: true
+        disabled_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        secret:
+          type: string
+          readOnly: true
+      required:
+      - consecutive_failures
+      - created_at
+      - disabled_at
+      - id
+      - secret
+      - updated_at
+      - url
+    WebhookEndpointCreate:
+      type: object
+      description: Payload to register a new destination webhook endpoint.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        url:
+          type: string
+          format: uri
+          title: Endpoint URL
+          maxLength: 512
+        description:
+          type: string
+          maxLength: 255
+        events:
+          type: array
+          items:
+            type: string
+            maxLength: 128
+        is_active:
+          type: boolean
+        secret:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - secret
+      - url
+    WebhookEndpointCreateRequest:
+      type: object
+      description: Payload to register a new destination webhook endpoint.
+      properties:
+        url:
+          type: string
+          format: uri
+          minLength: 1
+          title: Endpoint URL
+          maxLength: 512
+        description:
+          type: string
+          maxLength: 255
+        events:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 128
+        is_active:
+          type: boolean
+      required:
+      - url
+    WebhookEndpointRequest:
+      type: object
+      description: Full detail representation of a tenant webhook endpoint.
+      properties:
+        url:
+          type: string
+          format: uri
+          minLength: 1
+          title: Endpoint URL
+          maxLength: 512
+        description:
+          type: string
+          maxLength: 255
+        events:
+          title: Subscribed events
+          description: List of subscribed event types or ['*'] for all events
+        is_active:
+          type: boolean
+      required:
+      - url
   securitySchemes:
     ApiKeyAuth:
       type: apiKey

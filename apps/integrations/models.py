@@ -200,3 +200,112 @@ class ExportJob(TenantModel):
 
     def __str__(self) -> str:
         return f"Export {self.get_entity_type_display()} ({self.file_format.upper()}) - {self.status}"
+
+
+class WebhookDeliveryStatus(models.TextChoices):
+    PENDING = "pending", _("Pending")
+    SUCCESS = "success", _("Success")
+    FAILED = "failed", _("Failed")
+    RETRYING = "retrying", _("Retrying")
+
+
+class WebhookEndpoint(TenantModel):
+    """Destination endpoint configured by a tenant to receive signed HTTP webhook events."""
+
+    url = models.URLField(max_length=512, verbose_name=_("endpoint URL"))
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("description"),
+    )
+    secret = models.CharField(max_length=128, verbose_name=_("signing secret"))
+    events = models.JSONField(
+        default=list,
+        help_text=_("List of subscribed event types or ['*'] for all events"),
+        verbose_name=_("subscribed events"),
+    )
+    is_active = models.BooleanField(default=True, verbose_name=_("is active"))
+    consecutive_failures = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("consecutive failures"),
+    )
+    disabled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("disabled at"),
+    )
+
+    class Meta:
+        verbose_name = _("webhook endpoint")
+        verbose_name_plural = _("webhook endpoints")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "-created_at"], name="wh_endp_org_created_idx"),
+            models.Index(fields=["organization", "is_active"], name="wh_endp_org_active_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"WebhookEndpoint({self.url} - {self.organization_id})"
+
+
+class WebhookDelivery(TenantModel):
+    """Historical delivery log record for a signed webhook payload dispatched to an endpoint."""
+
+    endpoint = models.ForeignKey(
+        WebhookEndpoint,
+        on_delete=models.CASCADE,
+        related_name="deliveries",
+        verbose_name=_("endpoint"),
+    )
+    event_type = models.CharField(max_length=128, db_index=True, verbose_name=_("event type"))
+    event_id = models.CharField(max_length=64, db_index=True, verbose_name=_("event ID"))
+    payload = models.JSONField(default=dict, verbose_name=_("payload"))
+    request_headers = models.JSONField(default=dict, verbose_name=_("request headers"))
+    response_status_code = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("response status code"),
+    )
+    response_headers = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("response headers"),
+    )
+    response_body = models.TextField(blank=True, default="", verbose_name=_("response body"))
+    error_message = models.TextField(blank=True, default="", verbose_name=_("error message"))
+    execution_time_ms = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("execution time (ms)"),
+    )
+    attempt = models.PositiveIntegerField(default=1, verbose_name=_("attempt"))
+    status = models.CharField(
+        max_length=20,
+        choices=WebhookDeliveryStatus.choices,
+        default=WebhookDeliveryStatus.PENDING,
+        db_index=True,
+        verbose_name=_("status"),
+    )
+    next_retry_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("next retry at"),
+    )
+    delivered_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("delivered at"),
+    )
+
+    class Meta:
+        verbose_name = _("webhook delivery")
+        verbose_name_plural = _("webhook deliveries")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "-created_at"], name="wh_deliv_org_created_idx"),
+            models.Index(fields=["organization", "status"], name="wh_deliv_org_status_idx"),
+            models.Index(fields=["endpoint", "-created_at"], name="wh_deliv_endp_created_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Delivery {self.event_type} -> {self.endpoint.url} ({self.status})"

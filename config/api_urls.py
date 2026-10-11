@@ -32,4 +32,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("purchasing/", include("apps.purchasing.api.urls")),
     # General Ledger & Full Accounting
     path("accounting/", include("apps.accounting.api.urls")),
+    # Integrations, Imports/Exports & Webhooks
+    path("integrations/", include("apps.integrations.api.urls")),
 ]

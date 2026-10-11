@@ -25,4 +25,42 @@ urlpatterns = [
     path("exports/trigger/<str:entity_type>/", views.export_trigger_view, name="export_trigger"),
     path("exports/<uuid:job_id>/status/", views.export_status_view, name="export_status"),
     path("exports/<uuid:job_id>/download/", views.export_download_view, name="export_download"),
+    # Webhooks v1
+    path("webhooks/", views.webhook_endpoints_list_view, name="webhook_endpoints_list"),
+    path("webhooks/new/", views.webhook_endpoint_create_view, name="webhook_endpoint_create"),
+    path(
+        "webhooks/<uuid:endpoint_id>/",
+        views.webhook_endpoint_detail_view,
+        name="webhook_endpoint_detail",
+    ),
+    path(
+        "webhooks/<uuid:endpoint_id>/edit/",
+        views.webhook_endpoint_edit_view,
+        name="webhook_endpoint_edit",
+    ),
+    path(
+        "webhooks/<uuid:endpoint_id>/delete/",
+        views.webhook_endpoint_delete_view,
+        name="webhook_endpoint_delete",
+    ),
+    path(
+        "webhooks/<uuid:endpoint_id>/rotate-secret/",
+        views.webhook_endpoint_rotate_secret_view,
+        name="webhook_endpoint_rotate_secret",
+    ),
+    path(
+        "webhooks/<uuid:endpoint_id>/ping/",
+        views.webhook_endpoint_ping_view,
+        name="webhook_endpoint_ping",
+    ),
+    path(
+        "webhooks/deliveries/<uuid:delivery_id>/",
+        views.webhook_delivery_detail_view,
+        name="webhook_delivery_detail",
+    ),
+    path(
+        "webhooks/deliveries/<uuid:delivery_id>/redeliver/",
+        views.webhook_delivery_redeliver_view,
+        name="webhook_delivery_redeliver",
+    ),
 ]

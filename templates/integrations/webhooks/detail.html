@@ -1,0 +1,148 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ endpoint.url }} | {% trans "Webhook Endpoint" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'integrations:imports_list' %}" class="hover:text-indigo-600">{% trans "Integrations" %}</a>
+                <span>&rsaquo;</span>
+                <a href="{% url 'integrations:webhook_endpoints_list' %}" class="hover:text-indigo-600">{% trans "Webhooks" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Endpoint Details" %}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-white">{{ endpoint.url }}</h1>
+                {% if endpoint.is_active %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                    {% trans "Active" %}
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span>
+                    {% trans "Disabled" %}
+                </span>
+                {% endif %}
+            </div>
+            {% if endpoint.description %}
+            <p class="text-xs text-slate-500 mt-1">{{ endpoint.description }}</p>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center gap-2">
+            <form method="post" action="{% url 'integrations:webhook_endpoint_ping' endpoint.public_id %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                    <svg class="w-3.5 h-3.5 mr-1.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {% trans "Send Test Ping" %}
+                </button>
+            </form>
+            <a href="{% url 'integrations:webhook_endpoint_edit' endpoint.public_id %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                {% trans "Edit" %}
+            </a>
+            <form method="post" action="{% url 'integrations:webhook_endpoint_delete' endpoint.public_id %}" 
+                  onsubmit="return confirm('{% trans 'Are you sure you want to delete this endpoint and all its delivery logs?' %}');" 
+                  class="inline">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center px-3.5 py-2 border border-rose-200 dark:border-rose-800 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-900/20 hover:bg-rose-100">
+                    {% trans "Delete" %}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Signing Secret Card -->
+    {% include "integrations/webhooks/partials/_secret_panel.html" with endpoint=endpoint %}
+
+    <!-- Subscriptions Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <h3 class="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider">{% trans "Subscribed Events" %}</h3>
+                <p class="text-2xs text-slate-500 mt-0.5">{% trans "This endpoint receives payloads whenever any of the following domain events occur." %}</p>
+            </div>
+            <a href="{% url 'integrations:webhook_endpoint_edit' endpoint.public_id %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+                {% trans "Edit Subscriptions" %}
+            </a>
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+            {% if "*" in endpoint.events %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-mono text-xs font-medium border border-indigo-200 dark:border-indigo-800">
+                {% trans "All Events (*)" %}
+            </span>
+            {% else %}
+            {% for evt in endpoint.events %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-2xs border border-slate-200 dark:border-slate-700">
+                {{ evt }}
+            </span>
+            {% empty %}
+            <span class="text-xs text-slate-400">{% trans "No events selected." %}</span>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Deliveries History -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Delivery Log" %}</h2>
+                <p class="text-xs text-slate-500 mt-0.5">{% trans "Historical records of events sent to this endpoint with status, payload, and response codes." %}</p>
+            </div>
+            <!-- Status Filter -->
+            <div class="flex items-center gap-1.5">
+                <a href="{% url 'integrations:webhook_endpoint_detail' endpoint.public_id %}" 
+                   class="px-2.5 py-1 rounded-lg text-2xs font-semibold {% if not selected_status %}bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
+                    {% trans "All" %}
+                </a>
+                <a href="{% url 'integrations:webhook_endpoint_detail' endpoint.public_id %}?status=success" 
+                   class="px-2.5 py-1 rounded-lg text-2xs font-semibold {% if selected_status == 'success' %}bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
+                    {% trans "Success" %}
+                </a>
+                <a href="{% url 'integrations:webhook_endpoint_detail' endpoint.public_id %}?status=retrying" 
+                   class="px-2.5 py-1 rounded-lg text-2xs font-semibold {% if selected_status == 'retrying' %}bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
+                    {% trans "Retrying" %}
+                </a>
+                <a href="{% url 'integrations:webhook_endpoint_detail' endpoint.public_id %}?status=failed" 
+                   class="px-2.5 py-1 rounded-lg text-2xs font-semibold {% if selected_status == 'failed' %}bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800{% endif %}">
+                    {% trans "Failed" %}
+                </a>
+            </div>
+        </div>
+
+        {% if deliveries %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold uppercase text-3xs border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">{% trans "Event Type" %}</th>
+                        <th class="px-4 py-3">{% trans "Destination Endpoint" %}</th>
+                        <th class="px-4 py-3">{% trans "Status" %}</th>
+                        <th class="px-4 py-3 text-center">{% trans "HTTP Code" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Latency" %}</th>
+                        <th class="px-4 py-3">{% trans "Timestamp" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Action" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for delivery in deliveries %}
+                    {% include "integrations/webhooks/partials/_delivery_row.html" with delivery=delivery %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-10 text-xs text-slate-400">
+            {% trans "No deliveries recorded for this endpoint yet." %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

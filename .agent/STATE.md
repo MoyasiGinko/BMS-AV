@@ -1,19 +1,17 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P3 Growth bundle: Purchasing + full Accounting
-- Last completed task: P3-04
-- Next task: P3-05
+- Last completed task: P3-05
+- Next task: P3-06
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (100% reports & widget tests green, ruff clean, system check clean, openapi schema valid)
+- Last `make verify`: PASSED (35/35 integrations tests pass including 16 webhooks tests, ruff clean, system check clean, openapi schema validated)
 - Notes:
-  - P3-04 Dashboard widgets v2 completed:
-    - 5 executive/operational dashboard widgets registered in `apps.core.dashboard.registry`:
-      * Payables: total balance due, overdue metrics, aging buckets (1-30d, 31-60d, 61-90d, 90d+), top unpaid suppliers.
-      * Expense Trend: monthly trend over 6 months, breakdown by expense category, percentage changes.
-      * Cash Position: total cash balance across bank accounts, 30-day net cash flow and deposits.
-      * Profit Trend: revenue vs expense vs net profit over 6 months with profit margin indicator.
-      * Branch Performance: revenue per branch, sales leader indicator, percentage distribution.
-    - Selectors optimized with aggregate queries and no N+1 query patterns.
-    - Responsive HTMX widget templates with refresh actions and empty/error states in `templates/reports/widgets/`.
-    - 7 comprehensive selector, isolation, and permission tests in `apps/reports/tests/test_dashboard_widgets_v2.py`.
-  - Next task: P3-05 Webhooks v1: endpoints UI, subscriptions, signed deliveries, retries, delivery log, redelivery; event catalog complete for P1-P3.
+  - P3-05 Webhooks v1 completed:
+    - Event catalog for P1-P3 domain events implemented in `apps/core/event_catalog.py` (40+ events across all modules).
+    - `WebhookEndpoint` and `WebhookDelivery` tenant-scoped models with indices and migrations applied.
+    - HMAC-SHA256 signature signing (`X-Signature: sha256=...`), timestamp replay window (5m), Celery async delivery, exponential backoff retries ([10, 60, 300, 1800, 3600]), auto-disable after 10 consecutive failures.
+    - Outbox fanout listener hooked in `IntegrationsConfig.ready()`.
+    - Server-rendered templates with HTMX partials: endpoint list, creation/editing form, detail screen with secret show/rotate, test ping trigger, delivery audit log, and modal inspection.
+    - DRF REST API endpoints under `/api/v1/integrations/webhooks/` and `/deliveries/` with OpenAPI spec validation.
+    - 16 new webhook tests covering signature, replay window, fanout, backoff, auto-disable, manual redelivery, permissions, tenant isolation, and REST API.
+  - Next task: P3-06 Recurring invoices + payment reminders (beat tasks) + email/notification framework (SMTP adapter + fake).
