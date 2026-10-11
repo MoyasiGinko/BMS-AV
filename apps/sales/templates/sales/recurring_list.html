@@ -1,0 +1,92 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Recurring Invoices" %} | Business OS{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Sales & Invoicing" %}
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {% trans "Manage billing schedules, retainers, and automated invoice delivery." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'sales:recurring_create' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                {% trans "New Recurring Profile" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    {% include "sales/partials/_navigation_tabs.html" with active_tab="recurring" %}
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Active Schedules" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                {{ summary.total_active }}
+            </div>
+            <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1 inline-block">
+                {% trans "Running automatically" %}
+            </span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Due Today" %}</span>
+            <div class="mt-2 text-2xl font-bold {% if summary.due_today > 0 %}text-indigo-600 dark:text-indigo-400{% else %}text-slate-900 dark:text-white{% endif %}">
+                {{ summary.due_today }}
+            </div>
+            <span class="text-xs text-slate-400 font-medium mt-1 inline-block">
+                {% trans "Pending generation" %}
+            </span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Paused" %}</span>
+            <div class="mt-2 text-2xl font-bold text-amber-600 dark:text-amber-400">
+                {{ summary.total_paused }}
+            </div>
+            <span class="text-xs text-slate-400 font-medium mt-1 inline-block">
+                {% trans "Temporarily halted" %}
+            </span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Invoices Created" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                {{ summary.total_invoices_generated }}
+            </div>
+            <span class="text-xs text-slate-400 font-medium mt-1 inline-block">
+                {% trans "Across all cycles" %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Filters & Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <form method="get" class="flex flex-wrap items-center gap-3 w-full sm:w-auto"
+                  hx-get="{% url 'sales:recurring_list' %}"
+                  hx-target="#recurring-table-container"
+                  hx-push-url="true"
+                  hx-trigger="change, keyup delay:300ms from:input">
+                <div>
+                    {{ filter_form.status }}
+                </div>
+                <div class="relative flex-1 sm:w-64">
+                    {{ filter_form.search }}
+                </div>
+            </form>
+            <span class="text-xs text-slate-400">
+                {{ profiles|length }} {% trans "profile(s) found" %}
+            </span>
+        </div>
+
+        {% include "sales/partials/_recurring_table.html" %}
+    </div>
+</div>
+{% endblock %}

@@ -12,9 +12,12 @@ from apps.sales.models import (
     Payment,
     PaymentMethod,
     PaymentRefund,
+    PaymentReminderRule,
     PaymentStatus,
     Quote,
     QuoteStatus,
+    RecurringInvoiceProfile,
+    RecurringProfileStatus,
     SalesOrder,
     SalesOrderStatus,
 )
@@ -346,4 +349,104 @@ class PaymentRefundForm(forms.ModelForm):
             "refund_date": forms.DateInput(attrs={"type": "date"}),
             "amount": forms.NumberInput(attrs={"step": "0.01", "min": "0.01"}),
             "reason": forms.Textarea(attrs={"rows": 2, "placeholder": _("Reason for refund...")}),
+        }
+
+
+class RecurringProfileFilterForm(forms.Form):
+    """Filter form for recurring invoice profiles list."""
+
+    status = forms.ChoiceField(
+        choices=[("", _("All Statuses")), *list(RecurringProfileStatus.choices)],
+        required=False,
+        widget=forms.Select(
+            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+        ),
+    )
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": _("Search profiles..."),
+                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+            }
+        ),
+    )
+
+
+class RecurringInvoiceProfileForm(forms.ModelForm):
+    """Creation and editing form for recurring invoice profiles."""
+
+    class Meta:
+        model = RecurringInvoiceProfile
+        fields = [
+            "title",
+            "customer",
+            "warehouse",
+            "branch",
+            "frequency",
+            "interval",
+            "start_date",
+            "end_date",
+            "payment_terms_days",
+            "currency",
+            "auto_post",
+            "send_email",
+            "total_cycles_limit",
+            "notes",
+            "terms",
+        ]
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 2}),
+            "terms": forms.Textarea(attrs={"rows": 2}),
+        }
+
+    def __init__(self, *args: Any, organization: Organization | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        if "currency" in self.fields:
+            self.fields["currency"].required = False
+        if organization:
+            if "customer" in self.fields:
+                _scope_choice_field(
+                    self.fields["customer"], Customer.all_tenants.filter(organization=organization)
+                )
+            if "branch" in self.fields:
+                _scope_choice_field(
+                    self.fields["branch"], Branch.all_tenants.filter(organization=organization)
+                )
+            if "warehouse" in self.fields:
+                _scope_choice_field(
+                    self.fields["warehouse"], Warehouse.all_tenants.filter(organization=organization)
+                )
+
+
+class PaymentReminderRuleForm(forms.ModelForm):
+    """Creation and editing form for payment reminder timing rules."""
+
+    class Meta:
+        model = PaymentReminderRule
+        fields = [
+            "name",
+            "timing_days",
+            "is_active",
+            "subject_template",
+            "body_template",
+        ]
+        widgets = {
+            "timing_days": forms.NumberInput(
+                attrs={
+                    "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                    "placeholder": "-3 for 3d before due, 7 for 7d overdue",
+                }
+            ),
+            "subject_template": forms.TextInput(
+                attrs={"class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            ),
+            "body_template": forms.Textarea(
+                attrs={
+                    "rows": 4,
+                    "class": "form-textarea text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                }
+            ),
         }

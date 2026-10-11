@@ -1,0 +1,210 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Payment Reminders" %} | Business OS{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Sales & Invoicing" %}
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {% trans "Automated customer email reminders for upcoming and overdue invoice payments." %}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <form method="post" action="{% url 'sales:reminder_dispatch_now' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium shadow-xs transition-colors">
+                    <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    {% trans "Dispatch Due Reminders Now" %}
+                </button>
+            </form>
+            <a href="{% url 'sales:reminder_rule_create' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                {% trans "Add Timing Rule" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    {% include "sales/partials/_navigation_tabs.html" with active_tab="reminders" %}
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Active Timing Rules" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                {{ summary.active_rules_count }}
+            </div>
+            <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-1 inline-block">
+                {% trans "Configured stages" %}
+            </span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Notices Dispatched" %}</span>
+            <div class="mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                {{ summary.total_sent }}
+            </div>
+            <span class="text-xs text-slate-400 font-medium mt-1 inline-block">
+                {% trans "Customer emails delivered" %}
+            </span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Delivery Failures" %}</span>
+            <div class="mt-2 text-2xl font-bold text-rose-600 dark:text-rose-400">
+                {{ summary.total_failed }}
+            </div>
+            <span class="text-xs text-slate-400 font-medium mt-1 inline-block">
+                {% trans "Missing emails or SMTP errors" %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Timing Rules Section -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">
+                    {% trans "Configured Reminder Timing Rules" %}
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    {% trans "Rules trigger automatically when an invoice reaches the specified days before or after its due date." %}
+                </p>
+            </div>
+            <a href="{% url 'sales:reminder_rule_create' %}" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+                + {% trans "New Rule" %}
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Rule Name" %}</th>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Timing Stage" %}</th>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Status" %}</th>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Subject Template" %}</th>
+                        <th class="py-3.5 px-4 font-semibold text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for rule in rules %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="py-3.5 px-4 font-medium text-slate-900 dark:text-white">
+                            {{ rule.name }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if rule.timing_days < 0 %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-mono">
+                                    {{ rule.timing_days|stringformat:"d"|slice:"1:" }} {% trans "days before due" %}
+                                </span>
+                            {% elif rule.timing_days == 0 %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 font-mono">
+                                    {% trans "On due date" %}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-mono">
+                                    {{ rule.timing_days }} {% trans "days overdue" %}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if rule.is_active %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Active" %}</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">{% trans "Inactive" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-xs font-mono text-slate-600 dark:text-slate-400 truncate max-w-xs">
+                            {{ rule.subject_template }}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{% url 'sales:reminder_rule_edit' public_id=rule.public_id %}" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+                                    {% trans "Edit" %}
+                                </a>
+                                <form method="post" action="{% url 'sales:reminder_rule_toggle' public_id=rule.public_id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium">
+                                        {% if rule.is_active %}{% trans "Disable" %}{% else %}{% trans "Enable" %}{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-xs text-slate-400">
+                            {% trans "No reminder rules defined. Click 'Add Timing Rule' to set up automated payment notices." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Audit Log Section -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-4">
+            {% trans "Recent Dispatched Reminders Log" %}
+        </h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Invoice #" %}</th>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Recipient Email" %}</th>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Timing Stage" %}</th>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Dispatched At" %}</th>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Status" %}</th>
+                        <th class="py-3.5 px-4 font-semibold">{% trans "Details" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for log in logs %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="py-3.5 px-4 font-mono font-medium text-slate-900 dark:text-white">
+                            <a href="{% url 'sales:invoice_detail' public_id=log.invoice.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                                {{ log.invoice.invoice_number }}
+                            </a>
+                        </td>
+                        <td class="py-3.5 px-4 text-xs font-mono">
+                            {{ log.recipient_email }}
+                        </td>
+                        <td class="py-3.5 px-4 text-xs">
+                            {% if log.timing_days < 0 %}{{ log.timing_days|stringformat:"d"|slice:"1:" }}d before due{% elif log.timing_days == 0 %}on due date{% else %}{{ log.timing_days }}d overdue{% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-xs text-slate-500">
+                            {{ log.sent_at|date:"Y-m-d H:i" }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if log.status == 'sent' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Sent" %}</span>
+                            {% elif log.status == 'skipped' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">{% trans "Skipped" %}</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Failed" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-xs text-slate-400 truncate max-w-xs">
+                            {{ log.error_message|default:"Delivered" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-xs text-slate-400">
+                            {% trans "No payment reminders dispatched yet." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

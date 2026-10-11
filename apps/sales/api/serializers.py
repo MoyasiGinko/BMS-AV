@@ -17,8 +17,13 @@ from apps.sales.models import (
     PaymentAllocation,
     PaymentMethod,
     PaymentRefund,
+    PaymentReminderLog,
+    PaymentReminderRule,
     Quote,
     QuoteLine,
+    RecurringFrequency,
+    RecurringInvoiceLine,
+    RecurringInvoiceProfile,
     SalesOrder,
     SalesOrderLine,
 )
@@ -689,3 +694,229 @@ class PaymentRefundActionSerializer(serializers.Serializer):
 
 class PaymentVoidActionSerializer(serializers.Serializer):
     reason = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+# ============================================================================
+# RECURRING INVOICE SERIALIZERS
+# ============================================================================
+
+
+class RecurringInvoiceLineSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_sku = serializers.CharField(source="product.sku", read_only=True)
+
+    class Meta:
+        model = RecurringInvoiceLine
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "product_sku",
+            "variant",
+            "description",
+            "quantity",
+            "unit_price",
+            "discount_percent",
+            "tax_rate",
+            "sort_order",
+        ]
+        read_only_fields = ["id"]
+
+
+class RecurringInvoiceProfileSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+    customer_code = serializers.CharField(source="customer.code", read_only=True)
+    branch_name = serializers.CharField(source="branch.name", read_only=True, default=None)
+    warehouse_name = serializers.CharField(source="warehouse.name", read_only=True)
+    lines = RecurringInvoiceLineSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = RecurringInvoiceProfile
+        fields = [
+            "id",
+            "public_id",
+            "title",
+            "customer",
+            "customer_name",
+            "customer_code",
+            "branch",
+            "branch_name",
+            "warehouse",
+            "warehouse_name",
+            "frequency",
+            "interval",
+            "start_date",
+            "end_date",
+            "next_issue_date",
+            "last_issue_date",
+            "payment_terms_days",
+            "currency",
+            "auto_post",
+            "send_email",
+            "status",
+            "total_cycles_limit",
+            "cycles_completed",
+            "notes",
+            "terms",
+            "lines",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "public_id",
+            "cycles_completed",
+            "last_issue_date",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class RecurringInvoiceLineCreateSerializer(serializers.Serializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.all_tenants.all())
+    variant = serializers.PrimaryKeyRelatedField(
+        queryset=ProductVariant.all_tenants.all(),
+        required=False,
+        allow_null=True,
+    )
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    quantity = serializers.DecimalField(max_digits=12, decimal_places=4, min_value=Decimal("0.0001"))
+    unit_price = serializers.DecimalField(max_digits=18, decimal_places=4, min_value=Decimal("0.0000"))
+    discount_percent = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("0.00"),
+        max_value=Decimal("100.00"),
+        default=Decimal("0.00"),
+    )
+    tax_rate = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("0.00"),
+        max_value=Decimal("100.00"),
+        default=Decimal("0.00"),
+    )
+    sort_order = serializers.IntegerField(required=False, default=0)
+
+
+class RecurringInvoiceProfileCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=255)
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.all_tenants.all())
+    warehouse = serializers.PrimaryKeyRelatedField(queryset=Warehouse.all_tenants.all())
+    branch = serializers.PrimaryKeyRelatedField(
+        queryset=Branch.all_tenants.all(),
+        required=False,
+        allow_null=True,
+    )
+    frequency = serializers.ChoiceField(
+        choices=RecurringFrequency.choices,
+        default=RecurringFrequency.MONTHLY,
+    )
+    interval = serializers.IntegerField(default=1, min_value=1)
+    start_date = serializers.DateField(required=False)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    payment_terms_days = serializers.IntegerField(default=30, min_value=0)
+    currency = serializers.CharField(max_length=3, default="USD")
+    auto_post = serializers.BooleanField(default=True)
+    send_email = serializers.BooleanField(default=True)
+    total_cycles_limit = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+    terms = serializers.CharField(required=False, allow_blank=True, default="")
+    lines = RecurringInvoiceLineCreateSerializer(many=True)
+
+    def create(self, validated_data: dict[str, Any]) -> RecurringInvoiceProfile:
+        org = validated_data.pop("organization", None)
+        user = validated_data.pop("created_by", None)
+        raw_lines = validated_data.pop("lines", [])
+
+        line_items = [
+            {
+                "product_id": line["product"].pk,
+                "variant_id": line["variant"].pk if line.get("variant") else None,
+                "description": line.get("description", ""),
+                "quantity": line["quantity"],
+                "unit_price": line["unit_price"],
+                "discount_percent": line.get("discount_percent", Decimal("0.00")),
+                "tax_rate": line.get("tax_rate", Decimal("0.00")),
+                "sort_order": line.get("sort_order", 0),
+            }
+            for line in raw_lines
+        ]
+
+        return services.create_recurring_profile(
+            organization=org,
+            title=validated_data["title"],
+            customer=validated_data["customer"],
+            warehouse=validated_data["warehouse"],
+            branch=validated_data.get("branch"),
+            frequency=validated_data.get("frequency", RecurringFrequency.MONTHLY),
+            interval=validated_data.get("interval", 1),
+            start_date=validated_data.get("start_date"),
+            end_date=validated_data.get("end_date"),
+            payment_terms_days=validated_data.get("payment_terms_days", 30),
+            currency=validated_data.get("currency", "USD"),
+            auto_post=validated_data.get("auto_post", True),
+            send_email=validated_data.get("send_email", True),
+            total_cycles_limit=validated_data.get("total_cycles_limit"),
+            notes=validated_data.get("notes", ""),
+            terms=validated_data.get("terms", ""),
+            lines=line_items,
+            actor=user,
+        )
+
+
+# ============================================================================
+# PAYMENT REMINDER SERIALIZERS
+# ============================================================================
+
+
+class PaymentReminderRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentReminderRule
+        fields = [
+            "id",
+            "public_id",
+            "name",
+            "timing_days",
+            "is_active",
+            "subject_template",
+            "body_template",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "public_id", "created_at", "updated_at"]
+
+
+class PaymentReminderLogSerializer(serializers.ModelSerializer):
+    invoice_number = serializers.CharField(source="invoice.invoice_number", read_only=True)
+    rule_name = serializers.CharField(source="rule.name", read_only=True, default=None)
+
+    class Meta:
+        model = PaymentReminderLog
+        fields = [
+            "id",
+            "public_id",
+            "invoice",
+            "invoice_number",
+            "rule",
+            "rule_name",
+            "timing_days",
+            "recipient_email",
+            "sent_at",
+            "status",
+            "error_message",
+        ]
+        read_only_fields = [
+            "id",
+            "public_id",
+            "invoice",
+            "invoice_number",
+            "rule",
+            "rule_name",
+            "timing_days",
+            "recipient_email",
+            "sent_at",
+            "status",
+            "error_message",
+        ]

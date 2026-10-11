@@ -108,3 +108,32 @@ class PaymentVoided(DomainEvent):
     payment_id: int = 0
     payment_number: str = ""
     customer_id: int = 0
+
+
+@dataclass(frozen=True)
+class RecurringProfileCreated(DomainEvent):
+    event_type: ClassVar[str] = "sales.recurring_profile_created"
+    profile_id: int = 0
+    profile_public_id: str = ""
+    customer_id: int = 0
+    frequency: str = ""
+
+
+@dataclass(frozen=True)
+class RecurringInvoiceGenerated(DomainEvent):
+    event_type: ClassVar[str] = "sales.recurring_invoice.generated"
+    profile_id: int = 0
+    profile_public_id: str = ""
+    invoice_id: int = 0
+    invoice_number: str = ""
+    customer_id: int = 0
+    grand_total: str = ""
+
+
+@dataclass(frozen=True)
+class PaymentReminderSent(DomainEvent):
+    event_type: ClassVar[str] = "sales.payment_reminder.sent"
+    invoice_id: int = 0
+    invoice_number: str = ""
+    timing_days: int = 0
+    recipient_email: str = ""

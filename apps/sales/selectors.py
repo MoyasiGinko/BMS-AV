@@ -13,9 +13,13 @@ from apps.sales.models import (
     Invoice,
     InvoiceStatus,
     Payment,
+    PaymentReminderLog,
+    PaymentReminderRule,
     PaymentStatus,
     Quote,
     QuoteStatus,
+    RecurringInvoiceProfile,
+    RecurringProfileStatus,
     SalesOrder,
     SalesOrderStatus,
 )
@@ -387,4 +391,139 @@ def get_payment_summary(
         "total_allocated": agg["total_allocated"] or DECIMAL_ZERO,
         "total_unallocated": agg["total_unallocated"] or DECIMAL_ZERO,
         "count": agg["count"] or 0,
+    }
+
+
+def list_recurring_profiles(
+    *,
+    organization: Organization,
+    status: str | None = None,
+    customer_id: int | None = None,
+    search: str | None = None,
+) -> QuerySet[RecurringInvoiceProfile]:
+    """Retrieve recurring invoice profiles for an organization with preloaded relations."""
+    qs = (
+        RecurringInvoiceProfile.all_tenants.filter(organization=organization)
+        .select_related("customer", "warehouse", "branch")
+        .prefetch_related("lines__product", "generated_invoices")
+        .order_by("-created_at", "-id")
+    )
+    if status:
+        qs = qs.filter(status=status)
+    if customer_id:
+        qs = qs.filter(customer_id=customer_id)
+    if search:
+        search = search.strip()
+        qs = qs.filter(
+            Q(title__icontains=search)
+            | Q(customer__name__icontains=search)
+            | Q(customer__code__icontains=search)
+        )
+    return qs
+
+
+def get_recurring_profile(
+    *,
+    organization: Organization,
+    profile_id: int | None = None,
+    public_id: str | None = None,
+) -> RecurringInvoiceProfile | None:
+    """Retrieve single recurring profile with preloaded lines and customer."""
+    qs = (
+        RecurringInvoiceProfile.all_tenants.filter(organization=organization)
+        .select_related("customer", "warehouse", "branch")
+        .prefetch_related("lines__product", "lines__variant", "generated_invoices")
+    )
+    if public_id:
+        return qs.filter(public_id=public_id).first()
+    if profile_id:
+        return qs.filter(id=profile_id).first()
+    return None
+
+
+def get_recurring_profiles_summary(
+    *,
+    organization: Organization,
+) -> dict[str, Any]:
+    """Aggregated stats for recurring invoice profiles."""
+    today = timezone.now().date()
+    qs = RecurringInvoiceProfile.all_tenants.filter(organization=organization)
+    total_active = qs.filter(status=RecurringProfileStatus.ACTIVE).count()
+    total_paused = qs.filter(status=RecurringProfileStatus.PAUSED).count()
+    due_today = qs.filter(
+        status=RecurringProfileStatus.ACTIVE,
+        next_issue_date__lte=today,
+    ).count()
+    total_completed = qs.aggregate(total=Sum("cycles_completed"))["total"] or 0
+    return {
+        "total_active": total_active,
+        "total_paused": total_paused,
+        "due_today": due_today,
+        "total_invoices_generated": total_completed,
+    }
+
+
+def list_payment_reminder_rules(
+    *,
+    organization: Organization,
+    is_active: bool | None = None,
+) -> QuerySet[PaymentReminderRule]:
+    """Retrieve configured payment reminder rules for organization."""
+    qs = PaymentReminderRule.all_tenants.filter(organization=organization).order_by("timing_days", "id")
+    if is_active is not None:
+        qs = qs.filter(is_active=is_active)
+    return qs
+
+
+def get_payment_reminder_rule(
+    *,
+    organization: Organization,
+    rule_id: int | None = None,
+    public_id: str | None = None,
+) -> PaymentReminderRule | None:
+    """Retrieve single payment reminder rule."""
+    qs = PaymentReminderRule.all_tenants.filter(organization=organization)
+    if public_id:
+        return qs.filter(public_id=public_id).first()
+    if rule_id:
+        return qs.filter(id=rule_id).first()
+    return None
+
+
+def list_payment_reminder_logs(
+    *,
+    organization: Organization,
+    invoice_id: int | None = None,
+    status: str | None = None,
+    limit: int = 100,
+) -> QuerySet[PaymentReminderLog]:
+    """Retrieve dispatched payment reminder logs."""
+    qs = (
+        PaymentReminderLog.all_tenants.filter(organization=organization)
+        .select_related("invoice", "rule")
+        .order_by("-sent_at")
+    )
+    if invoice_id:
+        qs = qs.filter(invoice_id=invoice_id)
+    if status:
+        qs = qs.filter(status=status)
+    return qs[:limit]
+
+
+def get_payment_reminders_summary(
+    *,
+    organization: Organization,
+) -> dict[str, Any]:
+    """Summary of reminder rules and delivery counts."""
+    rules_qs = PaymentReminderRule.all_tenants.filter(organization=organization)
+    logs_qs = PaymentReminderLog.all_tenants.filter(organization=organization)
+
+    active_rules_count = rules_qs.filter(is_active=True).count()
+    total_sent = logs_qs.filter(status="sent").count()
+    total_failed = logs_qs.filter(status="failed").count()
+
+    return {
+        "active_rules_count": active_rules_count,
+        "total_sent": total_sent,
+        "total_failed": total_failed,
     }

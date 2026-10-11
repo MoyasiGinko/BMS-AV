@@ -9053,6 +9053,308 @@ paths:
           description: ''
         '400':
           description: Sales error
+  /api/v1/sales/payment-reminders/logs/:
+    get:
+      operationId: sales_payment_reminders_logs_list
+      description: API endpoint for viewing payment reminder delivery logs and manually
+        triggering reminders.
+      summary: List payment reminder audit logs
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaymentReminderLogList'
+          description: ''
+    post:
+      operationId: sales_payment_reminders_logs_create
+      description: API endpoint for viewing payment reminder delivery logs and manually
+        triggering reminders.
+      tags:
+      - sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentReminderLog'
+          description: ''
+  /api/v1/sales/payment-reminders/logs/{public_id}/:
+    get:
+      operationId: sales_payment_reminders_logs_retrieve
+      description: API endpoint for viewing payment reminder delivery logs and manually
+        triggering reminders.
+      summary: Retrieve payment reminder audit log
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentReminderLog'
+          description: ''
+  /api/v1/sales/payment-reminders/logs/dispatch_now/:
+    post:
+      operationId: sales_payment_reminders_dispatch_now
+      description: API endpoint for viewing payment reminder delivery logs and manually
+        triggering reminders.
+      summary: Trigger immediate processing of due payment reminders
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Summary of dispatched reminders
+  /api/v1/sales/payment-reminders/rules/:
+    get:
+      operationId: sales_payment_reminders_rules_list
+      description: API endpoint for configuring invoice payment reminder rules.
+      summary: List payment reminder rules
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaymentReminderRuleList'
+          description: ''
+    post:
+      operationId: sales_payment_reminders_rules_create
+      description: API endpoint for configuring invoice payment reminder rules.
+      summary: Create payment reminder rule
+      tags:
+      - Sales
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentReminderRuleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentReminderRuleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentReminderRuleRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentReminderRule'
+          description: ''
+        '400':
+          description: Error
+  /api/v1/sales/payment-reminders/rules/{public_id}/:
+    get:
+      operationId: sales_payment_reminders_rules_retrieve
+      description: API endpoint for configuring invoice payment reminder rules.
+      summary: Retrieve payment reminder rule
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentReminderRule'
+          description: ''
+    put:
+      operationId: sales_payment_reminders_rules_update
+      description: API endpoint for configuring invoice payment reminder rules.
+      summary: Update payment reminder rule
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentReminderRuleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaymentReminderRuleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaymentReminderRuleRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentReminderRule'
+          description: ''
+    patch:
+      operationId: sales_payment_reminders_rules_partial_update
+      description: API endpoint for configuring invoice payment reminder rules.
+      summary: Partially update payment reminder rule
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentReminderRuleRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentReminderRuleRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPaymentReminderRuleRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentReminderRule'
+          description: ''
+    delete:
+      operationId: sales_payment_reminders_rules_destroy
+      description: API endpoint for configuring invoice payment reminder rules.
+      summary: Delete payment reminder rule
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/sales/payments/:
     get:
       operationId: sales_payments_list
@@ -9700,6 +10002,321 @@ paths:
           description: ''
         '400':
           description: Sales error
+  /api/v1/sales/recurring-invoices/:
+    get:
+      operationId: sales_recurring_invoices_list
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: List recurring invoice profiles
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRecurringInvoiceProfileList'
+          description: ''
+    post:
+      operationId: sales_recurring_invoices_create
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Create recurring invoice profile
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: Unique idempotency key (UUID or client token) ensuring mutating
+          operations execute at most once. Cached for 24 hours.
+      tags:
+      - Sales
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringInvoiceProfileCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecurringInvoiceProfileCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecurringInvoiceProfileCreateRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringInvoiceProfile'
+          description: ''
+        '400':
+          description: Validation error
+  /api/v1/sales/recurring-invoices/{public_id}/:
+    get:
+      operationId: sales_recurring_invoices_retrieve
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Retrieve recurring invoice profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringInvoiceProfile'
+          description: ''
+    put:
+      operationId: sales_recurring_invoices_update
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Update recurring invoice profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringInvoiceProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RecurringInvoiceProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RecurringInvoiceProfileRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringInvoiceProfile'
+          description: ''
+    patch:
+      operationId: sales_recurring_invoices_partial_update
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Partially update recurring invoice profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringInvoiceProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringInvoiceProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRecurringInvoiceProfileRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringInvoiceProfile'
+          description: ''
+    delete:
+      operationId: sales_recurring_invoices_destroy
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Delete recurring invoice profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/sales/recurring-invoices/{public_id}/cancel/:
+    post:
+      operationId: sales_recurring_invoice_cancel
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Cancel recurring invoice profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringInvoiceProfile'
+          description: ''
+        '400':
+          description: Error
+  /api/v1/sales/recurring-invoices/{public_id}/generate_now/:
+    post:
+      operationId: sales_recurring_invoice_generate_now
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Immediately generate an invoice for this recurring profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+        '400':
+          description: Error
+  /api/v1/sales/recurring-invoices/{public_id}/pause/:
+    post:
+      operationId: sales_recurring_invoice_pause
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Pause recurring invoice profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringInvoiceProfile'
+          description: ''
+        '400':
+          description: Error
+  /api/v1/sales/recurring-invoices/{public_id}/resume/:
+    post:
+      operationId: sales_recurring_invoice_resume
+      description: API endpoint for recurring invoice schedule profiles.
+      summary: Resume paused recurring invoice profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Sales
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringInvoiceProfile'
+          description: ''
+        '400':
+          description: Error
 components:
   schemas:
     Account:
@@ -11961,6 +12578,24 @@ components:
       description: |-
         * `open` - Open
         * `closed` - Closed
+    FrequencyEnum:
+      enum:
+      - daily
+      - weekly
+      - biweekly
+      - monthly
+      - quarterly
+      - biannual
+      - annual
+      type: string
+      description: |-
+        * `daily` - Daily
+        * `weekly` - Weekly
+        * `biweekly` - Bi-weekly
+        * `monthly` - Monthly
+        * `quarterly` - Quarterly
+        * `biannual` - Bi-annual
+        * `annual` - Annual
     GenerateNumberResponse:
       type: object
       description: Response schema for generating the next sequential number.
@@ -13647,6 +14282,44 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Payment'
+    PaginatedPaymentReminderLogList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentReminderLog'
+    PaginatedPaymentReminderRuleList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentReminderRule'
     PaginatedPlanList:
       type: object
       required:
@@ -13761,6 +14434,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Quote'
+    PaginatedRecurringInvoiceProfileList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecurringInvoiceProfile'
     PaginatedSalesOrderList:
       type: object
       required:
@@ -14592,6 +15284,32 @@ components:
           type: string
         is_active:
           type: boolean
+    PatchedPaymentReminderRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Rule Name
+          maxLength: 128
+        timing_days:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          description: Negative = N days before due date (e.g. -3). 0 = on due date.
+            Positive = N days after due date (overdue, e.g. 7).
+        is_active:
+          type: boolean
+          title: Active
+        subject_template:
+          type: string
+          minLength: 1
+          title: Email Subject Template
+          maxLength: 255
+        body_template:
+          type: string
+          minLength: 1
+          title: Email Body Template
     PatchedPaymentRequest:
       type: object
       properties:
@@ -14782,6 +15500,66 @@ components:
           pattern: ^-?\d{0,6}(?:\.\d{0,6})?$
         notes:
           type: string
+        terms:
+          type: string
+          title: Terms and Conditions
+    PatchedRecurringInvoiceProfileRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Profile Title
+          maxLength: 128
+        customer:
+          type: integer
+        branch:
+          type: integer
+          nullable: true
+        warehouse:
+          type: integer
+        frequency:
+          $ref: '#/components/schemas/FrequencyEnum'
+        interval:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          description: Every N intervals according to frequency
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        next_issue_date:
+          type: string
+          format: date
+        payment_terms_days:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Payment Terms (Days)
+        currency:
+          type: string
+          minLength: 1
+          maxLength: 3
+        auto_post:
+          type: boolean
+          description: Automatically post invoice and update ledgers upon generation
+        send_email:
+          type: boolean
+          title: Send Email Notification
+          description: Send invoice email notification to customer upon generation
+        total_cycles_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          description: Maximum invoices to generate, or null for unlimited
+        notes:
+          type: string
+          title: Invoice Notes
         terms:
           type: string
           title: Terms and Conditions
@@ -15292,6 +16070,142 @@ components:
           title: Reason for Refund
       required:
       - amount
+    PaymentReminderLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        invoice:
+          type: integer
+          readOnly: true
+        invoice_number:
+          type: string
+          readOnly: true
+        rule:
+          type: integer
+          readOnly: true
+          nullable: true
+        rule_name:
+          type: string
+          readOnly: true
+        timing_days:
+          type: integer
+          readOnly: true
+        recipient_email:
+          type: string
+          readOnly: true
+        sent_at:
+          type: string
+          format: date-time
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PaymentReminderLogStatusEnum'
+          readOnly: true
+        error_message:
+          type: string
+          readOnly: true
+      required:
+      - error_message
+      - id
+      - invoice
+      - invoice_number
+      - public_id
+      - recipient_email
+      - rule
+      - rule_name
+      - sent_at
+      - status
+      - timing_days
+    PaymentReminderLogStatusEnum:
+      enum:
+      - sent
+      - failed
+      - skipped
+      type: string
+      description: |-
+        * `sent` - Sent
+        * `failed` - Failed
+        * `skipped` - Skipped
+    PaymentReminderRule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: Rule Name
+          maxLength: 128
+        timing_days:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          description: Negative = N days before due date (e.g. -3). 0 = on due date.
+            Positive = N days after due date (overdue, e.g. 7).
+        is_active:
+          type: boolean
+          title: Active
+        subject_template:
+          type: string
+          title: Email Subject Template
+          maxLength: 255
+        body_template:
+          type: string
+          title: Email Body Template
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - public_id
+      - timing_days
+      - updated_at
+    PaymentReminderRuleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Rule Name
+          maxLength: 128
+        timing_days:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          description: Negative = N days before due date (e.g. -3). 0 = on due date.
+            Positive = N days after due date (overdue, e.g. 7).
+        is_active:
+          type: boolean
+          title: Active
+        subject_template:
+          type: string
+          minLength: 1
+          title: Email Subject Template
+          maxLength: 255
+        body_template:
+          type: string
+          minLength: 1
+          title: Email Body Template
+      required:
+      - name
+      - timing_days
     PaymentRequest:
       type: object
       properties:
@@ -16654,6 +17568,383 @@ components:
         * `rejected` - Rejected
         * `expired` - Expired
         * `converted` - Converted to Order
+    RecurringInvoiceLine:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        product:
+          type: integer
+        product_name:
+          type: string
+          readOnly: true
+        product_sku:
+          type: string
+          readOnly: true
+        variant:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          maxLength: 255
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,4})?$
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,4})?$
+        discount_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Discount %
+        tax_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Tax Rate %
+        sort_order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+      required:
+      - id
+      - product
+      - product_name
+      - product_sku
+    RecurringInvoiceLineCreateRequest:
+      type: object
+      properties:
+        product:
+          type: integer
+        variant:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          default: ''
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,4})?$
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,4})?$
+        discount_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          default: '0.00'
+        tax_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          default: '0.00'
+        sort_order:
+          type: integer
+          default: 0
+      required:
+      - product
+      - quantity
+      - unit_price
+    RecurringInvoiceLineRequest:
+      type: object
+      properties:
+        product:
+          type: integer
+        variant:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          maxLength: 255
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,4})?$
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,4})?$
+        discount_percent:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Discount %
+        tax_rate:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Tax Rate %
+        sort_order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+      required:
+      - product
+    RecurringInvoiceProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          title: Profile Title
+          maxLength: 128
+        customer:
+          type: integer
+        customer_name:
+          type: string
+          readOnly: true
+        customer_code:
+          type: string
+          readOnly: true
+        branch:
+          type: integer
+          nullable: true
+        branch_name:
+          type: string
+          readOnly: true
+        warehouse:
+          type: integer
+        warehouse_name:
+          type: string
+          readOnly: true
+        frequency:
+          $ref: '#/components/schemas/FrequencyEnum'
+        interval:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          description: Every N intervals according to frequency
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        next_issue_date:
+          type: string
+          format: date
+        last_issue_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        payment_terms_days:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Payment Terms (Days)
+        currency:
+          type: string
+          maxLength: 3
+        auto_post:
+          type: boolean
+          description: Automatically post invoice and update ledgers upon generation
+        send_email:
+          type: boolean
+          title: Send Email Notification
+          description: Send invoice email notification to customer upon generation
+        status:
+          allOf:
+          - $ref: '#/components/schemas/RecurringInvoiceProfileStatusEnum'
+          readOnly: true
+        total_cycles_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          description: Maximum invoices to generate, or null for unlimited
+        cycles_completed:
+          type: integer
+          readOnly: true
+        notes:
+          type: string
+          title: Invoice Notes
+        terms:
+          type: string
+          title: Terms and Conditions
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecurringInvoiceLine'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - branch_name
+      - created_at
+      - customer
+      - customer_code
+      - customer_name
+      - cycles_completed
+      - id
+      - last_issue_date
+      - lines
+      - next_issue_date
+      - public_id
+      - status
+      - title
+      - updated_at
+      - warehouse
+      - warehouse_name
+    RecurringInvoiceProfileCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        customer:
+          type: integer
+        warehouse:
+          type: integer
+        branch:
+          type: integer
+          nullable: true
+        frequency:
+          allOf:
+          - $ref: '#/components/schemas/FrequencyEnum'
+          default: monthly
+        interval:
+          type: integer
+          minimum: 1
+          default: 1
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        payment_terms_days:
+          type: integer
+          minimum: 0
+          default: 30
+        currency:
+          type: string
+          minLength: 1
+          default: USD
+          maxLength: 3
+        auto_post:
+          type: boolean
+          default: true
+        send_email:
+          type: boolean
+          default: true
+        total_cycles_limit:
+          type: integer
+          minimum: 1
+          nullable: true
+        notes:
+          type: string
+          default: ''
+        terms:
+          type: string
+          default: ''
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecurringInvoiceLineCreateRequest'
+      required:
+      - customer
+      - lines
+      - title
+      - warehouse
+    RecurringInvoiceProfileRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Profile Title
+          maxLength: 128
+        customer:
+          type: integer
+        branch:
+          type: integer
+          nullable: true
+        warehouse:
+          type: integer
+        frequency:
+          $ref: '#/components/schemas/FrequencyEnum'
+        interval:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          description: Every N intervals according to frequency
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        next_issue_date:
+          type: string
+          format: date
+        payment_terms_days:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Payment Terms (Days)
+        currency:
+          type: string
+          minLength: 1
+          maxLength: 3
+        auto_post:
+          type: boolean
+          description: Automatically post invoice and update ledgers upon generation
+        send_email:
+          type: boolean
+          title: Send Email Notification
+          description: Send invoice email notification to customer upon generation
+        total_cycles_limit:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+          description: Maximum invoices to generate, or null for unlimited
+        notes:
+          type: string
+          title: Invoice Notes
+        terms:
+          type: string
+          title: Terms and Conditions
+      required:
+      - customer
+      - next_issue_date
+      - title
+      - warehouse
+    RecurringInvoiceProfileStatusEnum:
+      enum:
+      - active
+      - paused
+      - expired
+      - cancelled
+      type: string
+      description: |-
+        * `active` - Active
+        * `paused` - Paused
+        * `expired` - Expired
+        * `cancelled` - Cancelled
     ResetFrequencyEnum:
       enum:
       - never

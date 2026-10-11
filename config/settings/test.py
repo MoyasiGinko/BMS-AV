@@ -5,6 +5,8 @@ Database stays PostgreSQL (RLS needs it).
 from .base import *  # noqa: F403
 
 DEBUG = False
+IS_TEST = True
+NOTIFICATION_EMAIL_ADAPTER = "fake"
 SECRET_KEY = "test-only-secret-key-not-for-production-use-0123456789"
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 

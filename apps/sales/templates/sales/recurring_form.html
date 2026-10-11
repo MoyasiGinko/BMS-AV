@@ -1,0 +1,235 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% if profile %}{% trans "Edit Recurring Profile" %}{% else %}{% trans "New Recurring Profile" %}{% endif %} | Business OS
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Breadcrumb & Title -->
+    <div>
+        <nav class="flex items-center gap-2 text-xs text-slate-500 mb-2">
+            <a href="{% url 'sales:recurring_list' %}" class="hover:text-indigo-600">{% trans "Recurring Invoices" %}</a>
+            <span>/</span>
+            <span class="text-slate-900 dark:text-slate-100 font-medium">
+                {% if profile %}{{ profile.title }}{% else %}{% trans "New Profile" %}{% endif %}
+            </span>
+        </nav>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {% if profile %}{% trans "Edit Recurring Profile" %}{% else %}{% trans "Create Recurring Profile" %}{% endif %}
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {% trans "Configure automated invoice generation schedule and default line items." %}
+        </p>
+    </div>
+
+    <!-- Form Card -->
+    <form method="post" class="space-y-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-sm">
+            <p class="font-medium mb-1">{% trans "Please resolve the following errors:" %}</p>
+            <ul class="list-disc list-inside text-xs space-y-0.5">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li>{{ field|capfirst }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Schedule Setup -->
+        <div>
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                {% trans "Profile & Schedule Settings" %}
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Profile Title" %} *
+                    </label>
+                    <input type="text" name="title" value="{{ form.title.value|default:'' }}" required
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                           placeholder="e.g. Monthly Retainer - Acme Corporation">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Customer" %} *
+                    </label>
+                    {{ form.customer }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Warehouse" %} *
+                    </label>
+                    {{ form.warehouse }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Branch" %}
+                    </label>
+                    {{ form.branch }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Currency" %}
+                    </label>
+                    <input type="text" name="currency" value="{{ form.currency.value|default:'USD' }}" maxlength="3"
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 uppercase">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Frequency" %} *
+                    </label>
+                    {{ form.frequency }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Interval (Every N periods)" %}
+                    </label>
+                    <input type="number" name="interval" value="{{ form.interval.value|default:'1' }}" min="1" max="99"
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Start Date" %} *
+                    </label>
+                    {{ form.start_date }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "End Date (Optional)" %}
+                    </label>
+                    {{ form.end_date }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Payment Terms (Days)" %}
+                    </label>
+                    <input type="number" name="payment_terms_days" value="{{ form.payment_terms_days.value|default:'30' }}" min="0"
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Total Cycles Limit (Optional)" %}
+                    </label>
+                    <input type="number" name="total_cycles_limit" value="{{ form.total_cycles_limit.value|default:'' }}" min="1" placeholder="{% trans 'Leave empty for unlimited' %}"
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100">
+                </div>
+            </div>
+        </div>
+
+        <!-- Automation Flags -->
+        <div>
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                {% trans "Execution & Delivery" %}
+            </h2>
+            <div class="space-y-3">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="auto_post" {% if form.auto_post.value|default:True %}checked{% endif %}
+                           class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-sm text-slate-900 dark:text-slate-100 font-medium">{% trans "Automatically Post Invoice" %}</span>
+                    <span class="text-xs text-slate-400">({% trans "updates ledgers & customer balance; if unchecked, invoice remains in Draft" %})</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="send_email" {% if form.send_email.value|default:True %}checked{% endif %}
+                           class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-sm text-slate-900 dark:text-slate-100 font-medium">{% trans "Send Invoice Email Notification to Customer" %}</span>
+                    <span class="text-xs text-slate-400">({% trans "dispatched automatically upon generation" %})</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Template Item -->
+        <div>
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                {% trans "Default Item / Service" %}
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Product / Service" %} *
+                    </label>
+                    <select name="product" required class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100">
+                        <option value="">{% trans "-- Select Product or Service --" %}</option>
+                        {% for prod in products %}
+                            <option value="{{ prod.pk }}" {% if first_line and first_line.product.pk == prod.pk %}selected{% endif %}>
+                                {{ prod.name }} ({{ prod.sku }}) - ${{ prod.price }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Quantity" %}
+                    </label>
+                    <input type="number" name="quantity" value="{{ first_line.quantity|default:'1.0000' }}" step="0.0001" min="0.0001"
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Unit Price" %}
+                    </label>
+                    <input type="number" name="unit_price" value="{{ first_line.unit_price|default:'0.0000' }}" step="0.0001" min="0.0000"
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+                           placeholder="0.00 (leave 0 for product price)">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Discount %" %}
+                    </label>
+                    <input type="number" name="discount_percent" value="{{ first_line.discount_percent|default:'0.00' }}" step="0.01" min="0.00" max="100.00"
+                           class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100">
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes & Terms -->
+        <div>
+            <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                {% trans "Notes & Terms" %}
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Notes (printed on generated invoices)" %}
+                    </label>
+                    {{ form.notes }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
+                        {% trans "Terms & Conditions" %}
+                    </label>
+                    {{ form.terms }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
+            <a href="{% url 'sales:recurring_list' %}" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-colors">
+                {% if profile %}{% trans "Save Changes" %}{% else %}{% trans "Create Profile" %}{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

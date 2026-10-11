@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import calendar
 import datetime
+import logging
 from decimal import Decimal
 from typing import Any
 
@@ -12,8 +14,9 @@ from django.utils import timezone
 from apps.accounting import services as accounting_services
 from apps.accounting.exceptions import PeriodClosed
 from apps.accounting.services import Cr, Dr
-from apps.catalog.models import ProductType
+from apps.catalog.models import Product, ProductType, ProductVariant
 from apps.core.events import publish
+from apps.core.notifications import send_notification
 from apps.core.services import generate_next_number
 from apps.customers import services as customers_services
 from apps.customers.models import BalanceEntryType, Customer, CustomerStatus
@@ -28,9 +31,12 @@ from apps.sales.events import (
     PaymentAllocated,
     PaymentReceived,
     PaymentRefunded,
+    PaymentReminderSent,
     PaymentVoided,
     QuoteAccepted,
     QuoteCreated,
+    RecurringInvoiceGenerated,
+    RecurringProfileCreated,
     SalesOrderConfirmed,
     SalesOrderCreated,
 )
@@ -48,6 +54,8 @@ from apps.sales.exceptions import (
     InvoiceNotPayableError,
     PaymentAlreadyVoidError,
     PaymentError,
+    PaymentReminderError,
+    RecurringProfileError,
     VoidNotAllowedError,
     WarehouseRequiredError,
 )
@@ -62,15 +70,23 @@ from apps.sales.models import (
     PaymentAllocation,
     PaymentMethod,
     PaymentRefund,
+    PaymentReminderLog,
+    PaymentReminderRule,
     PaymentStatus,
     Quote,
     QuoteLine,
     QuoteStatus,
+    RecurringFrequency,
+    RecurringInvoiceLine,
+    RecurringInvoiceProfile,
+    RecurringProfileStatus,
     SalesOrder,
     SalesOrderLine,
     SalesOrderStatus,
 )
 from apps.tenancy.models import Branch, Organization, Warehouse
+
+logger = logging.getLogger(__name__)
 
 DECIMAL_ZERO = Decimal("0.0000")
 FOUR_PLACES = Decimal("0.0001")
@@ -105,6 +121,24 @@ def calculate_line_values(
         "tax_amount": tax_amount,
         "line_total": line_total,
     }
+
+
+def _resolve_line_product(organization: Organization, item: dict[str, Any]) -> Any:
+    """Extract product instance from dict item, accepting either 'product' instance or 'product_id'."""
+    prod = item.get("product")
+    if prod is None and "product_id" in item:
+        prod = Product.all_tenants.get(organization=organization, pk=item["product_id"])
+    if prod is None:
+        raise KeyError("product")
+    return prod
+
+
+def _resolve_line_variant(organization: Organization, item: dict[str, Any]) -> Any:
+    """Extract variant instance from dict item, accepting either 'variant' instance or 'variant_id'."""
+    var = item.get("variant")
+    if var is None and item.get("variant_id"):
+        var = ProductVariant.all_tenants.get(organization=organization, pk=item["variant_id"])
+    return var
 
 
 # ============================================================================
@@ -170,12 +204,15 @@ def create_quote(
         discount_total += calc["discount_amount"]
         tax_total += calc["tax_amount"]
 
+        prod = _resolve_line_product(organization, item)
+        var = _resolve_line_variant(organization, item)
+
         QuoteLine.objects.create(
             organization=organization,
             quote=quote,
-            product=item["product"],
-            variant=item.get("variant"),
-            description=item.get("description", item["product"].name),
+            product=prod,
+            variant=var,
+            description=item.get("description", prod.name),
             quantity=calc["quantity"],
             unit_price=calc["unit_price"],
             discount_percent=calc["discount_percent"],
@@ -345,12 +382,15 @@ def create_sales_order(
         discount_total += calc["discount_amount"]
         tax_total += calc["tax_amount"]
 
+        prod = _resolve_line_product(organization, item)
+        var = _resolve_line_variant(organization, item)
+
         SalesOrderLine.objects.create(
             organization=organization,
             order=order,
-            product=item["product"],
-            variant=item.get("variant"),
-            description=item.get("description", item["product"].name),
+            product=prod,
+            variant=var,
+            description=item.get("description", prod.name),
             quantity=calc["quantity"],
             unit_price=calc["unit_price"],
             discount_percent=calc["discount_percent"],
@@ -559,12 +599,15 @@ def create_invoice(
         discount_total += calc["discount_amount"]
         tax_total += calc["tax_amount"]
 
+        prod = _resolve_line_product(organization, item)
+        var = _resolve_line_variant(organization, item)
+
         InvoiceLine.objects.create(
             organization=organization,
             invoice=invoice,
-            product=item["product"],
-            variant=item.get("variant"),
-            description=item.get("description", item["product"].name),
+            product=prod,
+            variant=var,
+            description=item.get("description", prod.name),
             quantity=calc["quantity"],
             unit_price=calc["unit_price"],
             discount_percent=calc["discount_percent"],
@@ -673,7 +716,11 @@ def post_invoice(
         raise AccountingPeriodClosedError(str(exc)) from exc
 
     # 2. Issue inventory for physical stock items and record COGS
-    invoice_lines = list(invoice.lines.select_related("product", "variant").all())
+    invoice_lines = list(
+        InvoiceLine.all_tenants.filter(invoice=invoice, organization=organization)
+        .select_related("product", "variant")
+        .all()
+    )
     if not invoice_lines:
         raise EmptyDocumentError("Cannot post an invoice without line items.")
 
@@ -1608,3 +1655,666 @@ def void_payment(
     )
 
     return payment
+
+
+def advance_date_by_months(orig_date: datetime.date, months: int) -> datetime.date:
+    """Advance a date by N months, preserving day of month or capping at month end."""
+    year = orig_date.year + (orig_date.month + months - 1) // 12
+    month = (orig_date.month + months - 1) % 12 + 1
+    max_day = calendar.monthrange(year, month)[1]
+    day = min(orig_date.day, max_day)
+    return datetime.date(year, month, day)
+
+
+def advance_recurring_date(
+    start_date: datetime.date,
+    frequency: str,
+    interval: int = 1,
+) -> datetime.date:
+    """Compute next recurring occurrence date based on frequency and interval."""
+    interval = max(1, interval)
+    freq = str(frequency).lower()
+    if freq in ("daily", RecurringFrequency.DAILY):
+        return start_date + datetime.timedelta(days=interval)
+    if freq in ("weekly", RecurringFrequency.WEEKLY):
+        return start_date + datetime.timedelta(weeks=interval)
+    if freq in ("biweekly", RecurringFrequency.BIWEEKLY):
+        return start_date + datetime.timedelta(weeks=2 * interval)
+
+    month_multipliers = {
+        RecurringFrequency.MONTHLY: 1,
+        "monthly": 1,
+        RecurringFrequency.QUARTERLY: 3,
+        "quarterly": 3,
+        RecurringFrequency.BIANNUAL: 6,
+        "biannual": 6,
+        "semi_annually": 6,
+        "semiannually": 6,
+        RecurringFrequency.ANNUAL: 12,
+        "annual": 12,
+        "annually": 12,
+    }
+    months = month_multipliers.get(freq, 1)
+    return advance_date_by_months(start_date, months * interval)
+
+
+@transaction.atomic
+def create_recurring_profile(
+    *,
+    organization: Organization,
+    title: str,
+    customer: Customer,
+    warehouse: Warehouse,
+    branch: Branch | None = None,
+    frequency: str = RecurringFrequency.MONTHLY,
+    interval: int = 1,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    payment_terms_days: int = 30,
+    currency: str = "USD",
+    auto_post: bool = True,
+    send_email: bool = True,
+    total_cycles_limit: int | None = None,
+    lines: list[dict[str, Any]],
+    notes: str = "",
+    terms: str = "",
+    actor: Any = None,
+) -> RecurringInvoiceProfile:
+    """Create a recurring invoice template schedule and initial lines."""
+    if not lines:
+        raise RecurringProfileError("A recurring invoice profile must contain at least one line item.")
+
+    if customer.organization_id != organization.pk:
+        raise RecurringProfileError("Customer does not belong to this organization.")
+    if warehouse.organization_id != organization.pk:
+        raise RecurringProfileError("Warehouse does not belong to this organization.")
+    if branch and branch.organization_id != organization.pk:
+        raise RecurringProfileError("Branch does not belong to this organization.")
+
+    s_date = start_date or timezone.now().date()
+    profile = RecurringInvoiceProfile.objects.create(
+        organization=organization,
+        title=title,
+        customer=customer,
+        warehouse=warehouse,
+        branch=branch,
+        frequency=frequency,
+        interval=max(1, interval),
+        start_date=s_date,
+        end_date=end_date,
+        next_issue_date=s_date,
+        payment_terms_days=max(0, payment_terms_days),
+        currency=currency,
+        auto_post=auto_post,
+        send_email=send_email,
+        status=RecurringProfileStatus.ACTIVE,
+        total_cycles_limit=total_cycles_limit,
+        notes=notes,
+        terms=terms,
+        created_by=actor,
+    )
+
+    for idx, item in enumerate(lines):
+        prod = _resolve_line_product(organization, item)
+        var = _resolve_line_variant(organization, item)
+
+        RecurringInvoiceLine.objects.create(
+            organization=organization,
+            profile=profile,
+            product=prod,
+            variant=var,
+            description=item.get("description", prod.name),
+            quantity=item.get("quantity", Decimal("1.0000")),
+            unit_price=item.get("unit_price", Decimal("0.0000")),
+            discount_percent=item.get("discount_percent", Decimal("0.00")),
+            tax_rate=item.get("tax_rate", Decimal("0.00")),
+            sort_order=idx,
+            created_by=actor,
+        )
+
+    publish(
+        RecurringProfileCreated(
+            organization_id=organization.pk,
+            profile_id=profile.pk,
+            profile_public_id=str(profile.public_id),
+            customer_id=customer.pk,
+            frequency=frequency,
+        )
+    )
+    return profile
+
+
+@transaction.atomic
+def update_recurring_profile(
+    *,
+    profile: RecurringInvoiceProfile,
+    title: str | None = None,
+    frequency: str | None = None,
+    interval: int | None = None,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    payment_terms_days: int | None = None,
+    currency: str | None = None,
+    auto_post: bool | None = None,
+    send_email: bool | None = None,
+    total_cycles_limit: int | None = None,
+    lines: list[dict[str, Any]] | None = None,
+    notes: str | None = None,
+    terms: str | None = None,
+    actor: Any = None,
+) -> RecurringInvoiceProfile:
+    """Update profile configuration and optionally replace line items."""
+    profile = RecurringInvoiceProfile.all_tenants.select_for_update().get(pk=profile.pk)
+    updates = {
+        "title": title,
+        "frequency": frequency,
+        "interval": max(1, interval) if interval is not None else None,
+        "start_date": start_date,
+        "end_date": end_date,
+        "payment_terms_days": max(0, payment_terms_days) if payment_terms_days is not None else None,
+        "currency": currency,
+        "auto_post": auto_post,
+        "send_email": send_email,
+        "total_cycles_limit": total_cycles_limit,
+        "notes": notes,
+        "terms": terms,
+    }
+    for field_name, value in updates.items():
+        if value is not None:
+            setattr(profile, field_name, value)
+
+    if lines is not None:
+        if not lines:
+            raise EmptyDocumentError("Profile must have at least one line item.")
+        profile.lines.all().delete()
+        for idx, item in enumerate(lines):
+            prod = _resolve_line_product(profile.organization, item)
+            var = _resolve_line_variant(profile.organization, item)
+
+            RecurringInvoiceLine.objects.create(
+                organization=profile.organization,
+                profile=profile,
+                product=prod,
+                variant=var,
+                description=item.get("description", prod.name),
+                quantity=item.get("quantity", Decimal("1.0000")),
+                unit_price=item.get("unit_price", Decimal("0.0000")),
+                discount_percent=item.get("discount_percent", Decimal("0.00")),
+                tax_rate=item.get("tax_rate", Decimal("0.00")),
+                sort_order=idx,
+                created_by=actor,
+            )
+
+    profile.save()
+    return profile
+
+
+@transaction.atomic
+def pause_recurring_profile(
+    *,
+    organization: Organization | None = None,
+    profile: RecurringInvoiceProfile,
+    actor: Any = None,
+) -> RecurringInvoiceProfile:
+    """Pause an active recurring invoice profile."""
+    profile = RecurringInvoiceProfile.all_tenants.select_for_update().get(pk=profile.pk)
+    if profile.status != RecurringProfileStatus.ACTIVE:
+        raise RecurringProfileError(f"Cannot pause profile in status '{profile.status}'.")
+    profile.status = RecurringProfileStatus.PAUSED
+    profile.save(update_fields=["status", "updated_at"])
+    return profile
+
+
+@transaction.atomic
+def resume_recurring_profile(
+    *,
+    organization: Organization | None = None,
+    profile: RecurringInvoiceProfile,
+    actor: Any = None,
+) -> RecurringInvoiceProfile:
+    """Resume a paused recurring invoice profile."""
+    profile = RecurringInvoiceProfile.all_tenants.select_for_update().get(pk=profile.pk)
+    if profile.status == RecurringProfileStatus.CANCELLED:
+        raise RecurringProfileError(f"Cannot resume cancelled profile '{profile.title}'.")
+    if profile.status != RecurringProfileStatus.PAUSED:
+        raise RecurringProfileError(f"Cannot resume profile in status '{profile.status}'.")
+    profile.status = RecurringProfileStatus.ACTIVE
+    today = timezone.now().date()
+    profile.next_issue_date = max(profile.next_issue_date, today)
+    profile.save(update_fields=["status", "next_issue_date", "updated_at"])
+    return profile
+
+
+@transaction.atomic
+def cancel_recurring_profile(
+    *,
+    organization: Organization | None = None,
+    profile: RecurringInvoiceProfile,
+    actor: Any = None,
+) -> RecurringInvoiceProfile:
+    """Permanently cancel a recurring invoice profile."""
+    profile = RecurringInvoiceProfile.all_tenants.select_for_update().get(pk=profile.pk)
+    if profile.status == RecurringProfileStatus.CANCELLED:
+        return profile
+    profile.status = RecurringProfileStatus.CANCELLED
+    profile.save(update_fields=["status", "updated_at"])
+    return profile
+
+
+@transaction.atomic
+def generate_single_recurring_invoice(
+    *,
+    organization: Organization | None = None,
+    profile: RecurringInvoiceProfile,
+    issue_date: datetime.date | None = None,
+    actor: Any = None,
+) -> Invoice:
+    """Generate a single sales invoice from a recurring profile and advance its schedule."""
+    profile = RecurringInvoiceProfile.all_tenants.select_for_update().get(pk=profile.pk)
+    if profile.status == RecurringProfileStatus.PAUSED:
+        raise RecurringProfileError(f"Cannot generate invoice: profile '{profile.title}' status is paused.")
+    if profile.status == RecurringProfileStatus.EXPIRED:
+        raise RecurringProfileError(f"Cannot generate invoice: profile '{profile.title}' status is expired.")
+    if profile.status != RecurringProfileStatus.ACTIVE:
+        raise RecurringProfileError(
+            f"Cannot generate invoice: profile '{profile.title}' is in status '{profile.status}'."
+        )
+
+    if profile.total_cycles_limit and profile.cycles_completed >= profile.total_cycles_limit:
+        profile.status = RecurringProfileStatus.EXPIRED
+        profile.save(update_fields=["status", "updated_at"])
+        raise RecurringProfileError(
+            f"Profile '{profile.title}' status is expired "
+            f"(reached total cycle limit of {profile.total_cycles_limit})."
+        )
+
+    lines_qs = RecurringInvoiceLine.all_tenants.filter(profile=profile).order_by("sort_order", "id")
+    if not lines_qs.exists():
+        raise RecurringProfileError(f"Recurring profile '{profile.title}' has no line items.")
+
+    inv_date = issue_date or profile.next_issue_date or timezone.now().date()
+    due_date = inv_date + datetime.timedelta(days=profile.payment_terms_days)
+
+    invoice_lines_data: list[dict[str, Any]] = []
+    for line in lines_qs:
+        invoice_lines_data.append(
+            {
+                "product": line.product,
+                "variant": line.variant,
+                "description": line.description or line.product.name,
+                "quantity": line.quantity,
+                "unit_price": line.unit_price,
+                "discount_percent": line.discount_percent,
+                "tax_rate": line.tax_rate,
+            }
+        )
+
+    invoice = create_invoice(
+        organization=profile.organization,
+        customer=profile.customer,
+        warehouse=profile.warehouse,
+        branch=profile.branch,
+        invoice_date=inv_date,
+        due_date=due_date,
+        currency=profile.currency,
+        lines=invoice_lines_data,
+        notes=profile.notes,
+        terms=profile.terms,
+        actor=actor,
+    )
+    invoice.recurring_profile = profile
+    invoice.save(update_fields=["recurring_profile", "updated_at"])
+
+    # Auto-post if configured
+    if profile.auto_post:
+        try:
+            invoice = post_invoice(
+                organization=profile.organization,
+                invoice=invoice,
+                actor=actor,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Auto-posting invoice %s from profile %s failed: %s",
+                invoice.invoice_number,
+                profile.title,
+                exc,
+            )
+            invoice.notes = f"{invoice.notes}\n[Warning: Auto-post failed: {exc}]".strip()
+            invoice.save(update_fields=["notes", "updated_at"])
+
+    # Send notification email if configured
+    if profile.send_email and profile.customer.email:
+        subject = f"Invoice {invoice.invoice_number} from {profile.organization.name}"
+        body = (
+            f"Dear {profile.customer.name},\n\n"
+            f"Your new invoice {invoice.invoice_number} has been generated.\n"
+            f"Amount: {invoice.currency} {invoice.grand_total}\n"
+            f"Due Date: {invoice.due_date}\n\n"
+            f"Thank you for your business.\n{profile.organization.name}"
+        )
+        send_notification(
+            organization_id=profile.organization.pk,
+            category="sales.recurring_invoice",
+            title=subject,
+            body=body,
+            recipient_email=profile.customer.email,
+            actor=actor,
+        )
+
+    # Advance schedule
+    profile.last_issue_date = inv_date
+    profile.cycles_completed += 1
+    next_date = advance_recurring_date(inv_date, profile.frequency, profile.interval)
+    profile.next_issue_date = next_date
+
+    if profile.end_date and profile.next_issue_date > profile.end_date:
+        profile.status = RecurringProfileStatus.EXPIRED
+    if profile.total_cycles_limit and profile.cycles_completed >= profile.total_cycles_limit:
+        profile.status = RecurringProfileStatus.EXPIRED
+
+    profile.save(
+        update_fields=[
+            "last_issue_date",
+            "cycles_completed",
+            "next_issue_date",
+            "status",
+            "updated_at",
+        ]
+    )
+
+    publish(
+        RecurringInvoiceGenerated(
+            organization_id=profile.organization.pk,
+            profile_id=profile.pk,
+            profile_public_id=str(profile.public_id),
+            invoice_id=invoice.pk,
+            invoice_number=invoice.invoice_number,
+            customer_id=profile.customer_id,
+            grand_total=str(invoice.grand_total),
+        )
+    )
+    return invoice
+
+
+def generate_due_recurring_invoices(
+    *,
+    organization: Organization | None = None,
+    as_of_date: datetime.date | None = None,
+    actor: Any = None,
+) -> dict[str, Any]:
+    """Find and generate all active recurring invoice profiles that are due."""
+    today = as_of_date or timezone.now().date()
+    qs = RecurringInvoiceProfile.all_tenants.filter(
+        status=RecurringProfileStatus.ACTIVE,
+        next_issue_date__lte=today,
+    )
+    if organization is not None:
+        qs = qs.filter(organization=organization)
+    due_profiles = list(qs.order_by("next_issue_date", "id"))
+
+    generated: list[Invoice] = []
+    generated_items: list[dict[str, Any]] = []
+    failed_items: list[dict[str, Any]] = []
+
+    for profile in due_profiles:
+        try:
+            inv = generate_single_recurring_invoice(
+                organization=profile.organization,
+                profile=profile,
+                issue_date=profile.next_issue_date,
+                actor=actor,
+            )
+            generated.append(inv)
+            generated_items.append(
+                {
+                    "profile_id": profile.pk,
+                    "invoice_id": inv.pk,
+                    "invoice_number": inv.invoice_number,
+                }
+            )
+        except Exception as exc:
+            logger.exception(
+                "Failed generating recurring invoice for profile %s: %s",
+                profile.title,
+                exc,
+            )
+            failed_items.append({"profile_id": profile.pk, "error": str(exc)})
+
+    return {
+        "generated": generated_items,
+        "failed": failed_items,
+        "invoices": generated,
+    }
+
+
+@transaction.atomic
+def create_payment_reminder_rule(
+    *,
+    organization: Organization,
+    name: str,
+    timing_days: int,
+    subject_template: str = "",
+    body_template: str = "",
+    is_active: bool = True,
+    actor: Any = None,
+) -> PaymentReminderRule:
+    """Create a new payment reminder rule for an organization."""
+    if PaymentReminderRule.all_tenants.filter(organization=organization, timing_days=timing_days).exists():
+        raise PaymentReminderError(f"A payment reminder rule with timing_days={timing_days} already exists.")
+
+    rule = PaymentReminderRule.objects.create(
+        organization=organization,
+        name=name,
+        timing_days=timing_days,
+        subject_template=subject_template
+        or "Payment Reminder: Invoice {{ invoice_number }} from {{ org_name }}",
+        body_template=body_template
+        or (
+            "Dear {{ customer_name }},\n\n"
+            "This is a reminder regarding Invoice {{ invoice_number }} dated {{ invoice_date }}.\n"
+            "Amount Due: {{ currency }} {{ balance_due }}\n"
+            "Due Date: {{ due_date }}\n\n"
+            "Thank you for your business.\n{{ org_name }}"
+        ),
+        is_active=is_active,
+        created_by=actor,
+    )
+    return rule
+
+
+@transaction.atomic
+def update_payment_reminder_rule(
+    *,
+    organization: Organization | None = None,
+    rule: PaymentReminderRule,
+    name: str | None = None,
+    timing_days: int | None = None,
+    subject_template: str | None = None,
+    body_template: str | None = None,
+    is_active: bool | None = None,
+    actor: Any = None,
+) -> PaymentReminderRule:
+    """Update payment reminder rule attributes."""
+    rule = PaymentReminderRule.all_tenants.select_for_update().get(pk=rule.pk)
+    if timing_days is not None and timing_days != rule.timing_days:
+        if (
+            PaymentReminderRule.all_tenants.filter(organization=rule.organization, timing_days=timing_days)
+            .exclude(pk=rule.pk)
+            .exists()
+        ):
+            raise PaymentReminderError(
+                f"A payment reminder rule with timing_days={timing_days} already exists."
+            )
+        rule.timing_days = timing_days
+
+    if name is not None:
+        rule.name = name
+    if subject_template is not None:
+        rule.subject_template = subject_template
+    if body_template is not None:
+        rule.body_template = body_template
+    if is_active is not None:
+        rule.is_active = is_active
+    rule.save()
+    return rule
+
+
+@transaction.atomic
+def delete_payment_reminder_rule(
+    *,
+    organization: Organization | None = None,
+    rule: PaymentReminderRule,
+    actor: Any = None,
+) -> None:
+    """Delete a payment reminder rule."""
+    rule = PaymentReminderRule.all_tenants.select_for_update().get(pk=rule.pk)
+    rule.delete()
+
+
+def process_due_payment_reminders(
+    *,
+    organization: Organization | None = None,
+    as_of_date: datetime.date | None = None,
+    actor: Any = None,
+) -> dict[str, Any]:
+    """Find unpaid posted invoices matching active reminder rules and dispatch notices."""
+    today = as_of_date or timezone.now().date()
+    rule_qs = PaymentReminderRule.all_tenants.filter(is_active=True)
+    if organization is not None:
+        rule_qs = rule_qs.filter(organization=organization)
+    active_rules = list(rule_qs.select_related("organization"))
+
+    logs: list[PaymentReminderLog] = []
+    sent_items: list[dict[str, Any]] = []
+    skipped_items: list[dict[str, Any]] = []
+    failed_items: list[dict[str, Any]] = []
+
+    for rule in active_rules:
+        # timing_days: negative = before due date, positive = after due date
+        # Target due date: due_date + timing_days = today -> due_date = today - timing_days
+        target_due_date = today - datetime.timedelta(days=rule.timing_days)
+
+        invoices = list(
+            Invoice.all_tenants.filter(
+                organization=rule.organization,
+                due_date=target_due_date,
+                status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID],
+                balance_due__gt=0,
+            ).select_related("customer", "organization")
+        )
+
+        for inv in invoices:
+            if not inv.customer.email:
+                skipped_items.append(
+                    {
+                        "invoice_id": inv.pk,
+                        "invoice_number": inv.invoice_number,
+                        "reason": "No recipient email address",
+                        "timing_days": rule.timing_days,
+                    }
+                )
+                continue
+
+            already_sent = PaymentReminderLog.all_tenants.filter(
+                organization=rule.organization,
+                invoice=inv,
+                timing_days=rule.timing_days,
+            ).exists()
+            if already_sent:
+                skipped_items.append(
+                    {
+                        "invoice_id": inv.pk,
+                        "invoice_number": inv.invoice_number,
+                        "reason": f"Reminder for {rule.timing_days}d already sent",
+                        "timing_days": rule.timing_days,
+                    }
+                )
+                continue
+
+            # Render template variables
+            context = {
+                "customer_name": inv.customer.name,
+                "invoice_number": inv.invoice_number,
+                "invoice_date": str(inv.invoice_date),
+                "due_date": str(inv.due_date),
+                "currency": inv.currency,
+                "balance_due": str(inv.balance_due),
+                "org_name": inv.organization.name,
+            }
+            subject = rule.subject_template
+            body = rule.body_template
+            for k, v in context.items():
+                subject = subject.replace(f"{{{{ {k} }}}}", v).replace(f"{{{{{k}}}}}", v)
+                body = body.replace(f"{{{{ {k} }}}}", v).replace(f"{{{{{k}}}}}", v)
+
+            notification = send_notification(
+                organization_id=rule.organization.pk,
+                category="sales.payment_reminder",
+                title=subject,
+                body=body,
+                recipient_email=inv.customer.email,
+                actor=actor,
+            )
+
+            status_str = (
+                "sent"
+                if notification.status == "sent"
+                else ("skipped" if notification.status == "skipped" else "failed")
+            )
+            log = PaymentReminderLog.objects.create(
+                organization=rule.organization,
+                invoice=inv,
+                rule=rule,
+                timing_days=rule.timing_days,
+                recipient_email=inv.customer.email,
+                status=status_str,
+                error_message=notification.error_message,
+                created_by=actor,
+            )
+            logs.append(log)
+
+            if notification.status == "sent":
+                sent_items.append(
+                    {
+                        "invoice_id": inv.pk,
+                        "invoice_number": inv.invoice_number,
+                        "recipient": inv.customer.email,
+                        "timing_days": rule.timing_days,
+                        "subject": subject,
+                    }
+                )
+                publish(
+                    PaymentReminderSent(
+                        organization_id=rule.organization.pk,
+                        invoice_id=inv.pk,
+                        invoice_number=inv.invoice_number,
+                        timing_days=rule.timing_days,
+                        recipient_email=inv.customer.email,
+                    )
+                )
+            elif notification.status == "skipped":
+                skipped_items.append(
+                    {
+                        "invoice_id": inv.pk,
+                        "invoice_number": inv.invoice_number,
+                        "reason": f"Notification preference disabled ({notification.error_message})",
+                        "timing_days": rule.timing_days,
+                    }
+                )
+            else:
+                failed_items.append(
+                    {
+                        "invoice_id": inv.pk,
+                        "invoice_number": inv.invoice_number,
+                        "error": notification.error_message,
+                        "timing_days": rule.timing_days,
+                    }
+                )
+
+    return {
+        "sent": sent_items,
+        "skipped": skipped_items,
+        "failed": failed_items,
+        "logs": logs,
+    }

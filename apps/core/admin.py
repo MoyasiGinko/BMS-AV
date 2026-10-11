@@ -7,7 +7,7 @@ from typing import Any
 from django.contrib import admin
 from django.http import HttpRequest
 
-from apps.core.models import ApiKey, AuditLog, NumberSequence, OutboxEvent
+from apps.core.models import ApiKey, AuditLog, Notification, NumberSequence, OutboxEvent
 
 
 @admin.register(ApiKey)
@@ -70,3 +70,20 @@ class OutboxEventAdmin(admin.ModelAdmin):
     list_filter = ("status", "event_type", "created_at")
     search_fields = ("event_type", "last_error")
     readonly_fields = ("event_id", "created_at", "processed_at")
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "channel",
+        "category",
+        "recipient_email",
+        "status",
+        "sent_at",
+        "created_at",
+    )
+    list_filter = ("channel", "status", "category", "created_at")
+    search_fields = ("title", "recipient_email", "category")
+    readonly_fields = ("public_id", "created_at", "updated_at", "sent_at", "read_at")

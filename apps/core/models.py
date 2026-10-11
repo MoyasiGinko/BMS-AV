@@ -278,3 +278,65 @@ class OutboxEvent(models.Model):
 
     def __str__(self) -> str:
         return f"{self.event_type} ({self.event_id}) [{self.status}]"
+
+
+class NotificationChannel(models.TextChoices):
+    EMAIL = "email", _("Email")
+    IN_APP = "in_app", _("In-App")
+
+
+class NotificationStatus(models.TextChoices):
+    PENDING = "pending", _("Pending")
+    SENT = "sent", _("Sent")
+    FAILED = "failed", _("Failed")
+    READ = "read", _("Read")
+    SKIPPED = "skipped", _("Skipped")
+
+
+class Notification(TenantModel):
+    """Transactional and operational notifications delivered across channels."""
+
+    recipient_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+        verbose_name=_("recipient user"),
+    )
+    recipient_email = models.CharField(_("recipient email"), max_length=255, blank=True)
+    channel = models.CharField(
+        _("channel"),
+        max_length=32,
+        choices=NotificationChannel.choices,
+        default=NotificationChannel.EMAIL,
+        db_index=True,
+    )
+    category = models.CharField(_("category"), max_length=64, db_index=True)
+    title = models.CharField(_("title"), max_length=255)
+    body = models.TextField(_("body"))
+    metadata = models.JSONField(_("metadata"), default=dict, blank=True)
+    status = models.CharField(
+        _("status"),
+        max_length=32,
+        choices=NotificationStatus.choices,
+        default=NotificationStatus.PENDING,
+        db_index=True,
+    )
+    sent_at = models.DateTimeField(_("sent at"), null=True, blank=True)
+    read_at = models.DateTimeField(_("read at"), null=True, blank=True)
+    error_message = models.TextField(_("error message"), blank=True)
+
+    class Meta:
+        verbose_name = _("notification")
+        verbose_name_plural = _("notifications")
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["organization", "status", "-created_at"]),
+            models.Index(fields=["organization", "category", "-created_at"]),
+            models.Index(fields=["organization", "recipient_user", "status", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        recipient = self.recipient_email or (self.recipient_user.email if self.recipient_user else "unknown")
+        return f"[{self.channel}] {self.category} -> {recipient} ({self.status})"

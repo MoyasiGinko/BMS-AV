@@ -40,6 +40,23 @@ class CreditNoteStatus(models.TextChoices):
     VOID = "void", _("Void")
 
 
+class RecurringFrequency(models.TextChoices):
+    DAILY = "daily", _("Daily")
+    WEEKLY = "weekly", _("Weekly")
+    BIWEEKLY = "biweekly", _("Bi-weekly")
+    MONTHLY = "monthly", _("Monthly")
+    QUARTERLY = "quarterly", _("Quarterly")
+    BIANNUAL = "biannual", _("Bi-annual")
+    ANNUAL = "annual", _("Annual")
+
+
+class RecurringProfileStatus(models.TextChoices):
+    ACTIVE = "active", _("Active")
+    PAUSED = "paused", _("Paused")
+    EXPIRED = "expired", _("Expired")
+    CANCELLED = "cancelled", _("Cancelled")
+
+
 class Quote(TenantModel):
     """Customer sales quotation estimating pricing, discounts, and terms."""
 
@@ -436,6 +453,14 @@ class Invoice(TenantModel):
         blank=True,
         related_name="invoices",
         verbose_name=_("Origin Order"),
+    )
+    recurring_profile = models.ForeignKey(
+        "sales.RecurringInvoiceProfile",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="generated_invoices",
+        verbose_name=_("Recurring Profile"),
     )
     invoice_date = models.DateField(_("Invoice Date"), default=timezone.now)
     due_date = models.DateField(_("Due Date"), null=True, blank=True)
@@ -993,3 +1018,238 @@ class PaymentRefund(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.refund_number} - {self.customer.name} ({self.amount})"
+
+
+class RecurringInvoiceProfile(TenantModel):
+    """Template schedule for automatically generating sales invoices."""
+
+    ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+        RecurringProfileStatus.ACTIVE: {
+            RecurringProfileStatus.PAUSED,
+            RecurringProfileStatus.EXPIRED,
+            RecurringProfileStatus.CANCELLED,
+        },
+        RecurringProfileStatus.PAUSED: {
+            RecurringProfileStatus.ACTIVE,
+            RecurringProfileStatus.CANCELLED,
+        },
+        RecurringProfileStatus.EXPIRED: {RecurringProfileStatus.CANCELLED},
+        RecurringProfileStatus.CANCELLED: set(),
+    }
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    title = models.CharField(_("Profile Title"), max_length=128)
+    customer = models.ForeignKey(
+        "customers.Customer",
+        on_delete=models.PROTECT,
+        related_name="recurring_profiles",
+        verbose_name=_("Customer"),
+    )
+    branch = models.ForeignKey(
+        "tenancy.Branch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recurring_profiles",
+        verbose_name=_("Branch"),
+    )
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.PROTECT,
+        related_name="recurring_profiles",
+        verbose_name=_("Warehouse"),
+    )
+    frequency = models.CharField(
+        _("Frequency"),
+        max_length=20,
+        choices=RecurringFrequency.choices,
+        default=RecurringFrequency.MONTHLY,
+    )
+    interval = models.PositiveSmallIntegerField(
+        _("Interval"),
+        default=1,
+        help_text=_("Every N intervals according to frequency"),
+    )
+    start_date = models.DateField(_("Start Date"), default=timezone.now)
+    end_date = models.DateField(_("End Date"), null=True, blank=True)
+    next_issue_date = models.DateField(_("Next Issue Date"), db_index=True)
+    last_issue_date = models.DateField(_("Last Issue Date"), null=True, blank=True)
+    payment_terms_days = models.PositiveSmallIntegerField(_("Payment Terms (Days)"), default=30)
+    currency = models.CharField(_("Currency"), max_length=3, default="USD")
+    auto_post = models.BooleanField(
+        _("Auto Post"),
+        default=True,
+        help_text=_("Automatically post invoice and update ledgers upon generation"),
+    )
+    send_email = models.BooleanField(
+        _("Send Email Notification"),
+        default=True,
+        help_text=_("Send invoice email notification to customer upon generation"),
+    )
+    status = models.CharField(
+        _("Status"),
+        max_length=20,
+        choices=RecurringProfileStatus.choices,
+        default=RecurringProfileStatus.ACTIVE,
+        db_index=True,
+    )
+    total_cycles_limit = models.PositiveIntegerField(
+        _("Total Cycles Limit"),
+        null=True,
+        blank=True,
+        help_text=_("Maximum invoices to generate, or null for unlimited"),
+    )
+    cycles_completed = models.PositiveIntegerField(_("Cycles Completed"), default=0)
+    notes = models.TextField(_("Invoice Notes"), blank=True)
+    terms = models.TextField(_("Terms and Conditions"), blank=True)
+
+    class Meta:
+        verbose_name = _("Recurring Invoice Profile")
+        verbose_name_plural = _("Recurring Invoice Profiles")
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(fields=["organization", "status", "next_issue_date"]),
+            models.Index(fields=["organization", "customer", "status"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.title} - {self.customer.name} ({self.frequency})"
+
+
+class RecurringInvoiceLine(TenantModel):
+    """Line item template on a recurring invoice profile."""
+
+    profile = models.ForeignKey(
+        RecurringInvoiceProfile,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+    product = models.ForeignKey(
+        "catalog.Product",
+        on_delete=models.PROTECT,
+        related_name="recurring_lines",
+    )
+    variant = models.ForeignKey(
+        "catalog.ProductVariant",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recurring_lines",
+    )
+    description = models.CharField(_("Description"), max_length=255, blank=True)
+    quantity = models.DecimalField(_("Quantity"), max_digits=12, decimal_places=4, default=Decimal("1.0000"))
+    unit_price = models.DecimalField(
+        _("Unit Price"), max_digits=18, decimal_places=4, default=Decimal("0.0000")
+    )
+    discount_percent = models.DecimalField(
+        _("Discount %"), max_digits=5, decimal_places=2, default=Decimal("0.00")
+    )
+    tax_rate = models.DecimalField(_("Tax Rate %"), max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    sort_order = models.PositiveSmallIntegerField(_("Sort Order"), default=0)
+
+    class Meta:
+        verbose_name = _("Recurring Invoice Line")
+        verbose_name_plural = _("Recurring Invoice Lines")
+        ordering = ["sort_order", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.profile.title} - {self.product.name} ({self.quantity})"
+
+
+class PaymentReminderRule(TenantModel):
+    """Configurable timing rule for sending customer invoice payment reminders."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    name = models.CharField(_("Rule Name"), max_length=128)
+    timing_days = models.IntegerField(
+        _("Timing Days"),
+        help_text=_(
+            "Negative = N days before due date (e.g. -3). "
+            "0 = on due date. "
+            "Positive = N days after due date (overdue, e.g. 7)."
+        ),
+    )
+    is_active = models.BooleanField(_("Active"), default=True)
+    subject_template = models.CharField(
+        _("Email Subject Template"),
+        max_length=255,
+        default="Payment Reminder: Invoice {{ invoice_number }} from {{ org_name }}",
+    )
+    body_template = models.TextField(
+        _("Email Body Template"),
+        default=(
+            "Dear {{ customer_name }},\n\n"
+            "This is a reminder regarding Invoice {{ invoice_number }} dated {{ invoice_date }}.\n"
+            "Amount Due: {{ currency }} {{ balance_due }}\n"
+            "Due Date: {{ due_date }}\n\n"
+            "Thank you for your business.\n{{ org_name }}"
+        ),
+    )
+
+    class Meta:
+        verbose_name = _("Payment Reminder Rule")
+        verbose_name_plural = _("Payment Reminder Rules")
+        ordering = ["timing_days", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "timing_days"],
+                name="uniq_org_reminder_timing_days",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["organization", "is_active", "timing_days"]),
+        ]
+
+    def __str__(self) -> str:
+        timing_str = (
+            f"{abs(self.timing_days)}d before due"
+            if self.timing_days < 0
+            else ("on due date" if self.timing_days == 0 else f"{self.timing_days}d overdue")
+        )
+        return f"{self.name} ({timing_str})"
+
+
+class PaymentReminderLog(TenantModel):
+    """Audit log of dispatched payment reminders preventing duplicate notices."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    invoice = models.ForeignKey(
+        Invoice,
+        on_delete=models.CASCADE,
+        related_name="reminder_logs",
+    )
+    rule = models.ForeignKey(
+        PaymentReminderRule,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="logs",
+    )
+    timing_days = models.IntegerField(_("Timing Days"))
+    recipient_email = models.CharField(_("Recipient Email"), max_length=255)
+    sent_at = models.DateTimeField(_("Sent At"), auto_now_add=True)
+    status = models.CharField(
+        _("Status"),
+        max_length=20,
+        default="sent",
+        choices=[("sent", _("Sent")), ("failed", _("Failed")), ("skipped", _("Skipped"))],
+    )
+    error_message = models.TextField(_("Error Message"), blank=True)
+
+    class Meta:
+        verbose_name = _("Payment Reminder Log")
+        verbose_name_plural = _("Payment Reminder Logs")
+        ordering = ["-sent_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "invoice", "timing_days"],
+                name="uniq_org_invoice_timing_reminder",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["organization", "invoice", "-sent_at"]),
+            models.Index(fields=["organization", "-sent_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"Reminder for {self.invoice.invoice_number} ({self.timing_days}d) -> {self.recipient_email}"

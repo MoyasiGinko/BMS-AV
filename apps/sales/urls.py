@@ -47,4 +47,35 @@ urlpatterns = [
     path("payments/<uuid:public_id>/refund/", views.payment_refund, name="payment_refund"),
     path("payments/<uuid:public_id>/void/", views.payment_void, name="payment_void"),
     path("payments/<uuid:public_id>/receipt/", views.payment_receipt, name="payment_receipt"),
+    # Recurring Invoices
+    path("recurring/", views.recurring_profile_list, name="recurring_list"),
+    path("recurring/create/", views.recurring_profile_create, name="recurring_create"),
+    path("recurring/<uuid:public_id>/", views.recurring_profile_detail, name="recurring_detail"),
+    path("recurring/<uuid:public_id>/edit/", views.recurring_profile_edit, name="recurring_edit"),
+    path("recurring/<uuid:public_id>/pause/", views.recurring_profile_pause, name="recurring_pause"),
+    path("recurring/<uuid:public_id>/resume/", views.recurring_profile_resume, name="recurring_resume"),
+    path("recurring/<uuid:public_id>/cancel/", views.recurring_profile_cancel, name="recurring_cancel"),
+    path(
+        "recurring/<uuid:public_id>/generate-now/",
+        views.recurring_profile_generate_now,
+        name="recurring_generate_now",
+    ),
+    # Payment Reminders
+    path("reminders/", views.payment_reminder_dashboard, name="reminders_dashboard"),
+    path("reminders/rules/create/", views.payment_reminder_rule_create, name="reminder_rule_create"),
+    path(
+        "reminders/rules/<uuid:public_id>/edit/",
+        views.payment_reminder_rule_edit,
+        name="reminder_rule_edit",
+    ),
+    path(
+        "reminders/rules/<uuid:public_id>/toggle/",
+        views.payment_reminder_rule_toggle,
+        name="reminder_rule_toggle",
+    ),
+    path(
+        "reminders/dispatch-now/",
+        views.payment_reminder_dispatch_now,
+        name="reminder_dispatch_now",
+    ),
 ]

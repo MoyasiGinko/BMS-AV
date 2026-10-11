@@ -22,11 +22,22 @@ from apps.sales.forms import (
     PaymentFilterForm,
     PaymentForm,
     PaymentRefundForm,
+    PaymentReminderRuleForm,
     QuoteFilterForm,
     QuoteForm,
+    RecurringInvoiceProfileForm,
+    RecurringProfileFilterForm,
     SalesOrderForm,
 )
-from apps.sales.models import CreditNote, Invoice, Payment, Quote, SalesOrder
+from apps.sales.models import (
+    CreditNote,
+    Invoice,
+    Payment,
+    PaymentReminderRule,
+    Quote,
+    RecurringInvoiceProfile,
+    SalesOrder,
+)
 from apps.tenancy.models import Organization
 
 
@@ -782,3 +793,344 @@ def payment_receipt(request: HttpRequest, public_id: str) -> HttpResponse:
         "allocations": payment.allocations.select_related("invoice").all(),
     }
     return render(request, "sales/payment_receipt.html", context)
+
+
+# ============================================================================
+# RECURRING INVOICES
+# ============================================================================
+
+
+@permission_required("sales.view")
+def recurring_profile_list(request: HttpRequest) -> HttpResponse:
+    """List recurring invoice profiles with filters and execution metrics."""
+    org = _get_org(request)
+
+    filter_form = RecurringProfileFilterForm(request.GET)
+    status = request.GET.get("status") or None
+    search = request.GET.get("search") or None
+
+    profiles = selectors.list_recurring_profiles(organization=org, status=status, search=search)
+    summary = selectors.get_recurring_profiles_summary(organization=org)
+
+    context = {
+        "profiles": profiles,
+        "filter_form": filter_form,
+        "summary": summary,
+        "active_tab": "recurring",
+    }
+
+    if getattr(request, "htmx", False):
+        return render(request, "sales/partials/_recurring_table.html", context)
+    return render(request, "sales/recurring_list.html", context)
+
+
+@permission_required("sales.create")
+def recurring_profile_create(request: HttpRequest) -> HttpResponse:
+    """Create a new recurring invoice profile with line items."""
+    org = _get_org(request)
+    products = Product.all_tenants.filter(organization=org, is_active=True)
+
+    if request.method == "POST":
+        form = RecurringInvoiceProfileForm(request.POST, organization=org)
+        product_id = request.POST.get("product")
+        quantity_str = request.POST.get("quantity", "1.0000")
+        unit_price_str = request.POST.get("unit_price", "0.0000")
+        discount_str = request.POST.get("discount_percent", "0.00")
+
+        if form.is_valid() and product_id:
+            try:
+                product = get_object_or_404(Product.all_tenants, pk=product_id, organization=org)
+                lines = [
+                    {
+                        "product": product,
+                        "quantity": Decimal(quantity_str),
+                        "unit_price": Decimal(unit_price_str) or product.price,
+                        "discount_percent": Decimal(discount_str),
+                        "tax_rate": product.tax_code.rate if product.tax_code else Decimal("0.00"),
+                    }
+                ]
+                profile = services.create_recurring_profile(
+                    organization=org,
+                    title=form.cleaned_data["title"],
+                    customer=form.cleaned_data["customer"],
+                    warehouse=form.cleaned_data["warehouse"],
+                    branch=form.cleaned_data.get("branch"),
+                    frequency=form.cleaned_data["frequency"],
+                    interval=form.cleaned_data.get("interval") or 1,
+                    start_date=form.cleaned_data.get("start_date"),
+                    end_date=form.cleaned_data.get("end_date"),
+                    payment_terms_days=form.cleaned_data.get("payment_terms_days") or 30,
+                    currency=form.cleaned_data.get("currency") or "USD",
+                    auto_post=form.cleaned_data.get("auto_post", True),
+                    send_email=form.cleaned_data.get("send_email", True),
+                    total_cycles_limit=form.cleaned_data.get("total_cycles_limit"),
+                    lines=lines,
+                    notes=form.cleaned_data.get("notes", ""),
+                    terms=form.cleaned_data.get("terms", ""),
+                    actor=request.user,
+                )
+                msg = _("Recurring profile '%(title)s' created.") % {"title": profile.title}
+                messages.success(request, msg)
+                return redirect("sales:recurring_detail", public_id=profile.public_id)
+            except SalesError as err:
+                messages.error(request, str(err))
+    else:
+        form = RecurringInvoiceProfileForm(organization=org)
+
+    return render(request, "sales/recurring_form.html", {"form": form, "products": products})
+
+
+@permission_required("sales.view")
+def recurring_profile_detail(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Detail view showing recurring profile configuration, items, and generated invoices."""
+    org = _get_org(request)
+    profile = selectors.get_recurring_profile(organization=org, public_id=public_id)
+    if not profile:
+        messages.error(request, _("Recurring profile not found."))
+        return redirect("sales:recurring_list")
+
+    lines = profile.lines.all().order_by("sort_order", "id")
+    invoices = profile.generated_invoices.all().order_by("-invoice_date", "-id")
+
+    return render(
+        request,
+        "sales/recurring_detail.html",
+        {
+            "profile": profile,
+            "lines": lines,
+            "invoices": invoices,
+        },
+    )
+
+
+@permission_required("sales.update")
+def recurring_profile_edit(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Edit recurring invoice profile settings."""
+    org = _get_org(request)
+    profile = selectors.get_recurring_profile(organization=org, public_id=public_id)
+    if not profile:
+        messages.error(request, _("Recurring profile not found."))
+        return redirect("sales:recurring_list")
+
+    products = Product.all_tenants.filter(organization=org, is_active=True)
+
+    if request.method == "POST":
+        form = RecurringInvoiceProfileForm(request.POST, instance=profile, organization=org)
+        product_id = request.POST.get("product")
+        quantity_str = request.POST.get("quantity", "1.0000")
+        unit_price_str = request.POST.get("unit_price", "0.0000")
+        discount_str = request.POST.get("discount_percent", "0.00")
+
+        if form.is_valid():
+            try:
+                lines = None
+                if product_id:
+                    product = get_object_or_404(Product.all_tenants, pk=product_id, organization=org)
+                    lines = [
+                        {
+                            "product": product,
+                            "quantity": Decimal(quantity_str),
+                            "unit_price": Decimal(unit_price_str) or product.price,
+                            "discount_percent": Decimal(discount_str),
+                            "tax_rate": product.tax_code.rate if product.tax_code else Decimal("0.00"),
+                        }
+                    ]
+                services.update_recurring_profile(
+                    profile=profile,
+                    title=form.cleaned_data["title"],
+                    frequency=form.cleaned_data["frequency"],
+                    interval=form.cleaned_data.get("interval") or 1,
+                    start_date=form.cleaned_data.get("start_date"),
+                    end_date=form.cleaned_data.get("end_date"),
+                    payment_terms_days=form.cleaned_data.get("payment_terms_days") or 30,
+                    currency=form.cleaned_data.get("currency") or "USD",
+                    auto_post=form.cleaned_data.get("auto_post", True),
+                    send_email=form.cleaned_data.get("send_email", True),
+                    total_cycles_limit=form.cleaned_data.get("total_cycles_limit"),
+                    lines=lines,
+                    notes=form.cleaned_data.get("notes", ""),
+                    terms=form.cleaned_data.get("terms", ""),
+                    actor=request.user,
+                )
+                msg = _("Recurring profile '%(title)s' updated.") % {"title": profile.title}
+                messages.success(request, msg)
+                return redirect("sales:recurring_detail", public_id=profile.public_id)
+            except SalesError as err:
+                messages.error(request, str(err))
+    else:
+        form = RecurringInvoiceProfileForm(instance=profile, organization=org)
+
+    first_line = profile.lines.first()
+    return render(
+        request,
+        "sales/recurring_form.html",
+        {
+            "form": form,
+            "profile": profile,
+            "products": products,
+            "first_line": first_line,
+        },
+    )
+
+
+@permission_required("sales.update")
+def recurring_profile_pause(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Pause an active recurring invoice profile."""
+    org = _get_org(request)
+    profile = get_object_or_404(RecurringInvoiceProfile.all_tenants, public_id=public_id, organization=org)
+    try:
+        services.pause_recurring_profile(profile=profile, actor=request.user)
+        messages.success(request, _("Profile '%(title)s' paused.") % {"title": profile.title})
+    except SalesError as err:
+        messages.error(request, str(err))
+    return redirect("sales:recurring_detail", public_id=profile.public_id)
+
+
+@permission_required("sales.update")
+def recurring_profile_resume(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Resume a paused recurring invoice profile."""
+    org = _get_org(request)
+    profile = get_object_or_404(RecurringInvoiceProfile.all_tenants, public_id=public_id, organization=org)
+    try:
+        services.resume_recurring_profile(profile=profile, actor=request.user)
+        messages.success(request, _("Profile '%(title)s' resumed.") % {"title": profile.title})
+    except SalesError as err:
+        messages.error(request, str(err))
+    return redirect("sales:recurring_detail", public_id=profile.public_id)
+
+
+@permission_required("sales.update")
+def recurring_profile_cancel(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Permanently cancel a recurring invoice profile."""
+    org = _get_org(request)
+    profile = get_object_or_404(RecurringInvoiceProfile.all_tenants, public_id=public_id, organization=org)
+    try:
+        services.cancel_recurring_profile(profile=profile, actor=request.user)
+        messages.success(request, _("Profile '%(title)s' cancelled.") % {"title": profile.title})
+    except SalesError as err:
+        messages.error(request, str(err))
+    return redirect("sales:recurring_detail", public_id=profile.public_id)
+
+
+@permission_required("sales.create")
+def recurring_profile_generate_now(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Trigger immediate on-demand generation of invoice from recurring profile."""
+    org = _get_org(request)
+    profile = get_object_or_404(RecurringInvoiceProfile.all_tenants, public_id=public_id, organization=org)
+    try:
+        invoice = services.generate_single_recurring_invoice(profile=profile, actor=request.user)
+        messages.success(
+            request,
+            _("Invoice %(num)s generated from profile '%(title)s'.")
+            % {"num": invoice.invoice_number, "title": profile.title},
+        )
+        return redirect("sales:invoice_detail", public_id=invoice.public_id)
+    except SalesError as err:
+        messages.error(request, str(err))
+        return redirect("sales:recurring_detail", public_id=profile.public_id)
+
+
+# ============================================================================
+# PAYMENT REMINDERS
+# ============================================================================
+
+
+@permission_required("sales.view")
+def payment_reminder_dashboard(request: HttpRequest) -> HttpResponse:
+    """Payment reminders overview: active timing rules, delivery log, and metrics."""
+    org = _get_org(request)
+
+    rules = selectors.list_payment_reminder_rules(organization=org)
+    logs = selectors.list_payment_reminder_logs(organization=org, limit=50)
+    summary = selectors.get_payment_reminders_summary(organization=org)
+
+    context = {
+        "rules": rules,
+        "logs": logs,
+        "summary": summary,
+        "active_tab": "reminders",
+    }
+    return render(request, "sales/reminders_dashboard.html", context)
+
+
+@permission_required("sales.create")
+def payment_reminder_rule_create(request: HttpRequest) -> HttpResponse:
+    """Create a new payment reminder rule."""
+    org = _get_org(request)
+
+    if request.method == "POST":
+        form = PaymentReminderRuleForm(request.POST)
+        if form.is_valid():
+            try:
+                services.create_payment_reminder_rule(
+                    organization=org,
+                    name=form.cleaned_data["name"],
+                    timing_days=form.cleaned_data["timing_days"],
+                    subject_template=form.cleaned_data.get("subject_template", ""),
+                    body_template=form.cleaned_data.get("body_template", ""),
+                    is_active=form.cleaned_data.get("is_active", True),
+                    actor=request.user,
+                )
+                messages.success(request, _("Payment reminder rule created."))
+                return redirect("sales:reminders_dashboard")
+            except Exception as err:
+                messages.error(request, str(err))
+    else:
+        form = PaymentReminderRuleForm()
+
+    return render(request, "sales/reminders_rule_form.html", {"form": form})
+
+
+@permission_required("sales.update")
+def payment_reminder_rule_edit(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Edit an existing payment reminder rule."""
+    org = _get_org(request)
+    rule = selectors.get_payment_reminder_rule(organization=org, public_id=public_id)
+    if not rule:
+        messages.error(request, _("Reminder rule not found."))
+        return redirect("sales:reminders_dashboard")
+
+    if request.method == "POST":
+        form = PaymentReminderRuleForm(request.POST, instance=rule)
+        if form.is_valid():
+            try:
+                services.update_payment_reminder_rule(
+                    rule=rule,
+                    name=form.cleaned_data["name"],
+                    timing_days=form.cleaned_data["timing_days"],
+                    subject_template=form.cleaned_data.get("subject_template", ""),
+                    body_template=form.cleaned_data.get("body_template", ""),
+                    is_active=form.cleaned_data.get("is_active", True),
+                    actor=request.user,
+                )
+                messages.success(request, _("Payment reminder rule updated."))
+                return redirect("sales:reminders_dashboard")
+            except Exception as err:
+                messages.error(request, str(err))
+    else:
+        form = PaymentReminderRuleForm(instance=rule)
+
+    return render(request, "sales/reminders_rule_form.html", {"form": form, "rule": rule})
+
+
+@permission_required("sales.update")
+def payment_reminder_rule_toggle(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Toggle active/inactive status of a payment reminder rule."""
+    org = _get_org(request)
+    rule = get_object_or_404(PaymentReminderRule.all_tenants, public_id=public_id, organization=org)
+    rule.is_active = not rule.is_active
+    rule.save(update_fields=["is_active", "updated_at"])
+    messages.success(
+        request,
+        _("Rule '%(name)s' is now %(status)s.")
+        % {"name": rule.name, "status": _("Active") if rule.is_active else _("Inactive")},
+    )
+    return redirect("sales:reminders_dashboard")
+
+
+@permission_required("sales.create")
+def payment_reminder_dispatch_now(request: HttpRequest) -> HttpResponse:
+    """Manually trigger immediate dispatch of due payment reminders."""
+    services.process_due_payment_reminders(actor=request.user)
+    messages.success(request, _("Due payment reminders evaluated and dispatched."))
+    return redirect("sales:reminders_dashboard")

@@ -1,17 +1,18 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P3 Growth bundle: Purchasing + full Accounting
-- Last completed task: P3-05
-- Next task: P3-06
+- Last completed task: P3-06
+- Next task: P3-07
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (35/35 integrations tests pass including 16 webhooks tests, ruff clean, system check clean, openapi schema validated)
+- Last `make verify`: PASSED (58/58 tests in sales and notifications pass, ruff check/format clean, django system check clean, openapi validated with fail-on-warn, import-linter contracts 2 kept / 0 broken)
 - Notes:
-  - P3-05 Webhooks v1 completed:
-    - Event catalog for P1-P3 domain events implemented in `apps/core/event_catalog.py` (40+ events across all modules).
-    - `WebhookEndpoint` and `WebhookDelivery` tenant-scoped models with indices and migrations applied.
-    - HMAC-SHA256 signature signing (`X-Signature: sha256=...`), timestamp replay window (5m), Celery async delivery, exponential backoff retries ([10, 60, 300, 1800, 3600]), auto-disable after 10 consecutive failures.
-    - Outbox fanout listener hooked in `IntegrationsConfig.ready()`.
-    - Server-rendered templates with HTMX partials: endpoint list, creation/editing form, detail screen with secret show/rotate, test ping trigger, delivery audit log, and modal inspection.
-    - DRF REST API endpoints under `/api/v1/integrations/webhooks/` and `/deliveries/` with OpenAPI spec validation.
-    - 16 new webhook tests covering signature, replay window, fanout, backoff, auto-disable, manual redelivery, permissions, tenant isolation, and REST API.
-  - Next task: P3-06 Recurring invoices + payment reminders (beat tasks) + email/notification framework (SMTP adapter + fake).
+  - P3-06 Recurring invoices, payment reminders, and notification framework completed:
+    - Notification email framework in `apps/core/notifications.py` with `EmailAdapter` protocol, `SmtpEmailAdapter`, and in-memory `FakeEmailAdapter` sandbox.
+    - `Notification` model with channels (email, in-app, sms, webhook) and statuses (pending, sent, failed, read, skipped).
+    - `RecurringInvoiceProfile` & `RecurringInvoiceLine` models with flexible recurrence frequencies, intervals, cycle limits, auto-posting, and email delivery.
+    - `PaymentReminderRule` & `PaymentReminderLog` models with configurable timing stages, template string interpolation, and duplicate delivery suppression.
+    - Celery beat tasks `sales.process_due_recurring_invoices` and `sales.dispatch_due_payment_reminders` registered in `CELERY_BEAT_SCHEDULE`.
+    - Server-rendered HTMX screens: recurring invoice list, detail, create/edit form, and payment reminder rules/dashboard.
+    - Versioned DRF REST API endpoints under `/api/v1/sales/recurring-invoices/`, `/payment-reminders/rules/`, and `/payment-reminders/logs/` with OpenAPI validation.
+    - Unit, integration, cross-tenant isolation, and state machine tests (15 new tests, 58 total in suite passing).
+  - Next task: P3-07 seed_demo for "growing company" + invariants suite complete (AR/AP/inventory subledgers vs control accounts).

@@ -10,8 +10,12 @@ from apps.sales.models import (
     Payment,
     PaymentAllocation,
     PaymentRefund,
+    PaymentReminderLog,
+    PaymentReminderRule,
     Quote,
     QuoteLine,
+    RecurringInvoiceLine,
+    RecurringInvoiceProfile,
     SalesOrder,
     SalesOrderLine,
 )
@@ -138,3 +142,49 @@ class PaymentAdmin(admin.ModelAdmin):
         "updated_at",
     )
     inlines = [PaymentAllocationInline, PaymentRefundInline]
+
+
+class RecurringInvoiceLineInline(admin.TabularInline):
+    model = RecurringInvoiceLine
+    extra = 0
+
+
+@admin.register(RecurringInvoiceProfile)
+class RecurringInvoiceProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "customer",
+        "frequency",
+        "next_issue_date",
+        "status",
+        "cycles_completed",
+        "auto_post",
+        "organization",
+    )
+    list_filter = ("status", "frequency", "auto_post", "organization")
+    search_fields = ("title", "customer__name")
+    readonly_fields = ("public_id", "cycles_completed", "last_issue_date", "created_at", "updated_at")
+    inlines = [RecurringInvoiceLineInline]
+
+
+@admin.register(PaymentReminderRule)
+class PaymentReminderRuleAdmin(admin.ModelAdmin):
+    list_display = ("name", "organization", "timing_days", "is_active", "subject_template")
+    list_filter = ("is_active", "organization")
+    search_fields = ("name", "subject_template")
+    readonly_fields = ("public_id", "created_at", "updated_at")
+
+
+@admin.register(PaymentReminderLog)
+class PaymentReminderLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "invoice",
+        "timing_days",
+        "recipient_email",
+        "status",
+        "sent_at",
+        "organization",
+    )
+    list_filter = ("status", "organization")
+    search_fields = ("invoice__invoice_number", "recipient_email")
+    readonly_fields = ("public_id", "sent_at", "created_at")

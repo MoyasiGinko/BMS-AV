@@ -268,6 +268,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "core.dispatch_outbox_events",
         "schedule": 10.0,
     },
+    "process-due-recurring-invoices": {
+        "task": "sales.process_due_recurring_invoices",
+        "schedule": 3600.0,
+    },
+    "dispatch-due-payment-reminders": {
+        "task": "sales.dispatch_due_payment_reminders",
+        "schedule": 86400.0,
+    },
 }
 
 LOGIN_URL = "/accounts/login/"

@@ -79,3 +79,11 @@ class InvalidAllocationError(PaymentError):
 
 class InvoiceNotPayableError(PaymentError):
     """Raised when attempting to allocate payment to an unpaid/unposted/void invoice."""
+
+
+class RecurringProfileError(SalesError):
+    """Raised when an error occurs during recurring profile operations."""
+
+
+class PaymentReminderError(SalesError):
+    """Raised when an error occurs during payment reminder operations."""

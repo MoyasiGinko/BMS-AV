@@ -83,6 +83,11 @@ register_event(
     description="Triggered when a security or business audit log entry is written.",
     module="core",
 )
+register_event(
+    "core.notification.sent",
+    description="Triggered when a notification or email message is dispatched.",
+    module="core",
+)
 
 # --- P2: Catalog & Products ---
 register_event(
@@ -274,6 +279,16 @@ register_event(
 register_event(
     "sale.confirmed",
     description="Alias: fired when a sale confirmation executes.",
+    module="sales",
+)
+register_event(
+    "sales.recurring_invoice.generated",
+    description="Fired when a new sales invoice is generated from a recurring schedule.",
+    module="sales",
+)
+register_event(
+    "sales.payment_reminder.sent",
+    description="Fired when an automatic payment reminder notification is dispatched to a customer.",
     module="sales",
 )
 register_event(
