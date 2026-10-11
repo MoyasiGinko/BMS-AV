@@ -19,3 +19,8 @@ class ReportsConfig(AppConfig):
         dashboard_mod.register_widget(widgets_mod.LowStockWidget())
         dashboard_mod.register_widget(widgets_mod.TopProductsWidget())
         dashboard_mod.register_widget(widgets_mod.RecentActivityWidget())
+        dashboard_mod.register_widget(widgets_mod.PayablesWidget())
+        dashboard_mod.register_widget(widgets_mod.ExpenseTrendWidget())
+        dashboard_mod.register_widget(widgets_mod.CashPositionWidget())
+        dashboard_mod.register_widget(widgets_mod.ProfitTrendWidget())
+        dashboard_mod.register_widget(widgets_mod.BranchPerformanceWidget())

@@ -101,3 +101,93 @@ class RecentActivityWidget(DashboardWidget):
         return {
             "activity_kpi": selectors.get_recent_activity_feed(organization, limit=8),
         }
+
+
+class PayablesWidget(DashboardWidget):
+    """Accounts payable card showing open vendor bills, upcoming due dates, and aging breakdown."""
+
+    widget_id = "payables"
+    title = _("Accounts Payable")
+    description = _("Open vendor bill aging, overdue totals, and top outstanding supplier liabilities")
+    module = "purchasing"
+    permission = "purchasing.view"
+    col_span = 4
+    order = 18
+    template_name = "reports/widgets/payables.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "payables_kpi": selectors.get_payables_kpi(organization),
+        }
+
+
+class ExpenseTrendWidget(DashboardWidget):
+    """Operating expense trajectory card showing category breakdown and 6-month historical trend."""
+
+    widget_id = "expense_trend"
+    title = _("Expense Trend")
+    description = _("Monthly operating expense trajectory, category distribution, and MoM changes")
+    module = "accounting"
+    permission = "accounting.view"
+    col_span = 6
+    order = 27
+    template_name = "reports/widgets/expense_trend.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "expense_trend_kpi": selectors.get_expense_trend_kpi(organization),
+        }
+
+
+class CashPositionWidget(DashboardWidget):
+    """Real-time liquidity card showing liquid balances across bank accounts and 30-day cash flows."""
+
+    widget_id = "cash_position"
+    title = _("Cash Position")
+    description = _("Real-time balances across bank accounts, petty cash, and 30-day liquidity flows")
+    module = "accounting"
+    permission = "accounting.view"
+    col_span = 4
+    order = 19
+    template_name = "reports/widgets/cash_position.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "cash_position_kpi": selectors.get_cash_position_kpi(organization),
+        }
+
+
+class ProfitTrendWidget(DashboardWidget):
+    """Profitability trajectory card showing revenue, costs, net income, and profit margins."""
+
+    widget_id = "profit_trend"
+    title = _("Profitability Trend")
+    description = _("6-month revenue, expense, net profit margin, and financial growth trajectory")
+    module = "accounting"
+    permission = "accounting.view"
+    col_span = 6
+    order = 28
+    template_name = "reports/widgets/profit_trend.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "profit_trend_kpi": selectors.get_profit_trend_kpi(organization),
+        }
+
+
+class BranchPerformanceWidget(DashboardWidget):
+    """Multi-branch performance card comparing sales volume, order counts, and relative contribution."""
+
+    widget_id = "branch_performance"
+    title = _("Branch Performance")
+    description = _("Multi-branch sales volume, order distribution, and location contribution")
+    module = "sales"
+    permission = "sales.view"
+    col_span = 6
+    order = 29
+    template_name = "reports/widgets/branch_performance.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "branch_performance_kpi": selectors.get_branch_performance_kpi(organization),
+        }

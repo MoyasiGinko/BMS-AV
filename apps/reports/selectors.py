@@ -29,7 +29,7 @@ from apps.purchasing.models import (
     SupplierBillStatus,
 )
 from apps.sales.models import Invoice, InvoiceLine, InvoiceStatus
-from apps.tenancy.models import Organization
+from apps.tenancy.models import Branch, Organization, Warehouse
 
 ZERO_DECIMAL = Decimal("0.0000")
 
@@ -382,6 +382,445 @@ def _format_event_summary(event_type: str, payload: dict[str, Any]) -> str:
     if formatter:
         return formatter(payload)
     return f"Event {event_type} logged"
+
+
+# ===========================================================================
+# Dashboard Widgets v2 Selectors
+# ===========================================================================
+
+
+def get_payables_kpi(
+    organization: Organization,
+    *,
+    as_of: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Calculate outstanding vendor payables, overdue balances, aging buckets, and top creditors."""
+    as_of_date = as_of or timezone.localdate()
+
+    open_bills_qs = SupplierBill.all_tenants.filter(
+        organization=organization,
+        status__in=[SupplierBillStatus.POSTED, SupplierBillStatus.PARTIALLY_PAID],
+        balance_due__gt=ZERO_DECIMAL,
+    )
+
+    total_balance = open_bills_qs.aggregate(total=Sum("balance_due"))["total"] or ZERO_DECIMAL
+    open_count = open_bills_qs.count()
+
+    overdue_qs = open_bills_qs.filter(due_date__lt=as_of_date)
+    overdue_balance = overdue_qs.aggregate(total=Sum("balance_due"))["total"] or ZERO_DECIMAL
+    overdue_count = overdue_qs.count()
+
+    current_balance = (
+        open_bills_qs.filter(Q(due_date__gte=as_of_date) | Q(due_date__isnull=True)).aggregate(
+            total=Sum("balance_due")
+        )["total"]
+        or ZERO_DECIMAL
+    )
+
+    days_30_ago = as_of_date - datetime.timedelta(days=30)
+    days_60_ago = as_of_date - datetime.timedelta(days=60)
+
+    aging_1_30 = (
+        open_bills_qs.filter(
+            due_date__lt=as_of_date,
+            due_date__gte=days_30_ago,
+        ).aggregate(total=Sum("balance_due"))["total"]
+        or ZERO_DECIMAL
+    )
+
+    aging_31_60 = (
+        open_bills_qs.filter(
+            due_date__lt=days_30_ago,
+            due_date__gte=days_60_ago,
+        ).aggregate(total=Sum("balance_due"))["total"]
+        or ZERO_DECIMAL
+    )
+
+    aging_over_60 = (
+        open_bills_qs.filter(
+            due_date__lt=days_60_ago,
+        ).aggregate(total=Sum("balance_due"))["total"]
+        or ZERO_DECIMAL
+    )
+
+    top_suppliers = (
+        open_bills_qs.values("supplier__id", "supplier__name", "supplier__code")
+        .annotate(total_due=Sum("balance_due"), bill_count=Count("id"))
+        .order_by("-total_due")[:3]
+    )
+
+    return {
+        "as_of": as_of_date,
+        "total_balance_due": total_balance,
+        "open_count": open_count,
+        "overdue_balance": overdue_balance,
+        "overdue_count": overdue_count,
+        "current_balance": current_balance,
+        "aging_1_30": aging_1_30,
+        "aging_31_60": aging_31_60,
+        "aging_over_60": aging_over_60,
+        "top_suppliers": list(top_suppliers),
+        "currency": organization.base_currency or "USD",
+    }
+
+
+def get_expense_trend_kpi(
+    organization: Organization,
+    *,
+    as_of: datetime.date | None = None,
+    months: int = 6,
+) -> dict[str, Any]:
+    """Calculate monthly operating expense trend, category distribution, and month-over-month change."""
+    target_date = as_of or timezone.localdate()
+    first_day_cur_month = target_date.replace(day=1)
+
+    last_day_prev_month = first_day_cur_month - datetime.timedelta(days=1)
+    first_day_prev_month = last_day_prev_month.replace(day=1)
+
+    exp_lines_qs = JournalLine.all_tenants.filter(
+        organization=organization,
+        entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+        account__type=AccountType.EXPENSE,
+    )
+
+    cur_agg = exp_lines_qs.filter(
+        entry__date__gte=first_day_cur_month,
+        entry__date__lte=target_date,
+    ).aggregate(debit=Sum("debit"), credit=Sum("credit"))
+    current_month_expenses = (cur_agg["debit"] or ZERO_DECIMAL) - (cur_agg["credit"] or ZERO_DECIMAL)
+    current_month_expenses = max(current_month_expenses, ZERO_DECIMAL)
+
+    prev_agg = exp_lines_qs.filter(
+        entry__date__gte=first_day_prev_month,
+        entry__date__lte=last_day_prev_month,
+    ).aggregate(debit=Sum("debit"), credit=Sum("credit"))
+    prior_month_expenses = (prev_agg["debit"] or ZERO_DECIMAL) - (prev_agg["credit"] or ZERO_DECIMAL)
+    prior_month_expenses = max(prior_month_expenses, ZERO_DECIMAL)
+
+    if prior_month_expenses > ZERO_DECIMAL:
+        change_pct = ((current_month_expenses - prior_month_expenses) / prior_month_expenses * 100).quantize(
+            Decimal("0.1")
+        )
+    else:
+        change_pct = Decimal("0.0")
+
+    categories: list[dict[str, Any]] = []
+    exp_recs = (
+        Expense.all_tenants.filter(
+            organization=organization,
+            status=ExpenseStatus.POSTED,
+            date__gte=first_day_cur_month,
+            date__lte=target_date,
+        )
+        .values("category__name")
+        .annotate(total=Sum("total_amount"))
+        .order_by("-total")[:5]
+    )
+
+    total_cat_amt = ZERO_DECIMAL
+    for r in exp_recs:
+        amt = r["total"] or ZERO_DECIMAL
+        total_cat_amt += amt
+        categories.append(
+            {
+                "name": r["category__name"] or "General",
+                "amount": amt,
+                "percentage": 0,
+            }
+        )
+
+    if not categories:
+        acc_breakdown = (
+            exp_lines_qs.filter(
+                entry__date__gte=first_day_cur_month,
+                entry__date__lte=target_date,
+            )
+            .values("account__name")
+            .annotate(d=Sum("debit"), c=Sum("credit"))
+            .order_by("-d")[:5]
+        )
+        for a in acc_breakdown:
+            amt = (a["d"] or ZERO_DECIMAL) - (a["c"] or ZERO_DECIMAL)
+            if amt > ZERO_DECIMAL:
+                total_cat_amt += amt
+                categories.append(
+                    {
+                        "name": a["account__name"],
+                        "amount": amt,
+                        "percentage": 0,
+                    }
+                )
+
+    for cat in categories:
+        cat["percentage"] = int((cat["amount"] / total_cat_amt) * 100) if total_cat_amt > ZERO_DECIMAL else 0
+
+    trend: list[dict[str, Any]] = []
+    max_month_exp = ZERO_DECIMAL
+    for i in range(months - 1, -1, -1):
+        m_year = target_date.year
+        m_month = target_date.month - i
+        while m_month <= 0:
+            m_month += 12
+            m_year -= 1
+        m_start = datetime.date(m_year, m_month, 1)
+        if m_month == 12:
+            m_end = datetime.date(m_year + 1, 1, 1) - datetime.timedelta(days=1)
+        else:
+            m_end = datetime.date(m_year, m_month + 1, 1) - datetime.timedelta(days=1)
+
+        m_agg = exp_lines_qs.filter(
+            entry__date__gte=m_start,
+            entry__date__lte=min(m_end, target_date),
+        ).aggregate(d=Sum("debit"), c=Sum("credit"))
+        m_amt = (m_agg["d"] or ZERO_DECIMAL) - (m_agg["c"] or ZERO_DECIMAL)
+        m_amt = max(m_amt, ZERO_DECIMAL)
+        max_month_exp = max(max_month_exp, m_amt)
+        trend.append(
+            {
+                "month": m_start.strftime("%Y-%m"),
+                "label": m_start.strftime("%b"),
+                "amount": m_amt,
+                "bar_pct": 0,
+            }
+        )
+
+    for t in trend:
+        t["bar_pct"] = max(5, int((t["amount"] / max_month_exp) * 100)) if max_month_exp > ZERO_DECIMAL else 0
+
+    return {
+        "as_of": target_date,
+        "current_month_expenses": current_month_expenses,
+        "prior_month_expenses": prior_month_expenses,
+        "change_pct": change_pct,
+        "categories": categories,
+        "trend": trend,
+        "currency": organization.base_currency or "USD",
+    }
+
+
+def get_cash_position_kpi(
+    organization: Organization,
+    *,
+    as_of: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Calculate liquid cash position, bank accounts list, and 30-day cash movements."""
+    target_date = as_of or timezone.localdate()
+    days_30_ago = target_date - datetime.timedelta(days=30)
+
+    bank_accounts = list(
+        BankAccount.all_tenants.filter(organization=organization, is_active=True).order_by("name")
+    )
+    accounts_list: list[dict[str, Any]] = []
+    total_bank_cash = ZERO_DECIMAL
+    for b in bank_accounts:
+        bal = b.current_balance or ZERO_DECIMAL
+        total_bank_cash += bal
+        accounts_list.append(
+            {
+                "id": b.pk,
+                "name": b.name,
+                "bank_name": b.bank_name,
+                "account_number": b.account_number,
+                "balance": bal,
+                "currency": b.currency,
+            }
+        )
+
+    gl_cash_lines = JournalLine.all_tenants.filter(
+        organization=organization,
+        entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+        account__type=AccountType.ASSET,
+        account__code__startswith="10",
+        entry__date__lte=target_date,
+    )
+    gl_cash_agg = gl_cash_lines.aggregate(d=Sum("debit"), c=Sum("credit"))
+    gl_cash = (gl_cash_agg["d"] or ZERO_DECIMAL) - (gl_cash_agg["c"] or ZERO_DECIMAL)
+
+    total_cash = total_bank_cash if accounts_list else gl_cash
+    total_cash = max(total_cash, ZERO_DECIMAL)
+
+    recent_lines = gl_cash_lines.filter(entry__date__gte=days_30_ago)
+    inflows_30d = recent_lines.aggregate(total=Sum("debit"))["total"] or ZERO_DECIMAL
+    outflows_30d = recent_lines.aggregate(total=Sum("credit"))["total"] or ZERO_DECIMAL
+    net_30d_change = inflows_30d - outflows_30d
+
+    return {
+        "as_of": target_date,
+        "total_cash": total_cash,
+        "bank_accounts": accounts_list,
+        "account_count": len(accounts_list),
+        "inflows_30d": inflows_30d,
+        "outflows_30d": outflows_30d,
+        "net_30d_change": net_30d_change,
+        "currency": organization.base_currency or "USD",
+    }
+
+
+def get_profit_trend_kpi(
+    organization: Organization,
+    *,
+    as_of: datetime.date | None = None,
+    months: int = 6,
+) -> dict[str, Any]:
+    """Calculate 6-month revenue, expense, net profit, and profit margin trajectory."""
+    target_date = as_of or timezone.localdate()
+    lines_qs = JournalLine.all_tenants.filter(
+        organization=organization,
+        entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+    )
+
+    trend: list[dict[str, Any]] = []
+    current_revenue = ZERO_DECIMAL
+    current_expenses = ZERO_DECIMAL
+    current_net_profit = ZERO_DECIMAL
+    current_margin_pct = Decimal("0.0")
+    prior_net_profit = ZERO_DECIMAL
+    max_profit = Decimal("1.0")
+
+    for i in range(months - 1, -1, -1):
+        m_year = target_date.year
+        m_month = target_date.month - i
+        while m_month <= 0:
+            m_month += 12
+            m_year -= 1
+        m_start = datetime.date(m_year, m_month, 1)
+        if m_month == 12:
+            m_end = datetime.date(m_year + 1, 1, 1) - datetime.timedelta(days=1)
+        else:
+            m_end = datetime.date(m_year, m_month + 1, 1) - datetime.timedelta(days=1)
+
+        cur_lines = lines_qs.filter(
+            entry__date__gte=m_start,
+            entry__date__lte=min(m_end, target_date),
+        )
+
+        rev_agg = cur_lines.filter(account__type=AccountType.REVENUE).aggregate(
+            d=Sum("debit"), c=Sum("credit")
+        )
+        rev = (rev_agg["c"] or ZERO_DECIMAL) - (rev_agg["d"] or ZERO_DECIMAL)
+        rev = max(rev, ZERO_DECIMAL)
+
+        exp_agg = cur_lines.filter(account__type=AccountType.EXPENSE).aggregate(
+            d=Sum("debit"), c=Sum("credit")
+        )
+        exp = (exp_agg["d"] or ZERO_DECIMAL) - (exp_agg["c"] or ZERO_DECIMAL)
+        exp = max(exp, ZERO_DECIMAL)
+
+        net = rev - exp
+        margin = (net / rev * 100).quantize(Decimal("0.1")) if rev > ZERO_DECIMAL else Decimal("0.0")
+
+        max_profit = max(max_profit, abs(net))
+
+        month_data = {
+            "month": m_start.strftime("%Y-%m"),
+            "label": m_start.strftime("%b"),
+            "revenue": rev,
+            "expenses": exp,
+            "net_profit": net,
+            "margin_pct": margin,
+            "bar_pct": 0,
+        }
+        trend.append(month_data)
+
+        if i == 0:
+            current_revenue = rev
+            current_expenses = exp
+            current_net_profit = net
+            current_margin_pct = margin
+        elif i == 1:
+            prior_net_profit = net
+
+    for t in trend:
+        t["bar_pct"] = (
+            max(5, int((abs(t["net_profit"]) / max_profit) * 100)) if max_profit > ZERO_DECIMAL else 0
+        )
+
+    if prior_net_profit != ZERO_DECIMAL:
+        profit_growth_pct = ((current_net_profit - prior_net_profit) / abs(prior_net_profit) * 100).quantize(
+            Decimal("0.1")
+        )
+    else:
+        profit_growth_pct = Decimal("0.0")
+
+    return {
+        "as_of": target_date,
+        "current_revenue": current_revenue,
+        "current_expenses": current_expenses,
+        "current_net_profit": current_net_profit,
+        "current_margin_pct": current_margin_pct,
+        "prior_net_profit": prior_net_profit,
+        "profit_growth_pct": profit_growth_pct,
+        "trend": trend,
+        "currency": organization.base_currency or "USD",
+    }
+
+
+def get_branch_performance_kpi(
+    organization: Organization,
+    *,
+    as_of: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Calculate multi-branch sales volume, order counts, and relative performance ranking."""
+    target_date = as_of or timezone.localdate()
+    first_day_of_month = target_date.replace(day=1)
+
+    branches = list(Branch.all_tenants.filter(organization=organization, is_active=True).order_by("name"))
+    branch_rows: list[dict[str, Any]] = []
+    total_sales_month = ZERO_DECIMAL
+
+    for b in branches:
+        wh_ids = list(
+            Warehouse.all_tenants.filter(organization=organization, branch=b).values_list("id", flat=True)
+        )
+        inv_qs = Invoice.all_tenants.filter(
+            organization=organization,
+            status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID],
+            warehouse_id__in=wh_ids,
+        )
+
+        today_agg = inv_qs.filter(invoice_date=target_date).aggregate(total=Sum("grand_total"))
+        sales_today = today_agg["total"] or ZERO_DECIMAL
+
+        month_agg = inv_qs.filter(
+            invoice_date__gte=first_day_of_month,
+            invoice_date__lte=target_date,
+        ).aggregate(total=Sum("grand_total"), count=Count("id"))
+        sales_month = month_agg["total"] or ZERO_DECIMAL
+        order_count = month_agg["count"] or 0
+
+        total_sales_month += sales_month
+
+        branch_rows.append(
+            {
+                "branch_id": b.pk,
+                "name": b.name,
+                "code": b.code or b.name[:3].upper(),
+                "is_headquarters": b.is_headquarters,
+                "warehouse_count": len(wh_ids),
+                "sales_today": sales_today,
+                "sales_month": sales_month,
+                "order_count_month": order_count,
+                "percentage_of_total": 0,
+            }
+        )
+
+    branch_rows.sort(key=lambda r: r["sales_month"], reverse=True)
+    top_branch = branch_rows[0] if branch_rows else None
+
+    for br in branch_rows:
+        if total_sales_month > ZERO_DECIMAL:
+            br["percentage_of_total"] = int((br["sales_month"] / total_sales_month) * 100)
+        else:
+            br["percentage_of_total"] = 0
+
+    return {
+        "as_of": target_date,
+        "branches": branch_rows,
+        "branch_count": len(branch_rows),
+        "total_sales_month": total_sales_month,
+        "top_branch": top_branch,
+        "currency": organization.base_currency or "USD",
+    }
 
 
 # ===========================================================================

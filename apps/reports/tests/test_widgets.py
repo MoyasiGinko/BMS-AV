@@ -9,7 +9,12 @@ from apps.accounting import services as accounting_services
 from apps.billing.services import create_subscription, seed_default_plans
 from apps.core.dashboard import registry
 from apps.reports.dashboard_widgets import (
+    BranchPerformanceWidget,
+    CashPositionWidget,
+    ExpenseTrendWidget,
     LowStockWidget,
+    PayablesWidget,
+    ProfitTrendWidget,
     ReceivablesWidget,
     RecentActivityWidget,
     SalesTodayWidget,
@@ -43,12 +48,17 @@ def widget_test_org(db: None) -> dict[str, object]:
 
 
 def test_widget_registry_membership() -> None:
-    """Ensure all 5 v1 dashboard widgets are registered in the global widget registry."""
+    """Ensure all 10 dashboard widgets are registered in the global widget registry."""
     assert isinstance(registry.get("sales_today"), SalesTodayWidget)
     assert isinstance(registry.get("receivables"), ReceivablesWidget)
     assert isinstance(registry.get("low_stock"), LowStockWidget)
     assert isinstance(registry.get("top_products"), TopProductsWidget)
     assert isinstance(registry.get("recent_activity"), RecentActivityWidget)
+    assert isinstance(registry.get("payables"), PayablesWidget)
+    assert isinstance(registry.get("expense_trend"), ExpenseTrendWidget)
+    assert isinstance(registry.get("cash_position"), CashPositionWidget)
+    assert isinstance(registry.get("profit_trend"), ProfitTrendWidget)
+    assert isinstance(registry.get("branch_performance"), BranchPerformanceWidget)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -90,17 +100,42 @@ def test_all_widgets_render_html(widget_test_org: dict[str, object]) -> None:
     act_html = act_widget.render(request, org)
     assert "Recent Activity" in act_html
 
+    pay_widget = registry.get("payables")
+    assert pay_widget is not None
+    pay_html = pay_widget.render(request, org)
+    assert "Accounts Payable" in pay_html
+
+    exp_widget = registry.get("expense_trend")
+    assert exp_widget is not None
+    exp_html = exp_widget.render(request, org)
+    assert "Expense Trend" in exp_html
+
+    cash_widget = registry.get("cash_position")
+    assert cash_widget is not None
+    cash_html = cash_widget.render(request, org)
+    assert "Cash Position" in cash_html
+
+    profit_widget = registry.get("profit_trend")
+    assert profit_widget is not None
+    profit_html = profit_widget.render(request, org)
+    assert "Profitability Trend" in profit_html
+
+    branch_widget = registry.get("branch_performance")
+    assert branch_widget is not None
+    branch_html = branch_widget.render(request, org)
+    assert "Branch Performance" in branch_html
+
 
 @pytest.mark.django_db(transaction=True)
 def test_widget_visibility_permissions(widget_test_org: dict[str, object]) -> None:
-    """Verify that widgets requiring sales.view or inventory.view are filtered for restricted users."""
+    """Verify that widgets requiring specific role permissions are appropriately filtered."""
     org = widget_test_org["org"]
     owner = widget_test_org["owner"]
     staff = widget_test_org["staff"]
 
     rf = RequestFactory()
 
-    # Owner has all permissions: sees all 5 widgets
+    # Owner has all permissions: sees all 10 widgets
     req_owner = rf.get("/dashboard/")
     req_owner.user = owner  # type: ignore
     req_owner.organization = org  # type: ignore
@@ -111,6 +146,11 @@ def test_widget_visibility_permissions(widget_test_org: dict[str, object]) -> No
     assert "low_stock" in visible_owner_ids
     assert "top_products" in visible_owner_ids
     assert "recent_activity" in visible_owner_ids
+    assert "payables" in visible_owner_ids
+    assert "expense_trend" in visible_owner_ids
+    assert "cash_position" in visible_owner_ids
+    assert "profit_trend" in visible_owner_ids
+    assert "branch_performance" in visible_owner_ids
 
     # Staff member can see activity feed
     req_staff = rf.get("/dashboard/")
@@ -131,7 +171,20 @@ def test_dashboard_widget_partial_endpoints(client: object, widget_test_org: dic
 
     test_client.force_login(owner)
 
-    for widget_id in ["sales_today", "receivables", "low_stock", "top_products", "recent_activity"]:
+    widgets_to_test = [
+        "sales_today",
+        "receivables",
+        "low_stock",
+        "top_products",
+        "recent_activity",
+        "payables",
+        "expense_trend",
+        "cash_position",
+        "profit_trend",
+        "branch_performance",
+    ]
+
+    for widget_id in widgets_to_test:
         url = f"/dashboard/widget/{widget_id}/"
         response = test_client.get(url, HTTP_HOST=f"{org.slug}.localhost")
         assert response.status_code == 200, f"Widget {widget_id} failed with status {response.status_code}"
