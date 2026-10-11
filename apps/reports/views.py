@@ -8,18 +8,26 @@ from typing import Any
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import FileResponse, Http404, HttpRequest, HttpResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_GET, require_http_methods
 
+from apps.accounting.models import Account
 from apps.catalog.models import Category, Product
 from apps.customers.models import Customer
 from apps.reports import selectors, services
 from apps.reports.models import ExportJob, ExportJobStatus, ReportType
 from apps.reports.permissions import check_reports_export_permission, check_reports_view_permission
 from apps.tenancy.models import Branch, Warehouse
+
+
+def _get_as_of_date(request: HttpRequest) -> datetime.date:
+    """Parse as_of_date from request parameters, with fallback to today."""
+    as_of_str = request.GET.get("as_of_date") or request.POST.get("as_of_date")
+    parsed = parse_date(as_of_str) if as_of_str else None
+    return parsed or timezone.localdate()
 
 
 def _get_date_range(request: HttpRequest, default_days: int = 30) -> tuple[datetime.date, datetime.date]:
@@ -332,34 +340,65 @@ def export_report_view(request: HttpRequest) -> HttpResponse | FileResponse:
 
     report_type = source.get("report_type", "")
     file_format = source.get("file_format", "csv").lower()
-    is_sync = source.get("sync") in ("1", "true", "True")
+
+    if report_type not in ReportType.values:
+        return HttpResponseBadRequest(f"Invalid report type: {report_type}")
+
+    is_hx = bool(request.headers.get("HX-Request"))
+    is_sync = source.get("sync") in ("1", "true", "True") or (
+        not is_hx
+        and report_type
+        in (
+            ReportType.TRIAL_BALANCE,
+            ReportType.PROFIT_AND_LOSS,
+            ReportType.BALANCE_SHEET,
+            ReportType.CASH_FLOW,
+            ReportType.GENERAL_LEDGER,
+            ReportType.AGED_RECEIVABLES,
+            ReportType.AGED_PAYABLES,
+            ReportType.TAX_SUMMARY,
+        )
+    )
 
     parameters: dict[str, Any] = {}
     for key, value in source.items():
         if key not in ("report_type", "file_format", "csrfmiddlewaretoken", "sync"):
             parameters[key] = value
 
-    job = services.create_export_job(
-        organization=org,
-        report_type=report_type,
-        file_format=file_format,
-        parameters=parameters,
-        actor=request.user,
-    )
+    try:
+        job = services.create_export_job(
+            organization=org,
+            report_type=report_type,
+            file_format=file_format,
+            parameters=parameters,
+            actor=request.user,
+        )
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
 
     if is_sync:
-        # Immediate processing for tests or direct download requests
+        # Immediate processing for direct download requests
         job = services.process_export_job(job.public_id)
         if job.status == ExportJobStatus.COMPLETED and job.file:
+            content_type = (
+                "text/csv"
+                if file_format == "csv"
+                else (
+                    "application/pdf"
+                    if file_format == "pdf"
+                    else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            )
             return FileResponse(
                 job.file.open("rb"),
                 as_attachment=True,
                 filename=job.file_name,
+                content_type=content_type,
             )
         else:
             messages.error(request, f"Export failed: {job.error_message}")
 
-    if request.headers.get("HX-Request"):
+    if is_hx:
         context = {
             "job": job,
         }
@@ -423,3 +462,197 @@ def export_jobs_list_view(request: HttpRequest) -> HttpResponse:
         "jobs": jobs,
     }
     return render(request, "reports/exports_list.html", context)
+
+
+# =============================================================================
+# FINANCIAL REPORTS VIEWS (P3-03)
+# =============================================================================
+
+
+@login_required
+@require_GET
+def trial_balance_view(request: HttpRequest) -> HttpResponse:
+    """Trial Balance report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    as_of_date = _get_as_of_date(request)
+    report_data = selectors.get_trial_balance_report(org, as_of_date=as_of_date)
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.TRIAL_BALANCE,
+        "title": "Trial Balance",
+        "as_of_date": as_of_date,
+        "data": report_data,
+    }
+    return render(request, "reports/trial_balance.html", context)
+
+
+@login_required
+@require_GET
+def profit_and_loss_view(request: HttpRequest) -> HttpResponse:
+    """Profit and Loss (Income Statement) report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request)
+    report_data = selectors.get_profit_and_loss_report(org, start_date=start_date, end_date=end_date)
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.PROFIT_AND_LOSS,
+        "title": "Profit and Loss",
+        "start_date": start_date,
+        "end_date": end_date,
+        "data": report_data,
+    }
+    return render(request, "reports/profit_and_loss.html", context)
+
+
+@login_required
+@require_GET
+def balance_sheet_view(request: HttpRequest) -> HttpResponse:
+    """Balance Sheet report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    as_of_date = _get_as_of_date(request)
+    report_data = selectors.get_balance_sheet_report(org, as_of_date=as_of_date)
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.BALANCE_SHEET,
+        "title": "Balance Sheet",
+        "as_of_date": as_of_date,
+        "data": report_data,
+    }
+    return render(request, "reports/balance_sheet.html", context)
+
+
+@login_required
+@require_GET
+def cash_flow_view(request: HttpRequest) -> HttpResponse:
+    """Cash Flow Statement report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request)
+    report_data = selectors.get_cash_flow_statement_report(org, start_date=start_date, end_date=end_date)
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.CASH_FLOW,
+        "title": "Cash Flow Statement",
+        "start_date": start_date,
+        "end_date": end_date,
+        "data": report_data,
+    }
+    return render(request, "reports/cash_flow.html", context)
+
+
+@login_required
+@require_GET
+def general_ledger_view(request: HttpRequest) -> HttpResponse:
+    """General Ledger report view with running balance audit."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request)
+    account_id = services._parse_int_param(request.GET.get("account_id"))
+    accounts = Account.all_tenants.filter(organization=org).order_by("code")
+    report_data = selectors.get_general_ledger_report(
+        org,
+        start_date=start_date,
+        end_date=end_date,
+        account_id=account_id,
+    )
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.GENERAL_LEDGER,
+        "title": "General Ledger",
+        "start_date": start_date,
+        "end_date": end_date,
+        "selected_account_id": account_id,
+        "accounts": accounts,
+        "data": report_data,
+    }
+    return render(request, "reports/general_ledger.html", context)
+
+
+@login_required
+@require_GET
+def aged_receivables_view(request: HttpRequest) -> HttpResponse:
+    """Aged Receivables report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    as_of_date = _get_as_of_date(request)
+    report_data = selectors.get_aged_receivables_report(org, as_of_date=as_of_date)
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.AGED_RECEIVABLES,
+        "title": "Aged Receivables",
+        "as_of_date": as_of_date,
+        "data": report_data,
+    }
+    return render(request, "reports/aged_receivables.html", context)
+
+
+@login_required
+@require_GET
+def aged_payables_view(request: HttpRequest) -> HttpResponse:
+    """Aged Payables report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    as_of_date = _get_as_of_date(request)
+    report_data = selectors.get_aged_payables_report(org, as_of_date=as_of_date)
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.AGED_PAYABLES,
+        "title": "Aged Payables",
+        "as_of_date": as_of_date,
+        "data": report_data,
+    }
+    return render(request, "reports/aged_payables.html", context)
+
+
+@login_required
+@require_GET
+def tax_summary_view(request: HttpRequest) -> HttpResponse:
+    """Tax Summary report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request)
+    report_data = selectors.get_tax_summary_report(org, start_date=start_date, end_date=end_date)
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.TAX_SUMMARY,
+        "title": "Tax Summary",
+        "start_date": start_date,
+        "end_date": end_date,
+        "data": report_data,
+    }
+    return render(request, "reports/tax_summary.html", context)

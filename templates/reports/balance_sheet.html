@@ -1,0 +1,205 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb / Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Balance Sheet" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Balance Sheet Statement" %}</h1>
+        </div>
+        <div class="flex items-center gap-2" x-data="{ exportOpen: false }">
+            <div class="relative inline-block text-left">
+                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                    <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    {% trans "Export Report" %}
+                    <svg class="w-4 h-4 ml-1.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700 z-50">
+                    <div class="py-1">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "CSV Spreadsheet" %}
+                        </button>
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "Excel (XLSX)" %}
+                        </button>
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "PDF Document" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Container -->
+    <div id="export-container"></div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form id="filter-form" method="get" class="flex flex-wrap gap-4 items-end">
+            <div class="w-48">
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "As of Date" %}</label>
+                <input type="date" name="as_of_date" value="{{ as_of_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">
+                    {% trans "Update Report" %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- KPI Balance Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">{% trans "Total Assets" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ data.total_assets|floatformat:2 }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">{% trans "Total Liabilities" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ data.total_liabilities|floatformat:2 }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">{% trans "Total Equity" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ data.total_equity|floatformat:2 }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">{% trans "Accounting Equation" %}</span>
+            <div class="mt-1">
+                {% if data.is_balanced %}
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    {% trans "Balanced: A = L + E" %}
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                    {% trans "Diff:" %} {{ data.difference|floatformat:2 }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance Sheet 2-Column or Stacked View -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Assets Column -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2">
+                {% trans "Assets" %}
+            </h2>
+
+            <!-- Current Assets -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{% trans "Current Assets" %}</h3>
+                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for row in data.current_assets %}
+                    <div class="flex justify-between py-2 text-sm">
+                        <span class="text-slate-700 dark:text-slate-300"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
+                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ row.amount|floatformat:2 }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="py-2 text-sm text-slate-500">{% trans "No current assets." %}</div>
+                    {% endfor %}
+                    <div class="flex justify-between py-2 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60 px-3 rounded-lg mt-1">
+                        <span>{% trans "Total Current Assets" %}</span>
+                        <span class="font-mono">{{ data.total_current_assets|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Non-Current Assets -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{% trans "Non-Current Assets" %}</h3>
+                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for row in data.non_current_assets %}
+                    <div class="flex justify-between py-2 text-sm">
+                        <span class="text-slate-700 dark:text-slate-300"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
+                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ row.amount|floatformat:2 }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="py-2 text-sm text-slate-500">{% trans "No non-current assets." %}</div>
+                    {% endfor %}
+                    <div class="flex justify-between py-2 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60 px-3 rounded-lg mt-1">
+                        <span>{% trans "Total Non-Current Assets" %}</span>
+                        <span class="font-mono">{{ data.total_non_current_assets|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between py-3 px-4 bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900 font-bold text-base text-indigo-950 dark:text-indigo-200">
+                <span>{% trans "Total Assets" %}</span>
+                <span class="font-mono">{{ data.total_assets|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        <!-- Liabilities & Equity Column -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2">
+                {% trans "Liabilities & Equity" %}
+            </h2>
+
+            <!-- Liabilities -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{% trans "Liabilities" %}</h3>
+                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for row in data.current_liabilities %}
+                    <div class="flex justify-between py-2 text-sm">
+                        <span class="text-slate-700 dark:text-slate-300"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
+                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ row.amount|floatformat:2 }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="py-2 text-sm text-slate-500">{% trans "No liabilities recorded." %}</div>
+                    {% endfor %}
+                    {% for row in data.non_current_liabilities %}
+                    <div class="flex justify-between py-2 text-sm">
+                        <span class="text-slate-700 dark:text-slate-300"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
+                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ row.amount|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+                    <div class="flex justify-between py-2 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60 px-3 rounded-lg mt-1">
+                        <span>{% trans "Total Liabilities" %}</span>
+                        <span class="font-mono">{{ data.total_liabilities|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equity -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{% trans "Equity" %}</h3>
+                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for row in data.equity_rows %}
+                    <div class="flex justify-between py-2 text-sm">
+                        <span class="text-slate-700 dark:text-slate-300"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
+                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ row.amount|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+                    <div class="flex justify-between py-2 text-sm">
+                        <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Retained Earnings / Current Net Income" %}</span>
+                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ data.retained_earnings|floatformat:2 }}</span>
+                    </div>
+                    <div class="flex justify-between py-2 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60 px-3 rounded-lg mt-1">
+                        <span>{% trans "Total Equity" %}</span>
+                        <span class="font-mono">{{ data.total_equity|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between py-3 px-4 bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900 font-bold text-base text-indigo-950 dark:text-indigo-200">
+                <span>{% trans "Total Liabilities & Equity" %}</span>
+                <span class="font-mono">{{ data.total_liabilities_and_equity|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

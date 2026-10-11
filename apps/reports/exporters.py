@@ -304,6 +304,321 @@ def _meta_customer_statement(
     return title, headers, rows, totals
 
 
+def _meta_trial_balance(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    title = f"Trial Balance as of {data.get('as_of_date', '')}"
+    headers = [
+        "Code",
+        "Account Name",
+        "Type",
+        "Total Debit",
+        "Total Credit",
+        "Debit Balance",
+        "Credit Balance",
+    ]
+    rows = [
+        [
+            str(r["code"]),
+            str(r["name"]),
+            str(r["type_display"]),
+            f"{r['total_debit']:.2f}",
+            f"{r['total_credit']:.2f}",
+            f"{r['debit_balance']:.2f}" if r["debit_balance"] else "-",
+            f"{r['credit_balance']:.2f}" if r["credit_balance"] else "-",
+        ]
+        for r in data.get("rows", [])
+    ]
+    s = data.get("summary", {})
+    totals = [
+        "TOTALS",
+        "",
+        "Balanced" if s.get("is_balanced") else "OUT OF BALANCE",
+        "",
+        "",
+        f"{s.get('total_debit', 0):.2f}",
+        f"{s.get('total_credit', 0):.2f}",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_profit_and_loss(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    p = data.get("period", {})
+    title = f"Profit & Loss ({p.get('start_date', '')} to {p.get('end_date', '')})"
+    headers = ["Category", "Code", "Account Name", "Amount"]
+    rows: list[list[str]] = []
+
+    for r in data.get("revenue_rows", []):
+        rows.append(["Revenue", str(r["code"]), str(r["name"]), f"{r['amount']:.2f}"])
+    rows.append(["Subtotal", "", "Total Revenue", f"{data.get('total_revenue', 0):.2f}"])
+
+    for r in data.get("cogs_rows", []):
+        rows.append(["COGS", str(r["code"]), str(r["name"]), f"{r['amount']:.2f}"])
+    rows.append(["Subtotal", "", "Gross Profit", f"{data.get('gross_profit', 0):.2f}"])
+
+    for r in data.get("expense_rows", []):
+        rows.append(["Operating Expense", str(r["code"]), str(r["name"]), f"{r['amount']:.2f}"])
+    rows.append(["Subtotal", "", "Total Operating Expenses", f"{data.get('total_expenses', 0):.2f}"])
+
+    totals = [
+        "NET PROFIT",
+        "",
+        f"Margin: {data.get('net_margin_pct', 0):.2f}%",
+        f"{data.get('net_profit', 0):.2f}",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_balance_sheet(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    title = f"Balance Sheet as of {data.get('as_of_date', '')}"
+    headers = ["Category", "Code", "Account Name", "Amount"]
+    rows: list[list[str]] = []
+
+    for r in data.get("current_assets", []):
+        rows.append(["Current Asset", str(r["code"]), str(r["name"]), f"{r['amount']:.2f}"])
+    rows.append(["Subtotal", "", "Total Current Assets", f"{data.get('total_current_assets', 0):.2f}"])
+
+    for r in data.get("non_current_assets", []):
+        rows.append(["Non-Current Asset", str(r["code"]), str(r["name"]), f"{r['amount']:.2f}"])
+    rows.append(["Subtotal", "", "Total Assets", f"{data.get('total_assets', 0):.2f}"])
+
+    for r in data.get("current_liabilities", []):
+        rows.append(["Current Liability", str(r["code"]), str(r["name"]), f"{r['amount']:.2f}"])
+    for r in data.get("non_current_liabilities", []):
+        rows.append(["Non-Current Liability", str(r["code"]), str(r["name"]), f"{r['amount']:.2f}"])
+    rows.append(["Subtotal", "", "Total Liabilities", f"{data.get('total_liabilities', 0):.2f}"])
+
+    for r in data.get("equity_rows", []):
+        rows.append(["Equity", str(r["code"]), str(r["name"]), f"{r['amount']:.2f}"])
+    rows.append(["Equity", "", "Retained / Current Earnings", f"{data.get('retained_earnings', 0):.2f}"])
+    rows.append(["Subtotal", "", "Total Equity", f"{data.get('total_equity', 0):.2f}"])
+
+    totals = [
+        "TOTAL LIABILITIES & EQUITY",
+        "",
+        f"Assets: {data.get('total_assets', 0):.2f}",
+        f"{data.get('total_liabilities_and_equity', 0):.2f}",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_cash_flow(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    p = data.get("period", {})
+    title = f"Cash Flow Statement ({p.get('start_date', '')} to {p.get('end_date', '')})"
+    headers = ["Activity", "Flow Item", "Amount"]
+    rows: list[list[str]] = [
+        ["Opening", "Opening Cash Balance", f"{data.get('opening_cash', 0):.2f}"],
+        [
+            "Operating Inflows",
+            "Customer Payments",
+            f"{data['operating_activities']['inflows']['customer_payments']:.2f}",
+        ],
+        ["Operating Inflows", "POS Sales", f"{data['operating_activities']['inflows']['pos_sales']:.2f}"],
+        ["Operating Inflows", "Other Inflows", f"{data['operating_activities']['inflows']['other']:.2f}"],
+        [
+            "Operating Outflows",
+            "Supplier Payments",
+            f"-{data['operating_activities']['outflows']['supplier_payments']:.2f}",
+        ],
+        [
+            "Operating Outflows",
+            "Operating Expenses",
+            f"-{data['operating_activities']['outflows']['expenses']:.2f}",
+        ],
+        ["Operating Outflows", "Other Outflows", f"-{data['operating_activities']['outflows']['other']:.2f}"],
+        ["Operating Subtotal", "Net Operating Cash", f"{data['operating_activities']['net']:.2f}"],
+        ["Investing", "Net Investing Cash", f"{data['investing_activities']['net']:.2f}"],
+        ["Financing", "Net Financing Cash", f"{data['financing_activities']['net']:.2f}"],
+    ]
+    totals = [
+        "CLOSING CASH",
+        f"Net Change: {data.get('net_cash_change', 0):.2f}",
+        f"{data.get('closing_cash', 0):.2f}",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_general_ledger(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    p = data.get("period", {})
+    title = f"General Ledger ({p.get('start_date', '')} to {p.get('end_date', '')})"
+    headers = [
+        "Account",
+        "Date",
+        "Entry #",
+        "Memo",
+        "Source",
+        "Debit",
+        "Credit",
+        "Balance",
+    ]
+    rows: list[list[str]] = []
+    for acc in data.get("accounts", []):
+        acc_label = f"{acc['code']} {acc['name']}"
+        rows.append(
+            [acc_label, "OPENING", "", "Opening Balance", "", "", "", f"{acc['opening_balance']:.2f}"]
+        )
+        for line in acc.get("lines", []):
+            rows.append(
+                [
+                    acc_label,
+                    str(line["date"]),
+                    str(line["entry_number"]),
+                    str(line["memo"]),
+                    str(line["source_type"]),
+                    f"{line['debit']:.2f}" if line["debit"] else "-",
+                    f"{line['credit']:.2f}" if line["credit"] else "-",
+                    f"{line['running_balance']:.2f}",
+                ]
+            )
+        rows.append(
+            [
+                acc_label,
+                "CLOSING",
+                "",
+                "Closing Balance",
+                "",
+                f"{acc['period_debit']:.2f}",
+                f"{acc['period_credit']:.2f}",
+                f"{acc['closing_balance']:.2f}",
+            ]
+        )
+
+    totals = [
+        "TOTAL PERIOD ACTIVITY",
+        "",
+        "",
+        "",
+        "",
+        f"{data.get('grand_total_debit', 0):.2f}",
+        f"{data.get('grand_total_credit', 0):.2f}",
+        "",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_aged_receivables(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    title = f"Aged Receivables as of {data.get('as_of_date', '')}"
+    headers = [
+        "Code",
+        "Customer",
+        "Current",
+        "1-30 Days",
+        "31-60 Days",
+        "61-90 Days",
+        "91+ Days",
+        "Total Due",
+    ]
+    rows = [
+        [
+            str(r["code"]),
+            str(r["name"]),
+            f"{r['current']:.2f}",
+            f"{r['days_1_30']:.2f}",
+            f"{r['days_31_60']:.2f}",
+            f"{r['days_61_90']:.2f}",
+            f"{r['days_90_plus']:.2f}",
+            f"{r['total_due']:.2f}",
+        ]
+        for r in data.get("rows", [])
+    ]
+    s = data.get("summary", {})
+    totals = [
+        "TOTALS",
+        f"Customers: {s.get('customer_count', 0)}",
+        f"{s.get('total_current', 0):.2f}",
+        f"{s.get('total_1_30', 0):.2f}",
+        f"{s.get('total_31_60', 0):.2f}",
+        f"{s.get('total_61_90', 0):.2f}",
+        f"{s.get('total_90_plus', 0):.2f}",
+        f"{s.get('grand_total_due', 0):.2f}",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_aged_payables(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    title = f"Aged Payables as of {data.get('as_of_date', '')}"
+    headers = [
+        "Code",
+        "Supplier",
+        "Current",
+        "1-30 Days",
+        "31-60 Days",
+        "61-90 Days",
+        "91+ Days",
+        "Total Due",
+    ]
+    rows = [
+        [
+            str(r["code"]),
+            str(r["name"]),
+            f"{r['current']:.2f}",
+            f"{r['days_1_30']:.2f}",
+            f"{r['days_31_60']:.2f}",
+            f"{r['days_61_90']:.2f}",
+            f"{r['days_90_plus']:.2f}",
+            f"{r['total_due']:.2f}",
+        ]
+        for r in data.get("rows", [])
+    ]
+    s = data.get("summary", {})
+    totals = [
+        "TOTALS",
+        f"Suppliers: {s.get('supplier_count', 0)}",
+        f"{s.get('total_current', 0):.2f}",
+        f"{s.get('total_1_30', 0):.2f}",
+        f"{s.get('total_31_60', 0):.2f}",
+        f"{s.get('total_61_90', 0):.2f}",
+        f"{s.get('total_90_plus', 0):.2f}",
+        f"{s.get('grand_total_due', 0):.2f}",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_tax_summary(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    p = data.get("period", {})
+    title = f"Tax Summary ({p.get('start_date', '')} to {p.get('end_date', '')})"
+    headers = ["Tax Component", "Taxable Amount", "Tax Amount"]
+    rows = [
+        [
+            "Output Tax (Sales)",
+            f"{data['output_tax']['sales_taxable']:.2f}",
+            f"{data['output_tax']['output_tax_collected']:.2f}",
+        ],
+        [
+            "Input Tax (Purchases)",
+            f"{data['input_tax']['purchases_taxable']:.2f}",
+            f"{data['input_tax']['purchases_tax_paid']:.2f}",
+        ],
+        [
+            "Input Tax (Expenses)",
+            f"{data['input_tax']['expenses_taxable']:.2f}",
+            f"{data['input_tax']['expenses_tax_paid']:.2f}",
+        ],
+        ["Total Input Tax", "-", f"{data['input_tax']['total_input_tax']:.2f}"],
+    ]
+    s = data.get("summary", {})
+    totals = [
+        "NET TAX " + ("REFUNDABLE" if s.get("is_refund") else "PAYABLE"),
+        "",
+        f"{s.get('net_tax_payable', 0):.2f}",
+    ]
+    return title, headers, rows, totals
+
+
 META_BUILDERS: dict[str, Any] = {
     ReportType.SALES_BY_PRODUCT: _meta_sales_product,
     ReportType.SALES_BY_CUSTOMER: _meta_sales_customer,
@@ -312,6 +627,14 @@ META_BUILDERS: dict[str, Any] = {
     ReportType.STOCK_VALUATION: _meta_stock_valuation,
     ReportType.STOCK_MOVEMENT: _meta_stock_movement,
     ReportType.CUSTOMER_STATEMENT: _meta_customer_statement,
+    ReportType.TRIAL_BALANCE: _meta_trial_balance,
+    ReportType.PROFIT_AND_LOSS: _meta_profit_and_loss,
+    ReportType.BALANCE_SHEET: _meta_balance_sheet,
+    ReportType.CASH_FLOW: _meta_cash_flow,
+    ReportType.GENERAL_LEDGER: _meta_general_ledger,
+    ReportType.AGED_RECEIVABLES: _meta_aged_receivables,
+    ReportType.AGED_PAYABLES: _meta_aged_payables,
+    ReportType.TAX_SUMMARY: _meta_tax_summary,
 }
 
 

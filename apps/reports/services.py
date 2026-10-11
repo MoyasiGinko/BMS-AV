@@ -119,8 +119,13 @@ def _fetch_report_data(
     category_id = _parse_int_param(parameters.get("category_id"))
     product_id = _parse_int_param(parameters.get("product_id"))
     customer_id = _parse_int_param(parameters.get("customer_id"))
+    account_id = _parse_int_param(parameters.get("account_id"))
+    as_of_d = _parse_date_param(parameters.get("as_of_date")) or end_d or timezone.localdate()
     movement_type = parameters.get("movement_type") or None
     low_stock_only = bool(parameters.get("low_stock_only", False))
+
+    effective_start = start_d or (timezone.localdate() - datetime.timedelta(days=30))
+    effective_end = end_d or timezone.localdate()
 
     fetchers: dict[str, Any] = {
         ReportType.SALES_BY_PRODUCT: lambda: selectors.get_sales_by_product_report(
@@ -164,6 +169,43 @@ def _fetch_report_data(
         ),
         ReportType.CUSTOMER_STATEMENT: lambda: _fetch_customer_statement(
             organization, customer_id, start_d, end_d
+        ),
+        ReportType.TRIAL_BALANCE: lambda: selectors.get_trial_balance_report(
+            organization,
+            as_of_date=as_of_d,
+        ),
+        ReportType.PROFIT_AND_LOSS: lambda: selectors.get_profit_and_loss_report(
+            organization,
+            start_date=effective_start,
+            end_date=effective_end,
+        ),
+        ReportType.BALANCE_SHEET: lambda: selectors.get_balance_sheet_report(
+            organization,
+            as_of_date=as_of_d,
+        ),
+        ReportType.CASH_FLOW: lambda: selectors.get_cash_flow_statement_report(
+            organization,
+            start_date=effective_start,
+            end_date=effective_end,
+        ),
+        ReportType.GENERAL_LEDGER: lambda: selectors.get_general_ledger_report(
+            organization,
+            start_date=effective_start,
+            end_date=effective_end,
+            account_id=account_id,
+        ),
+        ReportType.AGED_RECEIVABLES: lambda: selectors.get_aged_receivables_report(
+            organization,
+            as_of_date=as_of_d,
+        ),
+        ReportType.AGED_PAYABLES: lambda: selectors.get_aged_payables_report(
+            organization,
+            as_of_date=as_of_d,
+        ),
+        ReportType.TAX_SUMMARY: lambda: selectors.get_tax_summary_report(
+            organization,
+            start_date=effective_start,
+            end_date=effective_end,
         ),
     }
 

@@ -31,6 +31,14 @@ class ReportType(models.TextChoices):
     STOCK_VALUATION = "stock_valuation", _("Stock Valuation")
     STOCK_MOVEMENT = "stock_movement", _("Stock Movement")
     CUSTOMER_STATEMENT = "customer_statement", _("Customer Statement")
+    TRIAL_BALANCE = "trial_balance", _("Trial Balance")
+    PROFIT_AND_LOSS = "profit_and_loss", _("Profit and Loss")
+    BALANCE_SHEET = "balance_sheet", _("Balance Sheet")
+    CASH_FLOW = "cash_flow", _("Cash Flow Statement")
+    GENERAL_LEDGER = "general_ledger", _("General Ledger")
+    AGED_RECEIVABLES = "aged_receivables", _("Aged Receivables")
+    AGED_PAYABLES = "aged_payables", _("Aged Payables")
+    TAX_SUMMARY = "tax_summary", _("Tax Summary")
 
 
 class ExportJob(TenantModel):

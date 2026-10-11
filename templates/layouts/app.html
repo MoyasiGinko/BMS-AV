@@ -175,6 +175,30 @@
               <span x-show="!sidebarCollapsed" class="truncate">Expenses</span>
             </a>
             <a
+              href="{% url 'accounting:currency_list' %}"
+              class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/accounting/currencies/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Currencies & FX"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Currencies & FX</span>
+            </a>
+            <a
+              href="{% url 'accounting:fiscal_period_list' %}"
+              class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/accounting/periods/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Fiscal Periods"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Fiscal Periods</span>
+            </a>
+            <a
+              href="{% url 'accounting:tax_summary' %}"
+              class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/accounting/tax-summary/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Tax Summary"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Tax Summary</span>
+            </a>
+            <a
               href="/reports/"
               class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/reports/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
               title="Reports"

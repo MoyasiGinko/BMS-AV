@@ -9,11 +9,25 @@ from typing import Any
 from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
 
+from apps.accounting.models import (
+    Account,
+    AccountMapping,
+    AccountType,
+    BankAccount,
+    Expense,
+    ExpenseStatus,
+    JournalEntry,
+    JournalLine,
+)
 from apps.core.models import OutboxEvent
 from apps.customers import selectors as customer_selectors
 from apps.customers.models import Customer
 from apps.inventory.models import StockLevel, StockMovement
 from apps.pos.models import POSSale
+from apps.purchasing.models import (
+    SupplierBill,
+    SupplierBillStatus,
+)
 from apps.sales.models import Invoice, InvoiceLine, InvoiceStatus
 from apps.tenancy.models import Organization
 
@@ -962,4 +976,868 @@ def get_customer_statement_report(
             "net_change": stmt["total_debits"] - stmt["total_credits"],
         },
         "aging": stmt["aging"],
+    }
+
+
+# =============================================================================
+# FINANCIAL REPORTS SELECTORS (P3-03)
+# =============================================================================
+
+
+def get_trial_balance_report(
+    organization: Organization,
+    *,
+    as_of_date: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Report: Full Chart of Accounts Trial Balance with debit/credit balance equality invariant."""
+    target_date = as_of_date or timezone.localdate()
+    accounts = list(Account.all_tenants.filter(organization=organization).order_by("code"))
+
+    lines_qs = JournalLine.all_tenants.filter(
+        organization=organization,
+        entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+        entry__date__lte=target_date,
+    )
+
+    account_totals = lines_qs.values("account_id").annotate(
+        sum_debit=Sum("debit"),
+        sum_credit=Sum("credit"),
+    )
+    totals_map = {row["account_id"]: row for row in account_totals}
+
+    rows: list[dict[str, Any]] = []
+    grand_total_debit = ZERO_DECIMAL
+    grand_total_credit = ZERO_DECIMAL
+
+    for acc in accounts:
+        acc_data = totals_map.get(acc.pk, {"sum_debit": ZERO_DECIMAL, "sum_credit": ZERO_DECIMAL})
+        d = acc_data["sum_debit"] or ZERO_DECIMAL
+        c = acc_data["sum_credit"] or ZERO_DECIMAL
+
+        net = d - c
+        if net > ZERO_DECIMAL:
+            dr_bal = net
+            cr_bal = ZERO_DECIMAL
+        elif net < ZERO_DECIMAL:
+            dr_bal = ZERO_DECIMAL
+            cr_bal = abs(net)
+        else:
+            dr_bal = ZERO_DECIMAL
+            cr_bal = ZERO_DECIMAL
+
+        grand_total_debit += d
+        grand_total_credit += c
+
+        rows.append(
+            {
+                "account_id": acc.pk,
+                "code": acc.code,
+                "name": acc.name,
+                "type": acc.type,
+                "type_display": acc.get_type_display(),
+                "is_control": acc.is_control,
+                "total_debit": d,
+                "total_credit": c,
+                "debit_balance": dr_bal,
+                "credit_balance": cr_bal,
+            }
+        )
+
+    difference = abs(grand_total_debit - grand_total_credit)
+    is_balanced = difference == ZERO_DECIMAL
+
+    return {
+        "as_of_date": target_date,
+        "rows": rows,
+        "total_debit": grand_total_debit,
+        "total_credit": grand_total_credit,
+        "difference": difference,
+        "is_balanced": is_balanced,
+        "summary": {
+            "account_count": len(rows),
+            "total_debit": grand_total_debit,
+            "total_credit": grand_total_credit,
+            "difference": difference,
+            "is_balanced": is_balanced,
+        },
+    }
+
+
+def get_profit_and_loss_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> dict[str, Any]:
+    """Report: Profit & Loss (Income Statement) with revenues, COGS, gross margin, and operating expenses."""
+    lines_qs = JournalLine.all_tenants.filter(
+        organization=organization,
+        entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+        entry__date__gte=start_date,
+        entry__date__lte=end_date,
+    )
+
+    account_totals = lines_qs.values("account_id").annotate(
+        sum_debit=Sum("debit"),
+        sum_credit=Sum("credit"),
+    )
+    totals_map = {row["account_id"]: row for row in account_totals}
+
+    cogs_mappings = set(
+        AccountMapping.all_tenants.filter(organization=organization, mapping_key="cogs").values_list(
+            "account_id", flat=True
+        )
+    )
+
+    all_accounts = Account.all_tenants.filter(
+        organization=organization,
+        type__in=[AccountType.REVENUE, AccountType.EXPENSE],
+    ).order_by("code")
+
+    revenue_rows: list[dict[str, Any]] = []
+    cogs_rows: list[dict[str, Any]] = []
+    expense_rows: list[dict[str, Any]] = []
+
+    total_revenue = ZERO_DECIMAL
+    total_cogs = ZERO_DECIMAL
+    total_expenses = ZERO_DECIMAL
+
+    for acc in all_accounts:
+        acc_data = totals_map.get(acc.pk, {"sum_debit": ZERO_DECIMAL, "sum_credit": ZERO_DECIMAL})
+        d = acc_data["sum_debit"] or ZERO_DECIMAL
+        c = acc_data["sum_credit"] or ZERO_DECIMAL
+
+        if d == ZERO_DECIMAL and c == ZERO_DECIMAL:
+            continue
+
+        if acc.type == AccountType.REVENUE:
+            net_rev = c - d
+            total_revenue += net_rev
+            revenue_rows.append(
+                {
+                    "account_id": acc.pk,
+                    "code": acc.code,
+                    "name": acc.name,
+                    "amount": net_rev,
+                }
+            )
+        elif acc.type == AccountType.EXPENSE:
+            net_exp = d - c
+            is_cogs = (
+                acc.pk in cogs_mappings
+                or acc.code.startswith("5")
+                or "cost of goods" in acc.name.lower()
+                or "cogs" in acc.name.lower()
+            )
+            if is_cogs:
+                total_cogs += net_exp
+                cogs_rows.append(
+                    {
+                        "account_id": acc.pk,
+                        "code": acc.code,
+                        "name": acc.name,
+                        "amount": net_exp,
+                    }
+                )
+            else:
+                total_expenses += net_exp
+                expense_rows.append(
+                    {
+                        "account_id": acc.pk,
+                        "code": acc.code,
+                        "name": acc.name,
+                        "amount": net_exp,
+                    }
+                )
+
+    gross_profit = total_revenue - total_cogs
+    gross_margin_pct = (
+        (gross_profit / total_revenue * Decimal("100.00")).quantize(Decimal("0.01"))
+        if total_revenue > ZERO_DECIMAL
+        else ZERO_DECIMAL
+    )
+
+    net_profit = gross_profit - total_expenses
+    net_margin_pct = (
+        (net_profit / total_revenue * Decimal("100.00")).quantize(Decimal("0.01"))
+        if total_revenue > ZERO_DECIMAL
+        else ZERO_DECIMAL
+    )
+
+    return {
+        "period": {
+            "start_date": start_date,
+            "end_date": end_date,
+        },
+        "revenue_rows": revenue_rows,
+        "total_revenue": total_revenue,
+        "cogs_rows": cogs_rows,
+        "total_cogs": total_cogs,
+        "gross_profit": gross_profit,
+        "gross_margin_pct": gross_margin_pct,
+        "expense_rows": expense_rows,
+        "total_expenses": total_expenses,
+        "total_operating_expenses": total_expenses,
+        "net_profit": net_profit,
+        "net_margin_pct": net_margin_pct,
+    }
+
+
+def _process_balance_sheet_accounts(
+    accounts: list[Account], totals_map: dict[Any, dict[str, Any]]
+) -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    Decimal,
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    Decimal,
+    list[dict[str, Any]],
+    Decimal,
+    Decimal,
+]:
+    current_assets: list[dict[str, Any]] = []
+    non_current_assets: list[dict[str, Any]] = []
+    total_assets = ZERO_DECIMAL
+
+    current_liabilities: list[dict[str, Any]] = []
+    non_current_liabilities: list[dict[str, Any]] = []
+    total_liabilities = ZERO_DECIMAL
+
+    equity_rows: list[dict[str, Any]] = []
+    total_base_equity = ZERO_DECIMAL
+
+    cumulative_revenue = ZERO_DECIMAL
+    cumulative_expenses = ZERO_DECIMAL
+
+    for acc in accounts:
+        acc_data = totals_map.get(acc.pk, {"sum_debit": ZERO_DECIMAL, "sum_credit": ZERO_DECIMAL})
+        d = acc_data["sum_debit"] or ZERO_DECIMAL
+        c = acc_data["sum_credit"] or ZERO_DECIMAL
+
+        if acc.type == AccountType.REVENUE:
+            cumulative_revenue += c - d
+            continue
+        if acc.type == AccountType.EXPENSE:
+            cumulative_expenses += d - c
+            continue
+
+        if d == ZERO_DECIMAL and c == ZERO_DECIMAL:
+            continue
+
+        if acc.type == AccountType.ASSET:
+            net_bal = d - c
+            total_assets += net_bal
+            row = {"account_id": acc.pk, "code": acc.code, "name": acc.name, "amount": net_bal}
+            is_curr = acc.code.startswith(("10", "11", "12", "13", "14"))
+            target = current_assets if is_curr else non_current_assets
+            target.append(row)
+
+        elif acc.type == AccountType.LIABILITY:
+            net_bal = c - d
+            total_liabilities += net_bal
+            row = {"account_id": acc.pk, "code": acc.code, "name": acc.name, "amount": net_bal}
+            is_curr = acc.code.startswith(("20", "21", "22"))
+            target = current_liabilities if is_curr else non_current_liabilities
+            target.append(row)
+
+        elif acc.type == AccountType.EQUITY:
+            net_bal = c - d
+            total_base_equity += net_bal
+            equity_rows.append({"account_id": acc.pk, "code": acc.code, "name": acc.name, "amount": net_bal})
+
+    retained_earnings = cumulative_revenue - cumulative_expenses
+    return (
+        current_assets,
+        non_current_assets,
+        total_assets,
+        current_liabilities,
+        non_current_liabilities,
+        total_liabilities,
+        equity_rows,
+        total_base_equity,
+        retained_earnings,
+    )
+
+
+def get_balance_sheet_report(
+    organization: Organization,
+    *,
+    as_of_date: datetime.date,
+) -> dict[str, Any]:
+    """Report: Balance Sheet showing Assets, Liabilities, and Equity with accounting equation invariant."""
+    lines_qs = JournalLine.all_tenants.filter(
+        organization=organization,
+        entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+        entry__date__lte=as_of_date,
+    )
+
+    account_totals = lines_qs.values("account_id").annotate(
+        sum_debit=Sum("debit"),
+        sum_credit=Sum("credit"),
+    )
+    totals_map = {row["account_id"]: row for row in account_totals}
+    accounts = list(Account.all_tenants.filter(organization=organization).order_by("code"))
+
+    (
+        current_assets,
+        non_current_assets,
+        total_assets,
+        current_liabilities,
+        non_current_liabilities,
+        total_liabilities,
+        equity_rows,
+        total_base_equity,
+        retained_earnings,
+    ) = _process_balance_sheet_accounts(accounts, totals_map)
+
+    total_equity = total_base_equity + retained_earnings
+
+    total_liabilities_and_equity = total_liabilities + total_equity
+    variance = abs(total_assets - total_liabilities_and_equity)
+    is_balanced = variance == ZERO_DECIMAL
+
+    return {
+        "as_of_date": as_of_date,
+        "current_assets": current_assets,
+        "total_current_assets": sum((r["amount"] for r in current_assets), ZERO_DECIMAL),
+        "non_current_assets": non_current_assets,
+        "total_non_current_assets": sum((r["amount"] for r in non_current_assets), ZERO_DECIMAL),
+        "total_assets": total_assets,
+        "current_liabilities": current_liabilities,
+        "total_current_liabilities": sum((r["amount"] for r in current_liabilities), ZERO_DECIMAL),
+        "non_current_liabilities": non_current_liabilities,
+        "total_non_current_liabilities": sum((r["amount"] for r in non_current_liabilities), ZERO_DECIMAL),
+        "total_liabilities": total_liabilities,
+        "equity_rows": equity_rows,
+        "total_base_equity": total_base_equity,
+        "retained_earnings": retained_earnings,
+        "net_income": retained_earnings,
+        "total_equity": total_equity,
+        "total_liabilities_and_equity": total_liabilities_and_equity,
+        "variance": variance,
+        "is_balanced": is_balanced,
+        "assets": {
+            "current": [dict(r, balance=r["amount"]) for r in current_assets],
+            "non_current": [dict(r, balance=r["amount"]) for r in non_current_assets],
+            "total": total_assets,
+        },
+        "liabilities": {
+            "current": [dict(r, balance=r["amount"]) for r in current_liabilities],
+            "non_current": [dict(r, balance=r["amount"]) for r in non_current_liabilities],
+            "total": total_liabilities,
+        },
+        "equity": {
+            "rows": [dict(r, balance=r["amount"]) for r in equity_rows],
+            "total": total_equity,
+        },
+    }
+
+
+def get_cash_flow_statement_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> dict[str, Any]:
+    """Report: Cash Flow Statement showing operating, investing, and financing cash activities."""
+    cash_bank_accounts = list(
+        Account.all_tenants.filter(
+            organization=organization,
+            type=AccountType.ASSET,
+            code__startswith="10",
+        ).values_list("id", flat=True)
+    )
+    linked_gl_ids = list(
+        BankAccount.all_tenants.filter(organization=organization).values_list("gl_account_id", flat=True)
+    )
+    all_cash_account_ids = set(cash_bank_accounts) | set(linked_gl_ids)
+
+    prior_lines = JournalLine.all_tenants.filter(
+        organization=organization,
+        account_id__in=all_cash_account_ids,
+        entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+        entry__date__lt=start_date,
+    ).aggregate(sum_debit=Sum("debit"), sum_credit=Sum("credit"))
+    opening_cash = (prior_lines["sum_debit"] or ZERO_DECIMAL) - (prior_lines["sum_credit"] or ZERO_DECIMAL)
+
+    period_lines = (
+        JournalLine.all_tenants.filter(
+            organization=organization,
+            account_id__in=all_cash_account_ids,
+            entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+            entry__date__gte=start_date,
+            entry__date__lte=end_date,
+        )
+        .select_related("entry")
+        .order_by("entry__date", "id")
+    )
+
+    inflow_customer_payments = ZERO_DECIMAL
+    inflow_pos_sales = ZERO_DECIMAL
+    inflow_other = ZERO_DECIMAL
+
+    outflow_supplier_payments = ZERO_DECIMAL
+    outflow_expenses = ZERO_DECIMAL
+    outflow_other = ZERO_DECIMAL
+
+    investing_flows = ZERO_DECIMAL
+    financing_flows = ZERO_DECIMAL
+
+    for line in period_lines:
+        source_type = line.entry.source_type or ""
+        net_flow = line.debit - line.credit
+
+        if net_flow >= ZERO_DECIMAL:
+            if "pos" in source_type:
+                inflow_pos_sales += net_flow
+            elif "payment" in source_type or "customer" in source_type or "invoice" in source_type:
+                inflow_customer_payments += net_flow
+            else:
+                inflow_other += net_flow
+        else:
+            outflow_abs = abs(net_flow)
+            if "supplier" in source_type or "bill" in source_type or "purchase" in source_type:
+                outflow_supplier_payments += outflow_abs
+            elif "expense" in source_type:
+                outflow_expenses += outflow_abs
+            else:
+                outflow_other += outflow_abs
+
+    total_operating_inflows = inflow_customer_payments + inflow_pos_sales + inflow_other
+    total_operating_outflows = outflow_supplier_payments + outflow_expenses + outflow_other
+    net_operating_cash = total_operating_inflows - total_operating_outflows
+
+    net_cash_change = net_operating_cash + investing_flows + financing_flows
+    closing_cash = opening_cash + net_cash_change
+
+    return {
+        "period": {
+            "start_date": start_date,
+            "end_date": end_date,
+        },
+        "opening_cash": opening_cash,
+        "operating_activities": {
+            "inflows": {
+                "customer_payments": inflow_customer_payments,
+                "pos_sales": inflow_pos_sales,
+                "other": inflow_other,
+                "total": total_operating_inflows,
+            },
+            "outflows": {
+                "supplier_payments": outflow_supplier_payments,
+                "expenses": outflow_expenses,
+                "other": outflow_other,
+                "total": total_operating_outflows,
+            },
+            "net": net_operating_cash,
+        },
+        "investing_activities": {
+            "net": investing_flows,
+        },
+        "financing_activities": {
+            "net": financing_flows,
+        },
+        "net_cash_change": net_cash_change,
+        "closing_cash": closing_cash,
+    }
+
+
+get_cash_flow_report = get_cash_flow_statement_report
+
+
+def get_general_ledger_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+    account_id: int | None = None,
+) -> dict[str, Any]:
+    """Report: General Ledger transaction audit report by account with running balances."""
+    acc_qs = Account.all_tenants.filter(organization=organization).order_by("code")
+    if account_id:
+        acc_qs = acc_qs.filter(pk=account_id)
+    accounts = list(acc_qs)
+
+    account_reports: list[dict[str, Any]] = []
+    grand_total_debit = ZERO_DECIMAL
+    grand_total_credit = ZERO_DECIMAL
+
+    for acc in accounts:
+        prior_agg = JournalLine.all_tenants.filter(
+            organization=organization,
+            account=acc,
+            entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+            entry__date__lt=start_date,
+        ).aggregate(sum_debit=Sum("debit"), sum_credit=Sum("credit"))
+
+        d_prior = prior_agg["sum_debit"] or ZERO_DECIMAL
+        c_prior = prior_agg["sum_credit"] or ZERO_DECIMAL
+        opening_bal = (d_prior - c_prior) if acc.is_debit_normal else (c_prior - d_prior)
+
+        period_lines = (
+            JournalLine.all_tenants.filter(
+                organization=organization,
+                account=acc,
+                entry__status__in=[JournalEntry.STATUS_POSTED, JournalEntry.STATUS_REVERSED],
+                entry__date__gte=start_date,
+                entry__date__lte=end_date,
+            )
+            .select_related("entry")
+            .order_by("entry__date", "entry__id", "id")
+        )
+
+        running_bal = opening_bal
+        lines_data: list[dict[str, Any]] = []
+        period_debit = ZERO_DECIMAL
+        period_credit = ZERO_DECIMAL
+
+        for line in period_lines:
+            period_debit += line.debit
+            period_credit += line.credit
+
+            if acc.is_debit_normal:
+                running_bal += line.debit - line.credit
+            else:
+                running_bal += line.credit - line.debit
+
+            lines_data.append(
+                {
+                    "date": line.entry.date,
+                    "entry_number": line.entry.entry_number,
+                    "memo": getattr(line, "memo", "") or getattr(line.entry, "memo", "") or "-",
+                    "source_type": line.entry.source_type or "-",
+                    "source_id": line.entry.source_id or "-",
+                    "debit": line.debit,
+                    "credit": line.credit,
+                    "running_balance": running_bal,
+                }
+            )
+
+        if not lines_data and opening_bal == ZERO_DECIMAL:
+            continue
+
+        grand_total_debit += period_debit
+        grand_total_credit += period_credit
+
+        account_reports.append(
+            {
+                "account_id": acc.pk,
+                "code": acc.code,
+                "name": acc.name,
+                "type": acc.type,
+                "type_display": acc.get_type_display(),
+                "normal_balance": "Debit" if acc.is_debit_normal else "Credit",
+                "opening_balance": opening_bal,
+                "lines": lines_data,
+                "period_debit": period_debit,
+                "period_credit": period_credit,
+                "closing_balance": running_bal,
+            }
+        )
+
+    return {
+        "period": {
+            "start_date": start_date,
+            "end_date": end_date,
+        },
+        "accounts": account_reports,
+        "grand_total_debit": grand_total_debit,
+        "grand_total_credit": grand_total_credit,
+    }
+
+
+def get_aged_receivables_report(
+    organization: Organization,
+    *,
+    as_of_date: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Report: Accounts Receivable Aging analysis (Current, 1-30, 31-60, 61-90, 91+ days)."""
+    target_date = as_of_date or timezone.localdate()
+
+    invoices = (
+        Invoice.all_tenants.filter(
+            organization=organization,
+            status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID],
+            invoice_date__lte=target_date,
+        )
+        .select_related("customer")
+        .order_by("customer__name", "due_date")
+    )
+
+    customers_map: dict[int, dict[str, Any]] = {}
+    total_current = ZERO_DECIMAL
+    total_1_30 = ZERO_DECIMAL
+    total_31_60 = ZERO_DECIMAL
+    total_61_90 = ZERO_DECIMAL
+    total_90_plus = ZERO_DECIMAL
+    grand_total_due = ZERO_DECIMAL
+
+    for inv in invoices:
+        due = getattr(inv, "balance_due", None)
+        if due is None:
+            total_val = getattr(inv, "grand_total", getattr(inv, "total", ZERO_DECIMAL))
+            paid_val = getattr(inv, "amount_paid", ZERO_DECIMAL)
+            due = total_val - paid_val
+        if due <= ZERO_DECIMAL:
+            continue
+
+        due_date = inv.due_date or inv.invoice_date
+        overdue_days = (target_date - due_date).days
+
+        cust = inv.customer
+        if cust.pk not in customers_map:
+            customers_map[cust.pk] = {
+                "customer_id": cust.pk,
+                "customer_name": cust.name,
+                "code": getattr(cust, "code", ""),
+                "name": cust.name,
+                "current": ZERO_DECIMAL,
+                "bucket_current": ZERO_DECIMAL,
+                "days_1_30": ZERO_DECIMAL,
+                "bucket_1_30": ZERO_DECIMAL,
+                "bucket_30": ZERO_DECIMAL,
+                "days_31_60": ZERO_DECIMAL,
+                "bucket_31_60": ZERO_DECIMAL,
+                "bucket_60": ZERO_DECIMAL,
+                "days_61_90": ZERO_DECIMAL,
+                "bucket_61_90": ZERO_DECIMAL,
+                "bucket_90": ZERO_DECIMAL,
+                "days_90_plus": ZERO_DECIMAL,
+                "bucket_90_plus": ZERO_DECIMAL,
+                "total_due": ZERO_DECIMAL,
+                "total": ZERO_DECIMAL,
+            }
+
+        rec = customers_map[cust.pk]
+        if overdue_days <= 0:
+            rec["current"] += due
+            rec["bucket_current"] += due
+            total_current += due
+        elif 1 <= overdue_days <= 30:
+            rec["days_1_30"] += due
+            rec["bucket_1_30"] += due
+            rec["bucket_30"] += due
+            total_1_30 += due
+        elif 31 <= overdue_days <= 60:
+            rec["days_31_60"] += due
+            rec["bucket_31_60"] += due
+            rec["bucket_60"] += due
+            total_31_60 += due
+        elif 61 <= overdue_days <= 90:
+            rec["days_61_90"] += due
+            rec["bucket_61_90"] += due
+            rec["bucket_90"] += due
+            total_61_90 += due
+        else:
+            rec["days_90_plus"] += due
+            rec["bucket_90_plus"] += due
+            total_90_plus += due
+
+        rec["total_due"] += due
+        rec["total"] += due
+        grand_total_due += due
+
+    rows = sorted(customers_map.values(), key=lambda r: r["name"])
+
+    return {
+        "as_of_date": target_date,
+        "rows": rows,
+        "summary": {
+            "customer_count": len(rows),
+            "total_current": total_current,
+            "total_1_30": total_1_30,
+            "total_31_60": total_31_60,
+            "total_61_90": total_61_90,
+            "total_90_plus": total_90_plus,
+            "grand_total_due": grand_total_due,
+            "grand_total": grand_total_due,
+        },
+    }
+
+
+def get_aged_payables_report(
+    organization: Organization,
+    *,
+    as_of_date: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Report: Accounts Payable Aging analysis (Current, 1-30, 31-60, 61-90, 91+ days)."""
+    target_date = as_of_date or timezone.localdate()
+
+    bills = (
+        SupplierBill.all_tenants.filter(
+            organization=organization,
+            status__in=[SupplierBillStatus.POSTED, SupplierBillStatus.PARTIALLY_PAID],
+            issue_date__lte=target_date,
+        )
+        .select_related("supplier")
+        .order_by("supplier__name", "due_date")
+    )
+
+    suppliers_map: dict[int, dict[str, Any]] = {}
+    total_current = ZERO_DECIMAL
+    total_1_30 = ZERO_DECIMAL
+    total_31_60 = ZERO_DECIMAL
+    total_61_90 = ZERO_DECIMAL
+    total_90_plus = ZERO_DECIMAL
+    grand_total_due = ZERO_DECIMAL
+
+    for bill in bills:
+        due = getattr(bill, "balance_due", None)
+        if due is None:
+            total_val = getattr(
+                bill, "total_amount", getattr(bill, "grand_total", getattr(bill, "total", ZERO_DECIMAL))
+            )
+            paid_val = getattr(bill, "amount_paid", ZERO_DECIMAL)
+            due = total_val - paid_val
+        if due <= ZERO_DECIMAL:
+            continue
+
+        due_date = bill.due_date or bill.issue_date
+        overdue_days = (target_date - due_date).days
+
+        sup = bill.supplier
+        if sup.pk not in suppliers_map:
+            suppliers_map[sup.pk] = {
+                "supplier_id": sup.pk,
+                "supplier_name": sup.name,
+                "code": getattr(sup, "code", ""),
+                "name": sup.name,
+                "current": ZERO_DECIMAL,
+                "bucket_current": ZERO_DECIMAL,
+                "days_1_30": ZERO_DECIMAL,
+                "bucket_1_30": ZERO_DECIMAL,
+                "bucket_30": ZERO_DECIMAL,
+                "days_31_60": ZERO_DECIMAL,
+                "bucket_31_60": ZERO_DECIMAL,
+                "bucket_60": ZERO_DECIMAL,
+                "days_61_90": ZERO_DECIMAL,
+                "bucket_61_90": ZERO_DECIMAL,
+                "bucket_90": ZERO_DECIMAL,
+                "days_90_plus": ZERO_DECIMAL,
+                "bucket_90_plus": ZERO_DECIMAL,
+                "total_due": ZERO_DECIMAL,
+                "total": ZERO_DECIMAL,
+            }
+
+        rec = suppliers_map[sup.pk]
+        if overdue_days <= 0:
+            rec["current"] += due
+            rec["bucket_current"] += due
+            total_current += due
+        elif 1 <= overdue_days <= 30:
+            rec["days_1_30"] += due
+            rec["bucket_1_30"] += due
+            rec["bucket_30"] += due
+            total_1_30 += due
+        elif 31 <= overdue_days <= 60:
+            rec["days_31_60"] += due
+            rec["bucket_31_60"] += due
+            rec["bucket_60"] += due
+            total_31_60 += due
+        elif 61 <= overdue_days <= 90:
+            rec["days_61_90"] += due
+            rec["bucket_61_90"] += due
+            rec["bucket_90"] += due
+            total_61_90 += due
+        else:
+            rec["days_90_plus"] += due
+            rec["bucket_90_plus"] += due
+            total_90_plus += due
+
+        rec["total_due"] += due
+        rec["total"] += due
+        grand_total_due += due
+
+    rows = sorted(suppliers_map.values(), key=lambda r: r["name"])
+
+    return {
+        "as_of_date": target_date,
+        "rows": rows,
+        "summary": {
+            "supplier_count": len(rows),
+            "total_current": total_current,
+            "total_1_30": total_1_30,
+            "total_31_60": total_31_60,
+            "total_61_90": total_61_90,
+            "total_90_plus": total_90_plus,
+            "grand_total_due": grand_total_due,
+            "grand_total": grand_total_due,
+        },
+    }
+
+
+def get_tax_summary_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> dict[str, Any]:
+    """Report: Tax Summary aggregating Output Tax, Input Tax, and Net Tax Liability."""
+    inv_qs = Invoice.all_tenants.filter(
+        organization=organization,
+        status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID],
+        invoice_date__gte=start_date,
+        invoice_date__lte=end_date,
+    )
+    inv_agg = inv_qs.aggregate(total_taxable=Sum("subtotal"), total_tax=Sum("tax_total"))
+    sales_taxable = inv_agg["total_taxable"] or ZERO_DECIMAL
+    output_tax = inv_agg["total_tax"] or ZERO_DECIMAL
+
+    bill_qs = SupplierBill.all_tenants.filter(
+        organization=organization,
+        status__in=[SupplierBillStatus.POSTED, SupplierBillStatus.PARTIALLY_PAID, SupplierBillStatus.PAID],
+        issue_date__gte=start_date,
+        issue_date__lte=end_date,
+    )
+    bill_agg = bill_qs.aggregate(total_taxable=Sum("subtotal"), total_tax=Sum("tax_total"))
+    purchases_taxable = bill_agg["total_taxable"] or ZERO_DECIMAL
+    purchases_tax = bill_agg["total_tax"] or ZERO_DECIMAL
+
+    exp_qs = Expense.all_tenants.filter(
+        organization=organization,
+        status=ExpenseStatus.POSTED,
+        date__gte=start_date,
+        date__lte=end_date,
+    )
+    exp_agg = exp_qs.aggregate(
+        total_taxable=Sum(F("total_amount") - F("tax_amount")),
+        total_tax=Sum("tax_amount"),
+    )
+    expenses_taxable = exp_agg["total_taxable"] or ZERO_DECIMAL
+    expenses_tax = exp_agg["total_tax"] or ZERO_DECIMAL
+
+    total_input_tax = purchases_tax + expenses_tax
+    net_tax_payable = output_tax - total_input_tax
+
+    return {
+        "period": {
+            "start_date": start_date,
+            "end_date": end_date,
+        },
+        "output_tax": {
+            "sales_taxable": sales_taxable,
+            "output_tax_collected": output_tax,
+            "tax_amount": output_tax,
+            "invoice_count": inv_qs.count(),
+        },
+        "input_tax": {
+            "purchases_taxable": purchases_taxable,
+            "purchases_tax_paid": purchases_tax,
+            "bill_count": bill_qs.count(),
+            "expenses_taxable": expenses_taxable,
+            "expenses_tax_paid": expenses_tax,
+            "expense_count": exp_qs.count(),
+            "total_input_tax": total_input_tax,
+            "tax_amount": total_input_tax,
+        },
+        "summary": {
+            "total_output_tax": output_tax,
+            "total_input_tax": total_input_tax,
+            "net_tax_payable": net_tax_payable,
+            "is_refund": net_tax_payable < ZERO_DECIMAL,
+            "is_payable": net_tax_payable >= ZERO_DECIMAL,
+        },
+        "net_tax_payable": net_tax_payable,
+        "is_payable": net_tax_payable >= ZERO_DECIMAL,
     }
