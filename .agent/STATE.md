@@ -1,18 +1,28 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P3 Growth bundle: Purchasing + full Accounting
-- Last completed task: P3-06
-- Next task: P3-07
+- Last completed task: P3-07
+- Next task: P3-R
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (58/58 tests in sales and notifications pass, ruff check/format clean, django system check clean, openapi validated with fail-on-warn, import-linter contracts 2 kept / 0 broken)
+- Last `make verify`: PASSED (4/4 E2E tests pass, 25/25 invariants pass including subledgers vs control accounts, ruff clean, import-linter 2 kept / 0 broken, migrations clean)
 - Notes:
-  - P3-06 Recurring invoices, payment reminders, and notification framework completed:
-    - Notification email framework in `apps/core/notifications.py` with `EmailAdapter` protocol, `SmtpEmailAdapter`, and in-memory `FakeEmailAdapter` sandbox.
-    - `Notification` model with channels (email, in-app, sms, webhook) and statuses (pending, sent, failed, read, skipped).
-    - `RecurringInvoiceProfile` & `RecurringInvoiceLine` models with flexible recurrence frequencies, intervals, cycle limits, auto-posting, and email delivery.
-    - `PaymentReminderRule` & `PaymentReminderLog` models with configurable timing stages, template string interpolation, and duplicate delivery suppression.
-    - Celery beat tasks `sales.process_due_recurring_invoices` and `sales.dispatch_due_payment_reminders` registered in `CELERY_BEAT_SCHEDULE`.
-    - Server-rendered HTMX screens: recurring invoice list, detail, create/edit form, and payment reminder rules/dashboard.
-    - Versioned DRF REST API endpoints under `/api/v1/sales/recurring-invoices/`, `/payment-reminders/rules/`, and `/payment-reminders/logs/` with OpenAPI validation.
-    - Unit, integration, cross-tenant isolation, and state machine tests (15 new tests, 58 total in suite passing).
-  - Next task: P3-07 seed_demo for "growing company" + invariants suite complete (AR/AP/inventory subledgers vs control accounts).
+  - P3-07 seed_demo for "growing company" + invariants suite complete:
+    - Extended `seed_demo` management command to support `--target growing_company` and `--target all` alongside `small_shop`.
+    - Provisioned `Apex Industrial Wholesale` (`growing-company`, plan `growth`) featuring:
+      - 2 Branches (`HUB-01`, `MET-02`) and 2 Warehouses (`WH-HUB01`, `WH-MET02`).
+      - 5 Staff users (`owner`, `sales`, `buyer`, `accountant`, `warehouse` @apexwholesale.com, password `demo12345`) with role assignments.
+      - Catalog items across 3 categories with stock type, unit conversions, and VAT10 tax codes.
+      - Purchasing flow: 3 suppliers (`Titan Machinery`, `SafeGuard`, `Global Pack`), POs, goods receipts, posted bills, and payments.
+      - B2B Sales flow: 3 customers (`Continental Construction`, `Apex Regional`, `Nexus Logistics`), quotes, orders, posted invoices, and payments.
+      - Multi-warehouse stock transfers between `WH-HUB01` and `WH-MET02`.
+      - Recurring invoice profile and 3 automated payment reminder rules.
+      - Bank account with partner equity capital injection and posted operational expenses (Rent, Utilities).
+    - Implemented Control Account vs Subledger reconciliation invariants in `tests/invariants/test_control_account_reconciliation.py`:
+      - AR Subledger (`Customer.current_balance` sum & unpaid invoice `balance_due` sum) == Account `1100` (`ar`).
+      - AP Subledger (`Supplier.current_balance` sum & unpaid bill `balance_due` sum) == Account `2000` (`ap`).
+      - Inventory Subledger on-hand valuation == Account `1200` (`inventory.asset`).
+      - General Ledger Trial Balance balanced (`total_debits == total_credits`).
+      - Verified across seeded `growing-company`, seeded `small-shop`, and synthetic lifecycle with Hypothesis property testing.
+    - Implemented E2E test suite in `tests/e2e/test_growing_company_e2e.py` covering seeding idempotency and multi-warehouse procure-to-pay and order-to-cash journeys.
+    - Architectural layer contract maintained with updated `ignore_imports` in `pyproject.toml` per ADR 0020.
+  - Next task: P3-R Phase review.

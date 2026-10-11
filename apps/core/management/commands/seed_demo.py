@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -10,6 +11,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounting import services as accounting_services
+from apps.accounting.models import Account, BankAccount
+from apps.accounting.services import Cr, Dr, create_expense, create_expense_category, post_entry, post_expense
 from apps.accounts.models import User
 from apps.billing.services import seed_default_plans
 from apps.catalog.models import Category, Product, ProductType, Unit
@@ -19,8 +22,10 @@ from apps.customers.models import Customer
 from apps.inventory import services as inventory_services
 from apps.pos import services as pos_services
 from apps.pos.models import POSRegister
+from apps.purchasing import services as purchasing_services
+from apps.purchasing.models import Supplier, SupplierPaymentMethod
 from apps.sales import services as sales_services
-from apps.sales.models import PaymentMethod
+from apps.sales.models import PaymentMethod, RecurringFrequency
 from apps.tenancy.models import Branch, Membership, Organization, Role, TaxCode, Warehouse
 from apps.tenancy.services import provision_organization
 
@@ -33,7 +38,7 @@ class Command(BaseCommand):
             "--target",
             type=str,
             default="all",
-            help="Target organization to seed: 'small_shop', or 'all' (default: all)",
+            help="Target organization to seed: 'small_shop', 'growing_company', or 'all' (default: all)",
         )
         parser.add_argument(
             "--reset",
@@ -54,6 +59,16 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Successfully seeded '{org.name}' ({org.slug})! Ready for POS and invoicing."
+                )
+            )
+
+        if target in ("all", "growing_company", "growing-company"):
+            self.stdout.write("Seeding 'Growing Company' organization (Apex Industrial Wholesale)...")
+            org_growth = seed_growing_company(reset=reset, stdout_write=self.stdout.write)
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Successfully seeded '{org_growth.name}' ({org_growth.slug})! "
+                    "Ready for multi-warehouse purchasing, sales, and accounting."
                 )
             )
 
@@ -564,6 +579,867 @@ def seed_small_shop(
             products_map=products_map,
             cust_acme=cust_acme,
             cust_metro=cust_metro,
+        )
+
+    return org
+
+
+def _seed_growing_company_staff() -> dict[str, User]:
+    return {
+        "owner": _create_user("owner@apexwholesale.com", "Alex Vance"),
+        "sales": _create_user("sales@apexwholesale.com", "Samantha Sales"),
+        "buyer": _create_user("buyer@apexwholesale.com", "Brian Buyer"),
+        "accountant": _create_user("accountant@apexwholesale.com", "Abigail Ledger"),
+        "warehouse": _create_user("warehouse@apexwholesale.com", "Walter Stock"),
+    }
+
+
+def _seed_growing_company_roles(org: Organization, users: dict[str, User]) -> None:
+    roles = Role.all_tenants.filter(organization=org)
+    role_manager = roles.filter(name="Manager").first()
+    role_accountant = roles.filter(name="Accountant").first()
+
+    Membership.all_tenants.get_or_create(
+        organization=org,
+        user=users["sales"],
+        defaults={"role": role_manager, "status": Membership.STATUS_ACTIVE},
+    )
+    Membership.all_tenants.get_or_create(
+        organization=org,
+        user=users["buyer"],
+        defaults={"role": role_manager, "status": Membership.STATUS_ACTIVE},
+    )
+    Membership.all_tenants.get_or_create(
+        organization=org,
+        user=users["warehouse"],
+        defaults={"role": role_manager, "status": Membership.STATUS_ACTIVE},
+    )
+    Membership.all_tenants.get_or_create(
+        organization=org,
+        user=users["accountant"],
+        defaults={"role": role_accountant, "status": Membership.STATUS_ACTIVE},
+    )
+
+
+def _seed_growing_company_catalog(org: Organization) -> dict[str, Product]:
+    unit_pcs, _ = Unit.all_tenants.get_or_create(organization=org, code="pcs", defaults={"name": "Piece"})
+    unit_box, _ = Unit.all_tenants.get_or_create(
+        organization=org, code="box", defaults={"name": "Box (Pack)"}
+    )
+    unit_roll, _ = Unit.all_tenants.get_or_create(organization=org, code="roll", defaults={"name": "Roll"})
+
+    tax_vat10 = TaxCode.all_tenants.filter(organization=org, code="VAT10").first()
+    if tax_vat10 is None:
+        tax_vat10 = TaxCode.all_tenants.create(
+            organization=org, code="VAT10", name="VAT 10%", rate=Decimal("10.00")
+        )
+
+    cat_power, _ = Category.all_tenants.get_or_create(
+        organization=org,
+        slug="power-equip",
+        defaults={"name": "Power Equipment & Machinery", "sort_order": 1},
+    )
+    cat_safety, _ = Category.all_tenants.get_or_create(
+        organization=org,
+        slug="safety-gear",
+        defaults={"name": "Personal Protective Equipment", "sort_order": 2},
+    )
+    cat_pack, _ = Category.all_tenants.get_or_create(
+        organization=org,
+        slug="packaging",
+        defaults={"name": "Industrial Packaging Supplies", "sort_order": 3},
+    )
+
+    products_spec = [
+        (
+            "Heavy-Duty Drill Press 750W",
+            "EQUIP-01",
+            Decimal("599.0000"),
+            Decimal("350.0000"),
+            unit_pcs,
+            cat_power,
+            tax_vat10,
+        ),
+        (
+            "Hydraulic Pallet Jack 2500kg",
+            "EQUIP-02",
+            Decimal("389.0000"),
+            Decimal("220.0000"),
+            unit_pcs,
+            cat_power,
+            tax_vat10,
+        ),
+        (
+            "Pro Safety Helmet & Visor",
+            "SAFE-01",
+            Decimal("55.0000"),
+            Decimal("25.0000"),
+            unit_pcs,
+            cat_safety,
+            tax_vat10,
+        ),
+        (
+            "Hi-Vis Work Vest Class 2",
+            "SAFE-02",
+            Decimal("28.0000"),
+            Decimal("12.0000"),
+            unit_pcs,
+            cat_safety,
+            tax_vat10,
+        ),
+        (
+            "Heavy Duty Packing Tape Box",
+            "PACK-01",
+            Decimal("95.0000"),
+            Decimal("45.0000"),
+            unit_box,
+            cat_pack,
+            tax_vat10,
+        ),
+        (
+            "Stretch Film Heavy Pallet Wrap",
+            "PACK-02",
+            Decimal("38.0000"),
+            Decimal("18.0000"),
+            unit_roll,
+            cat_pack,
+            tax_vat10,
+        ),
+    ]
+
+    prod_map: dict[str, Product] = {}
+    for name, sku, sell_p, cost_p, uom, cat, tax in products_spec:
+        prod, _ = Product.all_tenants.get_or_create(
+            organization=org,
+            sku=sku,
+            defaults={
+                "name": name,
+                "type": ProductType.STOCK,
+                "selling_price": sell_p,
+                "cost_price": cost_p,
+                "unit": uom,
+                "category": cat,
+                "tax_code": tax,
+            },
+        )
+        prod_map[sku] = prod
+
+    return prod_map
+
+
+def _seed_growing_company_purchasing(
+    *,
+    org: Organization,
+    wh_hub: Warehouse,
+    wh_metro: Warehouse,
+    buyer: User,
+    accountant: User,
+    products: dict[str, Product],
+) -> dict[str, Supplier]:
+    s_titan = purchasing_services.create_supplier(
+        organization=org,
+        code="SUP-0001",
+        name="Titan Machinery Works",
+        contact_person="Thomas Titan",
+        email="orders@titanmachinery.com",
+        payment_terms_days=30,
+        currency="USD",
+        actor=buyer,
+    )
+    s_safe = purchasing_services.create_supplier(
+        organization=org,
+        code="SUP-0002",
+        name="SafeGuard Protective Equipment",
+        contact_person="Sarah Guard",
+        email="sales@safeguardequip.com",
+        payment_terms_days=30,
+        currency="USD",
+        actor=buyer,
+    )
+    s_pack = purchasing_services.create_supplier(
+        organization=org,
+        code="SUP-0003",
+        name="Global Pack & Freight Logistics",
+        contact_person="Gary Pack",
+        email="dispatch@globalpack.com",
+        payment_terms_days=15,
+        currency="USD",
+        actor=buyer,
+    )
+
+    p_drill = products["EQUIP-01"]
+    p_jack = products["EQUIP-02"]
+    p_helm = products["SAFE-01"]
+    p_vest = products["SAFE-02"]
+    p_tape = products["PACK-01"]
+    p_wrap = products["PACK-02"]
+
+    # PO 1: Titan Machinery -> WH Hub
+    po1 = purchasing_services.create_purchase_order(
+        organization=org,
+        supplier=s_titan,
+        warehouse=wh_hub,
+        currency="USD",
+        lines=[
+            {
+                "product": p_drill,
+                "quantity": Decimal("10.0000"),
+                "unit_price": p_drill.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_jack,
+                "quantity": Decimal("10.0000"),
+                "unit_price": p_jack.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="Q2 Heavy Machinery Stock Order",
+        actor=buyer,
+    )
+    po1 = purchasing_services.approve_purchase_order(organization=org, purchase_order=po1, actor=buyer)
+
+    receipt1 = purchasing_services.create_goods_receipt(
+        organization=org,
+        supplier=s_titan,
+        warehouse=wh_hub,
+        purchase_order=po1,
+        lines=[
+            {
+                "product": p_drill,
+                "quantity": Decimal("10.0000"),
+                "unit_cost": p_drill.cost_price,
+                "po_line": po1.lines.filter(product=p_drill).first(),
+            },
+            {
+                "product": p_jack,
+                "quantity": Decimal("10.0000"),
+                "unit_cost": p_jack.cost_price,
+                "po_line": po1.lines.filter(product=p_jack).first(),
+            },
+        ],
+        notes="Delivered in full by Titan Freight",
+        actor=buyer,
+    )
+    purchasing_services.receive_goods_receipt(organization=org, goods_receipt=receipt1, actor=buyer)
+
+    bill1 = purchasing_services.create_supplier_bill(
+        organization=org,
+        supplier=s_titan,
+        purchase_order=po1,
+        goods_receipt=receipt1,
+        due_date=timezone.now().date() + datetime.timedelta(days=30),
+        lines=[
+            {
+                "product": p_drill,
+                "quantity": Decimal("10.0000"),
+                "unit_price": p_drill.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_jack,
+                "quantity": Decimal("10.0000"),
+                "unit_price": p_jack.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="Titan Invoice #TITAN-9021",
+        actor=accountant,
+    )
+    bill1 = purchasing_services.post_supplier_bill(organization=org, bill=bill1, actor=accountant)
+
+    purchasing_services.record_supplier_payment(
+        organization=org,
+        supplier=s_titan,
+        amount=Decimal("3000.0000"),
+        payment_method=SupplierPaymentMethod.BANK_TRANSFER,
+        allocations=[{"bill_id": bill1.pk, "amount": Decimal("3000.0000")}],
+        reference="WIRE-TITAN-01",
+        notes="Deposit payment against bill 1",
+        actor=accountant,
+    )
+
+    # PO 2: SafeGuard -> WH Metro
+    po2 = purchasing_services.create_purchase_order(
+        organization=org,
+        supplier=s_safe,
+        warehouse=wh_metro,
+        currency="USD",
+        lines=[
+            {
+                "product": p_helm,
+                "quantity": Decimal("40.0000"),
+                "unit_price": p_helm.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_vest,
+                "quantity": Decimal("100.0000"),
+                "unit_price": p_vest.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="PPE Stock for Metro Fulfillment Depot",
+        actor=buyer,
+    )
+    po2 = purchasing_services.approve_purchase_order(organization=org, purchase_order=po2, actor=buyer)
+
+    receipt2 = purchasing_services.create_goods_receipt(
+        organization=org,
+        supplier=s_safe,
+        warehouse=wh_metro,
+        purchase_order=po2,
+        lines=[
+            {
+                "product": p_helm,
+                "quantity": Decimal("40.0000"),
+                "unit_cost": p_helm.cost_price,
+                "po_line": po2.lines.filter(product=p_helm).first(),
+            },
+            {
+                "product": p_vest,
+                "quantity": Decimal("100.0000"),
+                "unit_cost": p_vest.cost_price,
+                "po_line": po2.lines.filter(product=p_vest).first(),
+            },
+        ],
+        notes="Metro PPE batch delivery",
+        actor=buyer,
+    )
+    purchasing_services.receive_goods_receipt(organization=org, goods_receipt=receipt2, actor=buyer)
+
+    bill2 = purchasing_services.create_supplier_bill(
+        organization=org,
+        supplier=s_safe,
+        purchase_order=po2,
+        goods_receipt=receipt2,
+        due_date=timezone.now().date() + datetime.timedelta(days=30),
+        lines=[
+            {
+                "product": p_helm,
+                "quantity": Decimal("40.0000"),
+                "unit_price": p_helm.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_vest,
+                "quantity": Decimal("100.0000"),
+                "unit_price": p_vest.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="SafeGuard Invoice #SG-4412",
+        actor=accountant,
+    )
+    bill2 = purchasing_services.post_supplier_bill(organization=org, bill=bill2, actor=accountant)
+
+    purchasing_services.record_supplier_payment(
+        organization=org,
+        supplier=s_safe,
+        amount=bill2.total_amount,
+        payment_method=SupplierPaymentMethod.BANK_TRANSFER,
+        allocations=[{"bill_id": bill2.pk, "amount": bill2.total_amount}],
+        reference="WIRE-SAFEGUARD-01",
+        notes="Full bill settlement via Wire",
+        actor=accountant,
+    )
+
+    # PO 3: Global Pack -> WH Hub (Unpaid bill)
+    po3 = purchasing_services.create_purchase_order(
+        organization=org,
+        supplier=s_pack,
+        warehouse=wh_hub,
+        currency="USD",
+        lines=[
+            {
+                "product": p_tape,
+                "quantity": Decimal("30.0000"),
+                "unit_price": p_tape.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_wrap,
+                "quantity": Decimal("60.0000"),
+                "unit_price": p_wrap.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="Packaging supplies replenish",
+        actor=buyer,
+    )
+    po3 = purchasing_services.approve_purchase_order(organization=org, purchase_order=po3, actor=buyer)
+
+    receipt3 = purchasing_services.create_goods_receipt(
+        organization=org,
+        supplier=s_pack,
+        warehouse=wh_hub,
+        purchase_order=po3,
+        lines=[
+            {
+                "product": p_tape,
+                "quantity": Decimal("30.0000"),
+                "unit_cost": p_tape.cost_price,
+                "po_line": po3.lines.filter(product=p_tape).first(),
+            },
+            {
+                "product": p_wrap,
+                "quantity": Decimal("60.0000"),
+                "unit_cost": p_wrap.cost_price,
+                "po_line": po3.lines.filter(product=p_wrap).first(),
+            },
+        ],
+        notes="Pallet packaging arrival",
+        actor=buyer,
+    )
+    purchasing_services.receive_goods_receipt(organization=org, goods_receipt=receipt3, actor=buyer)
+
+    bill3 = purchasing_services.create_supplier_bill(
+        organization=org,
+        supplier=s_pack,
+        purchase_order=po3,
+        goods_receipt=receipt3,
+        due_date=timezone.now().date() + datetime.timedelta(days=15),
+        lines=[
+            {
+                "product": p_tape,
+                "quantity": Decimal("30.0000"),
+                "unit_price": p_tape.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_wrap,
+                "quantity": Decimal("60.0000"),
+                "unit_price": p_wrap.cost_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="Global Pack Invoice #GP-8891",
+        actor=accountant,
+    )
+    purchasing_services.post_supplier_bill(organization=org, bill=bill3, actor=accountant)
+
+    return {"titan": s_titan, "safe": s_safe, "pack": s_pack}
+
+
+def _seed_growing_company_sales(
+    *,
+    org: Organization,
+    branch_hub: Branch,
+    wh_hub: Warehouse,
+    branch_metro: Branch,
+    wh_metro: Warehouse,
+    owner: User,
+    sales_mgr: User,
+    accountant: User,
+    products: dict[str, Product],
+) -> dict[str, Customer]:
+    c_conti = customers_services.create_customer(
+        organization=org,
+        name="Continental Construction Corp",
+        email="procurement@continentalconst.com",
+        phone="+1-555-0301",
+        credit_limit=Decimal("25000.0000"),
+        payment_terms_days=30,
+        actor=owner,
+    )
+    c_apex = customers_services.create_customer(
+        organization=org,
+        name="Apex Regional Contractors",
+        email="billing@apexregional.com",
+        phone="+1-555-0302",
+        credit_limit=Decimal("15000.0000"),
+        payment_terms_days=15,
+        actor=owner,
+    )
+    c_nexus = customers_services.create_customer(
+        organization=org,
+        name="Nexus Logistics Fleet",
+        email="ap@nexuslogistics.com",
+        phone="+1-555-0303",
+        credit_limit=Decimal("30000.0000"),
+        payment_terms_days=30,
+        actor=owner,
+    )
+
+    p_drill = products["EQUIP-01"]
+    p_jack = products["EQUIP-02"]
+    p_helm = products["SAFE-01"]
+    p_vest = products["SAFE-02"]
+    p_tape = products["PACK-01"]
+    p_wrap = products["PACK-02"]
+
+    # Transfer 10 helmets from WH Metro to WH Hub
+    inventory_services.transfer_stock(
+        organization=org,
+        source_warehouse=wh_metro,
+        destination_warehouse=wh_hub,
+        lines=[{"product": p_helm, "quantity": Decimal("10.0000")}],
+        notes="Internal branch transfer for Continental order",
+        actor=owner,
+    )
+
+    # Sale 1 to Continental: 2 drills + 10 helmets, partial payment
+    q1 = sales_services.create_quote(
+        organization=org,
+        customer=c_conti,
+        branch=branch_hub,
+        warehouse=wh_hub,
+        lines=[
+            {
+                "product": p_drill,
+                "quantity": Decimal("2.0000"),
+                "unit_price": p_drill.selling_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_helm,
+                "quantity": Decimal("10.0000"),
+                "unit_price": p_helm.selling_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="Equipment & safety package quote",
+        actor=sales_mgr,
+    )
+    q1 = sales_services.accept_quote(organization=org, quote=q1, actor=sales_mgr)
+    ord1 = sales_services.convert_quote_to_order(organization=org, quote=q1, actor=sales_mgr)
+    ord1 = sales_services.confirm_sales_order(organization=org, order=ord1, actor=sales_mgr)
+    inv1 = sales_services.convert_order_to_invoice(organization=org, order=ord1, actor=sales_mgr)
+    inv1 = sales_services.post_invoice(organization=org, invoice=inv1, actor=sales_mgr)
+
+    sales_services.receive_payment(
+        organization=org,
+        customer=c_conti,
+        amount=Decimal("1000.0000"),
+        payment_method=PaymentMethod.BANK_TRANSFER,
+        allocations=[{"invoice_id": inv1.pk, "amount": Decimal("1000.0000")}],
+        reference="WIRE-CONTI-01",
+        notes="Deposit payment against invoice 1",
+        actor=accountant,
+    )
+
+    # Sale 2 to Apex Regional: 1 jack + 10 tape boxes, unpaid
+    ord2 = sales_services.create_sales_order(
+        organization=org,
+        customer=c_apex,
+        branch=branch_hub,
+        warehouse=wh_hub,
+        lines=[
+            {
+                "product": p_jack,
+                "quantity": Decimal("1.0000"),
+                "unit_price": p_jack.selling_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_tape,
+                "quantity": Decimal("10.0000"),
+                "unit_price": p_tape.selling_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="Warehouse supplies order",
+        actor=sales_mgr,
+    )
+    ord2 = sales_services.confirm_sales_order(organization=org, order=ord2, actor=sales_mgr)
+    inv2 = sales_services.convert_order_to_invoice(organization=org, order=ord2, actor=sales_mgr)
+    inv2 = sales_services.post_invoice(organization=org, invoice=inv2, actor=sales_mgr)
+
+    # Transfer 15 wraps from WH Hub to WH Metro
+    inventory_services.transfer_stock(
+        organization=org,
+        source_warehouse=wh_hub,
+        destination_warehouse=wh_metro,
+        lines=[{"product": p_wrap, "quantity": Decimal("15.0000")}],
+        notes="Internal branch transfer for Nexus order",
+        actor=owner,
+    )
+
+    # Sale 3 to Nexus: from WH Metro, fully paid
+    ord3 = sales_services.create_sales_order(
+        organization=org,
+        customer=c_nexus,
+        branch=branch_metro,
+        warehouse=wh_metro,
+        lines=[
+            {
+                "product": p_vest,
+                "quantity": Decimal("20.0000"),
+                "unit_price": p_vest.selling_price,
+                "tax_rate": Decimal("10.00"),
+            },
+            {
+                "product": p_wrap,
+                "quantity": Decimal("15.0000"),
+                "unit_price": p_wrap.selling_price,
+                "tax_rate": Decimal("10.00"),
+            },
+        ],
+        notes="Fulfillment packing and vests order",
+        actor=sales_mgr,
+    )
+    ord3 = sales_services.confirm_sales_order(organization=org, order=ord3, actor=sales_mgr)
+    inv3 = sales_services.convert_order_to_invoice(organization=org, order=ord3, actor=sales_mgr)
+    inv3 = sales_services.post_invoice(organization=org, invoice=inv3, actor=sales_mgr)
+
+    sales_services.receive_payment(
+        organization=org,
+        customer=c_nexus,
+        amount=inv3.grand_total,
+        payment_method=PaymentMethod.BANK_TRANSFER,
+        allocations=[{"invoice_id": inv3.pk, "amount": inv3.grand_total}],
+        reference="ACH-NEXUS-01",
+        notes="Full invoice payment via ACH",
+        actor=accountant,
+    )
+
+    return {"conti": c_conti, "apex": c_apex, "nexus": c_nexus}
+
+
+def _seed_growing_company_accounting(org: Organization, owner: User, accountant: User) -> None:
+    gl_bank = Account.all_tenants.get(organization=org, code="1020")
+    gl_rent = Account.all_tenants.get(organization=org, code="6100")
+    gl_util = Account.all_tenants.get(organization=org, code="6200")
+
+    bank_acct, _ = BankAccount.objects.get_or_create(
+        organization=org,
+        account_number="ACCT-98765432",
+        defaults={
+            "name": "Apex Primary Operating Account",
+            "bank_name": "Silicon Valley Commercial Bank",
+            "currency": "USD",
+            "current_balance": Decimal("50000.0000"),
+            "gl_account": gl_bank,
+            "is_active": True,
+        },
+    )
+
+    # 1. Partner equity capital injection: $50,000
+    post_entry(
+        organization=org,
+        date=timezone.now().date(),
+        memo="Initial partner equity investment",
+        lines=[
+            Dr("1020", Decimal("50000.0000")),
+            Cr("3000", Decimal("50000.0000")),
+        ],
+        actor=owner,
+    )
+
+    # 2. Operating expenses:
+    cat_rent = create_expense_category(
+        organization=org,
+        name="Rent & Facilities",
+        code="RENT",
+        gl_account=gl_rent,
+        actor=owner,
+    )
+    exp_rent = create_expense(
+        organization=org,
+        category=cat_rent,
+        paid_from_account=gl_bank,
+        bank_account=bank_acct,
+        date=timezone.now().date(),
+        amount=Decimal("3000.0000"),
+        vendor_name="Prologis Commercial Real Estate",
+        reference="CHK-1001",
+        notes="Central warehouse monthly lease",
+        actor=accountant,
+    )
+    post_expense(organization=org, expense=exp_rent, actor=accountant)
+
+    cat_util = create_expense_category(
+        organization=org,
+        name="Utilities & Telecom",
+        code="UTIL",
+        gl_account=gl_util,
+        actor=owner,
+    )
+    exp_util = create_expense(
+        organization=org,
+        category=cat_util,
+        paid_from_account=gl_bank,
+        bank_account=bank_acct,
+        date=timezone.now().date(),
+        amount=Decimal("500.0000"),
+        vendor_name="Pacific Power & Light",
+        reference="ACH-9921",
+        notes="Industrial power and water",
+        actor=accountant,
+    )
+    post_expense(organization=org, expense=exp_util, actor=accountant)
+
+
+def _seed_growing_company_recurring_and_reminders(
+    org: Organization,
+    wh_hub: Warehouse,
+    owner: User,
+    customer: Customer,
+    products: dict[str, Product],
+) -> None:
+    p_tape = products["PACK-01"]
+    p_vest = products["SAFE-02"]
+
+    sales_services.create_recurring_profile(
+        organization=org,
+        title="Monthly Warehouse Safety & Consumables Replenishment",
+        customer=customer,
+        warehouse=wh_hub,
+        frequency=RecurringFrequency.MONTHLY,
+        interval=1,
+        payment_terms_days=30,
+        currency="USD",
+        auto_post=True,
+        send_email=True,
+        lines=[
+            {
+                "product_id": p_tape.pk,
+                "quantity": Decimal("5.0000"),
+                "unit_price": p_tape.selling_price,
+            },
+            {
+                "product_id": p_vest.pk,
+                "quantity": Decimal("10.0000"),
+                "unit_price": p_vest.selling_price,
+            },
+        ],
+        notes="Monthly automated safety and packaging shipment",
+        actor=owner,
+    )
+
+    sales_services.create_payment_reminder_rule(
+        organization=org,
+        name="Upcoming Invoice Due in 3 Days",
+        timing_days=-3,
+        is_active=True,
+        subject_template="Reminder: Invoice {{ invoice_number }} due in 3 days",
+        body_template=(
+            "Dear {{ customer_name }}, your invoice {{ invoice_number }} of "
+            "{{ currency }} {{ balance_due }} is due on {{ due_date }}."
+        ),
+        actor=owner,
+    )
+    sales_services.create_payment_reminder_rule(
+        organization=org,
+        name="Invoice Due Today",
+        timing_days=0,
+        is_active=True,
+        subject_template="Notice: Invoice {{ invoice_number }} is due today",
+        body_template=(
+            "Dear {{ customer_name }}, this is a reminder that invoice {{ invoice_number }} "
+            "for {{ currency }} {{ balance_due }} is due today."
+        ),
+        actor=owner,
+    )
+    sales_services.create_payment_reminder_rule(
+        organization=org,
+        name="Overdue Notice - 7 Days",
+        timing_days=7,
+        is_active=True,
+        subject_template="Overdue Notice: Invoice {{ invoice_number }}",
+        body_template=(
+            "Dear {{ customer_name }}, invoice {{ invoice_number }} with balance "
+            "{{ currency }} {{ balance_due }} is 7 days past due."
+        ),
+        actor=owner,
+    )
+
+
+@transaction.atomic
+def seed_growing_company(
+    *,
+    reset: bool = False,
+    stdout_write: Any = None,
+) -> Organization:
+    """Seed the 'Growing Company' demo organization: Apex Industrial Wholesale."""
+    log = stdout_write or (lambda msg: None)
+    slug = "growing-company"
+
+    existing = Organization.objects.filter(slug=slug).first()
+    if existing:
+        if reset:
+            log(f"Resetting existing organization '{slug}'...")
+            existing.delete()
+        else:
+            log(f"Organization '{slug}' already exists. Re-verifying credentials.")
+            for email in [
+                "owner@apexwholesale.com",
+                "sales@apexwholesale.com",
+                "buyer@apexwholesale.com",
+                "accountant@apexwholesale.com",
+                "warehouse@apexwholesale.com",
+            ]:
+                u = User.objects.filter(email=email).first()
+                if u:
+                    u.set_password("demo12345")
+                    u.save()
+            return existing
+
+    users = _seed_growing_company_staff()
+    owner = users["owner"]
+
+    org = provision_organization(
+        name="Apex Industrial Wholesale",
+        slug=slug,
+        owner=owner,
+        plan="growth",
+        base_currency="USD",
+        branch_name="Central Logistics Hub",
+        branch_code="HUB-01",
+        warehouse_name="Central Logistics Warehouse",
+        warehouse_code="WH-HUB01",
+    )
+
+    with tenant_context(org):
+        _seed_growing_company_roles(org, users)
+        accounting_services.seed_chart_of_accounts(organization=org)
+        accounting_services.seed_fiscal_calendar(organization=org, year=timezone.now().year)
+
+        branch_hub = Branch.all_tenants.get(organization=org, code="HUB-01")
+        wh_hub = Warehouse.all_tenants.get(organization=org, code="WH-HUB01")
+
+        # Additional Branch & Warehouse
+        branch_metro = Branch.all_tenants.create(
+            organization=org,
+            name="Metro Fulfillment Depot",
+            code="MET-02",
+            is_headquarters=False,
+        )
+        wh_metro = Warehouse.all_tenants.create(
+            organization=org,
+            branch=branch_metro,
+            name="Metro Regional Depot",
+            code="WH-MET02",
+            is_default=False,
+        )
+
+        catalog_map = _seed_growing_company_catalog(org)
+        _seed_growing_company_purchasing(
+            org=org,
+            wh_hub=wh_hub,
+            wh_metro=wh_metro,
+            buyer=users["buyer"],
+            accountant=users["accountant"],
+            products=catalog_map,
+        )
+        customers_map = _seed_growing_company_sales(
+            org=org,
+            branch_hub=branch_hub,
+            wh_hub=wh_hub,
+            branch_metro=branch_metro,
+            wh_metro=wh_metro,
+            owner=owner,
+            sales_mgr=users["sales"],
+            accountant=users["accountant"],
+            products=catalog_map,
+        )
+        _seed_growing_company_accounting(org, owner, users["accountant"])
+        _seed_growing_company_recurring_and_reminders(
+            org=org,
+            wh_hub=wh_hub,
+            owner=owner,
+            customer=customers_map["conti"],
+            products=catalog_map,
         )
 
     return org

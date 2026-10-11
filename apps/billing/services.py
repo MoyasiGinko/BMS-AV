@@ -80,6 +80,7 @@ DEFAULT_TIERS: list[dict[str, Any]] = [
             "purchasing",
             "reports",
             "crm",
+            "accounting",
         ],
     },
     {
