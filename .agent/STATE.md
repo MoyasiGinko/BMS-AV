@@ -1,28 +1,18 @@
 # Build State (updated by the agent after every task)
 
-- Phase: P3 Growth bundle: Purchasing + full Accounting
-- Last completed task: P3-07
-- Next task: P3-R
+- Phase: P4 People: CRM + HR + Payroll
+- Last completed task: P3-R
+- Next task: P4-01
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (4/4 E2E tests pass, 25/25 invariants pass including subledgers vs control accounts, ruff clean, import-linter 2 kept / 0 broken, migrations clean)
+- Last `make verify`: PASSED (Phase 3 full suite 204/204 tests passing, E2E passing, invariants passing, OpenAPI schema clean with --fail-on-warn, import-linter 2 kept / 0 broken, ruff clean)
 - Notes:
-  - P3-07 seed_demo for "growing company" + invariants suite complete:
-    - Extended `seed_demo` management command to support `--target growing_company` and `--target all` alongside `small_shop`.
-    - Provisioned `Apex Industrial Wholesale` (`growing-company`, plan `growth`) featuring:
-      - 2 Branches (`HUB-01`, `MET-02`) and 2 Warehouses (`WH-HUB01`, `WH-MET02`).
-      - 5 Staff users (`owner`, `sales`, `buyer`, `accountant`, `warehouse` @apexwholesale.com, password `demo12345`) with role assignments.
-      - Catalog items across 3 categories with stock type, unit conversions, and VAT10 tax codes.
-      - Purchasing flow: 3 suppliers (`Titan Machinery`, `SafeGuard`, `Global Pack`), POs, goods receipts, posted bills, and payments.
-      - B2B Sales flow: 3 customers (`Continental Construction`, `Apex Regional`, `Nexus Logistics`), quotes, orders, posted invoices, and payments.
-      - Multi-warehouse stock transfers between `WH-HUB01` and `WH-MET02`.
-      - Recurring invoice profile and 3 automated payment reminder rules.
-      - Bank account with partner equity capital injection and posted operational expenses (Rent, Utilities).
-    - Implemented Control Account vs Subledger reconciliation invariants in `tests/invariants/test_control_account_reconciliation.py`:
-      - AR Subledger (`Customer.current_balance` sum & unpaid invoice `balance_due` sum) == Account `1100` (`ar`).
-      - AP Subledger (`Supplier.current_balance` sum & unpaid bill `balance_due` sum) == Account `2000` (`ap`).
-      - Inventory Subledger on-hand valuation == Account `1200` (`inventory.asset`).
-      - General Ledger Trial Balance balanced (`total_debits == total_credits`).
-      - Verified across seeded `growing-company`, seeded `small-shop`, and synthetic lifecycle with Hypothesis property testing.
-    - Implemented E2E test suite in `tests/e2e/test_growing_company_e2e.py` covering seeding idempotency and multi-warehouse procure-to-pay and order-to-cash journeys.
-    - Architectural layer contract maintained with updated `ignore_imports` in `pyproject.toml` per ADR 0020.
-  - Next task: P3-R Phase review.
+  - Phase 3 Growth bundle (Purchasing + full Accounting) is complete and fully reviewed:
+    - P3-01 Purchasing: full vendor and procurement workflow, PO approval, Goods Receipt stock ingestion, bill posting, disbursements, and purchase returns.
+    - P3-02 Accounting full: double-entry GL core, manual journals, COA UI, bank accounts, reconciliations, multi-currency, fiscal periods, and expenses.
+    - P3-03 Financial reports: Trial Balance, P&L, Balance Sheet, Cash Flow, General Ledger, Aged AR/AP, and Tax Summary with background export engine.
+    - P3-04 Dashboard widgets v2: Payables, Expense Trend, Cash Position, Profit Trend, and Branch Performance with permission checks and zero N+1.
+    - P3-05 Webhooks v1: endpoint management, event subscriptions, HMAC SHA256 signatures, exponential retries, and delivery logging.
+    - P3-06 Recurring invoices & payment reminders: automated Celery beat schedules, template engine, and email notification framework with fake sandbox fallback.
+    - P3-07 Growing Company demo seeding: multi-branch & multi-warehouse realistic tenant alongside small-shop; control account vs subledger invariants suite (AR 1100, AP 2000, Inventory 1200, Trial Balance zero-sum).
+    - P3-R Phase review: comprehensive test pass (204/204 passing), architecture layering contracts maintained, documentation updated.
+  - Next task: P4-01 CRM: leads, opportunities, pipelines/stages (kanban with HTMX), interactions, tasks, tags, lead->customer conversion, customer 360 view, inactive-customer segments.

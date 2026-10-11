@@ -46,7 +46,7 @@ Format: `ID title: Done when ...`
 - [x] P3-05 Webhooks v1: endpoints UI, subscriptions, signed deliveries, retries, delivery log, redelivery; event catalog complete for P1-P3.
 - [x] P3-06 Recurring invoices + payment reminders (beat tasks) + email/notification framework (SMTP adapter + fake).
 - [x] P3-07 seed_demo for "growing company" + invariants suite complete (AR/AP/inventory subledgers vs control accounts).
-- [ ] P3-R Phase review.
+- [x] P3-R Phase review.
 
 ## P4 People: CRM + HR + Payroll
 - [ ] P4-01 CRM: leads, opportunities, pipelines/stages (kanban with HTMX), interactions, tasks, tags, lead->customer conversion, customer 360 view, inactive-customer segments.
