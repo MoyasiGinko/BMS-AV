@@ -1,0 +1,184 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Payroll Runs" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Payroll Operations" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage pay periods, calculate compensation, approve journals, and disburse salaries." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'payroll:structure_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                {% trans "Structures & Rules" %}
+            </a>
+            <a href="{% url 'payroll:assignment_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                {% trans "Employee Salaries" %}
+            </a>
+            <a href="{% url 'payroll:run_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                + {% trans "New Payroll Run" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Monthly Salary Base" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">${{ summary.monthly_payroll_budget|floatformat:2 }}</div>
+            <span class="text-xs text-slate-400">{{ summary.assigned_employees_count }} {% trans "enrolled employees" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Pending Approval" %}</span>
+            <div class="mt-2 text-2xl font-bold text-amber-600 dark:text-amber-400">{{ summary.pending_approval_count }}</div>
+            <span class="text-xs text-slate-400">{% trans "Draft & reviewed runs" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Runs Processed" %}</span>
+            <div class="mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ summary.total_runs_count }}</div>
+            <span class="text-xs text-slate-400">{% trans "Historical batches" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Last Paid Run" %}</span>
+            <div class="mt-2 text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                {% if summary.last_paid_run %}
+                    {{ summary.last_paid_run.number }}
+                {% else %}
+                    —
+                {% endif %}
+            </div>
+            <span class="text-xs text-slate-400">
+                {% if summary.last_paid_run %}
+                    ${{ summary.last_paid_run.total_net_pay|floatformat:2 }} {% trans "disbursed" %}
+                {% else %}
+                    {% trans "No disbursement yet" %}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get" class="flex flex-col sm:flex-row items-center gap-4">
+            <div class="w-full sm:w-64">
+                <select name="status" onchange="this.form.submit()" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm">
+                    <option value="">{% trans "All Statuses" %}</option>
+                    {% for code, label in statuses %}
+                        <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="w-full sm:w-48">
+                <input type="number" name="year" value="{{ year_filter }}" placeholder="{% trans 'Filter Year...' %}" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm" />
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="submit" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {% trans "Filter" %}
+                </button>
+                {% if status_filter or year_filter %}
+                    <a href="{% url 'payroll:run_list' %}" class="text-xs text-slate-500 hover:underline">{% trans "Reset" %}</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Runs Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <tr>
+                        <th class="px-6 py-3.5">{% trans "Run #" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Pay Period" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Payment Date" %}</th>
+                        <th class="px-6 py-3.5 text-center">{% trans "Payslips" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Gross Pay" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Deductions" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Net Pay" %}</th>
+                        <th class="px-6 py-3.5 text-center">{% trans "Status" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for run in runs %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="px-6 py-4 font-mono font-medium text-slate-900 dark:text-white">
+                            <a href="{% url 'payroll:run_detail' public_id=run.public_id %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">
+                                {{ run.number }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
+                            {{ run.period_start|date:"M d" }} — {{ run.period_end|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
+                            {{ run.payment_date|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 text-center text-slate-700 dark:text-slate-300">
+                            {{ run.payslip_count }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono text-slate-900 dark:text-white">
+                            ${{ run.total_gross_pay|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono text-rose-600 dark:text-rose-400">
+                            -${{ run.total_deductions|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            ${{ run.total_net_pay|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if run.status == 'draft' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{% trans "Draft" %}</span>
+                            {% elif run.status == 'reviewed' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">{% trans "Reviewed" %}</span>
+                            {% elif run.status == 'approved' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">{% trans "Approved" %}</span>
+                            {% elif run.status == 'paid' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">{% trans "Paid" %}</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">{{ run.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'payroll:run_detail' public_id=run.public_id %}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                                {% trans "View Run" %} &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                            <div class="max-w-sm mx-auto space-y-3">
+                                <p class="text-base font-medium text-slate-900 dark:text-white">{% trans "No payroll runs found" %}</p>
+                                <p class="text-xs text-slate-500">{% trans "Start by configuring employee salaries and creating your first monthly pay run." %}</p>
+                                <a href="{% url 'payroll:run_create' %}" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                                    + {% trans "Create Run" %}
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm">
+            <span class="text-slate-500">{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">{% trans "Previous" %}</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if year_filter %}&year={{ year_filter }}{% endif %}" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">{% trans "Next" %}</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

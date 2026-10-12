@@ -1,0 +1,81 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Employee Salaries" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Employee Salary Assignments" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage base salaries and compensation structures linked to active employees." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'payroll:run_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                {% trans "Payroll Runs" %}
+            </a>
+            <a href="{% url 'payroll:assignment_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                + {% trans "Assign Salary" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Assignments Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <tr>
+                        <th class="px-6 py-3.5">{% trans "Employee" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Salary Structure" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Base Salary" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Effective Period" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Disbursement Bank" %}</th>
+                        <th class="px-6 py-3.5 text-center">{% trans "Status" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for assign in assignments %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="px-6 py-4">
+                            <span class="font-medium text-slate-900 dark:text-white">{{ assign.employee.full_name }}</span>
+                            <div class="text-xs font-mono text-slate-400">{{ assign.employee.code }} &bull; {{ assign.employee.department.name|default:"—" }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-slate-700 dark:text-slate-300">
+                            {{ assign.salary_structure.name }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono font-bold text-slate-900 dark:text-white">
+                            ${{ assign.base_salary|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300 text-xs">
+                            {{ assign.effective_from|date:"M d, Y" }} &rarr; {% if assign.effective_to %}{{ assign.effective_to|date:"M d, Y" }}{% else %}{% trans "Present" %}{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300 text-xs">
+                            {{ assign.get_payment_method_display }}
+                            {% if assign.bank_account_number %}
+                                <div class="font-mono text-slate-400">{{ assign.bank_name }} ({{ assign.bank_account_number }})</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if assign.is_active %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">{% trans "Active" %}</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">{% trans "Inactive" %}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-500">
+                            {% trans "No employee salary assignments found. Click 'Assign Salary' to start." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

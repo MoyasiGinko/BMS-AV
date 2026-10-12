@@ -1,0 +1,91 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Assign Employee Salary" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div>
+        <a href="{% url 'payroll:assignment_list' %}" class="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 inline-flex items-center gap-1">
+            &larr; {% trans "Back to Assignments" %}
+        </a>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-2">
+            {% trans "Assign Salary Package to Employee" %}
+        </h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {% trans "Link an active team member with a salary structure template and contract base pay." %}
+        </p>
+    </div>
+
+    <form method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-sm">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">{% trans "Employee" %} *</label>
+                {{ form.employee }}
+                {% if form.employee.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.employee.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">{% trans "Salary Structure" %} *</label>
+                {{ form.salary_structure }}
+                {% if form.salary_structure.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.salary_structure.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">{% trans "Contract Base Salary" %} *</label>
+            {{ form.base_salary }}
+            {% if form.base_salary.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.base_salary.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">{% trans "Effective From" %} *</label>
+                {{ form.effective_from }}
+                {% if form.effective_from.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.effective_from.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">{% trans "Effective To" %}</label>
+                {{ form.effective_to }}
+                {% if form.effective_to.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.effective_to.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">{% trans "Payment Method" %}</label>
+                {{ form.payment_method }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">{% trans "Bank Name" %}</label>
+                {{ form.bank_name }}
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 mb-1">{% trans "Account Number" %}</label>
+                {{ form.bank_account_number }}
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+            {{ form.is_active }}
+            <label for="{{ form.is_active.id_for_label }}" class="text-sm text-slate-700 dark:text-slate-300">{% trans "Mark as Active assignment" %}</label>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+            <a href="{% url 'payroll:assignment_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
+                {% trans "Save Assignment" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

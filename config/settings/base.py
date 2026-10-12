@@ -56,6 +56,7 @@ LOCAL_APPS = [
     "apps.purchasing",
     "apps.crm",
     "apps.hr",
+    "apps.payroll",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -244,6 +245,21 @@ SPECTACULAR_SETTINGS = {
         "BankReconciliationStatusEnum": "apps.accounting.models.BankReconciliationStatus",
         "ExpensePaymentMethodEnum": "apps.accounting.models.ExpensePaymentMethod",
         "TaxSummaryStatusEnum": "apps.accounting.models.TaxSummaryStatus",
+        "EmployeeStatusEnum": "apps.hr.models.EmployeeStatus",
+        "EmploymentTypeEnum": "apps.hr.models.EmploymentType",
+        "AttendanceStatusEnum": "apps.hr.models.AttendanceStatus",
+        "AttendanceSourceEnum": "apps.hr.models.AttendanceSource",
+        "LeaveRequestStatusEnum": "apps.hr.models.LeaveRequestStatus",
+        "SalaryComponentTypeEnum": "apps.payroll.models.SalaryComponentType",
+        "PayrollCalculationTypeEnum": "apps.payroll.models.CalculationType",
+        "PayrollPaymentMethodEnum": "apps.payroll.models.PaymentMethod",
+        "PayrollRunStatusEnum": "apps.payroll.models.PayrollRunStatus",
+        "PayslipStatusEnum": "apps.payroll.models.PayslipStatus",
+        "CRMInteractionTypeEnum": "apps.crm.models.InteractionType",
+        "CRMLeadStatusEnum": "apps.crm.models.LeadStatus",
+        "CRMLeadSourceEnum": "apps.crm.models.LeadSource",
+        "CRMTaskStatusEnum": "apps.crm.models.TaskStatus",
+        "CRMTaskPriorityEnum": "apps.crm.models.TaskPriority",
     },
     "SECURITY": [{"BearerAuth": []}],
 }

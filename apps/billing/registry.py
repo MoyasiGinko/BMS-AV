@@ -342,7 +342,23 @@ registry.register(
     description="Salary structures, payroll calculation runs, and payslips",
     icon="banknotes",
     sort_order=120,
-    permissions=["payroll.view", "payroll.manage"],
+    nav_items=[
+        NavItem("Payroll Runs", "payroll:run_list", icon="banknotes", permission="payroll.view"),
+        NavItem("Salary Structures", "payroll:structure_list", icon="template", permission="payroll.view"),
+        NavItem("Salary Components", "payroll:component_list", icon="tag", permission="payroll.view"),
+        NavItem("Employee Salaries", "payroll:assignment_list", icon="users", permission="payroll.view"),
+        NavItem("My Payslips", "payroll:my_payslips", icon="document-text"),
+    ],
+    permissions=[
+        "payroll.view",
+        "payroll.create",
+        "payroll.update",
+        "payroll.delete",
+        "payroll.run",
+        "payroll.approve",
+        "payroll.pay",
+        "payroll.export",
+    ],
 )
 
 registry.register(

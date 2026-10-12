@@ -1,0 +1,101 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "My Payslips" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "My Payslips & Compensation" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "View and download your monthly itemized pay statements and historical compensation records." %}
+            </p>
+        </div>
+        <div class="text-right">
+            <span class="text-xs font-semibold uppercase text-slate-400">{% trans "Logged in Employee" %}</span>
+            <div class="text-sm font-bold text-slate-900 dark:text-white">{{ employee.full_name }}</div>
+            <div class="text-xs font-mono text-slate-500">{{ employee.code }}</div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <tr>
+                        <th class="px-6 py-3.5">{% trans "Pay Period" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Payment Date" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Run #" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Gross Earnings" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Deductions" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Net Take-Home" %}</th>
+                        <th class="px-6 py-3.5 text-center">{% trans "Status" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Download" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for payslip in payslips %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                            {{ payslip.payroll_run.period_start|date:"M d" }} &mdash; {{ payslip.payroll_run.period_end|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
+                            {{ payslip.payroll_run.payment_date|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 font-mono text-slate-500">
+                            {{ payslip.payroll_run.number }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono text-slate-900 dark:text-white">
+                            ${{ payslip.gross_pay|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono text-rose-600 dark:text-rose-400">
+                            -${{ payslip.total_deductions|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            ${{ payslip.net_pay|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                {{ payslip.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{% url 'payroll:payslip_detail' public_id=payslip.public_id %}" class="px-2.5 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                                    {% trans "View" %}
+                                </a>
+                                <a href="{% url 'payroll:payslip_pdf' public_id=payslip.public_id %}" target="_blank" class="px-2.5 py-1 text-xs bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded hover:bg-indigo-100">
+                                    {% trans "PDF" %}
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-slate-500">
+                            {% trans "No payslips issued yet for your employee account." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm">
+            <span class="text-slate-500">{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">{% trans "Previous" %}</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">{% trans "Next" %}</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

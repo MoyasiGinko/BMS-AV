@@ -1,17 +1,21 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P4 People: CRM + HR + Payroll
-- Last completed task: P4-03
-- Next task: P4-04
+- Last completed task: P4-04
+- Next task: P4-05
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (HR test suite 39/39 passing, OpenAPI schema validated, import-linter clean, ruff clean)
+- Last `make verify`: PASSED (Payroll test suite 15/15 passing, OpenAPI schema validated, import-linter clean, ruff clean)
 - Notes:
-  - P4-03 Attendance + Leave module completed:
-    - Domain models: Shift, AttendanceRecord, LeaveType, LeaveBalance, LeaveRequest.
-    - ADR 0023 documented Attendance and Leave module architecture in Layer 3 within `apps.hr`.
-    - Services & State Machine: Shift scheduling, web/API clock-in/out, late arrival detection (>15m grace), manual attendance logging, yearly quota allocation, leave request submission/approval/rejection/cancellation with balance deductions.
-    - Selectors: Attendance logs, active check-in discovery, daily workforce attendance summary metrics, yearly quota balances, and combined HR attendance & leave calendar event aggregation.
-    - Web UI: Shift management, Attendance tracking table with status filtering and HTMX quick clock-in/out, Manual log modal/screen, Leave Types policy catalog, Leave Balances ledger, Leave Request approval queue, interactive monthly Calendar view, and enhanced employee Self-Service portal.
-    - REST API: Versioned viewsets for `/api/v1/hr/shifts/`, `/api/v1/hr/attendance/` (with check-in/out/manual actions), `/api/v1/hr/leave-types/`, `/api/v1/hr/leave-balances/` (with quota allocation), `/api/v1/hr/leave-requests/` (with approve/reject/cancel actions), and `/api/v1/hr/calendar/`.
-    - Tests: 39/39 unit, selector, view, API, and cross-tenant isolation tests passing.
-  - Next task: P4-04 Payroll: salary structures/components, payroll run (draft -> review -> approve -> pay), payslips PDF, accounting posting (expense + liabilities + payable), expense linkage.
+  - P4-04 Payroll module completed:
+    - Domain models: SalaryComponent, SalaryStructure, SalaryStructureItem, EmployeeSalaryAssignment, PayrollRun, Payslip, PayslipItem.
+    - ADR 0024 documented Payroll module placement in Layer 2 with domain integration into Accounting and HR.
+    - Services & State Machine: Full document lifecycle (`draft` -> `reviewed` -> `approved` -> `paid` -> `cancelled`) with automated batch payslip calculation factoring base salary, component formulas, and unpaid leave deduction integration with `apps.hr.models.LeaveRequest`.
+    - Double-Entry Accounting: Atomic dual-stage journal posting:
+      - Accrual on Approval: Dr `payroll.expense` (gross pay), Cr `payroll.liability` (deductions), Cr `payroll.liability` (net pay payable).
+      - Disbursement on Payment: Dr `payroll.liability` (net pay payable), Cr `bank`/`cash` account.
+      - Cancellation: Symmetric reversal of journal entries via `reverse_entry`.
+    - Payslip PDF: ReportLab-powered clean downloadable PDF documents with company branding, employee details, side-by-side earnings/deductions breakdown, and take-home pay callout box.
+    - Web UI: Comprehensive management screens (Payroll Runs list/form/detail with review/approve/pay/cancel HTMX actions, Payslips list and detail with PDF download, Employee "My Payslips" portal, Salary Structures list/form, Salary Components list/form, and Employee Salary Assignments).
+    - REST API: Versioned endpoints under `/api/v1/payroll/` (`salary-components`, `salary-structures`, `assignments`, `runs`, and `payslips` with action endpoints for review, approve, pay, cancel, and pdf download).
+    - Verification: 15/15 tests passing, `lint-imports` clean (2 kept, 0 broken), `manage.py spectacular --validate --fail-on-warn` passed with 0 warnings.
+  - Next task: P4-05 HR/Payroll reports + dashboard widgets (headcount, attendance, payroll cost, employee performance basics).

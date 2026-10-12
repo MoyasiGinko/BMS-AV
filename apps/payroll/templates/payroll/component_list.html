@@ -1,0 +1,92 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Salary Components" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Salary Components Catalog" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage earning elements (Basic, Allowances) and deduction items (Health Insurance, Taxes)." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'payroll:structure_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                {% trans "Salary Structures" %}
+            </a>
+            <a href="{% url 'payroll:component_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                + {% trans "New Component" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Components Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    <tr>
+                        <th class="px-6 py-3.5">{% trans "Component Name" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Code" %}</th>
+                        <th class="px-6 py-3.5 text-center">{% trans "Type" %}</th>
+                        <th class="px-6 py-3.5 text-center">{% trans "Taxable" %}</th>
+                        <th class="px-6 py-3.5 text-center">{% trans "Status" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for comp in components %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                            <a href="{% url 'payroll:component_edit' public_id=comp.public_id %}" class="hover:text-indigo-600">
+                                {{ comp.name }}
+                            </a>
+                            {% if comp.description %}
+                                <div class="text-xs text-slate-400 mt-0.5">{{ comp.description }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-300">
+                            {{ comp.code }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if comp.component_type == 'earning' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                                    {% trans "Earning" %}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
+                                    {% trans "Deduction" %}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center text-xs text-slate-500">
+                            {% if comp.is_taxable %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if comp.is_active %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">{% trans "Active" %}</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">{% trans "Inactive" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'payroll:component_edit' public_id=comp.public_id %}" class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                                {% trans "Edit" %} &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-500">
+                            {% trans "No salary components created yet." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
