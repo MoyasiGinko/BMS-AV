@@ -50,6 +50,7 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
         "settings.manage",
         "users.manage",
         "integrations.*",
+        "crm.*",
     ],
     "Manager": [
         "catalog.*",
@@ -62,6 +63,7 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
         "hr.view",
         "reports.*",
         "integrations.*",
+        "crm.*",
     ],
     "Accountant": [
         "accounting.*",
@@ -90,6 +92,7 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
         "customers.view",
         "reports.view",
         "integrations.view",
+        "crm.view",
     ],
 }
 

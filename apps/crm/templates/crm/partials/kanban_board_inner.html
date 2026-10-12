@@ -1,0 +1,77 @@
+{% load i18n %}
+<div class="flex gap-6 overflow-x-auto pb-6">
+    {% for col in stages %}
+    <div class="flex-shrink-0 w-80 bg-slate-100 dark:bg-slate-800/60 rounded-xl p-4 flex flex-col max-h-[80vh] border border-slate-200 dark:border-slate-800">
+        <!-- Stage Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700 mb-3">
+            <div class="flex items-center space-x-2">
+                <span class="w-3 h-3 rounded-full
+                    {% if col.stage.is_won %}bg-emerald-500
+                    {% elif col.stage.is_lost %}bg-rose-500
+                    {% else %}bg-indigo-500{% endif %}">
+                </span>
+                <h3 class="font-semibold text-slate-900 dark:text-white text-sm">{{ col.stage.name }}</h3>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium">
+                    {{ col.count }}
+                </span>
+            </div>
+            <div class="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300">
+                ${{ col.total_value }}
+            </div>
+        </div>
+
+        <!-- Opportunities List -->
+        <div class="space-y-3 overflow-y-auto flex-1 pr-1" id="stage-col-{{ col.stage.id }}">
+            {% for opp in col.opportunities %}
+            <div class="bg-white dark:bg-slate-900 rounded-lg p-3.5 border border-slate-200 dark:border-slate-700/80 shadow-xs hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between gap-2">
+                    <a href="{% url 'crm:opportunity_detail' public_id=opp.public_id %}" class="text-sm font-semibold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400">
+                        {{ opp.title }}
+                    </a>
+                    <span class="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                        ${{ opp.expected_value }}
+                    </span>
+                </div>
+
+                {% if opp.customer %}
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center">
+                    <span class="truncate">{{ opp.customer.name }}</span>
+                </p>
+                {% endif %}
+
+                <div class="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                    <span class="text-slate-400">
+                        {{ opp.probability_percent }}% win
+                    </span>
+                    <div class="flex items-center space-x-1">
+                        <!-- Stage changer menu -->
+                        <div class="relative inline-block text-left" x-data="{ open: false }">
+                            <button @click="open = !open" type="button" class="px-2 py-0.5 text-xs rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800">
+                                {% trans "Move" %} ▾
+                            </button>
+                            <div x-show="open" @click.away="open = false" class="origin-top-right absolute right-0 mt-1 w-44 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-20 py-1" style="display: none;">
+                                {% for target_col in stages %}
+                                {% if target_col.stage.id != col.stage.id %}
+                                <a href="#"
+                                   hx-post="{% url 'crm:opportunity_stage_move' public_id=opp.public_id stage_id=target_col.stage.id %}"
+                                   hx-target="#kanban-container"
+                                   hx-swap="innerHTML"
+                                   class="block px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                    → {{ target_col.stage.name }}
+                                </a>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+                {% trans "No deals in this stage" %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>

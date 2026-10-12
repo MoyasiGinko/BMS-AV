@@ -49,7 +49,7 @@ Format: `ID title: Done when ...`
 - [x] P3-R Phase review.
 
 ## P4 People: CRM + HR + Payroll
-- [ ] P4-01 CRM: leads, opportunities, pipelines/stages (kanban with HTMX), interactions, tasks, tags, lead->customer conversion, customer 360 view, inactive-customer segments.
+- [x] P4-01 CRM: leads, opportunities, pipelines/stages (kanban with HTMX), interactions, tasks, tags, lead->customer conversion, customer 360 view, inactive-customer segments.
 - [ ] P4-02 HR core: employees (encrypted sensitive fields), positions, departments link, documents, status lifecycle; self-service profile.
 - [ ] P4-03 Attendance + leave: shifts, check-in/out (web + API), leave types/balances/requests/approvals, calendar.
 - [ ] P4-04 Payroll: salary structures/components, payroll run (draft -> review -> approve -> pay), payslips PDF, accounting posting (expense + liabilities + payable), expense linkage.

@@ -34,4 +34,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("accounting/", include("apps.accounting.api.urls")),
     # Integrations, Imports/Exports & Webhooks
     path("integrations/", include("apps.integrations.api.urls")),
+    # Customer Relationship Management (CRM)
+    path("crm/", include("apps.crm.api.urls")),
 ]

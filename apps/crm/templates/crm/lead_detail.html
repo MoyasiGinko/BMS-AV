@@ -1,0 +1,143 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ lead.full_name }} | {% trans "Lead Details" %}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-3">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ lead.full_name }}</h1>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium uppercase
+                    {% if lead.status == 'new' %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300
+                    {% elif lead.status == 'converted' %}bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300
+                    {% elif lead.status == 'qualified' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
+                    {% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                    {{ lead.status }}
+                </span>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {{ lead.company_name|default:"Independent Prospect" }} • {% trans "Added" %} {{ lead.created_at|date:"M d, Y" }}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'crm:lead_edit' public_id=lead.public_id %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50">
+                {% trans "Edit Lead" %}
+            </a>
+            {% if lead.status != "converted" %}
+            <a href="{% url 'crm:lead_convert' public_id=lead.public_id %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors">
+                {% trans "Convert to Customer" %}
+            </a>
+            {% else %}
+            {% if lead.converted_customer %}
+            <a href="{% url 'crm:customer_360' customer_id=lead.converted_customer.pk %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                {% trans "View Customer 360" %}
+            </a>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Overview Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Lead Meta Box -->
+        <div class="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">{% trans "Prospect Info" %}</h3>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <span class="text-xs text-slate-400 block">{% trans "Email" %}</span>
+                    <span class="text-slate-800 dark:text-slate-200 font-medium">{{ lead.email|default:"-" }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block">{% trans "Phone" %}</span>
+                    <span class="text-slate-800 dark:text-slate-200 font-medium">{{ lead.phone|default:"-" }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block">{% trans "Lead Source" %}</span>
+                    <span class="text-slate-800 dark:text-slate-200 capitalize font-medium">{{ lead.source }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block">{% trans "Estimated Value" %}</span>
+                    <span class="text-slate-900 dark:text-white font-mono font-bold">${{ lead.estimated_value|default:"0.00" }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 block">{% trans "Assigned Agent" %}</span>
+                    <span class="text-slate-800 dark:text-slate-200 font-medium">{% if lead.assigned_to %}{{ lead.assigned_to.email }}{% else %}Unassigned{% endif %}</span>
+                </div>
+                {% if lead.tags.exists %}
+                <div>
+                    <span class="text-xs text-slate-400 block mb-1">{% trans "Tags" %}</span>
+                    <div class="flex flex-wrap gap-1">
+                        {% for tag in lead.tags.all %}
+                        <span class="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">#{{ tag.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% if lead.notes %}
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <span class="text-xs text-slate-400 block mb-1">{% trans "Notes" %}</span>
+                <p class="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-line">{{ lead.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Activity Feed & Tasks -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Log Interaction Form -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-3">{% trans "Log Activity Touchpoint" %}</h3>
+                <form hx-post="{% url 'crm:log_interaction' %}" hx-target="#interactions-feed" hx-swap="afterbegin" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="lead_id" value="{{ lead.pk }}">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <select name="type" class="text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+                            <option value="call">{% trans "Call" %}</option>
+                            <option value="email">{% trans "Email" %}</option>
+                            <option value="meeting">{% trans "Meeting" %}</option>
+                            <option value="note">{% trans "Internal Note" %}</option>
+                            <option value="other">{% trans "Other" %}</option>
+                        </select>
+                        <div class="sm:col-span-2">
+                            <input type="text" name="summary" required placeholder="{% trans 'Brief summary of touchpoint...' %}" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+                        </div>
+                    </div>
+                    <textarea name="details" rows="2" placeholder="{% trans 'Detailed notes or outcomes (optional)...' %}" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2"></textarea>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700">
+                            {% trans "Record Touchpoint" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tasks for this lead -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-3">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Follow-up Tasks" %}</h3>
+                <div class="space-y-2">
+                    {% for t in tasks %}
+                        {% include "crm/partials/task_item.html" with task=t %}
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-2">{% trans "No follow-up tasks scheduled for this lead." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Touchpoints feed -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Activity History" %}</h3>
+                <div id="interactions-feed" class="space-y-3">
+                    {% for item in interactions %}
+                        {% include "crm/partials/interaction_item.html" with item=item %}
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-4 text-center">{% trans "No interaction history recorded yet." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

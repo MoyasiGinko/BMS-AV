@@ -290,7 +290,22 @@ registry.register(
     description="Leads, deals, sales pipeline stages, and activities",
     icon="chat-bubble-left-right",
     sort_order=100,
-    permissions=["crm.view", "crm.manage"],
+    nav_items=[
+        NavItem("Leads", "crm:lead_list", icon="user-plus", permission="crm.view"),
+        NavItem("Pipeline Kanban", "crm:pipeline_kanban", icon="view-columns", permission="crm.view"),
+        NavItem("Customer 360", "crm:customer_360_index", icon="user-circle", permission="crm.view"),
+        NavItem("Inactive Segments", "crm:inactive_customers", icon="users", permission="crm.view"),
+        NavItem("Tasks", "crm:task_list", icon="check-circle", permission="crm.view"),
+    ],
+    permissions=[
+        "crm.view",
+        "crm.manage",
+        "crm.leads.create",
+        "crm.leads.edit",
+        "crm.leads.convert",
+        "crm.opportunities.manage",
+        "crm.activities.manage",
+    ],
 )
 
 registry.register(

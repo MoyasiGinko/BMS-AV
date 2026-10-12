@@ -1,0 +1,22 @@
+{% load i18n %}
+<div class="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 space-y-1 transition-all">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wide
+                {% if item.type == 'call' %}bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300
+                {% elif item.type == 'email' %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
+                {% elif item.type == 'meeting' %}bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300
+                {% else %}bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300{% endif %}">
+                {{ item.type }}
+            </span>
+            <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ item.summary }}</span>
+        </div>
+        <span class="text-xs text-slate-400">{{ item.occurred_at|date:"M d, Y H:i" }}</span>
+    </div>
+    {% if item.details %}
+    <p class="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line pt-1">{{ item.details }}</p>
+    {% endif %}
+    <div class="text-xs text-slate-400 pt-1">
+        {% trans "By" %} {% if item.performed_by %}{{ item.performed_by.email }}{% else %}System{% endif %}
+    </div>
+</div>

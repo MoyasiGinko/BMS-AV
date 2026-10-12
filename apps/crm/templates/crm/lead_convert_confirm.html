@@ -1,0 +1,71 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Convert Lead" %} | {{ lead.full_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Convert Lead to Customer" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Provision a formal customer account and optionally launch an active deal in your sales pipeline." %}
+            </p>
+        </div>
+        <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="text-sm text-slate-500 hover:text-slate-700">
+            {% trans "Cancel" %}
+        </a>
+    </div>
+
+    <!-- Conversion Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+        <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="text-slate-500">{% trans "Lead Contact" %}:</span>
+                <span class="font-semibold text-slate-900 dark:text-white">{{ lead.full_name }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">{% trans "Target Customer Name" %}:</span>
+                <span class="font-semibold text-slate-900 dark:text-white">{{ lead.company_name|default:lead.full_name }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">{% trans "Contact Email" %}:</span>
+                <span class="text-slate-700 dark:text-slate-300">{{ lead.email|default:"-" }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">{% trans "Estimated Value" %}:</span>
+                <span class="font-mono font-bold text-slate-900 dark:text-white">${{ lead.estimated_value|default:"0.00" }}</span>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="create_opportunity" name="create_opportunity" type="checkbox" checked class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="create_opportunity" class="font-medium text-slate-700 dark:text-slate-300">{% trans "Create active Opportunity deal in pipeline" %}</label>
+                        <p class="text-slate-500 text-xs mt-0.5">{% trans "Opens a deal in the first stage of the default pipeline carrying the estimated value." %}</p>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300">
+                    {% trans "Note: All logged touchpoints and pending tasks will be automatically linked to the new customer account." %}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors">
+                    {% trans "Confirm & Convert" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

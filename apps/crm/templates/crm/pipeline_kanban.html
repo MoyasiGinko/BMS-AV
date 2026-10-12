@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Pipeline Kanban" %} | {{ pipeline.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-3">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ pipeline.name }}</h1>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+                    {{ total_deals }} {% trans "Deals" %}
+                </span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    ${{ total_pipeline_value }}
+                </span>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Visual deal stage progression, win probabilities, and pipeline values." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Pipeline selector if multiple -->
+            {% if all_pipelines|length > 1 %}
+            <form method="get" class="flex items-center">
+                <select name="pipeline" onchange="this.form.submit()" class="text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+                    {% for p in all_pipelines %}
+                    <option value="{{ p.code }}" {% if p.id == pipeline.id %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
+
+            <a href="{% url 'crm:opportunity_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "New Deal" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Kanban Board Container -->
+    <div id="kanban-container">
+        {% include "crm/partials/kanban_board_inner.html" %}
+    </div>
+</div>
+{% endblock %}

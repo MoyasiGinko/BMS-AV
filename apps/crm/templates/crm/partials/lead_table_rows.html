@@ -1,0 +1,56 @@
+{% load i18n %}
+{% for lead in leads %}
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+            {{ lead.full_name }}
+        </a>
+        {% if lead.title %}
+        <p class="text-xs text-slate-500 dark:text-slate-400">{{ lead.title }}</p>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
+        {{ lead.company_name|default:"-" }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+        {% if lead.email %}<div>{{ lead.email }}</div>{% endif %}
+        {% if lead.phone %}<div class="text-xs text-slate-400">{{ lead.phone }}</div>{% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 capitalize">
+        {{ lead.source }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+        {% if lead.status == "new" %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">New</span>
+        {% elif lead.status == "contacted" %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Contacted</span>
+        {% elif lead.status == "qualified" %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Qualified</span>
+        {% elif lead.status == "converted" %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">Converted</span>
+        {% elif lead.status == "disqualified" %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">Disqualified</span>
+        {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{{ lead.status }}</span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white font-mono">
+        {% if lead.estimated_value %}${{ lead.estimated_value }}{% else %}-{% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+        {% if lead.assigned_to %}{{ lead.assigned_to.email }}{% else %}Unassigned{% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 mr-3">{% trans "View" %}</a>
+        {% if lead.status != "converted" %}
+        <a href="{% url 'crm:lead_convert' public_id=lead.public_id %}" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-900 font-semibold">{% trans "Convert" %}</a>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="8" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+        {% trans "No leads found matching current filters." %}
+    </td>
+</tr>
+{% endfor %}

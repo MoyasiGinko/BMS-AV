@@ -1,0 +1,52 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "CRM Tasks" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Tasks & Follow-ups" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage action items, client deadlines, and scheduled sales touchpoints." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'crm:pipeline_kanban' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50">
+                {% trans "Pipeline" %}
+            </a>
+            <a href="{% url 'crm:lead_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50">
+                {% trans "Leads" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get" class="flex items-center gap-4">
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">{% trans "Status" %}:</label>
+            <div class="w-48">
+                <select name="status" onchange="this.form.submit()" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+                    <option value="">{% trans "All Tasks" %}</option>
+                    <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>{% trans "Pending" %}</option>
+                    <option value="in_progress" {% if status_filter == "in_progress" %}selected{% endif %}>{% trans "In Progress" %}</option>
+                    <option value="completed" {% if status_filter == "completed" %}selected{% endif %}>{% trans "Completed" %}</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tasks List Container -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
+        <div class="space-y-3">
+            {% for t in tasks %}
+                {% include "crm/partials/task_item.html" with task=t %}
+            {% empty %}
+            <p class="text-sm text-slate-400 py-8 text-center">{% trans "No tasks found." %}</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

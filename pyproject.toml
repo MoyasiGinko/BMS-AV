@@ -109,7 +109,7 @@ name = "Module layering"
 type = "layers"
 layers = [
   "apps.reports | apps.ai_assistant | apps.automation | apps.integrations",
-  "apps.pos | apps.payroll",
+  "apps.pos | apps.payroll | apps.crm",
   "apps.sales | apps.purchasing | apps.hr",
   "apps.accounting | apps.inventory | apps.customers",
   "apps.catalog",

@@ -1,0 +1,184 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Customer 360" %} | {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-3">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ customer.name }}</h1>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 uppercase">
+                    {{ customer.status }}
+                </span>
+                <span class="text-sm text-slate-400 font-mono">{{ customer.code }}</span>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {{ customer.email|default:"No email" }} • {{ customer.phone|default:"No phone" }} • {% trans "Currency" %}: {{ customer.currency }}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'customers:customer_detail' customer_id=customer.pk %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50">
+                {% trans "Billing Profile" %}
+            </a>
+            <a href="{% url 'crm:opportunity_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                {% trans "Create Deal" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- 360 KPI Metrics Bar -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Lifetime Revenue" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white font-mono">${{ lifetime_sales }}</div>
+            <span class="text-xs text-slate-400">{{ total_invoices_count }} {% trans "posted invoices" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Outstanding AR" %}</span>
+            <div class="mt-2 text-2xl font-bold {% if open_ar_balance > 0 %}text-amber-600 dark:text-amber-400{% else %}text-slate-900 dark:text-white{% endif %} font-mono">${{ open_ar_balance }}</div>
+            <span class="text-xs text-slate-400">{% trans "Current receivable balance" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Active Pipeline" %}</span>
+            <div class="mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">${{ total_pipeline_value }}</div>
+            <span class="text-xs text-slate-400">{{ active_deals_count }} {% trans "open opportunities" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Closed Won Deals" %}</span>
+            <div class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ won_deals_count }}</div>
+            <span class="text-xs text-slate-400">{% trans "Historic closed won" %}</span>
+        </div>
+    </div>
+
+    <!-- Main 360 Grid: Left: CRM Touchpoints & Deals | Right: ERP Sales & Invoices -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left: CRM Touchpoints, Tasks & Deals -->
+        <div class="space-y-6">
+            <!-- Pipeline Deals -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">{% trans "Opportunities & Deals" %}</h3>
+                    <a href="{% url 'crm:opportunity_create' %}" class="text-xs font-semibold text-indigo-600 hover:underline">+ {% trans "Add Deal" %}</a>
+                </div>
+                <div class="space-y-2">
+                    {% for deal in opportunities %}
+                    <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg flex items-center justify-between">
+                        <div>
+                            <a href="{% url 'crm:opportunity_detail' public_id=deal.public_id %}" class="text-sm font-medium text-slate-900 dark:text-white hover:text-indigo-600">
+                                {{ deal.title }}
+                            </a>
+                            <p class="text-xs text-slate-400">{{ deal.stage.name }} • {{ deal.probability_percent }}% win</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-bold font-mono text-slate-900 dark:text-white">${{ deal.expected_value }}</span>
+                            <span class="block text-xs uppercase text-slate-400">{{ deal.status }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-2">{% trans "No opportunities logged for this customer." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Log Touchpoint Form -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-3">{% trans "Log Customer Activity" %}</h3>
+                <form hx-post="{% url 'crm:log_interaction' %}" hx-target="#interactions-feed" hx-swap="afterbegin" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="customer_id" value="{{ customer.pk }}">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <select name="type" class="text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+                            <option value="call">{% trans "Call" %}</option>
+                            <option value="email">{% trans "Email" %}</option>
+                            <option value="meeting">{% trans "Meeting" %}</option>
+                            <option value="note">{% trans "Note" %}</option>
+                            <option value="other">{% trans "Other" %}</option>
+                        </select>
+                        <div class="sm:col-span-2">
+                            <input type="text" name="summary" required placeholder="{% trans 'Touchpoint summary...' %}" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+                        </div>
+                    </div>
+                    <textarea name="details" rows="2" placeholder="{% trans 'Additional details...' %}" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2"></textarea>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700">
+                            {% trans "Record Activity" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Interactions History -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Interaction History" %}</h3>
+                <div id="interactions-feed" class="space-y-3">
+                    {% for item in interactions %}
+                        {% include "crm/partials/interaction_item.html" with item=item %}
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-3 text-center">{% trans "No interaction history yet." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: ERP Sales Orders & Invoices History -->
+        <div class="space-y-6">
+            <!-- Recent Sales Orders -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">{% trans "Recent Sales Orders" %}</h3>
+                <div class="space-y-2">
+                    {% for order in recent_orders %}
+                    <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-mono font-semibold text-slate-900 dark:text-white">{{ order.order_number }}</span>
+                            <span class="block text-xs text-slate-400">{{ order.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-bold font-mono text-slate-900 dark:text-white">${{ order.total_amount }}</span>
+                            <span class="block text-xs uppercase text-slate-500">{{ order.status }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-2">{% trans "No sales orders placed yet." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Invoices -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">{% trans "Invoices & Billing" %}</h3>
+                <div class="space-y-2">
+                    {% for inv in recent_invoices %}
+                    <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-mono font-semibold text-slate-900 dark:text-white">{{ inv.invoice_number }}</span>
+                            <span class="block text-xs text-slate-400">{{ inv.invoice_date|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-bold font-mono text-slate-900 dark:text-white">${{ inv.total_amount }}</span>
+                            <span class="block text-xs uppercase text-slate-500">{{ inv.status }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-2">{% trans "No invoices issued yet." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Follow-up Tasks -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-3">
+                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Action Tasks" %}</h3>
+                <div class="space-y-2">
+                    {% for t in tasks %}
+                        {% include "crm/partials/task_item.html" with task=t %}
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-2">{% trans "No tasks scheduled." %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

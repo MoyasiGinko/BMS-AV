@@ -1,0 +1,65 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Customer 360 Index" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Customer 360 View" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Unified single pane of glass synthesizing CRM touchpoints, pipeline opportunities, and sales transaction history." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'crm:inactive_customers' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50">
+                {% trans "Inactive Segments" %}
+            </a>
+            <a href="{% url 'customers:customer_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                {% trans "New Customer" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get" class="flex items-center gap-4">
+            <div class="flex-1">
+                <input type="text" name="search" value="{{ search }}" placeholder="{% trans 'Search customer by name...' %}" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+            </div>
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                {% trans "Search" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Customers Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for cust in customers %}
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="font-semibold text-slate-900 dark:text-white">{{ cust.name }}</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ cust.code }} • {{ cust.currency }}</p>
+                </div>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs uppercase font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    {{ cust.status }}
+                </span>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span class="text-xs text-slate-400">{{ cust.email|default:"No email" }}</span>
+                <a href="{% url 'crm:customer_360' customer_id=cust.pk %}" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                    {% trans "Open 360 View" %} →
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-3 text-center py-12 text-sm text-slate-500">
+            {% trans "No customers found." %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
