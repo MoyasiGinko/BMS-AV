@@ -55,7 +55,7 @@ Format: `ID title: Done when ...`
 - [x] P4-04 Payroll: salary structures/components, payroll run (draft -> review -> approve -> pay), payslips PDF, accounting posting (expense + liabilities + payable), expense linkage.
 - [x] P4-05 HR/Payroll reports + dashboard widgets (headcount, attendance, payroll cost, employee performance basics).
 - [x] P4-06 seed_demo for people modules; permissions tests (HR data visible only to HR/owner).
-- [ ] P4-R Phase review.
+- [x] P4-R Phase review.
 
 ## P5 ERP maturity
 - [ ] P5-01 Multi-branch: branch-scoped permissions, consolidated vs per-branch reports, inter-branch transfers.
