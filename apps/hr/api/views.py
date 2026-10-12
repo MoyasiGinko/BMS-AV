@@ -273,12 +273,12 @@ class ShiftViewSet(TenantScopedModelViewSet):
     lookup_field = "public_id"
     module_key = "hr"
     permission_map = {
-        "list": ["hr.view"],
-        "retrieve": ["hr.view"],
-        "create": ["hr.create"],
-        "update": ["hr.update"],
-        "partial_update": ["hr.update"],
-        "destroy": ["hr.delete"],
+        "list": "hr.view",
+        "retrieve": "hr.view",
+        "create": "hr.create",
+        "update": "hr.update",
+        "partial_update": "hr.update",
+        "destroy": "hr.delete",
     }
 
     def perform_create(self, serializer: Any) -> None:
@@ -307,11 +307,11 @@ class AttendanceRecordViewSet(TenantScopedModelViewSet):
     lookup_field = "public_id"
     module_key = "hr"
     permission_map = {
-        "list": ["hr.view"],
-        "retrieve": ["hr.view"],
-        "check_in": ["hr.view"],
-        "check_out": ["hr.view"],
-        "manual_entry": ["hr.create"],
+        "list": "hr.view",
+        "retrieve": "hr.view",
+        "check_in": "hr.view",
+        "check_out": "hr.view",
+        "manual_entry": "hr.create",
     }
 
     def get_queryset(self) -> Any:
@@ -460,12 +460,12 @@ class LeaveTypeViewSet(TenantScopedModelViewSet):
     lookup_field = "public_id"
     module_key = "hr"
     permission_map = {
-        "list": ["hr.view"],
-        "retrieve": ["hr.view"],
-        "create": ["hr.create"],
-        "update": ["hr.update"],
-        "partial_update": ["hr.update"],
-        "destroy": ["hr.delete"],
+        "list": "hr.view",
+        "retrieve": "hr.view",
+        "create": "hr.create",
+        "update": "hr.update",
+        "partial_update": "hr.update",
+        "destroy": "hr.delete",
     }
 
     def perform_create(self, serializer: Any) -> None:
@@ -494,9 +494,9 @@ class LeaveBalanceViewSet(TenantScopedModelViewSet):
     lookup_field = "public_id"
     module_key = "hr"
     permission_map = {
-        "list": ["hr.view"],
-        "retrieve": ["hr.view"],
-        "allocate": ["hr.update"],
+        "list": "hr.view",
+        "retrieve": "hr.view",
+        "allocate": "hr.update",
     }
 
     def get_queryset(self) -> Any:
@@ -550,12 +550,12 @@ class LeaveRequestViewSet(TenantScopedModelViewSet):
     lookup_field = "public_id"
     module_key = "hr"
     permission_map = {
-        "list": ["hr.view"],
-        "retrieve": ["hr.view"],
-        "create": ["hr.view"],
-        "approve": ["hr.approve"],
-        "reject": ["hr.approve"],
-        "cancel": ["hr.view"],
+        "list": "hr.view",
+        "retrieve": "hr.view",
+        "create": "hr.view",
+        "approve": "hr.approve",
+        "reject": "hr.approve",
+        "cancel": "hr.view",
     }
 
     def get_queryset(self) -> Any:

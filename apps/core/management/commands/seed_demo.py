@@ -17,28 +17,52 @@ from apps.accounts.models import User
 from apps.billing.services import seed_default_plans
 from apps.catalog.models import Category, Product, ProductType, Unit
 from apps.core.tenant_context import tenant_context
+from apps.crm import services as crm_services
+from apps.crm.models import InteractionType, LeadSource, LeadStatus, TaskPriority
 from apps.customers import services as customers_services
 from apps.customers.models import Customer
+from apps.hr import services as hr_services
+from apps.hr.models import (
+    AttendanceRecord,
+    AttendanceSource,
+    AttendanceStatus,
+    Employee,
+    EmployeeStatus,
+    EmploymentType,
+    LeaveRequest,
+    LeaveType,
+    Position,
+    Shift,
+)
 from apps.inventory import services as inventory_services
+from apps.payroll import services as payroll_services
+from apps.payroll.models import (
+    CalculationType,
+    SalaryComponentType,
+)
+from apps.payroll.models import PaymentMethod as PayrollPaymentMethod
 from apps.pos import services as pos_services
 from apps.pos.models import POSRegister
 from apps.purchasing import services as purchasing_services
 from apps.purchasing.models import Supplier, SupplierPaymentMethod
 from apps.sales import services as sales_services
 from apps.sales.models import PaymentMethod, RecurringFrequency
-from apps.tenancy.models import Branch, Membership, Organization, Role, TaxCode, Warehouse
+from apps.tenancy.models import Branch, Department, Membership, Organization, Role, TaxCode, Warehouse
 from apps.tenancy.services import provision_organization
 
 
 class Command(BaseCommand):
-    help = "Seeds realistic demo organizations (Small Shop, Growing Company, Full ERP) with demo12345 users."
+    help = (
+        "Seeds realistic demo organizations (Small Shop, Growing Company, People, Full ERP) "
+        "with demo12345 users."
+    )
 
     def add_arguments(self, parser: Any) -> None:
         parser.add_argument(
             "--target",
             type=str,
             default="all",
-            help="Target organization to seed: 'small_shop', 'growing_company', or 'all' (default: all)",
+            help="Target organization: 'small_shop', 'growing_company', 'people', or 'all' (default: all)",
         )
         parser.add_argument(
             "--reset",
@@ -62,13 +86,13 @@ class Command(BaseCommand):
                 )
             )
 
-        if target in ("all", "growing_company", "growing-company"):
+        if target in ("all", "growing_company", "growing-company", "people"):
             self.stdout.write("Seeding 'Growing Company' organization (Apex Industrial Wholesale)...")
             org_growth = seed_growing_company(reset=reset, stdout_write=self.stdout.write)
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Successfully seeded '{org_growth.name}' ({org_growth.slug})! "
-                    "Ready for multi-warehouse purchasing, sales, and accounting."
+                    "Ready for multi-warehouse purchasing, sales, accounting, and people (HR/Payroll/CRM)."
                 )
             )
 
@@ -1345,6 +1369,780 @@ def _seed_growing_company_recurring_and_reminders(
     )
 
 
+def _seed_people_users_and_roles(org: Organization) -> dict[str, User]:
+    """Seed dedicated users and roles for people management personas."""
+    hr_mgr = _create_user("hr.manager@apex.com", "Hannah Rivers")
+    payroll_acc = _create_user("payroll@apex.com", "Peter Payroll")
+    sarah_dev = _create_user("sarah.dev@apex.com", "Sarah Developer")
+    alex_rep = _create_user("alex.rep@apex.com", "Alex Representative")
+
+    role_hr_mgr, _ = Role.all_tenants.get_or_create(
+        organization=org,
+        name="HR Manager",
+        defaults={
+            "description": "Full HR management and sensitive PII access",
+            "permissions": ["hr.*", "payroll.*", "reports.view", "hr.view_sensitive"],
+        },
+    )
+    if "hr.view_sensitive" not in role_hr_mgr.permissions:
+        role_hr_mgr.permissions = ["hr.*", "payroll.*", "reports.view", "hr.view_sensitive"]
+        role_hr_mgr.save()
+
+    role_payroll_acc, _ = Role.all_tenants.get_or_create(
+        organization=org,
+        name="Payroll Accountant",
+        defaults={
+            "description": "Payroll administration and reporting",
+            "permissions": ["payroll.*", "reports.view", "accounting.view"],
+        },
+    )
+
+    role_crm_agent, _ = Role.all_tenants.get_or_create(
+        organization=org,
+        name="Sales Representative",
+        defaults={
+            "description": "CRM pipeline, deals, and lead management",
+            "permissions": ["crm.*", "customers.*"],
+        },
+    )
+
+    role_member = Role.all_tenants.filter(organization=org, name="Member").first()
+    if not role_member:
+        role_member, _ = Role.all_tenants.get_or_create(
+            organization=org,
+            name="Member",
+            defaults={"description": "Standard team member with self-service access", "permissions": []},
+        )
+
+    Membership.all_tenants.get_or_create(
+        organization=org,
+        user=hr_mgr,
+        defaults={"role": role_hr_mgr, "status": Membership.STATUS_ACTIVE},
+    )
+    Membership.all_tenants.get_or_create(
+        organization=org,
+        user=payroll_acc,
+        defaults={"role": role_payroll_acc, "status": Membership.STATUS_ACTIVE},
+    )
+    Membership.all_tenants.get_or_create(
+        organization=org,
+        user=sarah_dev,
+        defaults={"role": role_member, "status": Membership.STATUS_ACTIVE},
+    )
+    Membership.all_tenants.get_or_create(
+        organization=org,
+        user=alex_rep,
+        defaults={"role": role_crm_agent, "status": Membership.STATUS_ACTIVE},
+    )
+
+    return {
+        "hr_mgr": hr_mgr,
+        "payroll_acc": payroll_acc,
+        "sarah_dev": sarah_dev,
+        "alex_rep": alex_rep,
+    }
+
+
+def _seed_people_crm(org: Organization, owner: User, alex_rep: User) -> None:
+    """Seed CRM pipelines, stages, leads, opportunities, interactions, and tasks."""
+    pipeline = crm_services.seed_default_pipeline(organization=org, actor=owner)
+    stage_proposal = pipeline.stages.filter(code="proposal").first()
+    stage_negotiation = pipeline.stages.filter(code="negotiation").first()
+    stage_won = pipeline.stages.filter(code="closed-won").first()
+
+    lead_vance = crm_services.create_lead(
+        organization=org,
+        first_name="Marcus",
+        last_name="Vance",
+        company_name="Vance Heavy Industries",
+        email="m.vance@vanceheavy.com",
+        phone="+1-555-0101",
+        title="Procurement Director",
+        source=LeadSource.EVENT,
+        status=LeadStatus.CONTACTED,
+        estimated_value=Decimal("75000.00"),
+        assigned_to=alex_rep,
+        notes="Met at International Manufacturing Expo. Needs bulk tooling quotes.",
+        tag_names=["Enterprise", "High Priority"],
+        actor=alex_rep,
+    )
+    lead_nordic = crm_services.create_lead(
+        organization=org,
+        first_name="Elena",
+        last_name="Rostova",
+        company_name="Nordic Construction Supply",
+        email="elena@nordicsupply.no",
+        phone="+1-555-0102",
+        title="Managing Partner",
+        source=LeadSource.WEBSITE,
+        status=LeadStatus.NEW,
+        estimated_value=Decimal("42000.00"),
+        assigned_to=alex_rep,
+        notes="Inbound inquiry for protective safety gear and packaging.",
+        tag_names=["High Priority"],
+        actor=alex_rep,
+    )
+
+    cust = Customer.all_tenants.filter(organization=org).first()
+    default_stage = pipeline.stages.first()
+    opp_fleet = crm_services.create_opportunity(
+        organization=org,
+        title="Fleet Tooling Modernization 2026",
+        pipeline=pipeline,
+        stage=stage_proposal or default_stage,
+        customer=cust,
+        expected_value=Decimal("85000.00"),
+        currency="USD",
+        probability_percent=75,
+        expected_close_date=timezone.now().date() + datetime.timedelta(days=30),
+        assigned_to=alex_rep,
+        notes="Submitted custom proposal with 3-year maintenance warranty.",
+        tag_names=["Enterprise"],
+        actor=alex_rep,
+    )
+    crm_services.create_opportunity(
+        organization=org,
+        title="Warehouse Safety Bulk Contract",
+        pipeline=pipeline,
+        stage=stage_negotiation or default_stage,
+        customer=cust,
+        expected_value=Decimal("48000.00"),
+        currency="USD",
+        probability_percent=90,
+        expected_close_date=timezone.now().date() + datetime.timedelta(days=14),
+        assigned_to=alex_rep,
+        notes="Final price negotiations with safety board committee.",
+        actor=alex_rep,
+    )
+    if stage_won:
+        crm_services.create_opportunity(
+            organization=org,
+            title="Hydraulic Presses Overhaul",
+            pipeline=pipeline,
+            stage=stage_won,
+            customer=cust,
+            expected_value=Decimal("32000.00"),
+            currency="USD",
+            probability_percent=100,
+            assigned_to=alex_rep,
+            notes="Contract signed and initial deposit received.",
+            actor=alex_rep,
+        )
+
+    crm_services.log_interaction(
+        organization=org,
+        summary="Discovery call on heavy drill specifications",
+        type=InteractionType.CALL,
+        details="Client reviewed power output and safety certifications.",
+        lead=lead_vance,
+        actor=alex_rep,
+    )
+    crm_services.log_interaction(
+        organization=org,
+        summary="Proposal presentation with VP Operations",
+        type=InteractionType.MEETING,
+        details="Walked through pricing tiers and warranty terms.",
+        opportunity=opp_fleet,
+        actor=alex_rep,
+    )
+    crm_services.create_crm_task(
+        organization=org,
+        title="Send finalized tooling warranty contract",
+        description="Attach SLA addendum requested during presentation.",
+        due_date=timezone.now().date() + datetime.timedelta(days=2),
+        priority=TaskPriority.HIGH,
+        assigned_to=alex_rep,
+        opportunity=opp_fleet,
+        actor=alex_rep,
+    )
+    crm_services.create_crm_task(
+        organization=org,
+        title="Follow up with Nordic Supply regarding sample shipment",
+        description="Confirm arrival of safety gear samples.",
+        due_date=timezone.now().date() + datetime.timedelta(days=4),
+        priority=TaskPriority.MEDIUM,
+        assigned_to=alex_rep,
+        lead=lead_nordic,
+        actor=alex_rep,
+    )
+
+
+def _seed_people_hr(
+    org: Organization,
+    owner: User,
+    people_users: dict[str, User],
+    staff_users: dict[str, User],
+) -> dict[str, Any]:
+    """Seed HR departments, positions, shifts, and employee profiles."""
+    branch_hub = Branch.all_tenants.filter(organization=org, code="HUB-01").first()
+
+    dept_exec, _ = Department.all_tenants.get_or_create(
+        organization=org,
+        name="Executive & Administration",
+        defaults={"code": "EXEC", "branch": branch_hub, "is_active": True},
+    )
+    dept_eng, _ = Department.all_tenants.get_or_create(
+        organization=org,
+        name="Engineering & Technology",
+        defaults={"code": "ENG", "branch": branch_hub, "is_active": True},
+    )
+    dept_sales, _ = Department.all_tenants.get_or_create(
+        organization=org,
+        name="Sales & Commercial",
+        defaults={"code": "SALES", "branch": branch_hub, "is_active": True},
+    )
+    dept_ops, _ = Department.all_tenants.get_or_create(
+        organization=org,
+        name="Operations & Fulfillment",
+        defaults={"code": "OPS", "branch": branch_hub, "is_active": True},
+    )
+
+    pos_ceo, _ = Position.all_tenants.get_or_create(
+        organization=org,
+        code="CEO",
+        defaults={
+            "title": "Chief Executive Officer",
+            "department": dept_exec,
+            "min_salary": Decimal("120000.00"),
+            "max_salary": Decimal("200000.00"),
+        },
+    )
+    pos_hr_dir, _ = Position.all_tenants.get_or_create(
+        organization=org,
+        code="HR-DIR",
+        defaults={
+            "title": "Director of Human Resources",
+            "department": dept_exec,
+            "min_salary": Decimal("75000.00"),
+            "max_salary": Decimal("120000.00"),
+        },
+    )
+    pos_pay_spec, _ = Position.all_tenants.get_or_create(
+        organization=org,
+        code="PAY-SPEC",
+        defaults={
+            "title": "Senior Payroll Specialist",
+            "department": dept_exec,
+            "min_salary": Decimal("50000.00"),
+            "max_salary": Decimal("85000.00"),
+        },
+    )
+    pos_eng_sr, _ = Position.all_tenants.get_or_create(
+        organization=org,
+        code="ENG-SR",
+        defaults={
+            "title": "Staff Software Engineer",
+            "department": dept_eng,
+            "min_salary": Decimal("85000.00"),
+            "max_salary": Decimal("140000.00"),
+        },
+    )
+    pos_sales_rep, _ = Position.all_tenants.get_or_create(
+        organization=org,
+        code="SALES-REP",
+        defaults={
+            "title": "Senior Sales Account Executive",
+            "department": dept_sales,
+            "min_salary": Decimal("60000.00"),
+            "max_salary": Decimal("110000.00"),
+        },
+    )
+    pos_ops_lead, _ = Position.all_tenants.get_or_create(
+        organization=org,
+        code="OPS-LEAD",
+        defaults={
+            "title": "Warehouse Logistics Lead",
+            "department": dept_ops,
+            "min_salary": Decimal("45000.00"),
+            "max_salary": Decimal("75000.00"),
+        },
+    )
+
+    shift_day, _ = Shift.all_tenants.get_or_create(
+        organization=org,
+        name="Day Shift (08:00 - 17:00)",
+        defaults={
+            "start_time": datetime.time(8, 0),
+            "end_time": datetime.time(17, 0),
+            "break_minutes": 60,
+            "is_overnight": False,
+        },
+    )
+    shift_eve, _ = Shift.all_tenants.get_or_create(
+        organization=org,
+        name="Evening Logistics Shift (16:00 - 00:00)",
+        defaults={
+            "start_time": datetime.time(16, 0),
+            "end_time": datetime.time(0, 0),
+            "break_minutes": 45,
+            "is_overnight": False,
+        },
+    )
+
+    emp_ceo = Employee.all_tenants.filter(organization=org, code="EMP-0001").first()
+    if not emp_ceo:
+        emp_ceo = hr_services.create_employee(
+            organization=org,
+            first_name="Alex",
+            last_name="Vance",
+            code="EMP-0001",
+            hire_date=datetime.date(2021, 1, 15),
+            position=pos_ceo,
+            department=dept_exec,
+            branch=branch_hub,
+            user=owner,
+            work_email="owner@apexwholesale.com",
+            personal_email="alex.vance.personal@example.com",
+            phone="+1-555-0100",
+            national_id="US-SSN-901-23-4567",
+            bank_account="US-CHASE-9876543210",
+            employment_type=EmploymentType.FULL_TIME,
+            status=EmployeeStatus.ACTIVE,
+            default_shift=shift_day,
+            actor=owner,
+        )
+
+    emp_hr = Employee.all_tenants.filter(organization=org, code="EMP-0002").first()
+    if not emp_hr:
+        emp_hr = hr_services.create_employee(
+            organization=org,
+            first_name="Hannah",
+            last_name="Rivers",
+            code="EMP-0002",
+            hire_date=datetime.date(2022, 3, 1),
+            position=pos_hr_dir,
+            department=dept_exec,
+            branch=branch_hub,
+            user=people_users["hr_mgr"],
+            work_email="hr.manager@apex.com",
+            personal_email="hannah.rivers@example.com",
+            phone="+1-555-0102",
+            national_id="US-SSN-812-34-5678",
+            bank_account="US-WELLS-1234567890",
+            employment_type=EmploymentType.FULL_TIME,
+            status=EmployeeStatus.ACTIVE,
+            manager=emp_ceo,
+            default_shift=shift_day,
+            actor=owner,
+        )
+
+    emp_pay = Employee.all_tenants.filter(organization=org, code="EMP-0003").first()
+    if not emp_pay:
+        emp_pay = hr_services.create_employee(
+            organization=org,
+            first_name="Peter",
+            last_name="Payroll",
+            code="EMP-0003",
+            hire_date=datetime.date(2022, 5, 10),
+            position=pos_pay_spec,
+            department=dept_exec,
+            branch=branch_hub,
+            user=people_users["payroll_acc"],
+            work_email="payroll@apex.com",
+            personal_email="peter.payroll@example.com",
+            phone="+1-555-0103",
+            national_id="US-SSN-723-45-6789",
+            bank_account="US-BOFA-2345678901",
+            employment_type=EmploymentType.FULL_TIME,
+            status=EmployeeStatus.ACTIVE,
+            manager=emp_hr,
+            default_shift=shift_day,
+            actor=owner,
+        )
+
+    emp_dev = Employee.all_tenants.filter(organization=org, code="EMP-0004").first()
+    if not emp_dev:
+        emp_dev = hr_services.create_employee(
+            organization=org,
+            first_name="Sarah",
+            last_name="Developer",
+            code="EMP-0004",
+            hire_date=datetime.date(2023, 2, 1),
+            position=pos_eng_sr,
+            department=dept_eng,
+            branch=branch_hub,
+            user=people_users["sarah_dev"],
+            work_email="sarah.dev@apex.com",
+            personal_email="sarah.dev.personal@example.com",
+            phone="+1-555-0104",
+            national_id="US-SSN-634-56-7890",
+            bank_account="US-CITI-3456789012",
+            employment_type=EmploymentType.FULL_TIME,
+            status=EmployeeStatus.ACTIVE,
+            manager=emp_ceo,
+            default_shift=shift_day,
+            actor=owner,
+        )
+
+    emp_rep = Employee.all_tenants.filter(organization=org, code="EMP-0005").first()
+    if not emp_rep:
+        emp_rep = hr_services.create_employee(
+            organization=org,
+            first_name="Alex",
+            last_name="Representative",
+            code="EMP-0005",
+            hire_date=datetime.date(2023, 4, 15),
+            position=pos_sales_rep,
+            department=dept_sales,
+            branch=branch_hub,
+            user=people_users["alex_rep"],
+            work_email="alex.rep@apex.com",
+            personal_email="alex.rep.personal@example.com",
+            phone="+1-555-0105",
+            national_id="US-SSN-545-67-8901",
+            bank_account="US-PNC-4567890123",
+            employment_type=EmploymentType.FULL_TIME,
+            status=EmployeeStatus.ACTIVE,
+            manager=emp_ceo,
+            default_shift=shift_day,
+            actor=owner,
+        )
+
+    emp_ops = Employee.all_tenants.filter(organization=org, code="EMP-0006").first()
+    if not emp_ops:
+        emp_ops = hr_services.create_employee(
+            organization=org,
+            first_name="Walter",
+            last_name="Stock",
+            code="EMP-0006",
+            hire_date=datetime.date(2022, 8, 1),
+            position=pos_ops_lead,
+            department=dept_ops,
+            branch=branch_hub,
+            user=staff_users["warehouse"],
+            work_email="warehouse@apexwholesale.com",
+            personal_email="walter.stock@example.com",
+            phone="+1-555-0106",
+            national_id="US-SSN-456-78-9012",
+            bank_account="US-TD-5678901234",
+            employment_type=EmploymentType.FULL_TIME,
+            status=EmployeeStatus.ACTIVE,
+            manager=emp_ceo,
+            default_shift=shift_eve,
+            actor=owner,
+        )
+
+    return {
+        "ceo": emp_ceo,
+        "hr": emp_hr,
+        "payroll": emp_pay,
+        "dev": emp_dev,
+        "rep": emp_rep,
+        "ops": emp_ops,
+        "shift_day": shift_day,
+    }
+
+
+def _seed_people_attendance_and_leave(
+    org: Organization,
+    owner: User,
+    people_users: dict[str, User],
+    employees: dict[str, Any],
+) -> None:
+    """Seed leave categories, balances, requests, and historical/active attendance."""
+    all_employees = [
+        employees["ceo"],
+        employees["hr"],
+        employees["payroll"],
+        employees["dev"],
+        employees["rep"],
+        employees["ops"],
+    ]
+
+    lt_annual = LeaveType.all_tenants.filter(organization=org, code="ANNUAL").first()
+    if not lt_annual:
+        lt_annual = hr_services.create_leave_type(
+            organization=org,
+            name="Paid Annual Vacation",
+            code="ANNUAL",
+            is_paid=True,
+            default_allowance_days=Decimal("20.00"),
+            actor=owner,
+        )
+    lt_sick = LeaveType.all_tenants.filter(organization=org, code="SICK").first()
+    if not lt_sick:
+        lt_sick = hr_services.create_leave_type(
+            organization=org,
+            name="Paid Sick Leave",
+            code="SICK",
+            is_paid=True,
+            default_allowance_days=Decimal("10.00"),
+            actor=owner,
+        )
+    lt_unpaid = LeaveType.all_tenants.filter(organization=org, code="UNPAID").first()
+    if not lt_unpaid:
+        lt_unpaid = hr_services.create_leave_type(
+            organization=org,
+            name="Unpaid Leave of Absence",
+            code="UNPAID",
+            is_paid=False,
+            default_allowance_days=Decimal("0.00"),
+            actor=owner,
+        )
+
+    current_year = timezone.now().year
+    for emp in all_employees:
+        hr_services.initialize_employee_leave_balances(
+            organization=org,
+            employee=emp,
+            year=current_year,
+            actor=owner,
+        )
+
+    emp_dev = employees["dev"]
+    emp_rep = employees["rep"]
+    emp_ops = employees["ops"]
+
+    # Approved leave request for Sarah Dev
+    past_start = timezone.now().date() - datetime.timedelta(days=7)
+    past_end = timezone.now().date() - datetime.timedelta(days=6)
+    has_leave = LeaveRequest.all_tenants.filter(
+        organization=org, employee=emp_dev, start_date=past_start
+    ).exists()
+    if not has_leave:
+        req_sarah = hr_services.submit_leave_request(
+            organization=org,
+            employee=emp_dev,
+            leave_type=lt_annual,
+            start_date=past_start,
+            end_date=past_end,
+            reason="Family gathering vacation",
+            actor=people_users["sarah_dev"],
+        )
+        hr_services.approve_leave_request(
+            organization=org,
+            leave_request=req_sarah,
+            approver=people_users["hr_mgr"],
+        )
+
+    # Historical Attendance
+    today = timezone.now().date()
+    for day_offset in range(1, 11):
+        record_date = today - datetime.timedelta(days=day_offset)
+        if record_date.weekday() >= 5:
+            continue
+        for emp in [emp_dev, emp_rep, emp_ops]:
+            if not AttendanceRecord.all_tenants.filter(
+                organization=org, employee=emp, date=record_date
+            ).exists():
+                is_late = day_offset == 3 and emp == emp_dev
+                ci_time = datetime.datetime.combine(
+                    record_date,
+                    datetime.time(8, 25 if is_late else 0),
+                    tzinfo=timezone.get_current_timezone(),
+                )
+                co_time = datetime.datetime.combine(
+                    record_date,
+                    datetime.time(17, 0),
+                    tzinfo=timezone.get_current_timezone(),
+                )
+                hr_services.record_manual_attendance(
+                    organization=org,
+                    employee=emp,
+                    date=record_date,
+                    check_in=ci_time,
+                    check_out=co_time,
+                    status=AttendanceStatus.LATE if is_late else AttendanceStatus.PRESENT,
+                    notes="Automated attendance entry" if not is_late else "Late arrival due to traffic",
+                    actor=people_users["hr_mgr"],
+                )
+
+    # Active Check-in for Sarah Dev today
+    if not AttendanceRecord.all_tenants.filter(organization=org, employee=emp_dev, date=today).exists():
+        now_dt = timezone.now().replace(hour=8, minute=10)
+        AttendanceRecord.objects.create(
+            organization=org,
+            employee=emp_dev,
+            shift=employees.get("shift_day"),
+            date=today,
+            check_in=now_dt,
+            source=AttendanceSource.WEB,
+            status=AttendanceStatus.PRESENT,
+            created_by=people_users["sarah_dev"],
+        )
+
+
+def _seed_people_payroll(
+    org: Organization,
+    owner: User,
+    payroll_acc: User,
+    employees: dict[str, Any],
+) -> None:
+    """Seed salary components, structures, compensation assignments, and payroll runs."""
+    comp_basic = payroll_services.SalaryComponent.all_tenants.filter(organization=org, code="BASIC").first()
+    if not comp_basic:
+        comp_basic = payroll_services.create_salary_component(
+            organization=org,
+            name="Base Salary",
+            code="BASIC",
+            component_type=SalaryComponentType.EARNING,
+            is_taxable=True,
+            actor=owner,
+        )
+
+    comp_hra = payroll_services.SalaryComponent.all_tenants.filter(organization=org, code="HRA").first()
+    if not comp_hra:
+        comp_hra = payroll_services.create_salary_component(
+            organization=org,
+            name="Housing Allowance",
+            code="HRA",
+            component_type=SalaryComponentType.EARNING,
+            is_taxable=True,
+            actor=owner,
+        )
+
+    comp_trans = payroll_services.SalaryComponent.all_tenants.filter(organization=org, code="TRANS").first()
+    if not comp_trans:
+        comp_trans = payroll_services.create_salary_component(
+            organization=org,
+            name="Transport Allowance",
+            code="TRANS",
+            component_type=SalaryComponentType.EARNING,
+            is_taxable=False,
+            actor=owner,
+        )
+
+    comp_tax = payroll_services.SalaryComponent.all_tenants.filter(organization=org, code="TAX").first()
+    if not comp_tax:
+        comp_tax = payroll_services.create_salary_component(
+            organization=org,
+            name="Payroll Income Tax",
+            code="TAX",
+            component_type=SalaryComponentType.DEDUCTION,
+            is_taxable=False,
+            actor=owner,
+        )
+
+    comp_health = payroll_services.SalaryComponent.all_tenants.filter(organization=org, code="HEALTH").first()
+    if not comp_health:
+        comp_health = payroll_services.create_salary_component(
+            organization=org,
+            name="Health Insurance Premium",
+            code="HEALTH",
+            component_type=SalaryComponentType.DEDUCTION,
+            is_taxable=False,
+            actor=owner,
+        )
+
+    struct_std = payroll_services.SalaryStructure.all_tenants.filter(
+        organization=org, code="STD-CORP"
+    ).first()
+    if not struct_std:
+        struct_std = payroll_services.create_salary_structure(
+            organization=org,
+            name="Corporate Standard Compensation",
+            code="STD-CORP",
+            description="Standard compensation formula for full-time staff",
+            items_data=[
+                {
+                    "component": comp_basic,
+                    "calculation_type": CalculationType.PERCENT_OF_BASIC,
+                    "percentage": Decimal("60.00"),
+                },
+                {
+                    "component": comp_hra,
+                    "calculation_type": CalculationType.PERCENT_OF_BASIC,
+                    "percentage": Decimal("25.00"),
+                },
+                {
+                    "component": comp_trans,
+                    "calculation_type": CalculationType.FIXED,
+                    "amount": Decimal("300.00"),
+                },
+                {
+                    "component": comp_tax,
+                    "calculation_type": CalculationType.PERCENT_OF_BASIC,
+                    "percentage": Decimal("10.00"),
+                },
+                {
+                    "component": comp_health,
+                    "calculation_type": CalculationType.FIXED,
+                    "amount": Decimal("150.00"),
+                },
+            ],
+            actor=owner,
+        )
+
+    current_year = timezone.now().year
+    effective_date = datetime.date(current_year - 1, 1, 1)
+    salaries = [
+        (employees["ceo"], Decimal("12000.00")),
+        (employees["hr"], Decimal("7500.00")),
+        (employees["payroll"], Decimal("5200.00")),
+        (employees["dev"], Decimal("8500.00")),
+        (employees["rep"], Decimal("6000.00")),
+        (employees["ops"], Decimal("4200.00")),
+    ]
+    for emp, salary in salaries:
+        if not payroll_services.EmployeeSalaryAssignment.all_tenants.filter(
+            organization=org, employee=emp, is_active=True
+        ).exists():
+            payroll_services.assign_employee_salary(
+                organization=org,
+                employee=emp,
+                salary_structure=struct_std,
+                base_salary=salary,
+                effective_from=effective_date,
+                payment_method=PayrollPaymentMethod.BANK_TRANSFER,
+                bank_name="Corporate Payroll Bank",
+                bank_account_number=f"ACC-{emp.code}",
+                actor=owner,
+            )
+
+    today = timezone.now().date()
+    first_of_this_month = today.replace(day=1)
+    last_day_of_prev_month = first_of_this_month - datetime.timedelta(days=1)
+    first_of_prev_month = last_day_of_prev_month.replace(day=1)
+
+    if not payroll_services.PayrollRun.all_tenants.filter(
+        organization=org, period_start=first_of_prev_month
+    ).exists():
+        run_past = payroll_services.create_payroll_run(
+            organization=org,
+            period_start=first_of_prev_month,
+            period_end=last_day_of_prev_month,
+            payment_date=last_day_of_prev_month,
+            notes="Previous month regular payroll disbursement",
+            actor=payroll_acc,
+        )
+        payroll_services.review_payroll_run(payroll_run=run_past, actor=payroll_acc)
+        payroll_services.approve_payroll_run(payroll_run=run_past, actor=owner)
+        payroll_services.pay_payroll_run(payroll_run=run_past, payment_account="1020", actor=owner)
+
+    if not payroll_services.PayrollRun.all_tenants.filter(
+        organization=org, period_start=first_of_this_month
+    ).exists():
+        next_month = (first_of_this_month.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+        last_day_of_this_month = next_month - datetime.timedelta(days=1)
+        run_curr = payroll_services.create_payroll_run(
+            organization=org,
+            period_start=first_of_this_month,
+            period_end=last_day_of_this_month,
+            payment_date=last_day_of_this_month,
+            notes="Current month active payroll run",
+            actor=payroll_acc,
+        )
+        payroll_services.review_payroll_run(payroll_run=run_curr, actor=payroll_acc)
+
+
+def _seed_people_modules(
+    org: Organization,
+    users: dict[str, User],
+    log: Any = None,
+) -> None:
+    """Seed CRM, HR core, Attendance, Leave, and Payroll data for Apex Industrial Wholesale."""
+    write = log or (lambda msg: None)
+    write("Seeding people modules (CRM, HR core, Attendance & Leave, Payroll)...")
+
+    people_users = _seed_people_users_and_roles(org)
+    _seed_people_crm(org, users["owner"], people_users["alex_rep"])
+    employees = _seed_people_hr(org, users["owner"], people_users, users)
+    _seed_people_attendance_and_leave(org, users["owner"], people_users, employees)
+    _seed_people_payroll(org, users["owner"], people_users["payroll_acc"], employees)
+
+    write("People modules seeding completed successfully.")
+
+
 @transaction.atomic
 def seed_growing_company(
     *,
@@ -1368,11 +2166,18 @@ def seed_growing_company(
                 "buyer@apexwholesale.com",
                 "accountant@apexwholesale.com",
                 "warehouse@apexwholesale.com",
+                "hr.manager@apex.com",
+                "payroll@apex.com",
+                "sarah.dev@apex.com",
+                "alex.rep@apex.com",
             ]:
                 u = User.objects.filter(email=email).first()
                 if u:
                     u.set_password("demo12345")
                     u.save()
+            users = _seed_growing_company_staff()
+            with tenant_context(existing):
+                _seed_people_modules(org=existing, users=users, log=log)
             return existing
 
     users = _seed_growing_company_staff()
@@ -1441,5 +2246,6 @@ def seed_growing_company(
             customer=customers_map["conti"],
             products=catalog_map,
         )
+        _seed_people_modules(org=org, users=users, log=log)
 
     return org

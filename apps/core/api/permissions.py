@@ -113,10 +113,11 @@ class HasRolePermission(BasePermission):
         if not user or not user.is_authenticated:
             return False
 
-        if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
-            return True
-
-        if getattr(user, "pk", None) is None and auth and hasattr(auth, "scopes"):
+        if (
+            getattr(user, "is_superuser", False)
+            or getattr(user, "is_staff", False)
+            or (getattr(user, "pk", None) is None and auth and hasattr(auth, "scopes"))
+        ):
             return True
 
         perm_code = self._resolve_perm_code(view)
@@ -124,7 +125,13 @@ class HasRolePermission(BasePermission):
             return True
 
         org = _get_request_org(request, view)
-        if not org or not has_permission(user, perm_code, organization=org):
+        if not org:
+            return False
+
+        if isinstance(perm_code, (list, tuple, set)):
+            if not any(has_permission(user, p, organization=org) for p in perm_code):
+                raise PermissionDeniedError(f"Your role does not grant required permissions '{perm_code}'.")
+        elif not has_permission(user, perm_code, organization=org):
             raise PermissionDeniedError(f"Your role does not grant permission '{perm_code}'.")
         return True
 

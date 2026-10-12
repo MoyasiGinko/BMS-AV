@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.permissions import has_permission, permission_required
+from apps.hr.models import Employee
 from apps.payroll import selectors, services
 from apps.payroll.exceptions import PayrollError
 from apps.payroll.forms import (
@@ -251,7 +252,7 @@ def payslip_detail_view(request: HttpRequest, public_id: str) -> HttpResponse:
 
     # Check permission or self-service access
     has_mgr_perm = has_permission(request.user, "payroll.view", organization=org)
-    is_owner = hasattr(request.user, "hr_employee") and request.user.hr_employee == payslip.employee
+    is_owner = payslip.employee.user_id is not None and payslip.employee.user_id == request.user.pk
 
     if not (has_mgr_perm or is_owner):
         messages.error(request, _("You do not have permission to view this payslip."))
@@ -278,7 +279,7 @@ def payslip_pdf_download_view(request: HttpRequest, public_id: str) -> HttpRespo
     has_mgr_perm = has_permission(request.user, "payroll.export", organization=org) or has_permission(
         request.user, "payroll.view", organization=org
     )
-    is_owner = hasattr(request.user, "hr_employee") and request.user.hr_employee == payslip.employee
+    is_owner = payslip.employee.user_id is not None and payslip.employee.user_id == request.user.pk
 
     if not (has_mgr_perm or is_owner):
         raise Http404(_("Payslip not found or access denied."))
@@ -295,9 +296,9 @@ def payslip_pdf_download_view(request: HttpRequest, public_id: str) -> HttpRespo
 def my_payslips_view(request: HttpRequest) -> HttpResponse:
     """Self-service view for employees to view and download their historical payslips."""
     org = _get_org(request)
-    employee = getattr(request.user, "hr_employee", None)
+    employee = Employee.all_tenants.filter(organization=org, user=request.user).first()
 
-    if not employee or employee.organization_id != org.pk:
+    if not employee:
         messages.info(request, _("No employee record is associated with your account."))
         return redirect("tenancy:dashboard")
 

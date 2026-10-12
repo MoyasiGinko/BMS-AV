@@ -1,17 +1,23 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P4 People: CRM + HR + Payroll
-- Last completed task: P4-05
-- Next task: P4-06
+- Last completed task: P4-06
+- Next task: P4-R Phase review
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (Reports test suite 91/91 passing including 12/12 HR & Payroll report tests, OpenAPI schema validated, import-linter clean, ruff clean)
+- Last `make verify`: PASSED (Full people test suite 91/91 passing including 8/8 comprehensive permissions and isolation tests, ruff clean, ruff format clean, makemigrations clean, django check clean, import-linter clean, spectacular OpenAPI validated, deploy check clean)
 - Notes:
-  - P4-05 HR/Payroll reports + dashboard widgets completed:
-    - Selectors: `get_headcount_kpi`, `get_headcount_report`, `get_workforce_attendance_kpi`, `get_workforce_attendance_report`, `get_payroll_cost_kpi`, `get_payroll_cost_report`, `get_employee_performance_kpi`, `get_employee_performance_report`.
-    - ADR 0025 documented HR & Payroll reports and widget registry architecture in `apps.reports`.
-    - Dashboard Widgets: `HeadcountWidget`, `AttendanceWidget`, `PayrollCostWidget`, `EmployeePerformanceWidget` registered in global widget registry with role permissions (`hr.view`, `payroll.view`) and feature entitlements (`hr`, `payroll`).
-    - Templates: 4 widget partials in `templates/reports/widgets/` with HTMX partial refresh, and 4 dedicated operational reports in `templates/reports/` with responsive tables, filters, and background export modals.
-    - Export Machinery: RFC 4180 CSV, formatted Excel (XLSX), and ReportLab PDF document export generation implemented in `apps/reports/exporters.py` and queued via Celery in `apps/reports/services.py`.
-    - Reports Hub: Updated `templates/reports/index.html` with the Human Resources & Payroll report directory.
-    - Verification: 91/91 reports tests passing, `lint-imports` clean (2 kept, 0 broken), `manage.py spectacular --validate --fail-on-warn` passed with 0 warnings.
-  - Next task: P4-06 seed_demo for people modules; permissions tests (HR data visible only to HR/owner).
+  - P4-06 seed_demo for people modules and permissions validation completed:
+    - ADR 0026 documented demo seeding architecture and permission invariants for people modules.
+    - Seeding Command: `apps/core/management/commands/seed_demo.py` extended with `--target people` support, provisioning realistic users and roles (`hr.manager@apex.com`, `payroll@apex.com`, `sarah.dev@apex.com`, `alex.rep@apex.com`), CRM pipelines/stages/leads/opportunities/tasks, HR departments/positions/shifts/employees with encrypted PII, attendance records, leave balances/requests, payroll components/structures/assignments, and historical paid runs with journal postings.
+    - Permissions & Scoping: Authoring `tests/test_people_permissions.py` with 8 comprehensive integration tests:
+      1. `test_hr_management_screens_access_control`: Owner & HR Manager access 200, unauthorized members get 403.
+      2. `test_hr_management_api_access_control`: DRF endpoints return 200 for HR/Owner, 403 for unauthorized members.
+      3. `test_payroll_management_screens_access_control`: Owner & Payroll Accountant access 200, unauthorized members get 403.
+      4. `test_payroll_management_api_access_control`: DRF ViewSets return 200 for Payroll/Owner, 403 for unauthorized members.
+      5. `test_sensitive_pii_masked_without_sensitive_permission`: Field-level encryption at rest; plaintext PII returned only with `hr.view_sensitive`, masked for standard viewers.
+      6. `test_employee_self_service_workflows`: Self-service profile, punch check-in/out, leave applications, own payslip itemized view and PDF download.
+      7. `test_cross_employee_payslip_isolation`: Employees blocked from viewing or downloading other employees' payslips.
+      8. `test_cross_tenant_people_isolation`: Strict cross-tenant isolation on Web and REST API for all people models.
+    - Architecture Quality: Fixed employee ownership lookup in `apps/payroll/views.py` and normalized `permission_map` in `apps/hr/api/views.py` and `HasRolePermission` in `apps/core/api/permissions.py`.
+    - Verification: 91/91 people tests passing, `ruff check` and `ruff format` clean, `lint-imports` clean (2 kept, 0 broken), OpenAPI schema validated with 0 warnings, deploy checks clean.
+  - Next task: P4-R Phase review.
