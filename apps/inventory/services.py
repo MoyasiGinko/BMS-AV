@@ -5,12 +5,14 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any
 
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
 from apps.catalog.models import Product, ProductVariant
 from apps.core.events import publish
+from apps.core.permissions import get_user_allowed_branch_ids
 from apps.core.services import generate_next_number
 from apps.inventory.costing import DEFAULT_COSTING_STRATEGY, CostingStrategy
 from apps.inventory.events import (
@@ -20,12 +22,15 @@ from apps.inventory.events import (
     StockReceived,
     StockReservationReleased,
     StockReserved,
+    StockTransferDispatched,
+    StockTransferReceived,
     StockTransferred,
 )
 from apps.inventory.exceptions import (
     InsufficientStock,
     InvalidMovement,
     ReservationError,
+    TransferError,
     WarehouseInactive,
 )
 from apps.inventory.models import (
@@ -375,6 +380,265 @@ def fulfill_reservation(
     return reservation
 
 
+def _check_branch_permission(
+    *,
+    actor: Any,
+    organization: Organization,
+    branch: Any,
+    action_label: str,
+) -> None:
+    """Validate that an actor has permission to act within the specified branch."""
+    if actor is None or not getattr(actor, "is_authenticated", False):
+        return
+    if getattr(actor, "is_superuser", False) or getattr(actor, "is_staff", False):
+        return
+
+    allowed = get_user_allowed_branch_ids(actor, organization=organization)
+    if allowed is not None:
+        branch_id = getattr(branch, "pk", getattr(branch, "id", branch))
+        if branch_id not in allowed:
+            branch_name = getattr(branch, "name", str(branch_id))
+            raise PermissionDenied(
+                f"User does not have permission to {action_label} for branch '{branch_name}'."
+            )
+
+
+@transaction.atomic
+def create_stock_transfer(
+    *,
+    organization: Organization,
+    source_warehouse: Warehouse,
+    destination_warehouse: Warehouse,
+    lines: list[dict[str, Any]],
+    notes: str = "",
+    actor: Any = None,
+) -> StockTransfer:
+    """Initialize a stock transfer document in draft status."""
+    if source_warehouse.pk == destination_warehouse.pk:
+        raise InvalidMovement("Source and destination warehouses cannot be the same.")
+
+    if not source_warehouse.is_active or not destination_warehouse.is_active:
+        raise WarehouseInactive("Both source and destination warehouses must be active.")
+
+    if not lines:
+        raise InvalidMovement("A stock transfer requires at least one item line.")
+
+    _check_branch_permission(
+        actor=actor,
+        organization=organization,
+        branch=source_warehouse.branch,
+        action_label="create transfer from",
+    )
+
+    transfer_num = generate_next_number(
+        organization_id=organization.pk,
+        name="transfers",
+        prefix="TRF-",
+        padding=5,
+    )
+
+    is_inter = source_warehouse.branch_id != destination_warehouse.branch_id
+
+    transfer = StockTransfer.objects.create(
+        organization=organization,
+        transfer_number=transfer_num,
+        source_warehouse=source_warehouse,
+        destination_warehouse=destination_warehouse,
+        source_branch=source_warehouse.branch,
+        destination_branch=destination_warehouse.branch,
+        is_inter_branch=is_inter,
+        status=TransferStatus.DRAFT,
+        notes=notes,
+        created_by=actor,
+    )
+
+    for item in lines:
+        prod: Product = item["product"]
+        var: ProductVariant | None = item.get("variant")
+        q: Decimal = item["quantity"]
+        if q <= DECIMAL_ZERO:
+            raise InvalidMovement(f"Transfer quantity for '{prod.name}' must be positive.")
+        StockTransferLine.objects.create(
+            organization=organization,
+            transfer=transfer,
+            product=prod,
+            variant=var,
+            quantity=q,
+        )
+
+    return transfer
+
+
+@transaction.atomic
+def dispatch_stock_transfer(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    actor: Any = None,
+) -> StockTransfer:
+    """Dispatch a draft stock transfer, issuing stock from source into transit."""
+    if isinstance(transfer, int):
+        tf = (
+            StockTransfer.all_tenants.select_for_update()
+            .filter(organization=organization, pk=transfer)
+            .first()
+        )
+        if tf is None:
+            raise TransferError(f"StockTransfer {transfer} not found.")
+        transfer = tf
+    else:
+        transfer = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
+        assert transfer is not None
+
+    if transfer.status != TransferStatus.DRAFT:
+        raise TransferError(f"Cannot dispatch transfer in status '{transfer.get_status_display()}'.")
+
+    _check_branch_permission(
+        actor=actor,
+        organization=organization,
+        branch=transfer.source_branch or transfer.source_warehouse.branch,
+        action_label="dispatch transfer from",
+    )
+
+    lines = list(transfer.lines.select_related("product", "variant").all())
+    if not lines:
+        raise TransferError("Cannot dispatch a transfer with no lines.")
+
+    for line in lines:
+        issue_stock(
+            organization=organization,
+            warehouse=transfer.source_warehouse,
+            product=line.product,
+            variant=line.variant,
+            quantity=line.quantity,
+            movement_type=MovementType.TRANSFER_OUT,
+            reference_type="inventory.StockTransfer",
+            reference_id=str(transfer.pk),
+            notes=f"Dispatched transfer {transfer.transfer_number} to {transfer.destination_warehouse.name}",
+            actor=actor,
+        )
+
+    transfer.status = TransferStatus.IN_TRANSIT
+    transfer.dispatched_at = timezone.now()
+    transfer.dispatched_by = actor
+    transfer.save(update_fields=["status", "dispatched_at", "dispatched_by", "updated_at"])
+
+    publish(
+        StockTransferDispatched(
+            organization_id=organization.pk,
+            transfer_id=transfer.pk,
+            transfer_number=transfer.transfer_number,
+            source_warehouse_id=transfer.source_warehouse_id,
+            destination_warehouse_id=transfer.destination_warehouse_id,
+            source_branch_id=transfer.source_branch_id,
+            destination_branch_id=transfer.destination_branch_id,
+            is_inter_branch=transfer.is_inter_branch,
+        )
+    )
+
+    return transfer
+
+
+@transaction.atomic
+def receive_stock_transfer(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    actor: Any = None,
+) -> StockTransfer:
+    """Receive an in-transit stock transfer at the destination warehouse."""
+    if isinstance(transfer, int):
+        tf = (
+            StockTransfer.all_tenants.select_for_update()
+            .filter(organization=organization, pk=transfer)
+            .first()
+        )
+        if tf is None:
+            raise TransferError(f"StockTransfer {transfer} not found.")
+        transfer = tf
+    else:
+        transfer = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
+        assert transfer is not None
+
+    if transfer.status != TransferStatus.IN_TRANSIT:
+        raise TransferError(f"Cannot receive transfer in status '{transfer.get_status_display()}'.")
+
+    _check_branch_permission(
+        actor=actor,
+        organization=organization,
+        branch=transfer.destination_branch or transfer.destination_warehouse.branch,
+        action_label="receive transfer into",
+    )
+
+    lines = list(transfer.lines.select_related("product", "variant").all())
+    if not lines:
+        raise TransferError("Cannot receive a transfer with no lines.")
+
+    for line in lines:
+        out_mov = (
+            StockMovement.all_tenants.filter(
+                organization=organization,
+                reference_type="inventory.StockTransfer",
+                reference_id=str(transfer.pk),
+                warehouse=transfer.source_warehouse,
+                product=line.product,
+                variant=line.variant,
+                type=MovementType.TRANSFER_OUT,
+            )
+            .order_by("-id")
+            .first()
+        )
+        unit_cost = out_mov.unit_cost if out_mov else (line.product.cost_price or DECIMAL_ZERO)
+
+        receive_stock(
+            organization=organization,
+            warehouse=transfer.destination_warehouse,
+            product=line.product,
+            variant=line.variant,
+            quantity=line.quantity,
+            unit_cost=unit_cost,
+            movement_type=MovementType.TRANSFER_IN,
+            reference_type="inventory.StockTransfer",
+            reference_id=str(transfer.pk),
+            notes=f"Received transfer {transfer.transfer_number} from {transfer.source_warehouse.name}",
+            actor=actor,
+        )
+
+    now = timezone.now()
+    transfer.status = TransferStatus.COMPLETED
+    transfer.received_at = now
+    transfer.received_by = actor
+    transfer.completed_at = now
+    transfer.save(update_fields=["status", "received_at", "received_by", "completed_at", "updated_at"])
+
+    publish(
+        StockTransferReceived(
+            organization_id=organization.pk,
+            transfer_id=transfer.pk,
+            transfer_number=transfer.transfer_number,
+            source_warehouse_id=transfer.source_warehouse_id,
+            destination_warehouse_id=transfer.destination_warehouse_id,
+            source_branch_id=transfer.source_branch_id,
+            destination_branch_id=transfer.destination_branch_id,
+            is_inter_branch=transfer.is_inter_branch,
+        )
+    )
+    publish(
+        StockTransferred(
+            organization_id=organization.pk,
+            transfer_id=transfer.pk,
+            transfer_number=transfer.transfer_number,
+            source_warehouse_id=transfer.source_warehouse_id,
+            destination_warehouse_id=transfer.destination_warehouse_id,
+            source_branch_id=transfer.source_branch_id,
+            destination_branch_id=transfer.destination_branch_id,
+            is_inter_branch=transfer.is_inter_branch,
+        )
+    )
+
+    return transfer
+
+
 @transaction.atomic
 def transfer_stock(
     *,
@@ -395,6 +659,20 @@ def transfer_stock(
     if not lines:
         raise InvalidMovement("A stock transfer requires at least one item line.")
 
+    _check_branch_permission(
+        actor=actor,
+        organization=organization,
+        branch=source_warehouse.branch,
+        action_label="transfer stock out of",
+    )
+    if source_warehouse.branch_id != destination_warehouse.branch_id:
+        _check_branch_permission(
+            actor=actor,
+            organization=organization,
+            branch=destination_warehouse.branch,
+            action_label="transfer stock into",
+        )
+
     transfer_num = generate_next_number(
         organization_id=organization.pk,
         name="transfers",
@@ -402,14 +680,24 @@ def transfer_stock(
         padding=5,
     )
 
+    now = timezone.now()
+    is_inter = source_warehouse.branch_id != destination_warehouse.branch_id
+
     transfer = StockTransfer.objects.create(
         organization=organization,
         transfer_number=transfer_num,
         source_warehouse=source_warehouse,
         destination_warehouse=destination_warehouse,
+        source_branch=source_warehouse.branch,
+        destination_branch=destination_warehouse.branch,
+        is_inter_branch=is_inter,
         status=TransferStatus.COMPLETED,
         notes=notes,
-        completed_at=timezone.now(),
+        dispatched_at=now,
+        dispatched_by=actor,
+        received_at=now,
+        received_by=actor,
+        completed_at=now,
         created_by=actor,
     )
 
@@ -465,6 +753,9 @@ def transfer_stock(
             transfer_number=transfer.transfer_number,
             source_warehouse_id=source_warehouse.pk,
             destination_warehouse_id=destination_warehouse.pk,
+            source_branch_id=transfer.source_branch_id,
+            destination_branch_id=transfer.destination_branch_id,
+            is_inter_branch=transfer.is_inter_branch,
         )
     )
 

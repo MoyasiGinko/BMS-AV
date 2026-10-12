@@ -118,6 +118,17 @@ class StockTransferSerializer(serializers.ModelSerializer[StockTransfer]):
     id = serializers.UUIDField(source="public_id", read_only=True)
     source_warehouse_id = serializers.UUIDField(source="source_warehouse.public_id", read_only=True)
     destination_warehouse_id = serializers.UUIDField(source="destination_warehouse.public_id", read_only=True)
+    source_branch_id = serializers.UUIDField(source="source_branch.public_id", read_only=True, default=None)
+    source_branch_name = serializers.CharField(source="source_branch.name", read_only=True, default="")
+    destination_branch_id = serializers.UUIDField(
+        source="destination_branch.public_id", read_only=True, default=None
+    )
+    destination_branch_name = serializers.CharField(
+        source="destination_branch.name", read_only=True, default=""
+    )
+    is_inter_branch = serializers.BooleanField(read_only=True)
+    dispatched_at = serializers.DateTimeField(read_only=True)
+    received_at = serializers.DateTimeField(read_only=True)
     lines = StockTransferLineSerializer(many=True, read_only=True)
 
     class Meta:
@@ -127,8 +138,15 @@ class StockTransferSerializer(serializers.ModelSerializer[StockTransfer]):
             "transfer_number",
             "source_warehouse_id",
             "destination_warehouse_id",
+            "source_branch_id",
+            "source_branch_name",
+            "destination_branch_id",
+            "destination_branch_name",
+            "is_inter_branch",
             "status",
             "notes",
+            "dispatched_at",
+            "received_at",
             "completed_at",
             "lines",
             "created_at",

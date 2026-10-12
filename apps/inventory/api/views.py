@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from drf_spectacular.utils import extend_schema, extend_schema_view
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from apps.core.api.viewsets import TenantScopedModelViewSet
+from apps.inventory import services
 from apps.inventory.api.serializers import (
     StockAdjustmentSerializer,
     StockLevelSerializer,
@@ -73,7 +79,12 @@ class StockTransferViewSet(TenantScopedModelViewSet):
     """API endpoint for stock transfer documents."""
 
     queryset = (
-        StockTransfer.objects.select_related("source_warehouse", "destination_warehouse")
+        StockTransfer.objects.select_related(
+            "source_warehouse",
+            "destination_warehouse",
+            "source_branch",
+            "destination_branch",
+        )
         .prefetch_related("lines__product")
         .all()
     )
@@ -84,10 +95,40 @@ class StockTransferViewSet(TenantScopedModelViewSet):
         "list": "inventory.view",
         "retrieve": "inventory.view",
         "create": "inventory.transfer",
+        "dispatch": "inventory.transfer",
+        "receive": "inventory.transfer",
     }
     search_fields = ["transfer_number", "notes"]
     ordering_fields = ["created_at", "transfer_number"]
     ordering = ["-created_at"]
+
+    @extend_schema(tags=["Inventory"], summary="Dispatch draft stock transfer into transit")
+    @action(detail=True, methods=["post"], url_path="dispatch")
+    def dispatch(self, request: Any, *args: Any, **kwargs: Any) -> Response:
+        """Dispatch a draft stock transfer into transit."""
+        transfer = self.get_object()
+        org = self.get_tenant()
+        transfer = services.dispatch_stock_transfer(
+            organization=org,
+            transfer=transfer,
+            actor=request.user,
+        )
+        serializer = self.get_serializer(transfer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(tags=["Inventory"], summary="Receive in-transit stock transfer at destination warehouse")
+    @action(detail=True, methods=["post"], url_path="receive")
+    def receive(self, request: Any, *args: Any, **kwargs: Any) -> Response:
+        """Receive an in-transit stock transfer at the destination warehouse."""
+        transfer = self.get_object()
+        org = self.get_tenant()
+        transfer = services.receive_stock_transfer(
+            organization=org,
+            transfer=transfer,
+            actor=request.user,
+        )
+        serializer = self.get_serializer(transfer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(

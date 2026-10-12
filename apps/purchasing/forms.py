@@ -8,6 +8,7 @@ from django import forms
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.permissions import scope_queryset
 from apps.purchasing.models import (
     PurchaseOrderStatus,
     Supplier,
@@ -141,17 +142,19 @@ class PurchaseOrderForm(forms.Form):
         label=_("Terms & Conditions"),
     )
 
-    def __init__(self, *args: Any, organization: Organization, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, organization: Organization, user: Any = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         cast(forms.ModelChoiceField, self.fields["supplier"]).queryset = Supplier.all_tenants.filter(
             organization=organization, is_active=True
         )
-        cast(forms.ModelChoiceField, self.fields["branch"]).queryset = Branch.all_tenants.filter(
-            organization=organization
-        )
-        cast(forms.ModelChoiceField, self.fields["warehouse"]).queryset = Warehouse.all_tenants.filter(
-            organization=organization
-        )
+        branches = Branch.all_tenants.filter(organization=organization)
+        warehouses = Warehouse.all_tenants.filter(organization=organization)
+        if user is not None:
+            branches = scope_queryset(branches, user, organization=organization)
+            warehouses = scope_queryset(warehouses, user, organization=organization)
+
+        cast(forms.ModelChoiceField, self.fields["branch"]).queryset = branches
+        cast(forms.ModelChoiceField, self.fields["warehouse"]).queryset = warehouses
 
 
 class SupplierBillFilterForm(forms.Form):

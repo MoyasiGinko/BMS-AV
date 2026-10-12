@@ -124,15 +124,27 @@ def list_stock_transfers(
     *,
     organization: Organization,
     warehouse: Warehouse | None = None,
+    branch_id: int | None = None,
     status: str = "",
 ) -> QuerySet[StockTransfer]:
     """List stock transfer documents."""
     qs = StockTransfer.all_tenants.filter(organization=organization).select_related(
-        "source_warehouse", "destination_warehouse"
+        "source_warehouse",
+        "destination_warehouse",
+        "source_branch",
+        "destination_branch",
     )
 
     if warehouse is not None:
         qs = qs.filter(Q(source_warehouse=warehouse) | Q(destination_warehouse=warehouse))
+
+    if branch_id is not None:
+        qs = qs.filter(
+            Q(source_branch_id=branch_id)
+            | Q(destination_branch_id=branch_id)
+            | Q(source_warehouse__branch_id=branch_id)
+            | Q(destination_warehouse__branch_id=branch_id)
+        )
 
     if status:
         qs = qs.filter(status=status)
@@ -144,7 +156,12 @@ def get_stock_transfer(*, organization: Organization, transfer_id: int) -> Stock
     """Retrieve a stock transfer document along with all line items."""
     return (
         StockTransfer.all_tenants.filter(organization=organization, pk=transfer_id)
-        .select_related("source_warehouse", "destination_warehouse")
+        .select_related(
+            "source_warehouse",
+            "destination_warehouse",
+            "source_branch",
+            "destination_branch",
+        )
         .prefetch_related("lines__product", "lines__variant")
         .first()
     )

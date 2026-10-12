@@ -44,6 +44,39 @@ class StockTransferred(DomainEvent):
     transfer_number: str = ""
     source_warehouse_id: int = 0
     destination_warehouse_id: int = 0
+    source_branch_id: int | None = None
+    destination_branch_id: int | None = None
+    is_inter_branch: bool = False
+
+
+@dataclass(frozen=True)
+class StockTransferDispatched(DomainEvent):
+    """Fired when an inter-branch or multi-warehouse stock transfer is dispatched into transit."""
+
+    event_type: ClassVar[str] = "inventory.stock_transfer_dispatched"
+
+    transfer_id: int = 0
+    transfer_number: str = ""
+    source_warehouse_id: int = 0
+    destination_warehouse_id: int = 0
+    source_branch_id: int | None = None
+    destination_branch_id: int | None = None
+    is_inter_branch: bool = False
+
+
+@dataclass(frozen=True)
+class StockTransferReceived(DomainEvent):
+    """Fired when an in-transit stock transfer is received at the destination warehouse."""
+
+    event_type: ClassVar[str] = "inventory.stock_transfer_received"
+
+    transfer_id: int = 0
+    transfer_number: str = ""
+    source_warehouse_id: int = 0
+    destination_warehouse_id: int = 0
+    source_branch_id: int | None = None
+    destination_branch_id: int | None = None
+    is_inter_branch: bool = False
 
 
 @dataclass(frozen=True)

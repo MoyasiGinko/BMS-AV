@@ -16,6 +16,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from apps.accounting.models import Account
 from apps.catalog.models import Category, Product
+from apps.core.permissions import get_user_allowed_branch_ids, scope_queryset
 from apps.customers.models import Customer
 from apps.reports import selectors, services
 from apps.reports.models import ExportJob, ExportJobStatus, ReportType
@@ -25,7 +26,7 @@ from apps.reports.permissions import (
     check_reports_export_permission,
     check_reports_view_permission,
 )
-from apps.tenancy.models import Branch, Department, Warehouse
+from apps.tenancy.models import Branch, Department, Organization, Warehouse
 
 
 def _get_as_of_date(request: HttpRequest) -> datetime.date:
@@ -33,6 +34,26 @@ def _get_as_of_date(request: HttpRequest) -> datetime.date:
     as_of_str = request.GET.get("as_of_date") or request.POST.get("as_of_date")
     parsed = parse_date(as_of_str) if as_of_str else None
     return parsed or timezone.localdate()
+
+
+def _resolve_report_branch_id(request: HttpRequest, org: Organization) -> int | None:
+    """Resolve branch_id parameter taking user branch restrictions into account."""
+    branch_id = services._parse_int_param(request.GET.get("branch_id"))
+    allowed = get_user_allowed_branch_ids(request.user, organization=org)
+    if allowed is not None:
+        if branch_id is not None:
+            if branch_id not in allowed:
+                raise PermissionDenied("You do not have permission to view reports for this branch.")
+        elif allowed:
+            branch_id = allowed[0]
+        else:
+            raise PermissionDenied("You do not have access to any branches.")
+    return branch_id
+
+
+def _get_scoped_branches(request: HttpRequest, org: Organization):
+    branches = Branch.all_tenants.filter(organization=org).order_by("name")
+    return scope_queryset(branches, request.user, organization=org)
 
 
 def _get_date_range(request: HttpRequest, default_days: int = 30) -> tuple[datetime.date, datetime.date]:
@@ -80,7 +101,7 @@ def sales_by_product_view(request: HttpRequest) -> HttpResponse:
     check_reports_view_permission(request.user, org)
 
     start_date, end_date = _get_date_range(request)
-    branch_id = services._parse_int_param(request.GET.get("branch_id"))
+    branch_id = _resolve_report_branch_id(request, org)
     category_id = services._parse_int_param(request.GET.get("category_id"))
 
     report_data = selectors.get_sales_by_product_report(
@@ -91,7 +112,7 @@ def sales_by_product_view(request: HttpRequest) -> HttpResponse:
         category_id=category_id,
     )
 
-    branches = Branch.all_tenants.filter(organization=org).order_by("name")
+    branches = _get_scoped_branches(request, org)
     categories = Category.all_tenants.filter(organization=org).order_by("name")
 
     context = {
@@ -120,7 +141,7 @@ def sales_by_customer_view(request: HttpRequest) -> HttpResponse:
     check_reports_view_permission(request.user, org)
 
     start_date, end_date = _get_date_range(request)
-    branch_id = services._parse_int_param(request.GET.get("branch_id"))
+    branch_id = _resolve_report_branch_id(request, org)
     customer_id = services._parse_int_param(request.GET.get("customer_id"))
 
     report_data = selectors.get_sales_by_customer_report(
@@ -131,7 +152,7 @@ def sales_by_customer_view(request: HttpRequest) -> HttpResponse:
         customer_id=customer_id,
     )
 
-    branches = Branch.all_tenants.filter(organization=org).order_by("name")
+    branches = _get_scoped_branches(request, org)
     customers = Customer.all_tenants.filter(organization=org).order_by("name")
 
     context = {
@@ -166,6 +187,21 @@ def sales_by_branch_view(request: HttpRequest) -> HttpResponse:
         end_date=end_date,
     )
 
+    allowed = get_user_allowed_branch_ids(request.user, organization=org)
+    if allowed is not None:
+        report_data["rows"] = [r for r in report_data["rows"] if r.get("branch_id") in allowed]
+        report_data["summary"]["branch_count"] = len(report_data["rows"])
+        report_data["summary"]["total_invoices"] = sum(r.get("invoice_count", 0) for r in report_data["rows"])
+        report_data["summary"]["total_direct_sales"] = sum(
+            r.get("direct_sales", 0) for r in report_data["rows"]
+        )
+        report_data["summary"]["total_pos_sales"] = sum(r.get("pos_sales", 0) for r in report_data["rows"])
+        report_data["summary"]["total_gross_sales"] = sum(
+            r.get("gross_sales", 0) for r in report_data["rows"]
+        )
+        report_data["summary"]["total_tax"] = sum(r.get("tax_total", 0) for r in report_data["rows"])
+        report_data["summary"]["total_net_sales"] = sum(r.get("net_sales", 0) for r in report_data["rows"])
+
     context = {
         "organization": org,
         "report_type": ReportType.SALES_BY_BRANCH,
@@ -187,7 +223,7 @@ def sales_by_day_view(request: HttpRequest) -> HttpResponse:
     check_reports_view_permission(request.user, org)
 
     start_date, end_date = _get_date_range(request)
-    branch_id = services._parse_int_param(request.GET.get("branch_id"))
+    branch_id = _resolve_report_branch_id(request, org)
 
     report_data = selectors.get_sales_by_day_report(
         org,
@@ -196,7 +232,7 @@ def sales_by_day_view(request: HttpRequest) -> HttpResponse:
         branch_id=branch_id,
     )
 
-    branches = Branch.all_tenants.filter(organization=org).order_by("name")
+    branches = _get_scoped_branches(request, org)
 
     context = {
         "organization": org,
@@ -220,27 +256,36 @@ def stock_valuation_view(request: HttpRequest) -> HttpResponse:
         raise PermissionDenied("Active organization required.")
     check_reports_view_permission(request.user, org)
 
+    branch_id = _resolve_report_branch_id(request, org)
     warehouse_id = services._parse_int_param(request.GET.get("warehouse_id"))
     category_id = services._parse_int_param(request.GET.get("category_id"))
     low_stock_only = request.GET.get("low_stock_only") in ("1", "true", "True")
 
     report_data = selectors.get_stock_valuation_report(
         org,
+        branch_id=branch_id,
         warehouse_id=warehouse_id,
         category_id=category_id,
         low_stock_only=low_stock_only,
     )
 
-    warehouses = Warehouse.all_tenants.filter(organization=org).order_by("name")
+    branches = _get_scoped_branches(request, org)
+    warehouses = scope_queryset(
+        Warehouse.all_tenants.filter(organization=org).order_by("name"),
+        request.user,
+        organization=org,
+    )
     categories = Category.all_tenants.filter(organization=org).order_by("name")
 
     context = {
         "organization": org,
         "report_type": ReportType.STOCK_VALUATION,
         "title": "Stock Valuation",
+        "selected_branch_id": branch_id,
         "selected_warehouse_id": warehouse_id,
         "selected_category_id": category_id,
         "low_stock_only": low_stock_only,
+        "branches": branches,
         "warehouses": warehouses,
         "categories": categories,
         "data": report_data,
@@ -258,6 +303,7 @@ def stock_movement_view(request: HttpRequest) -> HttpResponse:
     check_reports_view_permission(request.user, org)
 
     start_date, end_date = _get_date_range(request)
+    branch_id = _resolve_report_branch_id(request, org)
     product_id = services._parse_int_param(request.GET.get("product_id"))
     warehouse_id = services._parse_int_param(request.GET.get("warehouse_id"))
     movement_type = request.GET.get("movement_type") or None
@@ -267,11 +313,17 @@ def stock_movement_view(request: HttpRequest) -> HttpResponse:
         start_date=start_date,
         end_date=end_date,
         product_id=product_id,
+        branch_id=branch_id,
         warehouse_id=warehouse_id,
         movement_type=movement_type,
     )
 
-    warehouses = Warehouse.all_tenants.filter(organization=org).order_by("name")
+    branches = _get_scoped_branches(request, org)
+    warehouses = scope_queryset(
+        Warehouse.all_tenants.filter(organization=org).order_by("name"),
+        request.user,
+        organization=org,
+    )
     products = Product.all_tenants.filter(organization=org).order_by("name")[:100]
 
     context = {
@@ -280,9 +332,11 @@ def stock_movement_view(request: HttpRequest) -> HttpResponse:
         "title": "Stock Movement Ledger",
         "start_date": start_date,
         "end_date": end_date,
+        "selected_branch_id": branch_id,
         "selected_product_id": product_id,
         "selected_warehouse_id": warehouse_id,
         "selected_movement_type": movement_type,
+        "branches": branches,
         "warehouses": warehouses,
         "products": products,
         "data": report_data,

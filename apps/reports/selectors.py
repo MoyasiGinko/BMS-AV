@@ -1204,6 +1204,7 @@ def get_sales_by_day_report(
 def get_stock_valuation_report(
     organization: Organization,
     *,
+    branch_id: int | None = None,
     warehouse_id: int | None = None,
     category_id: int | None = None,
     low_stock_only: bool = False,
@@ -1214,6 +1215,8 @@ def get_stock_valuation_report(
         .select_related("product", "product__category", "product__unit", "warehouse")
         .order_by("warehouse__name", "product__name")
     )
+    if branch_id:
+        stock_qs = stock_qs.filter(warehouse__branch_id=branch_id)
     if warehouse_id:
         stock_qs = stock_qs.filter(warehouse_id=warehouse_id)
     if category_id:
@@ -1275,6 +1278,7 @@ def get_stock_valuation_report(
             "low_stock_count": low_stock_count,
         },
         "filters": {
+            "branch_id": branch_id,
             "warehouse_id": warehouse_id,
             "category_id": category_id,
             "low_stock_only": low_stock_only,
@@ -1288,6 +1292,7 @@ def get_stock_movement_report(
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     product_id: int | None = None,
+    branch_id: int | None = None,
     warehouse_id: int | None = None,
     movement_type: str | None = None,
 ) -> dict[str, Any]:
@@ -1303,6 +1308,8 @@ def get_stock_movement_report(
         mov_qs = mov_qs.filter(occurred_at__date__lte=end_date)
     if product_id:
         mov_qs = mov_qs.filter(product_id=product_id)
+    if branch_id:
+        mov_qs = mov_qs.filter(warehouse__branch_id=branch_id)
     if warehouse_id:
         mov_qs = mov_qs.filter(warehouse_id=warehouse_id)
     if movement_type:
@@ -1364,6 +1371,7 @@ def get_stock_movement_report(
             "start_date": start_date,
             "end_date": end_date,
             "product_id": product_id,
+            "branch_id": branch_id,
             "warehouse_id": warehouse_id,
             "movement_type": movement_type,
         },

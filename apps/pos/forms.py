@@ -5,6 +5,7 @@ from typing import Any
 
 from django import forms
 
+from apps.core.permissions import scope_queryset
 from apps.pos.models import POSRegister
 from apps.tenancy.models import Branch, Organization, Warehouse
 
@@ -60,11 +61,14 @@ class POSOpenShiftForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 2, "class": _INPUT_CSS}),
     )
 
-    def __init__(self, *args: Any, organization: Organization, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, organization: Organization, user: Any = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        registers = POSRegister.all_tenants.filter(organization=organization, is_active=True)
+        if user is not None:
+            registers = scope_queryset(registers, user, organization=organization)
         _scope_choice_field(
             self.fields["register"],
-            POSRegister.all_tenants.filter(organization=organization, is_active=True),
+            registers,
         )
 
 

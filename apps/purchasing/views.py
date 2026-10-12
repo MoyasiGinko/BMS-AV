@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 
 from apps.catalog.models import Product
-from apps.core.permissions import permission_required
+from apps.core.permissions import check_object_scope, permission_required, scope_queryset
 from apps.purchasing import selectors, services
 from apps.purchasing.forms import (
     PurchaseOrderFilterForm,
@@ -165,6 +165,7 @@ def purchase_order_list(request: HttpRequest) -> HttpResponse:
     form = PurchaseOrderFilterForm(request.GET)
     status = request.GET.get("status") or None
     orders = selectors.list_purchase_orders(organization=org, status=status)
+    orders = scope_queryset(orders, request.user, organization=org)
 
     context = {
         "orders": orders,
@@ -179,7 +180,7 @@ def purchase_order_list(request: HttpRequest) -> HttpResponse:
 def purchase_order_detail(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     po = selectors.get_purchase_order(organization=org, order_id=pk)
-    if not po:
+    if not po or not check_object_scope(request.user, po, organization=org):
         raise PermissionDenied(_("Purchase order not found."))
 
     return render(request, "purchasing/purchase_order_detail.html", {"po": po})
@@ -191,7 +192,7 @@ def purchase_order_create(request: HttpRequest) -> HttpResponse:
     products = Product.all_tenants.filter(organization=org, is_active=True).order_by("name")
 
     if request.method == "POST":
-        form = PurchaseOrderForm(request.POST, organization=org)
+        form = PurchaseOrderForm(request.POST, organization=org, user=request.user)
         if form.is_valid():
             supplier = form.cleaned_data["supplier"]
             branch = form.cleaned_data.get("branch")
@@ -241,7 +242,7 @@ def purchase_order_create(request: HttpRequest) -> HttpResponse:
                 messages.success(request, _("Purchase order %(num)s created.") % {"num": po.order_number})
                 return redirect("purchasing:purchase_order_detail", pk=po.pk)
     else:
-        form = PurchaseOrderForm(organization=org)
+        form = PurchaseOrderForm(organization=org, user=request.user)
 
     return render(
         request,
@@ -254,6 +255,8 @@ def purchase_order_create(request: HttpRequest) -> HttpResponse:
 def purchase_order_approve(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     po = get_object_or_404(PurchaseOrder.all_tenants, pk=pk, organization=org)
+    if not check_object_scope(request.user, po, organization=org):
+        raise PermissionDenied(_("Purchase order not found."))
     if request.method == "POST":
         try:
             services.approve_purchase_order(organization=org, purchase_order=po, actor=request.user)
@@ -267,6 +270,8 @@ def purchase_order_approve(request: HttpRequest, pk: int) -> HttpResponse:
 def purchase_order_cancel(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     po = get_object_or_404(PurchaseOrder.all_tenants, pk=pk, organization=org)
+    if not check_object_scope(request.user, po, organization=org):
+        raise PermissionDenied(_("Purchase order not found."))
     if request.method == "POST":
         try:
             services.cancel_purchase_order(organization=org, purchase_order=po, actor=request.user)
@@ -285,6 +290,7 @@ def purchase_order_cancel(request: HttpRequest, pk: int) -> HttpResponse:
 def goods_receipt_list(request: HttpRequest) -> HttpResponse:
     org = _get_org(request)
     receipts = selectors.list_goods_receipts(organization=org)
+    receipts = scope_queryset(receipts, request.user, organization=org)
     return render(request, "purchasing/goods_receipt_list.html", {"receipts": receipts})
 
 
@@ -292,7 +298,7 @@ def goods_receipt_list(request: HttpRequest) -> HttpResponse:
 def goods_receipt_detail(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     receipt = selectors.get_goods_receipt(organization=org, receipt_id=pk)
-    if not receipt:
+    if not receipt or not check_object_scope(request.user, receipt, organization=org):
         raise PermissionDenied(_("Goods receipt not found."))
     return render(request, "purchasing/goods_receipt_detail.html", {"receipt": receipt})
 
@@ -301,6 +307,8 @@ def goods_receipt_detail(request: HttpRequest, pk: int) -> HttpResponse:
 def goods_receipt_receive(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     receipt = get_object_or_404(GoodsReceipt.all_tenants, pk=pk, organization=org)
+    if not check_object_scope(request.user, receipt, organization=org):
+        raise PermissionDenied(_("Goods receipt not found."))
     if request.method == "POST":
         try:
             services.receive_goods_receipt(organization=org, goods_receipt=receipt, actor=request.user)
@@ -324,6 +332,7 @@ def supplier_bill_list(request: HttpRequest) -> HttpResponse:
     form = SupplierBillFilterForm(request.GET)
     status = request.GET.get("status") or None
     bills = selectors.list_supplier_bills(organization=org, status=status)
+    bills = scope_queryset(bills, request.user, organization=org)
 
     context = {
         "bills": bills,
@@ -338,7 +347,7 @@ def supplier_bill_list(request: HttpRequest) -> HttpResponse:
 def supplier_bill_detail(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     bill = selectors.get_supplier_bill(organization=org, bill_id=pk)
-    if not bill:
+    if not bill or not check_object_scope(request.user, bill, organization=org):
         raise PermissionDenied(_("Supplier bill not found."))
     return render(request, "purchasing/bill_detail.html", {"bill": bill})
 
@@ -347,6 +356,8 @@ def supplier_bill_detail(request: HttpRequest, pk: int) -> HttpResponse:
 def supplier_bill_post(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     bill = get_object_or_404(SupplierBill.all_tenants, pk=pk, organization=org)
+    if not check_object_scope(request.user, bill, organization=org):
+        raise PermissionDenied(_("Supplier bill not found."))
     if request.method == "POST":
         try:
             services.post_supplier_bill(organization=org, bill=bill, actor=request.user)
@@ -361,6 +372,8 @@ def supplier_bill_post(request: HttpRequest, pk: int) -> HttpResponse:
 def supplier_bill_void(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     bill = get_object_or_404(SupplierBill.all_tenants, pk=pk, organization=org)
+    if not check_object_scope(request.user, bill, organization=org):
+        raise PermissionDenied(_("Supplier bill not found."))
     if request.method == "POST":
         try:
             services.void_supplier_bill(organization=org, bill=bill, actor=request.user)
@@ -451,6 +464,7 @@ def supplier_payment_create(request: HttpRequest) -> HttpResponse:
 def purchase_return_list(request: HttpRequest) -> HttpResponse:
     org = _get_org(request)
     returns = selectors.list_purchase_returns(organization=org)
+    returns = scope_queryset(returns, request.user, organization=org)
     return render(request, "purchasing/return_list.html", {"returns": returns})
 
 
@@ -458,7 +472,7 @@ def purchase_return_list(request: HttpRequest) -> HttpResponse:
 def purchase_return_detail(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     ret = selectors.get_purchase_return(organization=org, return_id=pk)
-    if not ret:
+    if not ret or not check_object_scope(request.user, ret, organization=org):
         raise PermissionDenied(_("Purchase return not found."))
     return render(request, "purchasing/return_detail.html", {"purchase_return": ret})
 
@@ -467,6 +481,8 @@ def purchase_return_detail(request: HttpRequest, pk: int) -> HttpResponse:
 def purchase_return_post(request: HttpRequest, pk: int) -> HttpResponse:
     org = _get_org(request)
     ret = get_object_or_404(PurchaseReturn.all_tenants, pk=pk, organization=org)
+    if not check_object_scope(request.user, ret, organization=org):
+        raise PermissionDenied(_("Purchase return not found."))
     if request.method == "POST":
         try:
             services.post_purchase_return(organization=org, purchase_return=ret, actor=request.user)

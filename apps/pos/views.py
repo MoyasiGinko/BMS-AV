@@ -14,7 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 
 from apps.catalog.models import Product
-from apps.core.permissions import permission_required
+from apps.core.permissions import check_object_scope, permission_required, scope_queryset
 from apps.customers.models import Customer
 from apps.pos import selectors, services
 from apps.pos.exceptions import POSError
@@ -42,14 +42,22 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
 
     # 1. Check for active open shift for this user
     active_shift = selectors.get_active_shift_for_user(organization=org, user=request.user)
+    if active_shift and not check_object_scope(request.user, active_shift, organization=org):
+        active_shift = None
 
     # If no shift open, check if register requested or redirect to open shift
     register_id = request.GET.get("register")
     selected_register = None
     if register_id and register_id.isdigit():
-        selected_register = selectors.get_register(organization=org, register_id=int(register_id))
+        reg = selectors.get_register(organization=org, register_id=int(register_id))
+        if reg and check_object_scope(request.user, reg, organization=org):
+            selected_register = reg
 
-    registers = selectors.list_registers(organization=org, is_active=True)
+    registers = scope_queryset(
+        selectors.list_registers(organization=org, is_active=True),
+        request.user,
+        organization=org,
+    )
 
     if not active_shift:
         # If no register exists at all, prompt creating one
@@ -66,6 +74,7 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
                 "selected_register": selected_register or registers.first(),
                 "open_form": POSOpenShiftForm(
                     organization=org,
+                    user=request.user,
                     initial={"register": selected_register or registers.first()},
                 ),
             },
@@ -226,7 +235,7 @@ def shift_open_view(request: HttpRequest) -> HttpResponse:
     org = _get_org(request)
 
     if request.method == "POST":
-        form = POSOpenShiftForm(request.POST, organization=org)
+        form = POSOpenShiftForm(request.POST, organization=org, user=request.user)
         if form.is_valid():
             try:
                 shift = services.open_shift(
@@ -248,7 +257,7 @@ def shift_open_view(request: HttpRequest) -> HttpResponse:
         else:
             messages.error(request, _("Please correct the form errors below."))
     else:
-        form = POSOpenShiftForm(organization=org)
+        form = POSOpenShiftForm(organization=org, user=request.user)
 
     return render(request, "pos/shift_open.html", {"form": form})
 
@@ -258,7 +267,7 @@ def shift_close_view(request: HttpRequest, public_id: str) -> HttpResponse:
     """Close an active cashier shift and review cash variance."""
     org = _get_org(request)
     shift = selectors.get_shift(organization=org, public_id=public_id)
-    if not shift:
+    if not shift or not check_object_scope(request.user, shift, organization=org):
         raise PermissionDenied(_("Shift not found."))
 
     if request.method == "POST":
@@ -292,6 +301,7 @@ def shift_list_view(request: HttpRequest) -> HttpResponse:
     org = _get_org(request)
     status_filter = request.GET.get("status") or None
     shifts = selectors.list_shifts(organization=org, status=status_filter)
+    shifts = scope_queryset(shifts, request.user, organization=org)
 
     return render(
         request,
@@ -308,7 +318,7 @@ def shift_detail_view(request: HttpRequest, public_id: str) -> HttpResponse:
     """View shift summary, sales, and closing cash variance audit."""
     org = _get_org(request)
     shift = selectors.get_shift(organization=org, public_id=public_id)
-    if not shift:
+    if not shift or not check_object_scope(request.user, shift, organization=org):
         raise PermissionDenied(_("Shift not found."))
 
     sales = selectors.list_sales(organization=org, shift_id=shift.pk)
@@ -326,6 +336,7 @@ def register_list_view(request: HttpRequest) -> HttpResponse:
     """List all POS terminals."""
     org = _get_org(request)
     registers = selectors.list_registers(organization=org)
+    registers = scope_queryset(registers, request.user, organization=org)
     return render(request, "pos/register_list.html", {"registers": registers})
 
 
@@ -368,6 +379,8 @@ def hold_cart_action(request: HttpRequest) -> HttpResponse:
     try:
         data = json.loads(request.body.decode("utf-8"))
         shift = get_object_or_404(POSShift.all_tenants, pk=data["shift_id"], organization=org)
+        if not check_object_scope(request.user, shift, organization=org):
+            raise PermissionDenied(_("You do not have access to this shift."))
         held = services.hold_cart(
             organization=org,
             shift=shift,

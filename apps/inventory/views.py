@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 
 from apps.catalog.models import Product, ProductVariant
-from apps.core.permissions import permission_required
+from apps.core.permissions import check_object_scope, permission_required, scope_queryset
 from apps.inventory import selectors, services
 from apps.inventory.forms import (
     StockAdjustmentForm,
@@ -50,6 +50,7 @@ def stock_level_list(request: HttpRequest) -> HttpResponse:
         query=query,
         low_stock_only=low_stock_only,
     )
+    levels = scope_queryset(levels, request.user, organization=org)
 
     paginator = Paginator(levels, 25)
     page_number = request.GET.get("page", 1)
@@ -85,6 +86,7 @@ def stock_movement_list(request: HttpRequest) -> HttpResponse:
         warehouse=warehouse,
         movement_type=movement_type,
     )
+    movements = scope_queryset(movements, request.user, organization=org)
 
     paginator = Paginator(movements, 30)
     page_number = request.GET.get("page", 1)
@@ -109,6 +111,7 @@ def adjustment_list(request: HttpRequest) -> HttpResponse:
     """List stock adjustment documents."""
     org = _get_org(request)
     adjustments = selectors.list_stock_adjustments(organization=org)
+    adjustments = scope_queryset(adjustments, request.user, organization=org)
 
     paginator = Paginator(adjustments, 20)
     page_obj = paginator.get_page(request.GET.get("page", 1))
@@ -166,6 +169,10 @@ def adjustment_detail(request: HttpRequest, pk: int) -> HttpResponse:
     if not adj:
         messages.error(request, _("Adjustment not found."))
         return redirect("inventory:adjustment_list")
+    if not check_object_scope(request.user, adj, organization=org):
+        raise PermissionDenied(
+            _("You do not have permission to view adjustments outside your assigned branches.")
+        )
     return render(request, "inventory/adjustment_detail.html", {"adjustment": adj})
 
 
@@ -174,6 +181,7 @@ def transfer_list(request: HttpRequest) -> HttpResponse:
     """List stock transfer documents."""
     org = _get_org(request)
     transfers = selectors.list_stock_transfers(organization=org)
+    transfers = scope_queryset(transfers, request.user, organization=org)
 
     paginator = Paginator(transfers, 20)
     page_obj = paginator.get_page(request.GET.get("page", 1))
@@ -235,6 +243,10 @@ def transfer_detail(request: HttpRequest, pk: int) -> HttpResponse:
     if not trf:
         messages.error(request, _("Transfer not found."))
         return redirect("inventory:transfer_list")
+    if not check_object_scope(request.user, trf, organization=org):
+        raise PermissionDenied(
+            _("You do not have permission to view transfers outside your assigned branches.")
+        )
     return render(request, "inventory/transfer_detail.html", {"transfer": trf})
 
 

@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 
 from apps.catalog.models import Product
-from apps.core.permissions import permission_required
+from apps.core.permissions import check_object_scope, permission_required, scope_queryset
 from apps.customers.models import Customer
 from apps.sales import selectors, services
 from apps.sales.exceptions import SalesError
@@ -62,6 +62,7 @@ def quote_list(request: HttpRequest) -> HttpResponse:
     search = request.GET.get("search") or None
 
     quotes = selectors.list_quotes(organization=org, status=status, search=search)
+    quotes = scope_queryset(quotes, request.user, organization=org)
 
     context = {
         "quotes": quotes,
@@ -79,7 +80,7 @@ def quote_detail(request: HttpRequest, public_id: str) -> HttpResponse:
     org = _get_org(request)
 
     quote = selectors.get_quote(organization=org, public_id=public_id)
-    if not quote:
+    if not quote or not check_object_scope(request.user, quote, organization=org):
         messages.error(request, _("Quotation not found."))
         return redirect("sales:quote_list")
 
@@ -191,6 +192,7 @@ def order_list(request: HttpRequest) -> HttpResponse:
     search = request.GET.get("search") or None
 
     orders = selectors.list_orders(organization=org, status=status, search=search)
+    orders = scope_queryset(orders, request.user, organization=org)
 
     context = {
         "orders": orders,
@@ -208,7 +210,7 @@ def order_detail(request: HttpRequest, public_id: str) -> HttpResponse:
     org = _get_org(request)
 
     order = selectors.get_order(organization=org, public_id=public_id)
-    if not order:
+    if not order or not check_object_scope(request.user, order, organization=org):
         messages.error(request, _("Sales order not found."))
         return redirect("sales:order_list")
 
@@ -327,6 +329,7 @@ def invoice_list(request: HttpRequest) -> HttpResponse:
         search=search,
         is_overdue=is_overdue if is_overdue else None,
     )
+    invoices = scope_queryset(invoices, request.user, organization=org)
 
     context = {
         "invoices": invoices,
@@ -344,7 +347,7 @@ def invoice_detail(request: HttpRequest, public_id: str) -> HttpResponse:
     org = _get_org(request)
 
     invoice = selectors.get_invoice(organization=org, public_id=public_id)
-    if not invoice:
+    if not invoice or not check_object_scope(request.user, invoice, organization=org):
         messages.error(request, _("Invoice not found."))
         return redirect("sales:invoice_list")
 
@@ -455,6 +458,7 @@ def credit_note_list(request: HttpRequest) -> HttpResponse:
     search = request.GET.get("search") or None
 
     credit_notes = selectors.list_credit_notes(organization=org, status=status, search=search)
+    credit_notes = scope_queryset(credit_notes, request.user, organization=org)
 
     context = {
         "credit_notes": credit_notes,
@@ -472,7 +476,7 @@ def credit_note_detail(request: HttpRequest, public_id: str) -> HttpResponse:
     org = _get_org(request)
 
     credit_note = selectors.get_credit_note(organization=org, public_id=public_id)
-    if not credit_note:
+    if not credit_note or not check_object_scope(request.user, credit_note, organization=org):
         messages.error(request, _("Credit note not found."))
         return redirect("sales:credit_note_list")
 
@@ -589,6 +593,7 @@ def payment_list(request: HttpRequest) -> HttpResponse:
         payment_method=payment_method,
         search=search,
     )
+    payments = scope_queryset(payments, request.user, organization=org)
     summary = selectors.get_payment_summary(organization=org)
 
     context = {

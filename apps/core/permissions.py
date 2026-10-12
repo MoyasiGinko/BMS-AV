@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect
 from django.utils.translation import gettext as _
@@ -243,6 +243,29 @@ def get_user_allowed_branch_ids(user: Any, *, organization: Any = None) -> list[
         return None
 
 
+def _build_scope_filter(field_names: set[str], allowed: set[int]) -> Q | None:
+    """Build a Q filter expression based on available model fields for branch scoping."""
+    if "branch" in field_names:
+        return Q(branch_id__in=allowed)
+    if "warehouse" in field_names:
+        return Q(warehouse__branch_id__in=allowed)
+    if "register" in field_names:
+        return Q(register__branch_id__in=allowed)
+    if "shift" in field_names:
+        return Q(shift__register__branch_id__in=allowed)
+    if "purchase_order" in field_names:
+        return Q(purchase_order__branch_id__in=allowed)
+
+    transfer_q = Q()
+    if "source_branch" in field_names and "destination_branch" in field_names:
+        transfer_q |= Q(source_branch_id__in=allowed) | Q(destination_branch_id__in=allowed)
+    if "source_warehouse" in field_names and "destination_warehouse" in field_names:
+        transfer_q |= Q(source_warehouse__branch_id__in=allowed) | Q(
+            destination_warehouse__branch_id__in=allowed
+        )
+    return transfer_q if transfer_q else None
+
+
 def scope_queryset(
     queryset: QuerySet[Any],
     user: Any,
@@ -252,16 +275,66 @@ def scope_queryset(
 ) -> QuerySet[Any]:
     """Layer 3: Scope a queryset according to the user's branch assignments."""
     allowed = get_user_allowed_branch_ids(user, organization=organization)
-    if allowed is None:
+    model = getattr(queryset, "model", None)
+    if allowed is None or model is None:
         return queryset
     if not allowed:
         return queryset.none()
 
-    model_name = getattr(queryset.model._meta, "model_name", "")
-    if branch_field in ("self", "id", "pk") or model_name == "branch":
+    if branch_field in ("self", "id", "pk") or getattr(model._meta, "model_name", "") == "branch":
         return queryset.filter(id__in=allowed)
 
-    return queryset.filter(**{f"{branch_field}_id__in": allowed})
+    if branch_field != "branch":
+        return queryset.filter(**{f"{branch_field}_id__in": allowed})
+
+    scope_filter = _build_scope_filter({f.name for f in model._meta.get_fields()}, allowed)
+    return queryset.filter(scope_filter) if scope_filter is not None else queryset
+
+
+def _extract_object_branch_ids(obj: Any, branch_field: str) -> set[int] | None:
+    """Extract all relevant branch IDs associated with an object instance."""
+    meta = getattr(obj, "_meta", None)
+    model_name = getattr(meta, "model_name", "") if meta else ""
+    if branch_field in ("self", "id", "pk") or model_name == "branch":
+        pk = getattr(obj, "pk", None)
+        return {pk} if pk is not None else None
+
+    if branch_field != "branch" and hasattr(obj, branch_field):
+        target = getattr(obj, branch_field, None)
+        target_id = getattr(obj, f"{branch_field}_id", getattr(target, "pk", None))
+        return {target_id} if target_id is not None else None
+
+    bids: set[int] = set()
+    b_id = getattr(obj, "branch_id", getattr(getattr(obj, "branch", None), "pk", None))
+    if b_id is not None:
+        bids.add(b_id)
+
+    wh = getattr(obj, "warehouse", None)
+    if wh is not None and getattr(wh, "branch_id", None) is not None:
+        bids.add(wh.branch_id)
+
+    reg = getattr(obj, "register", None)
+    if reg is not None and getattr(reg, "branch_id", None) is not None:
+        bids.add(reg.branch_id)
+
+    shift = getattr(obj, "shift", None)
+    if shift and getattr(shift, "register", None):
+        bids.add(shift.register.branch_id)
+
+    po = getattr(obj, "purchase_order", None)
+    if po is not None and getattr(po, "branch_id", None) is not None:
+        bids.add(po.branch_id)
+
+    for attr in ("source_branch_id", "destination_branch_id"):
+        val = getattr(obj, attr, None)
+        if val is not None:
+            bids.add(val)
+    for wh_attr in ("source_warehouse", "destination_warehouse"):
+        wh_obj = getattr(obj, wh_attr, None)
+        if wh_obj is not None and getattr(wh_obj, "branch_id", None) is not None:
+            bids.add(wh_obj.branch_id)
+
+    return bids if bids else None
 
 
 def check_object_scope(
@@ -272,17 +345,19 @@ def check_object_scope(
     branch_field: str = "branch",
 ) -> bool:
     """Layer 3: Check whether a user is allowed to access a specific object instance."""
+    if obj is None:
+        return True
+
     allowed = get_user_allowed_branch_ids(user, organization=organization)
     if allowed is None:
         return True
+    if not allowed:
+        return False
 
-    model_name = getattr(obj._meta, "model_name", "")
-    if branch_field in ("self", "id", "pk") or model_name == "branch":
-        return getattr(obj, "pk", None) in allowed
-
-    obj_branch = getattr(obj, branch_field, None)
-    obj_branch_id = getattr(obj, f"{branch_field}_id", getattr(obj_branch, "pk", None))
-    return obj_branch_id in allowed
+    obj_branch_ids = _extract_object_branch_ids(obj, branch_field)
+    if obj_branch_ids is None:
+        return True
+    return bool(obj_branch_ids.intersection(allowed))
 
 
 # ---------------------------------------------------------------------------

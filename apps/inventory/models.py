@@ -5,6 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import ClassVar
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -322,6 +323,26 @@ class StockTransfer(TenantModel):
         related_name="transfers_in",
         verbose_name=_("destination warehouse"),
     )
+    source_branch = models.ForeignKey(
+        "tenancy.Branch",
+        on_delete=models.PROTECT,
+        related_name="transfers_from",
+        null=True,
+        blank=True,
+        verbose_name=_("source branch"),
+    )
+    destination_branch = models.ForeignKey(
+        "tenancy.Branch",
+        on_delete=models.PROTECT,
+        related_name="transfers_to",
+        null=True,
+        blank=True,
+        verbose_name=_("destination branch"),
+    )
+    is_inter_branch = models.BooleanField(
+        _("is inter-branch transfer"),
+        default=False,
+    )
     status = models.CharField(
         _("status"),
         max_length=32,
@@ -329,6 +350,24 @@ class StockTransfer(TenantModel):
         default=TransferStatus.DRAFT,
     )
     notes = models.TextField(_("notes"), blank=True, default="")
+    dispatched_at = models.DateTimeField(_("dispatched at"), null=True, blank=True)
+    dispatched_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dispatched_stock_transfers",
+        verbose_name=_("dispatched by"),
+    )
+    received_at = models.DateTimeField(_("received at"), null=True, blank=True)
+    received_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="received_stock_transfers",
+        verbose_name=_("received by"),
+    )
     completed_at = models.DateTimeField(_("completed at"), null=True, blank=True)
 
     class Meta:
@@ -342,9 +381,18 @@ class StockTransfer(TenantModel):
                 name="uniq_transfer_org_number",
             ),
         ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "status", "-created_at"]),
+            models.Index(fields=["organization", "source_branch", "destination_branch"]),
+            models.Index(fields=["organization", "is_inter_branch"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.transfer_number}: {self.source_warehouse.name} -> {self.destination_warehouse.name}"
+
+    @property
+    def is_in_transit(self) -> bool:
+        return self.status == TransferStatus.IN_TRANSIT
 
 
 class StockTransferLine(TenantModel):

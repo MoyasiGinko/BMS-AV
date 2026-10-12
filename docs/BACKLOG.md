@@ -58,7 +58,7 @@ Format: `ID title: Done when ...`
 - [x] P4-R Phase review.
 
 ## P5 ERP maturity
-- [ ] P5-01 Multi-branch: branch-scoped permissions, consolidated vs per-branch reports, inter-branch transfers.
+- [x] P5-01 Multi-branch: branch-scoped permissions, consolidated vs per-branch reports, inter-branch transfers.
 - [ ] P5-02 Advanced inventory: batches/expiry, serials, FIFO costing strategy, reorder suggestions, stock count workflow.
 - [ ] P5-03 Approvals engine: configurable approval rules (PO over X, expense over Y, payroll, discounts) with inbox UI.
 - [ ] P5-04 Reporting engine: saved reports/filters, schedules (email), summary tables (DailySalesSummary etc.), report builder for basic custom reports.

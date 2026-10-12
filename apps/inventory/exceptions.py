@@ -45,3 +45,10 @@ class ReservationError(InventoryError):
 
     default_message = "Stock reservation error."
     default_code = "reservation_error"
+
+
+class TransferError(InventoryError):
+    """Raised when stock transfer operation or transition fails."""
+
+    default_message = "Stock transfer operation failed."
+    default_code = "transfer_error"
