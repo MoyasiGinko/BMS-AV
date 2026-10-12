@@ -1,16 +1,17 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P4 People: CRM + HR + Payroll
-- Last completed task: P4-01
-- Next task: P4-02
+- Last completed task: P4-02
+- Next task: P4-03
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (CRM test suite 29/29 passing, OpenAPI schema clean, import-linter 2 kept / 0 broken, ruff check/format clean)
+- Last `make verify`: PASSED (HR test suite 26/26 passing, OpenAPI schema validated, import-linter clean, ruff clean)
 - Notes:
-  - P4-01 CRM module completed:
-    - Domain models: Pipeline, Stage, Tag, Lead, Opportunity, Interaction, CrmTask.
-    - Transactional services: pipeline and stage management, default pipeline seeding, lead lifecycle & qualification, conversion of lead to customer + deal, opportunity stage transitions, touchpoints/interactions logging, task completion/cancellation.
-    - Selectors: multi-filter lead lists, interactive Kanban board aggregations, customer 360 synthesis (deals, touchpoints, tasks, receivables, order history), inactive-customer segment detection.
-    - UI: HTMX-powered responsive lead directory, lead create/detail/edit/convert pages, visual drag-and-drop Kanban board with stage transition modals, customer 360 dashboard, inactive accounts win-back segments, task management list.
-    - DRF REST API: Tenant-scoped ViewSets for leads, pipelines, opportunities, interactions, tasks under `/api/v1/crm/`, Customer 360 API view, full OpenAPI schema.
-    - Test Suite: 29/29 tests passing across services, selectors, views, API, and multi-tenant isolation.
-  - Next task: P4-02 HR core: employees (encrypted sensitive fields), positions, departments link, documents, status lifecycle; self-service profile.
+  - P4-02 HR core module completed:
+    - Domain models: Position, Employee, EmployeeDocument.
+    - Security & Cryptography: AES Fernet encryption via `apps.core.crypto` for sensitive PII (national_id, tax_id, bank_account_number) with deterministic masking for safe display.
+    - Status Lifecycle: Strict state transitions (`draft` -> `active` -> `on_leave` / `suspended` -> `terminated`) with terminal state enforcement and domain event publishing via outbox (`EmployeeHired`, `EmployeeStatusChanged`, `EmployeeTerminated`).
+    - Self-Service Profile: Employee portal view and API endpoints allowing employees to securely view their profile and update permitted contact details.
+    - DRF REST API: Position, Employee, Document, and Self-Service viewsets under `/api/v1/hr/` with tenant scoping and OpenAPI docs.
+    - HTMX Web UI: Positions directory/editor, Employees directory with status/department filters, detailed employee cards, document upload/deletion, and self-service portal.
+    - Test Suite: 26/26 passing tests across services, selectors, views, API, and cross-tenant isolation.
+  - Next task: P4-03 Attendance + leave: shifts, check-in/out (web + API), leave types/balances/requests/approvals, calendar.

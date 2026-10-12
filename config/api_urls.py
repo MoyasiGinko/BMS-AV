@@ -36,4 +36,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("integrations/", include("apps.integrations.api.urls")),
     # Customer Relationship Management (CRM)
     path("crm/", include("apps.crm.api.urls")),
+    # Human Resources (HR Core)
+    path("hr/", include("apps.hr.api.urls")),
 ]

@@ -311,10 +311,21 @@ registry.register(
 registry.register(
     "hr",
     name="Human Resources",
-    description="Employee profiles, departments, documents, and attendance",
+    description="Employee directory, positions, documents, lifecycle, and self-service",
     icon="identification",
     sort_order=110,
-    permissions=["hr.view", "hr.manage"],
+    nav_items=[
+        NavItem("Employees", "hr:employee_list", icon="users", permission="hr.view"),
+        NavItem("Positions", "hr:position_list", icon="briefcase", permission="hr.view"),
+        NavItem("My Profile", "hr:self_service_profile", icon="user-circle"),
+    ],
+    permissions=[
+        "hr.view",
+        "hr.create",
+        "hr.update",
+        "hr.delete",
+        "hr.view_sensitive",
+    ],
 )
 
 registry.register(

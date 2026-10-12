@@ -1,0 +1,106 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Employees Directory" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Employee Directory" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Manage team members, roles, departmental assignments, and credentials." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'hr:position_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                {% trans "Positions & Roles" %}
+            </a>
+            <a href="{% url 'hr:employee_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                + {% trans "Add Employee" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Headcount" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{{ overview.total_headcount }}</div>
+            <span class="text-xs text-slate-400">{% trans "Active records in system" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Active Employees" %}</span>
+            <div class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ overview.active_count }}</div>
+            <span class="text-xs text-slate-400">{{ overview.on_leave_count }} {% trans "on leave" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "New This Month" %}</span>
+            <div class="mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ overview.new_hires_month }}</div>
+            <span class="text-xs text-slate-400">{% trans "Hired in current calendar month" %}</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Suspended / Offboarded" %}</span>
+            <div class="mt-2 text-2xl font-bold text-slate-600 dark:text-slate-400">{{ overview.suspended_count|add:overview.terminated_count }}</div>
+            <span class="text-xs text-slate-400">{{ overview.terminated_count }} {% trans "terminated" %}</span>
+        </div>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get" class="flex flex-col sm:flex-row items-center gap-4">
+            <div class="flex-1 w-full">
+                <input type="text"
+                       name="q"
+                       value="{{ search_query }}"
+                       placeholder="{% trans 'Search by name, employee code, email, or phone...' %}"
+                       hx-get="{% url 'hr:employee_list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#employee-table-body"
+                       hx-include="[name='status'], [name='department']"
+                       class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm">
+            </div>
+            <div class="w-full sm:w-48">
+                <select name="status"
+                        onchange="this.form.submit()"
+                        class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm">
+                    <option value="">{% trans "All Statuses" %}</option>
+                    <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+                    <option value="on_leave" {% if status_filter == "on_leave" %}selected{% endif %}>On Leave</option>
+                    <option value="suspended" {% if status_filter == "suspended" %}selected{% endif %}>Suspended</option>
+                    <option value="terminated" {% if status_filter == "terminated" %}selected{% endif %}>Terminated</option>
+                    <option value="draft" {% if status_filter == "draft" %}selected{% endif %}>Draft</option>
+                </select>
+            </div>
+            {% if search_query or status_filter %}
+            <a href="{% url 'hr:employee_list' %}" class="text-sm text-slate-500 hover:text-slate-800">
+                {% trans "Clear" %}
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                <thead class="bg-slate-50 dark:bg-slate-800/60">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Employee" %}</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Position" %}</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Department" %}</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Contact" %}</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Status" %}</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Hired" %}</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody id="employee-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% include "hr/partials/employee_table_rows.html" %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

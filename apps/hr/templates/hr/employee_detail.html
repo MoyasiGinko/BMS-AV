@@ -1,0 +1,261 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ employee.full_name }} ({{ employee.code }}) | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header / Banner -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xl border border-indigo-200 dark:border-indigo-800 shadow-xs">
+                    {{ employee.first_name|slice:":1" }}{{ employee.last_name|slice:":1" }}
+                </div>
+                <div>
+                    <div class="flex items-center space-x-3">
+                        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ employee.full_name }}</h1>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold
+                            {% if employee.status == 'active' %}bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800
+                            {% elif employee.status == 'on_leave' %}bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800
+                            {% elif employee.status == 'suspended' %}bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800
+                            {% elif employee.status == 'terminated' %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700
+                            {% else %}bg-slate-50 text-slate-600 border border-slate-200{% endif %}">
+                            {{ employee.get_status_display }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        <span class="font-mono font-medium text-slate-700 dark:text-slate-300">{{ employee.code }}</span>
+                        {% if employee.position %} • {{ employee.position.title }}{% endif %}
+                        {% if employee.department %} • {{ employee.department.name }}{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'hr:employee_edit' public_id=employee.public_id %}"
+                   class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                    {% trans "Edit Profile" %}
+                </a>
+                <a href="{% url 'hr:employee_list' %}"
+                   class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                    {% trans "Back" %}
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Details & Sensitive Data (2 cols) -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Employment & Placement -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">
+                    {% trans "Employment & Placement" %}
+                </h2>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-4 text-sm">
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Hire Date" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.hire_date|date:"F d, Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Employment Type" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.get_employment_type_display }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Department" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.department.name|default:"—" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Branch / Location" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.branch.name|default:"—" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Reporting Manager" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">
+                            {% if employee.manager %}
+                            <a href="{% url 'hr:employee_detail' public_id=employee.manager.public_id %}" class="text-indigo-600 hover:underline">
+                                {{ employee.manager.full_name }}
+                            </a>
+                            {% else %}
+                            —
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Linked User Account" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.user.email|default:"None (Staff record only)" }}</dd>
+                    </div>
+                    {% if employee.termination_date %}
+                    <div class="sm:col-span-2">
+                        <dt class="text-xs font-semibold text-rose-500 uppercase">{% trans "Termination Date" %}</dt>
+                        <dd class="mt-1 font-medium text-rose-600">{{ employee.termination_date|date:"F d, Y" }}</dd>
+                    </div>
+                    {% endif %}
+                </dl>
+            </div>
+
+            <!-- Contact & Emergency -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">
+                    {% trans "Contact & Emergency Information" %}
+                </h2>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-4 text-sm">
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Work Email" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.work_email|default:"—" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Personal Email" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.personal_email|default:"—" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Phone" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.phone|default:"—" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Emergency Contact" %}</dt>
+                        <dd class="mt-1 font-medium text-slate-900 dark:text-white">
+                            {% if employee.emergency_contact_name %}
+                                {{ employee.emergency_contact_name }} ({{ employee.emergency_contact_phone|default:"No phone" }})
+                            {% else %}
+                                —
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <!-- Sensitive PII / Compensation -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">
+                        {% trans "Sensitive & Banking Data" %}
+                    </h2>
+                    {% if can_view_sensitive %}
+                    <span class="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-medium">
+                        🔓 {% trans "Sensitive Access Granted" %}
+                    </span>
+                    {% else %}
+                    <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium">
+                        🔒 {% trans "Masked" %}
+                    </span>
+                    {% endif %}
+                </div>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mt-4 text-sm">
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "National ID / SSN" %}</dt>
+                        <dd class="mt-1 font-mono font-medium text-slate-900 dark:text-white">
+                            {% if can_view_sensitive %}
+                                {{ employee.national_id|default:"—" }}
+                            {% else %}
+                                {{ employee.masked_national_id|default:"—" }}
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Bank Account / IBAN" %}</dt>
+                        <dd class="mt-1 font-mono font-medium text-slate-900 dark:text-white">
+                            {% if can_view_sensitive %}
+                                {{ employee.bank_account|default:"—" }}
+                            {% else %}
+                                {{ employee.masked_bank_account|default:"—" }}
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            {% if employee.notes %}
+            <!-- HR Notes -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">
+                    {% trans "Internal HR Notes" %}
+                </h2>
+                <div class="mt-4 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">
+                    {{ employee.notes }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Status Transition & Documents (1 col) -->
+        <div class="space-y-6">
+            <!-- Status Transition Card -->
+            {% if employee.status != 'terminated' %}
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">
+                    {% trans "Lifecycle Action" %}
+                </h2>
+                <form method="post" action="{% url 'hr:employee_status_transition' public_id=employee.public_id %}" class="mt-4 space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Transition Status" %}</label>
+                        {{ status_form.target_status }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Reason / Justification" %}</label>
+                        {{ status_form.reason }}
+                    </div>
+                    <div id="termination-date-field">
+                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Termination Date (if offboarding)" %}</label>
+                        {{ status_form.termination_date }}
+                    </div>
+                    <button type="submit" class="w-full py-2 px-4 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
+                        {% trans "Update Status" %}
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Documents & Dossier Card -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">
+                        {% trans "Documents & Contracts" %}
+                    </h2>
+                    <span class="text-xs text-slate-500 font-mono">{{ documents|length }} files</span>
+                </div>
+
+                <!-- Document List container -->
+                <div id="document-list" class="space-y-2">
+                    {% for doc in documents %}
+                        {% include "hr/partials/document_item.html" with doc=doc %}
+                    {% empty %}
+                        <p class="text-xs text-slate-400 py-3 text-center">{% trans "No documents attached yet." %}</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Upload Form -->
+                <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <h3 class="text-xs font-semibold uppercase text-slate-500 tracking-wider mb-2">{% trans "Upload Document" %}</h3>
+                    <form method="post" action="{% url 'hr:employee_document_upload' public_id=employee.public_id %}" enctype="multipart/form-data" class="space-y-3">
+                        {% csrf_token %}
+                        <div>
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">{% trans "Title" %}</label>
+                            {{ doc_form.title }}
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">{% trans "Type" %}</label>
+                            {{ doc_form.document_type }}
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">{% trans "File" %}</label>
+                            {{ doc_form.file }}
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">{% trans "Expiry (optional)" %}</label>
+                            {{ doc_form.expiry_date }}
+                        </div>
+                        <button type="submit" class="w-full py-2 px-3 rounded-lg text-xs font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 transition-colors">
+                            + {% trans "Attach File" %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

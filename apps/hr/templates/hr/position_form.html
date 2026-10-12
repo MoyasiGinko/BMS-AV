@@ -1,0 +1,91 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% if is_edit %}{% trans "Edit Position" %} {{ position.title }}{% else %}{% trans "New Position" %}{% endif %} | {{ request.organization.name }}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Breadcrumbs / Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <nav class="flex items-center text-sm text-slate-500 mb-2">
+                <a href="{% url 'hr:position_list' %}" class="hover:text-slate-800 dark:hover:text-white">{% trans "Positions" %}</a>
+                <span class="mx-2">/</span>
+                <span class="text-slate-800 dark:text-slate-200">{% if is_edit %}{{ position.title }}{% else %}{% trans "New" %}{% endif %}</span>
+            </nav>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">
+                {% if is_edit %}{% trans "Edit Position" %}{% else %}{% trans "Create Job Position" %}{% endif %}
+            </h1>
+        </div>
+        <a href="{% url 'hr:position_list' %}"
+           class="px-3.5 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            {% trans "Cancel" %}
+        </a>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <form method="post" class="p-6 space-y-5">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:rose-300 text-sm">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Position Title" %} *</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Code / Reference" %} *</label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.code.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Department" %}</label>
+                    {{ form.department }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Job Description" %}</label>
+                {{ form.description }}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Minimum Salary Band" %}</label>
+                    {{ form.min_salary }}
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Maximum Salary Band" %}</label>
+                    {{ form.max_salary }}
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-2">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {% trans "Active position (available for selection in employee profiles)" %}
+                </label>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end space-x-3">
+                <a href="{% url 'hr:position_list' %}"
+                   class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                    {% if is_edit %}{% trans "Save Position" %}{% else %}{% trans "Create Position" %}{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

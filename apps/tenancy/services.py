@@ -93,6 +93,7 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
         "reports.view",
         "integrations.view",
         "crm.view",
+        "hr.view",
     ],
 }
 

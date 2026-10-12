@@ -5761,6 +5761,552 @@ paths:
               schema:
                 $ref: '#/components/schemas/CustomerBalanceEntry'
           description: ''
+  /api/v1/hr/employees/:
+    get:
+      operationId: hr_employees_list
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: List employees
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - HR Employees
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEmployeeList'
+          description: ''
+    post:
+      operationId: hr_employees_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Create a new employee
+      tags:
+      - HR Employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreateRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeCreate'
+          description: ''
+  /api/v1/hr/employees/{public_id}/:
+    get:
+      operationId: hr_employees_retrieve
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Retrieve employee profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Employees
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    put:
+      operationId: hr_employees_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Update employee profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    patch:
+      operationId: hr_employees_partial_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Partially update employee profile
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    delete:
+      operationId: hr_employees_destroy
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Delete employee
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Employees
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/hr/employees/{public_id}/documents/:
+    get:
+      operationId: hr_employees_documents_retrieve
+      description: List or upload employee documents.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+    post:
+      operationId: hr_employees_documents_create
+      description: List or upload employee documents.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+          description: ''
+  /api/v1/hr/employees/{public_id}/transition/:
+    post:
+      operationId: hr_employees_transition_create
+      description: Advance or change employee lifecycle status.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeStatusTransitionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeStatusTransitionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeStatusTransitionRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeStatusTransition'
+          description: ''
+  /api/v1/hr/me/:
+    get:
+      operationId: hr_me_retrieve
+      description: Employee self-service profile endpoint for authenticated users.
+      summary: Retrieve own employee profile
+      tags:
+      - HR Self-Service
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelfServiceProfile'
+          description: ''
+    patch:
+      operationId: hr_me_partial_update
+      description: Employee self-service profile endpoint for authenticated users.
+      summary: Update own employee profile
+      tags:
+      - HR Self-Service
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSelfServiceProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSelfServiceProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSelfServiceProfileRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SelfServiceProfile'
+          description: ''
+  /api/v1/hr/positions/:
+    get:
+      operationId: hr_positions_list
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: List job positions
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - HR Positions
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPositionList'
+          description: ''
+    post:
+      operationId: hr_positions_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Create a new position
+      tags:
+      - HR Positions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PositionCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PositionCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PositionCreateRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionCreate'
+          description: ''
+  /api/v1/hr/positions/{public_id}/:
+    get:
+      operationId: hr_positions_retrieve
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Retrieve position detail
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Positions
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+          description: ''
+    put:
+      operationId: hr_positions_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Update position
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Positions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PositionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PositionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PositionRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+          description: ''
+    patch:
+      operationId: hr_positions_partial_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Partially update position
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Positions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPositionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPositionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPositionRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Position'
+          description: ''
+    delete:
+      operationId: hr_positions_destroy
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Delete position
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Positions
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/integrations/webhooks/:
     get:
       operationId: integrations_webhooks_list
@@ -13382,6 +13928,420 @@ components:
         * `business` - Business / Company
         * `government` - Government Agency
         * `non_profit` - Non-Profit Organization
+    Employee:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          title: Employee Code
+          maxLength: 32
+        first_name:
+          type: string
+          maxLength: 64
+        last_name:
+          type: string
+          maxLength: 64
+        full_name:
+          type: string
+          readOnly: true
+        work_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        personal_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          title: Phone Number
+          maxLength: 32
+        position:
+          type: integer
+          nullable: true
+        position_title:
+          type: string
+          readOnly: true
+        department:
+          type: integer
+          nullable: true
+        department_name:
+          type: string
+          readOnly: true
+        branch:
+          type: integer
+          nullable: true
+          title: Branch / Location
+        branch_name:
+          type: string
+          readOnly: true
+        manager:
+          type: integer
+          nullable: true
+          title: Reporting Manager
+        manager_name:
+          type: string
+          readOnly: true
+        hire_date:
+          type: string
+          format: date
+        termination_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBbaEnum'
+          title: Employment Status
+        employment_type:
+          $ref: '#/components/schemas/EmploymentTypeEnum'
+        national_id:
+          type: string
+          readOnly: true
+        bank_account:
+          type: string
+          readOnly: true
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          type: string
+          maxLength: 16
+        emergency_contact_name:
+          type: string
+          maxLength: 128
+        emergency_contact_phone:
+          type: string
+          maxLength: 32
+        notes:
+          type: string
+          title: Internal HR Notes
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - bank_account
+      - branch_name
+      - code
+      - created_at
+      - department_name
+      - first_name
+      - full_name
+      - hire_date
+      - id
+      - last_name
+      - manager_name
+      - national_id
+      - position_title
+      - public_id
+      - updated_at
+    EmployeeCreate:
+      type: object
+      properties:
+        code:
+          type: string
+          title: Employee Code
+          maxLength: 32
+        first_name:
+          type: string
+          maxLength: 64
+        last_name:
+          type: string
+          maxLength: 64
+        work_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        personal_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          title: Phone Number
+          maxLength: 32
+        position:
+          type: integer
+          nullable: true
+        department:
+          type: integer
+          nullable: true
+        branch:
+          type: integer
+          nullable: true
+          title: Branch / Location
+        user:
+          type: integer
+          nullable: true
+          title: Linked User Account
+        manager:
+          type: integer
+          nullable: true
+          title: Reporting Manager
+        hire_date:
+          type: string
+          format: date
+        employment_type:
+          $ref: '#/components/schemas/EmploymentTypeEnum'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBbaEnum'
+          title: Employment Status
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          type: string
+          maxLength: 16
+        emergency_contact_name:
+          type: string
+          maxLength: 128
+        emergency_contact_phone:
+          type: string
+          maxLength: 32
+        notes:
+          type: string
+          title: Internal HR Notes
+      required:
+      - code
+      - first_name
+      - hire_date
+      - last_name
+    EmployeeCreateRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          title: Employee Code
+          maxLength: 32
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        work_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        personal_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          title: Phone Number
+          maxLength: 32
+        position:
+          type: integer
+          nullable: true
+        department:
+          type: integer
+          nullable: true
+        branch:
+          type: integer
+          nullable: true
+          title: Branch / Location
+        user:
+          type: integer
+          nullable: true
+          title: Linked User Account
+        manager:
+          type: integer
+          nullable: true
+          title: Reporting Manager
+        hire_date:
+          type: string
+          format: date
+        employment_type:
+          $ref: '#/components/schemas/EmploymentTypeEnum'
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBbaEnum'
+          title: Employment Status
+        national_id:
+          type: string
+          writeOnly: true
+        bank_account:
+          type: string
+          writeOnly: true
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          type: string
+          maxLength: 16
+        emergency_contact_name:
+          type: string
+          maxLength: 128
+        emergency_contact_phone:
+          type: string
+          maxLength: 32
+        notes:
+          type: string
+          title: Internal HR Notes
+      required:
+      - code
+      - first_name
+      - hire_date
+      - last_name
+    EmployeeRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          title: Employee Code
+          maxLength: 32
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        work_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        personal_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          title: Phone Number
+          maxLength: 32
+        position:
+          type: integer
+          nullable: true
+        department:
+          type: integer
+          nullable: true
+        branch:
+          type: integer
+          nullable: true
+          title: Branch / Location
+        manager:
+          type: integer
+          nullable: true
+          title: Reporting Manager
+        hire_date:
+          type: string
+          format: date
+        termination_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBbaEnum'
+          title: Employment Status
+        employment_type:
+          $ref: '#/components/schemas/EmploymentTypeEnum'
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          type: string
+          maxLength: 16
+        emergency_contact_name:
+          type: string
+          maxLength: 128
+        emergency_contact_phone:
+          type: string
+          maxLength: 32
+        notes:
+          type: string
+          title: Internal HR Notes
+      required:
+      - code
+      - first_name
+      - hire_date
+      - last_name
+    EmployeeStatusTransition:
+      type: object
+      properties:
+        target_status:
+          $ref: '#/components/schemas/TargetStatusEnum'
+        termination_date:
+          type: string
+          format: date
+          nullable: true
+        reason:
+          type: string
+      required:
+      - target_status
+    EmployeeStatusTransitionRequest:
+      type: object
+      properties:
+        target_status:
+          $ref: '#/components/schemas/TargetStatusEnum'
+        termination_date:
+          type: string
+          format: date
+          nullable: true
+        reason:
+          type: string
+      required:
+      - target_status
+    EmploymentTypeEnum:
+      enum:
+      - full_time
+      - part_time
+      - contractor
+      - intern
+      type: string
+      description: |-
+        * `full_time` - Full-time
+        * `part_time` - Part-time
+        * `contractor` - Contractor
+        * `intern` - Intern
     ExchangeRate:
       type: object
       properties:
@@ -15947,6 +16907,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Customer'
+    PaginatedEmployeeList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Employee'
     PaginatedExchangeRateList:
       type: object
       required:
@@ -16327,6 +17306,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Plan'
+    PaginatedPositionList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
     PaginatedPriceListList:
       type: object
       required:
@@ -17052,6 +18050,83 @@ components:
         notes:
           type: string
           title: Internal Notes
+    PatchedEmployeeRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 1
+          title: Employee Code
+          maxLength: 32
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        work_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        personal_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          title: Phone Number
+          maxLength: 32
+        position:
+          type: integer
+          nullable: true
+        department:
+          type: integer
+          nullable: true
+        branch:
+          type: integer
+          nullable: true
+          title: Branch / Location
+        manager:
+          type: integer
+          nullable: true
+          title: Reporting Manager
+        hire_date:
+          type: string
+          format: date
+        termination_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBbaEnum'
+          title: Employment Status
+        employment_type:
+          $ref: '#/components/schemas/EmploymentTypeEnum'
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          type: string
+          maxLength: 16
+        emergency_contact_name:
+          type: string
+          maxLength: 128
+        emergency_contact_phone:
+          type: string
+          maxLength: 32
+        notes:
+          type: string
+          title: Internal HR Notes
     PatchedExchangeRateRequest:
       type: object
       properties:
@@ -17471,6 +18546,36 @@ components:
           type: boolean
         is_active:
           type: boolean
+    PatchedPositionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Job Title
+          maxLength: 128
+        code:
+          type: string
+          minLength: 1
+          title: Position Code
+          maxLength: 32
+        department:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        min_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Minimum Salary
+        max_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Maximum Salary
+        is_active:
+          type: boolean
     PatchedPriceListRequest:
       type: object
       description: Serializer for Price List.
@@ -17726,6 +18831,26 @@ components:
         terms:
           type: string
           title: Terms and Conditions
+    PatchedSelfServiceProfileRequest:
+      type: object
+      properties:
+        personal_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          title: Phone Number
+          maxLength: 32
+        emergency_contact_name:
+          type: string
+          maxLength: 128
+        emergency_contact_phone:
+          type: string
+          maxLength: 32
     PatchedStockLevelRequest:
       type: object
       description: Serializer for cached warehouse stock levels.
@@ -18541,6 +19666,158 @@ components:
         included:
           type: boolean
           title: Included in plan
+    Position:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          title: Job Title
+          maxLength: 128
+        code:
+          type: string
+          title: Position Code
+          maxLength: 32
+        department:
+          type: integer
+          nullable: true
+        department_name:
+          type: string
+          readOnly: true
+        description:
+          type: string
+        min_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Minimum Salary
+        max_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Maximum Salary
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - code
+      - created_at
+      - department_name
+      - id
+      - public_id
+      - title
+      - updated_at
+    PositionCreate:
+      type: object
+      properties:
+        title:
+          type: string
+          title: Job Title
+          maxLength: 128
+        code:
+          type: string
+          title: Position Code
+          maxLength: 32
+        department:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        min_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Minimum Salary
+        max_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Maximum Salary
+        is_active:
+          type: boolean
+      required:
+      - code
+      - title
+    PositionCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Job Title
+          maxLength: 128
+        code:
+          type: string
+          minLength: 1
+          title: Position Code
+          maxLength: 32
+        department:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        min_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Minimum Salary
+        max_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Maximum Salary
+        is_active:
+          type: boolean
+      required:
+      - code
+      - title
+    PositionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Job Title
+          maxLength: 128
+        code:
+          type: string
+          minLength: 1
+          title: Position Code
+          maxLength: 32
+        department:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        min_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Minimum Salary
+        max_salary:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,4})?$
+          title: Maximum Salary
+        is_active:
+          type: boolean
+      required:
+      - code
+      - title
     PriceList:
       type: object
       description: Serializer for Price List.
@@ -20456,6 +21733,87 @@ components:
           type: string
       required:
       - secret
+    SelfServiceProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          readOnly: true
+          title: Employee Code
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        work_email:
+          type: string
+          format: email
+          readOnly: true
+        personal_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          title: Phone Number
+          maxLength: 32
+        position_title:
+          type: string
+          readOnly: true
+        department_name:
+          type: string
+          readOnly: true
+        branch_name:
+          type: string
+          readOnly: true
+        hire_date:
+          type: string
+          format: date
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusBbaEnum'
+          readOnly: true
+          title: Employment Status
+        employment_type:
+          allOf:
+          - $ref: '#/components/schemas/EmploymentTypeEnum'
+          readOnly: true
+        emergency_contact_name:
+          type: string
+          maxLength: 128
+        emergency_contact_phone:
+          type: string
+          maxLength: 32
+      required:
+      - branch_name
+      - code
+      - department_name
+      - employment_type
+      - first_name
+      - full_name
+      - hire_date
+      - id
+      - last_name
+      - position_title
+      - public_id
+      - status
+      - work_email
     SourceEnum:
       enum:
       - website
@@ -20555,6 +21913,20 @@ components:
         * `qualified` - Qualified
         * `unqualified` - Unqualified
         * `converted` - Converted
+    StatusBbaEnum:
+      enum:
+      - draft
+      - active
+      - on_leave
+      - suspended
+      - terminated
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `active` - Active
+        * `on_leave` - On Leave
+        * `suspended` - Suspended
+        * `terminated` - Terminated
     StockAdjustment:
       type: object
       description: Serializer for stock adjustment documents.
@@ -21909,6 +23281,20 @@ components:
           maxLength: 16
       required:
       - name
+    TargetStatusEnum:
+      enum:
+      - draft
+      - active
+      - on_leave
+      - suspended
+      - terminated
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `active` - Active
+        * `on_leave` - On Leave
+        * `suspended` - Suspended
+        * `terminated` - Terminated
     TaxPeriodSummary:
       type: object
       properties:
