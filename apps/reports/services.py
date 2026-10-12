@@ -120,6 +120,7 @@ def _fetch_report_data(
     product_id = _parse_int_param(parameters.get("product_id"))
     customer_id = _parse_int_param(parameters.get("customer_id"))
     account_id = _parse_int_param(parameters.get("account_id"))
+    department_id = _parse_int_param(parameters.get("department_id"))
     as_of_d = _parse_date_param(parameters.get("as_of_date")) or end_d or timezone.localdate()
     movement_type = parameters.get("movement_type") or None
     low_stock_only = bool(parameters.get("low_stock_only", False))
@@ -206,6 +207,28 @@ def _fetch_report_data(
             organization,
             start_date=effective_start,
             end_date=effective_end,
+        ),
+        ReportType.HEADCOUNT: lambda: selectors.get_headcount_report(
+            organization,
+            as_of_date=as_of_d,
+            department_id=department_id,
+        ),
+        ReportType.ATTENDANCE: lambda: selectors.get_workforce_attendance_report(
+            organization,
+            start_date=effective_start,
+            end_date=effective_end,
+            department_id=department_id,
+        ),
+        ReportType.PAYROLL_COST: lambda: selectors.get_payroll_cost_report(
+            organization,
+            start_date=effective_start,
+            end_date=effective_end,
+        ),
+        ReportType.EMPLOYEE_PERFORMANCE: lambda: selectors.get_employee_performance_report(
+            organization,
+            start_date=effective_start,
+            end_date=effective_end,
+            department_id=department_id,
         ),
     }
 

@@ -1,0 +1,159 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb / Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Employee Performance" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Employee Performance & Reliability Basics" %}</h1>
+        </div>
+        <div class="flex items-center gap-2" x-data="{ exportOpen: false }">
+            <div class="relative inline-block text-left">
+                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                    <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    {% trans "Export Report" %}
+                    <svg class="w-4 h-4 ml-1.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700 z-50">
+                    <div class="py-1">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "CSV Spreadsheet" %}
+                        </button>
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "Excel (XLSX)" %}
+                        </button>
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                            {% trans "PDF Document" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Notification Container -->
+    <div id="export-container"></div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form id="filter-form" method="get" class="flex flex-wrap gap-4 items-end">
+            <div class="w-44">
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Start Date" %}</label>
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="w-44">
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "End Date" %}</label>
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="w-56">
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Department" %}</label>
+                <select name="department_id" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">{% trans "All Departments" %}</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if selected_department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">
+                    {% trans "Update Report" %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Staff Evaluated" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white font-mono mt-1">{{ data.summary.total_evaluated }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Excellent Ratings" %}</span>
+            <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-1">{{ data.summary.excellent_count }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Needs Attention" %}</span>
+            <div class="text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono mt-1">{{ data.summary.needs_attention_count }}</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Avg Team Punctuality" %}</span>
+            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono mt-1">{{ data.summary.avg_punctuality }}%</div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">{% trans "Code" %}</th>
+                        <th class="px-4 py-3">{% trans "Employee Name" %}</th>
+                        <th class="px-4 py-3">{% trans "Department" %}</th>
+                        <th class="px-4 py-3">{% trans "Position" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Tenure (Mo)" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Days Present" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Late Days" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Punctuality %" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Attendance %" %}</th>
+                        <th class="px-4 py-3">{% trans "Reliability Rating" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {% for row in data.rows %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                        <td class="px-4 py-3 font-mono font-medium text-slate-900 dark:text-white">{{ row.code }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ row.name }}</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ row.department }}</td>
+                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ row.position }}</td>
+                        <td class="px-4 py-3 text-right font-mono">{{ row.tenure_months }}</td>
+                        <td class="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-white">{{ row.present_days }}</td>
+                        <td class="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400">{{ row.late_days }}</td>
+                        <td class="px-4 py-3 text-right font-mono font-semibold text-teal-600 dark:text-teal-400">{{ row.punctuality_rate }}%</td>
+                        <td class="px-4 py-3 text-right font-mono">{{ row.attendance_rate }}%</td>
+                        <td class="px-4 py-3">
+                            {% if row.rating == "Excellent" %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                {% trans "Excellent" %}
+                            </span>
+                            {% elif row.rating == "Good" %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                {% trans "Good" %}
+                            </span>
+                            {% elif row.rating == "Satisfactory" %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                {% trans "Satisfactory" %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                                {% trans "Needs Attention" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                            {% trans "No performance evaluation records found for this period." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

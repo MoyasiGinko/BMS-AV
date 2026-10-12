@@ -191,3 +191,75 @@ class BranchPerformanceWidget(DashboardWidget):
         return {
             "branch_performance_kpi": selectors.get_branch_performance_kpi(organization),
         }
+
+
+class HeadcountWidget(DashboardWidget):
+    """Workforce headcount KPI card showing active staff, department breakdown, and turnover."""
+
+    widget_id = "headcount"
+    title = _("Workforce Headcount")
+    description = _("Active headcount, departmental distribution, and hiring trends")
+    module = "hr"
+    permission = "hr.view"
+    col_span = 4
+    order = 30
+    template_name = "reports/widgets/headcount.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "headcount_kpi": selectors.get_headcount_kpi(organization),
+        }
+
+
+class AttendanceWidget(DashboardWidget):
+    """Workforce attendance KPI card showing today's present, late, on leave, and attendance rate."""
+
+    widget_id = "attendance"
+    title = _("Today's Attendance")
+    description = _("Real-time workforce presence, late check-ins, and active leaves")
+    module = "hr"
+    permission = "hr.view"
+    col_span = 4
+    order = 31
+    template_name = "reports/widgets/attendance.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "attendance_kpi": selectors.get_workforce_attendance_kpi(organization),
+        }
+
+
+class PayrollCostWidget(DashboardWidget):
+    """Payroll cost KPI card showing latest run expense, deductions, net pay, and multi-run trend."""
+
+    widget_id = "payroll_cost"
+    title = _("Payroll Cost")
+    description = _("Recent payroll expense runs, deductions, and average compensation")
+    module = "payroll"
+    permission = "payroll.view"
+    col_span = 4
+    order = 32
+    template_name = "reports/widgets/payroll_cost.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "payroll_cost_kpi": selectors.get_payroll_cost_kpi(organization),
+        }
+
+
+class EmployeePerformanceWidget(DashboardWidget):
+    """Employee performance scorecard card showing punctuality rate, top punctual staff, and tenure."""
+
+    widget_id = "employee_performance"
+    title = _("Employee Performance")
+    description = _("Punctuality rates, attendance reliability, and tenure milestones")
+    module = "hr"
+    permission = "hr.view"
+    col_span = 6
+    order = 33
+    template_name = "reports/widgets/employee_performance.html"
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        return {
+            "performance_kpi": selectors.get_employee_performance_kpi(organization),
+        }

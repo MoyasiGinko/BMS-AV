@@ -619,6 +619,185 @@ def _meta_tax_summary(
     return title, headers, rows, totals
 
 
+def _meta_headcount(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    title = f"Headcount Report as of {data.get('as_of_date', '')}"
+    headers = [
+        "Code",
+        "Employee Name",
+        "Department",
+        "Position",
+        "Branch",
+        "Hire Date",
+        "Status",
+        "Employment Type",
+    ]
+    rows = [
+        [
+            str(r["code"]),
+            str(r["name"]),
+            str(r["department"]),
+            str(r["position"]),
+            str(r["branch"]),
+            str(r["hire_date"]),
+            str(r["status_display"]),
+            str(r["employment_type"]),
+        ]
+        for r in data.get("rows", [])
+    ]
+    s = data.get("summary", {})
+    totals = [
+        "TOTAL HEADCOUNT",
+        str(s.get("total_headcount", 0)),
+        f"Active: {s.get('active_count', 0)}",
+        f"Turnover: {s.get('turnover_rate', 0)}%",
+        "",
+        "",
+        "",
+        "",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_attendance(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    p = data.get("period", {})
+    title = f"Workforce Attendance ({p.get('start_date', '')} to {p.get('end_date', '')})"
+    headers = [
+        "Code",
+        "Employee Name",
+        "Department",
+        "Position",
+        "Present Days",
+        "Late Days",
+        "Leave Days",
+        "Attendance %",
+        "Punctuality %",
+    ]
+    rows = [
+        [
+            str(r["code"]),
+            str(r["name"]),
+            str(r["department"]),
+            str(r["position"]),
+            str(r["present_days"]),
+            str(r["late_days"]),
+            str(r["leave_days"]),
+            f"{r['attendance_rate']:.1f}%",
+            f"{r['punctuality_rate']:.1f}%",
+        ]
+        for r in data.get("rows", [])
+    ]
+    s = data.get("summary", {})
+    totals = [
+        "AVERAGES",
+        f"Staff: {s.get('total_employees', 0)}",
+        "",
+        "",
+        f"Tot Present: {s.get('total_present_days', 0)}",
+        f"Tot Late: {s.get('total_late_days', 0)}",
+        f"Tot Leaves: {s.get('total_leave_days', 0)}",
+        f"{s.get('avg_attendance_rate', 0):.1f}%",
+        f"{s.get('avg_punctuality_rate', 0):.1f}%",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_payroll_cost(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    p = data.get("period", {})
+    title = f"Payroll Cost Report ({p.get('start_date', '')} to {p.get('end_date', '')})"
+    headers = [
+        "Run #",
+        "Period Start",
+        "Period End",
+        "Payment Date",
+        "Payslips",
+        "Gross Pay",
+        "Deductions",
+        "Net Pay",
+        "Status",
+    ]
+    rows = [
+        [
+            str(r["number"]),
+            str(r["period_start"]),
+            str(r["period_end"]),
+            str(r["payment_date"]),
+            str(r["payslip_count"]),
+            f"{r['gross_pay']:.2f}",
+            f"{r['deductions']:.2f}",
+            f"{r['net_pay']:.2f}",
+            str(r["status_display"]),
+        ]
+        for r in data.get("rows", [])
+    ]
+    s = data.get("summary", {})
+    totals = [
+        "TOTALS",
+        f"Runs: {s.get('run_count', 0)}",
+        "",
+        "",
+        f"Payslips: {s.get('total_payslips', 0)}",
+        f"{s.get('total_gross_pay', 0):.2f}",
+        f"{s.get('total_deductions', 0):.2f}",
+        f"{s.get('total_net_pay', 0):.2f}",
+        "",
+    ]
+    return title, headers, rows, totals
+
+
+def _meta_employee_performance(
+    data: dict[str, Any],
+) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    p = data.get("period", {})
+    title = f"Employee Performance Scorecard ({p.get('start_date', '')} to {p.get('end_date', '')})"
+    headers = [
+        "Code",
+        "Employee Name",
+        "Department",
+        "Position",
+        "Tenure (Mo)",
+        "Present Days",
+        "Late Days",
+        "Punctuality %",
+        "Attendance %",
+        "Rating",
+    ]
+    rows = [
+        [
+            str(r["code"]),
+            str(r["name"]),
+            str(r["department"]),
+            str(r["position"]),
+            str(r["tenure_months"]),
+            str(r["present_days"]),
+            str(r["late_days"]),
+            f"{r['punctuality_rate']:.1f}%",
+            f"{r['attendance_rate']:.1f}%",
+            str(r["rating"]),
+        ]
+        for r in data.get("rows", [])
+    ]
+    s = data.get("summary", {})
+    totals = [
+        "SUMMARY",
+        f"Staff: {s.get('total_evaluated', 0)}",
+        f"Excellent: {s.get('excellent_count', 0)}",
+        f"Good: {s.get('good_count', 0)}",
+        f"Needs Attn: {s.get('needs_attention_count', 0)}",
+        "",
+        "",
+        f"Avg Punct: {s.get('avg_punctuality', 0):.1f}%",
+        "",
+        "",
+    ]
+    return title, headers, rows, totals
+
+
 META_BUILDERS: dict[str, Any] = {
     ReportType.SALES_BY_PRODUCT: _meta_sales_product,
     ReportType.SALES_BY_CUSTOMER: _meta_sales_customer,
@@ -635,6 +814,10 @@ META_BUILDERS: dict[str, Any] = {
     ReportType.AGED_RECEIVABLES: _meta_aged_receivables,
     ReportType.AGED_PAYABLES: _meta_aged_payables,
     ReportType.TAX_SUMMARY: _meta_tax_summary,
+    ReportType.HEADCOUNT: _meta_headcount,
+    ReportType.ATTENDANCE: _meta_attendance,
+    ReportType.PAYROLL_COST: _meta_payroll_cost,
+    ReportType.EMPLOYEE_PERFORMANCE: _meta_employee_performance,
 }
 
 

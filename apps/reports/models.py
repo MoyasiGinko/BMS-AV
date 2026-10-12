@@ -39,6 +39,10 @@ class ReportType(models.TextChoices):
     AGED_RECEIVABLES = "aged_receivables", _("Aged Receivables")
     AGED_PAYABLES = "aged_payables", _("Aged Payables")
     TAX_SUMMARY = "tax_summary", _("Tax Summary")
+    HEADCOUNT = "headcount", _("Headcount & Turnover")
+    ATTENDANCE = "attendance", _("Workforce Attendance & Leave")
+    PAYROLL_COST = "payroll_cost", _("Payroll Cost & Compensation")
+    EMPLOYEE_PERFORMANCE = "employee_performance", _("Employee Performance Basics")
 
 
 class ExportJob(TenantModel):

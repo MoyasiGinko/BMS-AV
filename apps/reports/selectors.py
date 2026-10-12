@@ -8,6 +8,7 @@ from typing import Any
 
 from django.db.models import Count, F, Q, Sum
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from apps.accounting.models import (
     Account,
@@ -22,7 +23,20 @@ from apps.accounting.models import (
 from apps.core.models import OutboxEvent
 from apps.customers import selectors as customer_selectors
 from apps.customers.models import Customer
+from apps.hr.models import (
+    AttendanceRecord,
+    AttendanceStatus,
+    Employee,
+    EmployeeStatus,
+    LeaveRequest,
+    LeaveRequestStatus,
+)
 from apps.inventory.models import StockLevel, StockMovement
+from apps.payroll.models import (
+    PayrollRun,
+    PayrollRunStatus,
+    Payslip,
+)
 from apps.pos.models import POSSale
 from apps.purchasing.models import (
     SupplierBill,
@@ -2279,4 +2293,570 @@ def get_tax_summary_report(
         },
         "net_tax_payable": net_tax_payable,
         "is_payable": net_tax_payable >= ZERO_DECIMAL,
+    }
+
+
+# ===========================================================================
+# Human Resources & Payroll Selectors (P4-05)
+# ===========================================================================
+
+
+def get_headcount_kpi(
+    organization: Organization,
+    *,
+    today: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Calculate current active workforce metrics, turnover, and department distribution."""
+    current_date = today or timezone.localdate()
+    qs = Employee.all_tenants.filter(organization=organization)
+
+    total_count = qs.count()
+    active_count = qs.filter(status=EmployeeStatus.ACTIVE).count()
+    draft_count = qs.filter(status=EmployeeStatus.DRAFT).count()
+    on_leave_count = qs.filter(status=EmployeeStatus.ON_LEAVE).count()
+    suspended_count = qs.filter(status=EmployeeStatus.SUSPENDED).count()
+    terminated_count = qs.filter(status=EmployeeStatus.TERMINATED).count()
+
+    new_hires_month = qs.filter(
+        hire_date__year=current_date.year,
+        hire_date__month=current_date.month,
+    ).count()
+
+    departures_year = qs.filter(
+        termination_date__year=current_date.year,
+    ).count()
+
+    avg_base = active_count + departures_year
+    turnover_rate = round((departures_year / avg_base * 100), 1) if avg_base > 0 else 0.0
+
+    dept_qs = (
+        qs.values("department__name")
+        .annotate(
+            total=Count("id"),
+            active=Count("id", filter=Q(status=EmployeeStatus.ACTIVE)),
+        )
+        .order_by("-active")
+    )
+    departments = [
+        {
+            "name": d["department__name"] or _("Unassigned"),
+            "total": d["total"],
+            "active": d["active"],
+            "percentage": round((d["active"] / active_count * 100), 1) if active_count > 0 else 0.0,
+        }
+        for d in dept_qs
+    ]
+
+    emp_type_qs = (
+        qs.filter(status=EmployeeStatus.ACTIVE).values("employment_type").annotate(count=Count("id"))
+    )
+    emp_types = {item["employment_type"]: item["count"] for item in emp_type_qs}
+
+    return {
+        "date": current_date,
+        "total_count": total_count,
+        "active_count": active_count,
+        "draft_count": draft_count,
+        "on_leave_count": on_leave_count,
+        "suspended_count": suspended_count,
+        "terminated_count": terminated_count,
+        "new_hires_month": new_hires_month,
+        "departures_year": departures_year,
+        "turnover_rate": turnover_rate,
+        "departments": departments,
+        "employment_types": emp_types,
+    }
+
+
+def get_headcount_report(
+    organization: Organization,
+    *,
+    as_of_date: datetime.date | None = None,
+    department_id: int | None = None,
+) -> dict[str, Any]:
+    """Operational report: Employee roster, department distribution, and employment status."""
+    as_of = as_of_date or timezone.localdate()
+    qs = Employee.all_tenants.filter(organization=organization, hire_date__lte=as_of).select_related(
+        "department", "position", "branch"
+    )
+    if department_id:
+        qs = qs.filter(department_id=department_id)
+
+    qs = qs.exclude(termination_date__lt=as_of).order_by("department__name", "last_name", "first_name")
+
+    rows = []
+    for emp in qs:
+        rows.append(
+            {
+                "code": emp.code,
+                "name": emp.full_name,
+                "department": emp.department.name if emp.department else "—",
+                "position": emp.position.title if emp.position else "—",
+                "branch": emp.branch.name if emp.branch else "—",
+                "hire_date": emp.hire_date,
+                "status": emp.status,
+                "status_display": emp.get_status_display(),
+                "employment_type": emp.get_employment_type_display(),
+            }
+        )
+
+    kpi = get_headcount_kpi(organization, today=as_of)
+    return {
+        "as_of_date": as_of,
+        "rows": rows,
+        "summary": {
+            "total_headcount": len(rows),
+            "active_count": sum(1 for r in rows if r["status"] == EmployeeStatus.ACTIVE),
+            "department_count": len({r["department"] for r in rows if r["department"] != "—"}),
+            "turnover_rate": kpi["turnover_rate"],
+        },
+    }
+
+
+def get_workforce_attendance_kpi(
+    organization: Organization,
+    *,
+    today: datetime.date | None = None,
+) -> dict[str, Any]:
+    """Today's real-time attendance KPIs: present, late, on-leave, and attendance rate."""
+    target_date = today or timezone.localdate()
+    emp_qs = Employee.all_tenants.filter(organization=organization, status=EmployeeStatus.ACTIVE)
+    scheduled_count = emp_qs.count()
+
+    att_qs = AttendanceRecord.all_tenants.filter(
+        organization=organization,
+        date=target_date,
+    ).select_related("employee", "shift")
+
+    present_count = att_qs.filter(
+        status__in=[AttendanceStatus.PRESENT, AttendanceStatus.LATE, AttendanceStatus.HALF_DAY]
+    ).count()
+    late_count = att_qs.filter(status=AttendanceStatus.LATE).count()
+    half_day_count = att_qs.filter(status=AttendanceStatus.HALF_DAY).count()
+    on_leave_recorded = att_qs.filter(status=AttendanceStatus.ON_LEAVE).count()
+
+    approved_leaves_count = LeaveRequest.all_tenants.filter(
+        organization=organization,
+        status=LeaveRequestStatus.APPROVED,
+        start_date__lte=target_date,
+        end_date__gte=target_date,
+    ).count()
+    total_on_leave = max(on_leave_recorded, approved_leaves_count)
+
+    absent_count = max(0, scheduled_count - present_count - total_on_leave)
+    attendance_rate = round((present_count / (scheduled_count or 1)) * 100, 1) if scheduled_count > 0 else 0.0
+
+    recent_records = []
+    for rec in att_qs.order_by("-check_in")[:5]:
+        recent_records.append(
+            {
+                "employee_name": rec.employee.full_name,
+                "status": rec.status,
+                "status_display": rec.get_status_display(),
+                "check_in": rec.check_in,
+                "check_out": rec.check_out,
+                "shift_name": rec.shift.name if rec.shift else "—",
+                "work_hours": rec.work_hours,
+            }
+        )
+
+    return {
+        "date": target_date,
+        "scheduled_count": scheduled_count,
+        "present_count": present_count,
+        "late_count": late_count,
+        "half_day_count": half_day_count,
+        "on_leave_count": total_on_leave,
+        "absent_count": absent_count,
+        "attendance_rate": attendance_rate,
+        "recent_records": recent_records,
+    }
+
+
+def get_workforce_attendance_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+    department_id: int | None = None,
+) -> dict[str, Any]:
+    """Operational report: Employee attendance summary, shifts worked, late days, and leave taken."""
+    emp_qs = Employee.all_tenants.filter(
+        organization=organization, status=EmployeeStatus.ACTIVE
+    ).select_related("department", "position")
+    if department_id:
+        emp_qs = emp_qs.filter(department_id=department_id)
+
+    att_qs = AttendanceRecord.all_tenants.filter(
+        organization=organization,
+        date__gte=start_date,
+        date__lte=end_date,
+    )
+    if department_id:
+        att_qs = att_qs.filter(employee__department_id=department_id)
+
+    emp_stats: dict[int, dict[str, int]] = {}
+    for att in att_qs:
+        st = emp_stats.setdefault(
+            att.employee_id, {"present": 0, "late": 0, "absent": 0, "half_day": 0, "leave": 0}
+        )
+        if att.status in [AttendanceStatus.PRESENT, AttendanceStatus.LATE, AttendanceStatus.HALF_DAY]:
+            st["present"] += 1
+            if att.status == AttendanceStatus.LATE:
+                st["late"] += 1
+            elif att.status == AttendanceStatus.HALF_DAY:
+                st["half_day"] += 1
+        elif att.status == AttendanceStatus.ABSENT:
+            st["absent"] += 1
+        elif att.status == AttendanceStatus.ON_LEAVE:
+            st["leave"] += 1
+
+    leave_qs = LeaveRequest.all_tenants.filter(
+        organization=organization,
+        status=LeaveRequestStatus.APPROVED,
+        start_date__lte=end_date,
+        end_date__gte=start_date,
+    )
+    if department_id:
+        leave_qs = leave_qs.filter(employee__department_id=department_id)
+    for lr in leave_qs:
+        st = emp_stats.setdefault(
+            lr.employee_id, {"present": 0, "late": 0, "absent": 0, "half_day": 0, "leave": 0}
+        )
+        st["leave"] += int(lr.days_count)
+
+    num_days = max(1, (end_date - start_date).days + 1)
+    rows = []
+    tot_present = 0
+    tot_late = 0
+    tot_leave = 0
+
+    for emp in emp_qs:
+        st = emp_stats.get(emp.id, {"present": 0, "late": 0, "absent": 0, "half_day": 0, "leave": 0})
+        p = st["present"]
+        late_cnt = st["late"]
+        lv = st["leave"]
+        tot_present += p
+        tot_late += late_cnt
+        tot_leave += lv
+        att_pct = round((p / num_days) * 100, 1)
+        punct_pct = round(((p - late_cnt) / (p or 1)) * 100, 1) if p > 0 else 0.0
+
+        rows.append(
+            {
+                "code": emp.code,
+                "name": emp.full_name,
+                "department": emp.department.name if emp.department else "—",
+                "position": emp.position.title if emp.position else "—",
+                "present_days": p,
+                "late_days": late_cnt,
+                "leave_days": lv,
+                "attendance_rate": att_pct,
+                "punctuality_rate": punct_pct,
+            }
+        )
+
+    rows.sort(key=lambda r: (r["department"], r["name"]))
+    return {
+        "period": {"start_date": start_date, "end_date": end_date, "days": num_days},
+        "rows": rows,
+        "summary": {
+            "total_employees": len(rows),
+            "total_present_days": tot_present,
+            "total_late_days": tot_late,
+            "total_leave_days": tot_leave,
+            "avg_attendance_rate": (
+                round(sum(r["attendance_rate"] for r in rows) / len(rows), 1) if rows else 0.0
+            ),
+            "avg_punctuality_rate": (
+                round(sum(r["punctuality_rate"] for r in rows) / len(rows), 1) if rows else 0.0
+            ),
+        },
+    }
+
+
+def get_payroll_cost_kpi(organization: Organization) -> dict[str, Any]:
+    """Summary of latest payroll expenditure, active staff averages, and multi-period trend."""
+    latest_run = (
+        PayrollRun.all_tenants.filter(
+            organization=organization,
+            status__in=[PayrollRunStatus.APPROVED, PayrollRunStatus.PAID],
+        )
+        .order_by("-period_end")
+        .first()
+    )
+    if not latest_run:
+        latest_run = PayrollRun.all_tenants.filter(organization=organization).order_by("-period_end").first()
+
+    gross = latest_run.total_gross_pay if latest_run else ZERO_DECIMAL
+    deductions = latest_run.total_deductions if latest_run else ZERO_DECIMAL
+    net = latest_run.total_net_pay if latest_run else ZERO_DECIMAL
+
+    active_emp_count = Employee.all_tenants.filter(
+        organization=organization,
+        status=EmployeeStatus.ACTIVE,
+    ).count()
+    avg_compensation = (
+        (gross / Decimal(active_emp_count)).quantize(Decimal("0.01"))
+        if active_emp_count > 0 and gross > 0
+        else Decimal("0.00")
+    )
+
+    recent_runs_qs = (
+        PayrollRun.all_tenants.filter(organization=organization)
+        .exclude(status=PayrollRunStatus.CANCELLED)
+        .order_by("-period_end")[:6]
+    )
+    history = [
+        {
+            "number": r.number,
+            "period_end": r.period_end,
+            "label": r.period_end.strftime("%b %Y"),
+            "gross": r.total_gross_pay,
+            "deductions": r.total_deductions,
+            "net": r.total_net_pay,
+            "status": r.status,
+        }
+        for r in reversed(list(recent_runs_qs))
+    ]
+
+    return {
+        "currency": organization.base_currency or "USD",
+        "latest_run": (
+            {
+                "number": latest_run.number,
+                "period_start": latest_run.period_start,
+                "period_end": latest_run.period_end,
+                "payment_date": latest_run.payment_date,
+                "status": latest_run.status,
+            }
+            if latest_run
+            else None
+        ),
+        "gross_pay": gross,
+        "deductions": deductions,
+        "net_pay": net,
+        "active_employees": active_emp_count,
+        "avg_compensation": avg_compensation,
+        "history": history,
+    }
+
+
+def get_payroll_cost_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> dict[str, Any]:
+    """Operational report: Payroll run costs, gross vs net disbursements, and department allocation."""
+    runs_qs = (
+        PayrollRun.all_tenants.filter(
+            organization=organization,
+            period_start__gte=start_date,
+            period_end__lte=end_date,
+        )
+        .exclude(status=PayrollRunStatus.CANCELLED)
+        .order_by("-period_end")
+    )
+
+    rows = []
+    tot_gross = ZERO_DECIMAL
+    tot_deductions = ZERO_DECIMAL
+    tot_net = ZERO_DECIMAL
+    tot_payslips = 0
+
+    for run in runs_qs:
+        payslip_count = Payslip.all_tenants.filter(payroll_run=run).count()
+        tot_payslips += payslip_count
+        tot_gross += run.total_gross_pay
+        tot_deductions += run.total_deductions
+        tot_net += run.total_net_pay
+
+        rows.append(
+            {
+                "number": run.number,
+                "period_start": run.period_start,
+                "period_end": run.period_end,
+                "payment_date": run.payment_date,
+                "payslip_count": payslip_count,
+                "gross_pay": run.total_gross_pay,
+                "deductions": run.total_deductions,
+                "net_pay": run.total_net_pay,
+                "status": run.status,
+                "status_display": run.get_status_display(),
+            }
+        )
+
+    dept_qs = (
+        Payslip.all_tenants.filter(payroll_run__in=runs_qs)
+        .values("employee__department__name")
+        .annotate(
+            dept_gross=Sum("gross_pay"),
+            dept_deductions=Sum("total_deductions"),
+            dept_net=Sum("net_pay"),
+            dept_count=Count("id"),
+        )
+        .order_by("-dept_gross")
+    )
+    departments = [
+        {
+            "name": d["employee__department__name"] or _("Unassigned"),
+            "gross": d["dept_gross"] or ZERO_DECIMAL,
+            "deductions": d["dept_deductions"] or ZERO_DECIMAL,
+            "net": d["dept_net"] or ZERO_DECIMAL,
+            "payslip_count": d["dept_count"],
+        }
+        for d in dept_qs
+    ]
+
+    return {
+        "period": {"start_date": start_date, "end_date": end_date},
+        "currency": organization.base_currency or "USD",
+        "rows": rows,
+        "departments": departments,
+        "summary": {
+            "run_count": len(rows),
+            "total_payslips": tot_payslips,
+            "total_gross_pay": tot_gross,
+            "total_deductions": tot_deductions,
+            "total_net_pay": tot_net,
+        },
+    }
+
+
+def get_employee_performance_kpi(organization: Organization) -> dict[str, Any]:
+    """Scorecard KPIs: Team punctuality rate, top reliable staff, and tenure distribution."""
+    today = timezone.localdate()
+    thirty_days_ago = today - datetime.timedelta(days=30)
+    emp_qs = Employee.all_tenants.filter(organization=organization, status=EmployeeStatus.ACTIVE)
+
+    att_qs = AttendanceRecord.all_tenants.filter(
+        organization=organization,
+        date__gte=thirty_days_ago,
+        date__lte=today,
+    )
+    total_att = att_qs.count()
+    on_time_att = att_qs.filter(status=AttendanceStatus.PRESENT).count()
+    overall_punctuality = round((on_time_att / (total_att or 1)) * 100, 1) if total_att > 0 else 100.0
+
+    emp_punct = (
+        att_qs.values("employee_id", "employee__first_name", "employee__last_name", "employee__code")
+        .annotate(
+            on_time_count=Count("id", filter=Q(status=AttendanceStatus.PRESENT)),
+            total_count=Count("id"),
+        )
+        .filter(total_count__gte=1)
+        .order_by("-on_time_count")[:5]
+    )
+    top_punctual = [
+        {
+            "name": f"{p['employee__first_name']} {p['employee__last_name']}".strip(),
+            "code": p["employee__code"],
+            "on_time": p["on_time_count"],
+            "total": p["total_count"],
+            "rate": round((p["on_time_count"] / p["total_count"]) * 100, 1),
+        }
+        for p in emp_punct
+    ]
+
+    under_1_year = 0
+    one_to_three_years = 0
+    over_three_years = 0
+    for emp in emp_qs:
+        tenure_days = (today - emp.hire_date).days
+        if tenure_days < 365:
+            under_1_year += 1
+        elif tenure_days < 1095:
+            one_to_three_years += 1
+        else:
+            over_three_years += 1
+
+    return {
+        "overall_punctuality_rate": overall_punctuality,
+        "top_punctual_employees": top_punctual,
+        "tenure": {
+            "under_1_year": under_1_year,
+            "one_to_three_years": one_to_three_years,
+            "over_three_years": over_three_years,
+        },
+    }
+
+
+def get_employee_performance_report(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+    department_id: int | None = None,
+) -> dict[str, Any]:
+    """Operational report: Attendance reliability score, punctuality rates, and tenure status."""
+    today = timezone.localdate()
+    emp_qs = Employee.all_tenants.filter(
+        organization=organization, status=EmployeeStatus.ACTIVE
+    ).select_related("department", "position")
+    if department_id:
+        emp_qs = emp_qs.filter(department_id=department_id)
+
+    att_qs = AttendanceRecord.all_tenants.filter(
+        organization=organization,
+        date__gte=start_date,
+        date__lte=end_date,
+    )
+
+    stats: dict[int, dict[str, int]] = {}
+    for att in att_qs:
+        st = stats.setdefault(att.employee_id, {"present": 0, "late": 0})
+        if att.status in [AttendanceStatus.PRESENT, AttendanceStatus.HALF_DAY]:
+            st["present"] += 1
+        elif att.status == AttendanceStatus.LATE:
+            st["present"] += 1
+            st["late"] += 1
+
+    rows = []
+    num_days = max(1, (end_date - start_date).days + 1)
+    for emp in emp_qs:
+        st = stats.get(emp.id, {"present": 0, "late": 0})
+        p = st["present"]
+        late_cnt = st["late"]
+        punct_pct = round(((p - late_cnt) / (p or 1)) * 100, 1) if p > 0 else 0.0
+        att_pct = round((p / num_days) * 100, 1)
+        tenure_months = max(0, (today.year - emp.hire_date.year) * 12 + today.month - emp.hire_date.month)
+
+        if punct_pct >= 95 and att_pct >= 90:
+            rating = "Excellent"
+        elif punct_pct >= 85 and att_pct >= 80:
+            rating = "Good"
+        elif punct_pct >= 75:
+            rating = "Satisfactory"
+        else:
+            rating = "Needs Attention"
+
+        rows.append(
+            {
+                "code": emp.code,
+                "name": emp.full_name,
+                "department": emp.department.name if emp.department else "—",
+                "position": emp.position.title if emp.position else "—",
+                "tenure_months": tenure_months,
+                "present_days": p,
+                "late_days": late_cnt,
+                "punctuality_rate": punct_pct,
+                "attendance_rate": att_pct,
+                "rating": rating,
+            }
+        )
+
+    rows.sort(key=lambda r: (r["rating"] != "Excellent", r["department"], r["name"]))
+    return {
+        "period": {"start_date": start_date, "end_date": end_date},
+        "rows": rows,
+        "summary": {
+            "total_evaluated": len(rows),
+            "excellent_count": sum(1 for r in rows if r["rating"] == "Excellent"),
+            "good_count": sum(1 for r in rows if r["rating"] == "Good"),
+            "needs_attention_count": sum(1 for r in rows if r["rating"] == "Needs Attention"),
+            "avg_punctuality": (
+                round(sum(r["punctuality_rate"] for r in rows) / len(rows), 1) if rows else 0.0
+            ),
+        },
     }

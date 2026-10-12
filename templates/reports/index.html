@@ -322,6 +322,86 @@
             </div>
         </div>
 
+        <!-- Section 12: Headcount & Turnover -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs flex flex-col justify-between">
+            <div>
+                <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Headcount & Turnover" %}</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-3">
+                    {% trans "Active staff distribution across departments, new hire rates, tenure distributions, and employee turnover metrics." %}
+                </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <a href="{% url 'reports:headcount' %}" class="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700">
+                    {% trans "View Report" %} &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- Section 13: Attendance & Leave Analysis -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs flex flex-col justify-between">
+            <div>
+                <div class="w-10 h-10 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Attendance & Leave" %}</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-3">
+                    {% trans "Workforce shift attendance tracking, late check-in occurrences, punctuality rates, and leave utilization ledger." %}
+                </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <a href="{% url 'reports:attendance' %}" class="inline-flex items-center text-sm font-medium text-teal-600 dark:text-teal-400 hover:text-teal-700">
+                    {% trans "View Report" %} &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- Section 14: Payroll Cost & Compensation -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs flex flex-col justify-between">
+            <div>
+                <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6H2.25m0 0H3m0 0h18m-18 0v12.75m18-12.75v12.75m0-12.75H18m3 0a.75.75 0 00-.75-.75H3.75a.75.75 0 00-.75.75m18 0v.75a.75.75 0 01-.75.75H3.75A.75.75 0 013 5.25V4.5m18 0h-3M3.75 18.75h16.5" />
+                    </svg>
+                </div>
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Payroll Cost" %}</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-3">
+                    {% trans "Aggregated payroll execution expenses, deduction liabilities, net disbursements, and department compensation costs." %}
+                </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <a href="{% url 'reports:payroll_cost' %}" class="inline-flex items-center text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700">
+                    {% trans "View Report" %} &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- Section 15: Employee Performance Basics -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs flex flex-col justify-between">
+            <div>
+                <div class="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.496m5.007 0a7.454 7.454 0 01-.998-3.042m-4.01 0a7.454 7.454 0 01-.998 3.042m5.008 0V9.45c0-.62-.504-1.125-1.125-1.125h-2.758c-.621 0-1.125.504-1.125 1.125v2.883m6.008 0a4.5 4.5 0 00-6.008 0" />
+                    </svg>
+                </div>
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Employee Performance" %}</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-3">
+                    {% trans "Attendance punctuality rate, shifts worked consistency, reliability ratings, and staff tenure scorecard." %}
+                </p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <a href="{% url 'reports:employee_performance' %}" class="inline-flex items-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+                    {% trans "View Report" %} &rarr;
+                </a>
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}

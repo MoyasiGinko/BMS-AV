@@ -41,3 +41,27 @@ def check_reports_export_permission(user: Any, organization: Any) -> None:
 
     if not has_permission(user, "reports.export", organization=organization):
         raise PermissionDenied("You do not have permission to export reports.")
+
+
+def check_hr_reports_permission(user: Any, organization: Any) -> None:
+    """Verify tenant has reports entitlement and user has reports.view or hr.view."""
+    if not has_feature_entitlement(organization, "reports"):
+        raise PermissionDenied("Reports module is not included in current plan subscription.")
+
+    if not (
+        has_permission(user, "reports.view", organization=organization)
+        or has_permission(user, "hr.view", organization=organization)
+    ):
+        raise PermissionDenied("You do not have permission to view HR reports.")
+
+
+def check_payroll_reports_permission(user: Any, organization: Any) -> None:
+    """Verify tenant has reports entitlement and user has reports.view or payroll.view."""
+    if not has_feature_entitlement(organization, "reports"):
+        raise PermissionDenied("Reports module is not included in current plan subscription.")
+
+    if not (
+        has_permission(user, "reports.view", organization=organization)
+        or has_permission(user, "payroll.view", organization=organization)
+    ):
+        raise PermissionDenied("You do not have permission to view Payroll reports.")

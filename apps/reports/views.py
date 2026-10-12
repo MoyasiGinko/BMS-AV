@@ -19,8 +19,13 @@ from apps.catalog.models import Category, Product
 from apps.customers.models import Customer
 from apps.reports import selectors, services
 from apps.reports.models import ExportJob, ExportJobStatus, ReportType
-from apps.reports.permissions import check_reports_export_permission, check_reports_view_permission
-from apps.tenancy.models import Branch, Warehouse
+from apps.reports.permissions import (
+    check_hr_reports_permission,
+    check_payroll_reports_permission,
+    check_reports_export_permission,
+    check_reports_view_permission,
+)
+from apps.tenancy.models import Branch, Department, Warehouse
 
 
 def _get_as_of_date(request: HttpRequest) -> datetime.date:
@@ -656,3 +661,121 @@ def tax_summary_view(request: HttpRequest) -> HttpResponse:
         "data": report_data,
     }
     return render(request, "reports/tax_summary.html", context)
+
+
+# ===========================================================================
+# Human Resources & Payroll Report Views (P4-05)
+# ===========================================================================
+
+
+@login_required
+@require_GET
+def headcount_report_view(request: HttpRequest) -> HttpResponse:
+    """Workforce headcount and roster report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_hr_reports_permission(request.user, org)
+
+    as_of_date = _get_as_of_date(request)
+    dept_param = request.GET.get("department_id")
+    dept_id = int(dept_param) if dept_param and dept_param != "all" else None
+
+    report_data = selectors.get_headcount_report(org, as_of_date=as_of_date, department_id=dept_id)
+    departments = Department.all_tenants.filter(organization=org).order_by("name")
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.HEADCOUNT,
+        "title": "Headcount & Turnover",
+        "as_of_date": as_of_date,
+        "selected_department_id": dept_id,
+        "departments": departments,
+        "data": report_data,
+    }
+    return render(request, "reports/headcount.html", context)
+
+
+@login_required
+@require_GET
+def attendance_report_view(request: HttpRequest) -> HttpResponse:
+    """Workforce attendance, shifts worked, and leave utilization report view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_hr_reports_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request)
+    dept_param = request.GET.get("department_id")
+    dept_id = int(dept_param) if dept_param and dept_param != "all" else None
+
+    report_data = selectors.get_workforce_attendance_report(
+        org, start_date=start_date, end_date=end_date, department_id=dept_id
+    )
+    departments = Department.all_tenants.filter(organization=org).order_by("name")
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.ATTENDANCE,
+        "title": "Workforce Attendance & Leave",
+        "start_date": start_date,
+        "end_date": end_date,
+        "selected_department_id": dept_id,
+        "departments": departments,
+        "data": report_data,
+    }
+    return render(request, "reports/attendance.html", context)
+
+
+@login_required
+@require_GET
+def payroll_cost_report_view(request: HttpRequest) -> HttpResponse:
+    """Payroll cost runs, gross vs net disbursements, and department allocation view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_payroll_reports_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request, default_days=90)
+    report_data = selectors.get_payroll_cost_report(org, start_date=start_date, end_date=end_date)
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.PAYROLL_COST,
+        "title": "Payroll Cost & Compensation",
+        "start_date": start_date,
+        "end_date": end_date,
+        "data": report_data,
+    }
+    return render(request, "reports/payroll_cost.html", context)
+
+
+@login_required
+@require_GET
+def employee_performance_report_view(request: HttpRequest) -> HttpResponse:
+    """Employee performance scorecard, punctuality rate, and tenure evaluation view."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_hr_reports_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request)
+    dept_param = request.GET.get("department_id")
+    dept_id = int(dept_param) if dept_param and dept_param != "all" else None
+
+    report_data = selectors.get_employee_performance_report(
+        org, start_date=start_date, end_date=end_date, department_id=dept_id
+    )
+    departments = Department.all_tenants.filter(organization=org).order_by("name")
+
+    context = {
+        "organization": org,
+        "report_type": ReportType.EMPLOYEE_PERFORMANCE,
+        "title": "Employee Performance Basics",
+        "start_date": start_date,
+        "end_date": end_date,
+        "selected_department_id": dept_id,
+        "departments": departments,
+        "data": report_data,
+    }
+    return render(request, "reports/employee_performance.html", context)

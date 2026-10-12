@@ -1,21 +1,17 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P4 People: CRM + HR + Payroll
-- Last completed task: P4-04
-- Next task: P4-05
+- Last completed task: P4-05
+- Next task: P4-06
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (Payroll test suite 15/15 passing, OpenAPI schema validated, import-linter clean, ruff clean)
+- Last `make verify`: PASSED (Reports test suite 91/91 passing including 12/12 HR & Payroll report tests, OpenAPI schema validated, import-linter clean, ruff clean)
 - Notes:
-  - P4-04 Payroll module completed:
-    - Domain models: SalaryComponent, SalaryStructure, SalaryStructureItem, EmployeeSalaryAssignment, PayrollRun, Payslip, PayslipItem.
-    - ADR 0024 documented Payroll module placement in Layer 2 with domain integration into Accounting and HR.
-    - Services & State Machine: Full document lifecycle (`draft` -> `reviewed` -> `approved` -> `paid` -> `cancelled`) with automated batch payslip calculation factoring base salary, component formulas, and unpaid leave deduction integration with `apps.hr.models.LeaveRequest`.
-    - Double-Entry Accounting: Atomic dual-stage journal posting:
-      - Accrual on Approval: Dr `payroll.expense` (gross pay), Cr `payroll.liability` (deductions), Cr `payroll.liability` (net pay payable).
-      - Disbursement on Payment: Dr `payroll.liability` (net pay payable), Cr `bank`/`cash` account.
-      - Cancellation: Symmetric reversal of journal entries via `reverse_entry`.
-    - Payslip PDF: ReportLab-powered clean downloadable PDF documents with company branding, employee details, side-by-side earnings/deductions breakdown, and take-home pay callout box.
-    - Web UI: Comprehensive management screens (Payroll Runs list/form/detail with review/approve/pay/cancel HTMX actions, Payslips list and detail with PDF download, Employee "My Payslips" portal, Salary Structures list/form, Salary Components list/form, and Employee Salary Assignments).
-    - REST API: Versioned endpoints under `/api/v1/payroll/` (`salary-components`, `salary-structures`, `assignments`, `runs`, and `payslips` with action endpoints for review, approve, pay, cancel, and pdf download).
-    - Verification: 15/15 tests passing, `lint-imports` clean (2 kept, 0 broken), `manage.py spectacular --validate --fail-on-warn` passed with 0 warnings.
-  - Next task: P4-05 HR/Payroll reports + dashboard widgets (headcount, attendance, payroll cost, employee performance basics).
+  - P4-05 HR/Payroll reports + dashboard widgets completed:
+    - Selectors: `get_headcount_kpi`, `get_headcount_report`, `get_workforce_attendance_kpi`, `get_workforce_attendance_report`, `get_payroll_cost_kpi`, `get_payroll_cost_report`, `get_employee_performance_kpi`, `get_employee_performance_report`.
+    - ADR 0025 documented HR & Payroll reports and widget registry architecture in `apps.reports`.
+    - Dashboard Widgets: `HeadcountWidget`, `AttendanceWidget`, `PayrollCostWidget`, `EmployeePerformanceWidget` registered in global widget registry with role permissions (`hr.view`, `payroll.view`) and feature entitlements (`hr`, `payroll`).
+    - Templates: 4 widget partials in `templates/reports/widgets/` with HTMX partial refresh, and 4 dedicated operational reports in `templates/reports/` with responsive tables, filters, and background export modals.
+    - Export Machinery: RFC 4180 CSV, formatted Excel (XLSX), and ReportLab PDF document export generation implemented in `apps/reports/exporters.py` and queued via Celery in `apps/reports/services.py`.
+    - Reports Hub: Updated `templates/reports/index.html` with the Human Resources & Payroll report directory.
+    - Verification: 91/91 reports tests passing, `lint-imports` clean (2 kept, 0 broken), `manage.py spectacular --validate --fail-on-warn` passed with 0 warnings.
+  - Next task: P4-06 seed_demo for people modules; permissions tests (HR data visible only to HR/owner).

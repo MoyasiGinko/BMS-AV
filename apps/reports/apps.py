@@ -24,3 +24,7 @@ class ReportsConfig(AppConfig):
         dashboard_mod.register_widget(widgets_mod.CashPositionWidget())
         dashboard_mod.register_widget(widgets_mod.ProfitTrendWidget())
         dashboard_mod.register_widget(widgets_mod.BranchPerformanceWidget())
+        dashboard_mod.register_widget(widgets_mod.HeadcountWidget())
+        dashboard_mod.register_widget(widgets_mod.AttendanceWidget())
+        dashboard_mod.register_widget(widgets_mod.PayrollCostWidget())
+        dashboard_mod.register_widget(widgets_mod.EmployeePerformanceWidget())

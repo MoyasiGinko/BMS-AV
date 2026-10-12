@@ -24,6 +24,11 @@ urlpatterns = [
     path("aged-receivables/", views.aged_receivables_view, name="aged_receivables"),
     path("aged-payables/", views.aged_payables_view, name="aged_payables"),
     path("tax-summary/", views.tax_summary_view, name="tax_summary"),
+    # HR & Payroll Reports (P4-05)
+    path("headcount/", views.headcount_report_view, name="headcount"),
+    path("attendance/", views.attendance_report_view, name="attendance"),
+    path("payroll-cost/", views.payroll_cost_report_view, name="payroll_cost"),
+    path("employee-performance/", views.employee_performance_report_view, name="employee_performance"),
     # Export endpoints
     path("export/", views.export_report_view, name="export"),
     path("exports/", views.export_jobs_list_view, name="exports_list"),
