@@ -1,0 +1,88 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}
+{% if is_edit %}{% trans "Edit Leave Type" %} - {{ leave_type.name }}{% else %}{% trans "Create Leave Type" %}{% endif %} | {{ request.organization.name }}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Breadcrumb & Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-slate-500 mb-1">
+                <a href="{% url 'hr:leave_type_list' %}" class="hover:text-slate-700 dark:hover:text-slate-300">{% trans "Leave Policies" %}</a>
+                <span>/</span>
+                <span class="text-slate-800 dark:text-slate-200">{% if is_edit %}{% trans "Edit" %}{% else %}{% trans "New" %}{% endif %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% if is_edit %}{% trans "Edit Leave Policy" %}{% else %}{% trans "Create Leave Type" %}{% endif %}
+            </h1>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="p-3.5 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 text-sm">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Policy Name" %} *</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.name.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Code" %} *</label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.code.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Annual Quota (Days)" %}</label>
+                    {{ form.default_allowance_days }}
+                    {% if form.default_allowance_days.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.default_allowance_days.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="flex items-center gap-4 pt-6">
+                    <div class="flex items-center gap-2">
+                        {{ form.is_paid }}
+                        <label class="text-sm text-slate-700 dark:text-slate-300 font-medium">{% trans "Paid Leave" %}</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        {{ form.requires_approval }}
+                        <label class="text-sm text-slate-700 dark:text-slate-300 font-medium">{% trans "Requires Approval" %}</label>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Description / Policy Details" %}</label>
+                {{ form.description }}
+                {% if form.description.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.description.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="flex items-center gap-2">
+                {{ form.is_active }}
+                <label class="text-sm text-slate-700 dark:text-slate-300 font-medium">{% trans "Active policy" %}</label>
+            </div>
+
+            <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+                <a href="{% url 'hr:leave_type_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                    {% if is_edit %}{% trans "Save Changes" %}{% else %}{% trans "Create Policy" %}{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

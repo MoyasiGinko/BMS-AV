@@ -14,7 +14,16 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.core.tenant_context import tenant_context
 from apps.hr import services
-from apps.hr.models import Employee, EmployeeDocument, EmployeeStatus, Position
+from apps.hr.models import (
+    AttendanceRecord,
+    Employee,
+    EmployeeDocument,
+    EmployeeStatus,
+    LeaveRequest,
+    LeaveRequestStatus,
+    LeaveType,
+    Position,
+)
 from apps.tenancy.models import Department, Membership, Organization, Role
 
 
@@ -33,6 +42,8 @@ def hr_view_setup(db: None) -> dict[str, Any]:
             "hr.update",
             "hr.delete",
             "hr.view_sensitive",
+            "hr.approve",
+            "hr.export",
         ],
     )
     staff_role = Role.objects.create(
@@ -78,6 +89,7 @@ def hr_view_setup(db: None) -> dict[str, Any]:
             work_email="ada@example.com",
             national_id="123-45-6789",
             bank_account="GB00BARC20000012345678",
+            user=admin_user,
             actor=admin_user,
         )
         emp_staff = services.create_employee(
@@ -290,3 +302,86 @@ class TestHrWebViews:
         assert res_create.status_code == 302
         with tenant_context(org):
             assert Position.all_tenants.filter(organization=org, code="DS-01").exists()
+
+
+@pytest.mark.django_db
+class TestAttendanceAndLeaveViews:
+    def test_attendance_views(self, hr_view_setup: dict[str, Any]) -> None:
+        client: Client = hr_view_setup["admin_client"]
+        org = hr_view_setup["org"]
+        emp = hr_view_setup["emp1"]
+
+        # 1. Attendance list
+        list_url = reverse("hr:attendance_list")
+        resp = client.get(list_url)
+        assert resp.status_code == 200
+        assert "Attendance" in resp.content.decode()
+
+        # 2. Check in
+        check_in_url = reverse("hr:attendance_check_in")
+        in_resp = client.post(check_in_url)
+        assert in_resp.status_code == 302
+        with tenant_context(org):
+            assert AttendanceRecord.all_tenants.filter(organization=org, employee=emp).exists()
+
+        # 3. Check out
+        check_out_url = reverse("hr:attendance_check_out")
+        out_resp = client.post(check_out_url)
+        assert out_resp.status_code == 302
+        with tenant_context(org):
+            rec = AttendanceRecord.all_tenants.get(organization=org, employee=emp)
+            assert rec.check_out is not None
+
+    def test_leave_management_views(self, hr_view_setup: dict[str, Any]) -> None:
+        client: Client = hr_view_setup["admin_client"]
+        org = hr_view_setup["org"]
+        emp = hr_view_setup["emp1"]
+
+        # 1. Leave Type Create
+        type_create_url = reverse("hr:leave_type_create")
+        resp = client.post(
+            type_create_url,
+            {
+                "name": "Casual Leave",
+                "code": "CASUAL",
+                "default_allowance_days": "12.00",
+                "is_paid": True,
+                "requires_approval": True,
+                "is_active": True,
+            },
+        )
+        assert resp.status_code == 302
+        with tenant_context(org):
+            ltype = LeaveType.all_tenants.get(organization=org, code="CASUAL")
+
+        # 2. Leave Request Create
+        today = timezone.now().date()
+        req_create_url = reverse("hr:leave_request_create")
+        resp = client.post(
+            req_create_url,
+            {
+                "leave_type": ltype.pk,
+                "start_date": today.isoformat(),
+                "end_date": today.isoformat(),
+                "days_count": "1.00",
+                "reason": "Doctor appointment",
+            },
+        )
+        assert resp.status_code == 302
+        with tenant_context(org):
+            leave_req = LeaveRequest.all_tenants.get(organization=org, employee=emp)
+            assert leave_req.status == LeaveRequestStatus.PENDING
+
+        # 3. Leave Request Approve
+        approve_url = reverse("hr:leave_request_approve", kwargs={"public_id": leave_req.public_id})
+        resp = client.post(approve_url)
+        assert resp.status_code == 302
+        with tenant_context(org):
+            leave_req.refresh_from_db()
+            assert leave_req.status == LeaveRequestStatus.APPROVED
+
+        # 4. HR Calendar
+        cal_url = reverse("hr:calendar")
+        cal_resp = client.get(cal_url)
+        assert cal_resp.status_code == 200
+        assert "Attendance Calendar" in cal_resp.content.decode()

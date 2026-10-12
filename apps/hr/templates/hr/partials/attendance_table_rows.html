@@ -1,0 +1,65 @@
+{% load i18n %}
+
+{% for record in page_obj %}
+<tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+    <td class="px-6 py-4">
+        <a href="{% url 'hr:employee_detail' record.employee.public_id %}" class="font-semibold text-slate-900 dark:text-white hover:text-indigo-600 transition-colors">
+            {{ record.employee.full_name }}
+        </a>
+        <div class="text-xs font-mono text-slate-400 mt-0.5">{{ record.employee.code }}</div>
+    </td>
+    <td class="px-6 py-4 font-mono text-sm text-slate-700 dark:text-slate-300">
+        {{ record.date|date:"Y-m-d" }}
+    </td>
+    <td class="px-6 py-4 text-xs text-slate-500 dark:text-slate-400">
+        {{ record.shift.name|default:"--" }}
+    </td>
+    <td class="px-6 py-4 font-mono text-xs text-slate-700 dark:text-slate-300">
+        {{ record.check_in|time:"H:i:s" }}
+    </td>
+    <td class="px-6 py-4 font-mono text-xs text-slate-700 dark:text-slate-300">
+        {% if record.check_out %}
+            {{ record.check_out|time:"H:i:s" }}
+        {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 animate-pulse">
+                {% trans "Active Clock-in" %}
+            </span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 font-mono text-sm font-semibold text-slate-900 dark:text-white">
+        {{ record.work_hours }}h
+    </td>
+    <td class="px-6 py-4">
+        {% if record.status == "present" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                {% trans "Present" %}
+            </span>
+        {% elif record.status == "late" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                {% trans "Late Arrival" %}
+            </span>
+        {% elif record.status == "half_day" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                {% trans "Half Day" %}
+            </span>
+        {% elif record.status == "on_leave" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                {% trans "On Leave" %}
+            </span>
+        {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                {{ record.get_status_display }}
+            </span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 text-xs text-slate-500 uppercase tracking-wider font-mono">
+        {{ record.source }}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="8" class="px-6 py-12 text-center text-slate-400 dark:text-slate-500">
+        {% trans "No attendance records found for the selected criteria." %}
+    </td>
+</tr>
+{% endfor %}

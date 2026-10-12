@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -14,6 +15,7 @@ from apps.accounts.models import User
 from apps.billing.services import seed_default_plans
 from apps.core.tenant_context import tenant_context
 from apps.hr import selectors, services
+from apps.hr.models import AttendanceSource
 from apps.tenancy.models import Department
 from apps.tenancy.services import provision_organization
 
@@ -142,3 +144,67 @@ class TestHrTenantIsolation:
             {"target_status": "terminated"},
         )
         assert res_trans.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_attendance_and_leave_isolation(self, multi_tenant_hr_setup: dict[str, Any]) -> None:
+        org_a = multi_tenant_hr_setup["org_a"]
+        user_a = multi_tenant_hr_setup["user_a"]
+        emp_a = multi_tenant_hr_setup["emp_a"]
+        client_b: APIClient = multi_tenant_hr_setup["client_b"]
+
+        # Create shift, attendance, and leave request in Org A
+        with tenant_context(org_a):
+            shift_a = services.create_shift(
+                organization=org_a,
+                name="Alpha Morning",
+                start_time=datetime.time(8, 0),
+                end_time=datetime.time(16, 0),
+                actor=user_a,
+            )
+            rec_a = services.record_check_in(
+                organization=org_a,
+                employee=emp_a,
+                check_in_time=timezone.now(),
+                source=AttendanceSource.WEB,
+                actor=user_a,
+            )
+            leave_type_a = services.create_leave_type(
+                organization=org_a,
+                name="Alpha Vacation",
+                code="A-VAC",
+                default_allowance_days=Decimal("15.00"),
+                actor=user_a,
+            )
+            services.allocate_leave_balance(
+                organization=org_a,
+                employee=emp_a,
+                leave_type=leave_type_a,
+                year=2026,
+                days=Decimal("15.00"),
+                actor=user_a,
+            )
+            today = timezone.now().date()
+            req_a = services.submit_leave_request(
+                organization=org_a,
+                employee=emp_a,
+                leave_type=leave_type_a,
+                start_date=today,
+                end_date=today + datetime.timedelta(days=1),
+                days_count=Decimal("1.00"),
+                reason="Rest day",
+                actor=user_a,
+            )
+
+        # Tenant B queries Tenant A's shift via API -> 404
+        res_shift = client_b.get(f"/api/v1/hr/shifts/{shift_a.public_id}/")
+        assert res_shift.status_code == status.HTTP_404_NOT_FOUND
+
+        # Tenant B queries Tenant A's attendance record -> 404
+        res_rec = client_b.get(f"/api/v1/hr/attendance/{rec_a.public_id}/")
+        assert res_rec.status_code == status.HTTP_404_NOT_FOUND
+
+        # Tenant B attempts to approve Tenant A's leave request -> 404
+        res_app = client_b.post(
+            f"/api/v1/hr/leave-requests/{req_a.public_id}/approve/",
+            {"notes": "Cross tenant approval attempt"},
+        )
+        assert res_app.status_code == status.HTTP_404_NOT_FOUND

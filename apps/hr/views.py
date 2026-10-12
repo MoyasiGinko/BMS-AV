@@ -2,25 +2,44 @@
 
 from __future__ import annotations
 
+import calendar
+import datetime
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.permissions import has_permission, permission_required
 from apps.hr import selectors, services
 from apps.hr.forms import (
+    AttendanceCheckInForm,
+    AttendanceCheckOutForm,
+    AttendanceManualForm,
     EmployeeDocumentForm,
     EmployeeForm,
     EmployeeSelfServiceForm,
     EmployeeStatusTransitionForm,
+    LeaveBalanceAllocateForm,
+    LeaveRequestForm,
+    LeaveRequestReviewForm,
+    LeaveTypeForm,
     PositionForm,
+    ShiftForm,
 )
-from apps.hr.models import Employee, EmployeeDocument, Position
+from apps.hr.models import (
+    Employee,
+    EmployeeDocument,
+    LeaveRequest,
+    LeaveType,
+    Position,
+    Shift,
+)
 from apps.tenancy.models import Organization
 
 
@@ -266,10 +285,23 @@ def self_service_profile_view(request: HttpRequest) -> HttpResponse:
             }
         )
 
+    active_check_in = selectors.get_active_check_in(organization=org, employee=employee)
+    current_year = timezone.now().year
+    leave_balances = selectors.list_leave_balances(organization=org, employee=employee, year=current_year)
+    recent_leave_requests = selectors.list_leave_requests(organization=org, employee=employee)[:5]
+    recent_attendance = selectors.list_attendance_records(organization=org, employee=employee)[:7]
+
     return render(
         request,
         "hr/self_service_profile.html",
-        {"employee": employee, "form": form},
+        {
+            "employee": employee,
+            "form": form,
+            "active_check_in": active_check_in,
+            "leave_balances": leave_balances,
+            "recent_leave_requests": recent_leave_requests,
+            "recent_attendance": recent_attendance,
+        },
     )
 
 
@@ -342,3 +374,502 @@ def position_edit_view(request: HttpRequest, public_id: str) -> HttpResponse:
         "hr/position_form.html",
         {"form": form, "position": position, "is_edit": True},
     )
+
+
+# =============================================================================
+# 4. Shift Views
+# =============================================================================
+
+
+@permission_required("hr.view")
+def shift_list_view(request: HttpRequest) -> HttpResponse:
+    """List configured work shifts."""
+    org = _get_org(request)
+    shifts = selectors.list_shifts(organization=org)
+    return render(request, "hr/shift_list.html", {"shifts": shifts})
+
+
+@permission_required("hr.create")
+def shift_create_view(request: HttpRequest) -> HttpResponse:
+    """Create a new work shift."""
+    org = _get_org(request)
+    if request.method == "POST":
+        form = ShiftForm(request.POST)
+        if form.is_valid():
+            services.create_shift(
+                organization=org,
+                name=form.cleaned_data["name"],
+                start_time=form.cleaned_data["start_time"],
+                end_time=form.cleaned_data["end_time"],
+                break_minutes=form.cleaned_data.get("break_minutes", 60),
+                is_overnight=form.cleaned_data.get("is_overnight", False),
+                description=form.cleaned_data.get("description", ""),
+                is_active=form.cleaned_data.get("is_active", True),
+                actor=request.user,
+            )
+            messages.success(request, _("Shift created successfully."))
+            return redirect("hr:shift_list")
+    else:
+        form = ShiftForm()
+    return render(request, "hr/shift_form.html", {"form": form, "is_edit": False})
+
+
+@permission_required("hr.update")
+def shift_edit_view(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Edit existing shift schedule."""
+    org = _get_org(request)
+    shift = get_object_or_404(Shift.all_tenants, organization=org, public_id=public_id)
+    if request.method == "POST":
+        form = ShiftForm(request.POST, instance=shift)
+        if form.is_valid():
+            services.update_shift(
+                organization=org,
+                shift=shift,
+                name=form.cleaned_data["name"],
+                start_time=form.cleaned_data["start_time"],
+                end_time=form.cleaned_data["end_time"],
+                break_minutes=form.cleaned_data.get("break_minutes", 60),
+                is_overnight=form.cleaned_data.get("is_overnight", False),
+                description=form.cleaned_data.get("description", ""),
+                is_active=form.cleaned_data.get("is_active", True),
+                actor=request.user,
+            )
+            messages.success(request, _("Shift updated successfully."))
+            return redirect("hr:shift_list")
+    else:
+        form = ShiftForm(instance=shift)
+    return render(request, "hr/shift_form.html", {"form": form, "shift": shift, "is_edit": True})
+
+
+# =============================================================================
+# 5. Attendance Views
+# =============================================================================
+
+
+@permission_required("hr.view")
+def attendance_list_view(request: HttpRequest) -> HttpResponse:
+    """List attendance records with date and status filters."""
+    org = _get_org(request)
+    date_str = request.GET.get("date", "")
+    status_filter = request.GET.get("status", "")
+    emp_filter = request.GET.get("employee_id", "")
+
+    parsed_date = None
+    if date_str:
+        try:
+            parsed_date = datetime.date.fromisoformat(date_str)
+        except ValueError:
+            parsed_date = None
+
+    emp_id = int(emp_filter) if emp_filter.isdigit() else None
+
+    records = selectors.list_attendance_records(
+        organization=org,
+        date=parsed_date,
+        status=status_filter or None,
+        employee_id=emp_id,
+    )
+    summary = selectors.get_attendance_summary(organization=org, date=parsed_date)
+
+    paginator = Paginator(records, 25)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+
+    context = {
+        "page_obj": page_obj,
+        "selected_date": date_str,
+        "status_filter": status_filter,
+        "summary": summary,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, "hr/partials/attendance_table_rows.html", context)
+
+    return render(request, "hr/attendance_list.html", context)
+
+
+@login_required
+def attendance_check_in_view(request: HttpRequest) -> HttpResponse:
+    """Self-service endpoint for employees to clock in."""
+    org = _get_org(request)
+    employee = selectors.get_employee(organization=org, user=request.user)
+    if not employee:
+        messages.error(request, _("No employee profile found for your account."))
+        return redirect("hr:self_service_profile")
+
+    if request.method == "POST":
+        form = AttendanceCheckInForm(request.POST)
+        notes = form.cleaned_data.get("notes", "") if form.is_valid() else ""
+        try:
+            services.record_check_in(
+                organization=org,
+                employee=employee,
+                notes=notes,
+                source="web",
+                actor=request.user,
+            )
+            messages.success(request, _("You have clocked in successfully."))
+        except ValidationError as e:
+            msg = e.message if hasattr(e, "message") else str(e)
+            messages.error(request, str(msg))
+
+    return redirect("hr:self_service_profile")
+
+
+@login_required
+def attendance_check_out_view(request: HttpRequest) -> HttpResponse:
+    """Self-service endpoint for employees to clock out."""
+    org = _get_org(request)
+    employee = selectors.get_employee(organization=org, user=request.user)
+    if not employee:
+        messages.error(request, _("No employee profile found for your account."))
+        return redirect("hr:self_service_profile")
+
+    active_rec = selectors.get_active_check_in(organization=org, employee=employee)
+    if not active_rec:
+        messages.error(request, _("No active clock-in found."))
+        return redirect("hr:self_service_profile")
+
+    if request.method == "POST":
+        form = AttendanceCheckOutForm(request.POST)
+        notes = form.cleaned_data.get("notes", "") if form.is_valid() else ""
+        try:
+            services.record_check_out(
+                organization=org,
+                attendance_record=active_rec,
+                notes=notes,
+                actor=request.user,
+            )
+            messages.success(request, _("You have clocked out successfully."))
+        except ValidationError as e:
+            msg = e.message if hasattr(e, "message") else str(e)
+            messages.error(request, str(msg))
+
+    return redirect("hr:self_service_profile")
+
+
+@permission_required("hr.create")
+def attendance_manual_record_view(request: HttpRequest) -> HttpResponse:
+    """HR administrative entry for manual attendance logs or corrections."""
+    org = _get_org(request)
+    if request.method == "POST":
+        form = AttendanceManualForm(request.POST, organization=org)
+        if form.is_valid():
+            try:
+                services.record_manual_attendance(
+                    organization=org,
+                    employee=form.cleaned_data["employee"],
+                    date=form.cleaned_data["date"],
+                    check_in=form.cleaned_data["check_in"],
+                    check_out=form.cleaned_data.get("check_out"),
+                    status=form.cleaned_data["status"],
+                    shift=form.cleaned_data.get("shift"),
+                    notes=form.cleaned_data.get("notes", ""),
+                    actor=request.user,
+                )
+                messages.success(request, _("Attendance record logged successfully."))
+                return redirect("hr:attendance_list")
+            except ValidationError as e:
+                msg = e.message if hasattr(e, "message") else str(e)
+                form.add_error(None, msg)
+    else:
+        form = AttendanceManualForm(organization=org)
+
+    return render(request, "hr/attendance_manual_form.html", {"form": form})
+
+
+# =============================================================================
+# 6. Leave Type Views
+# =============================================================================
+
+
+@permission_required("hr.view")
+def leave_type_list_view(request: HttpRequest) -> HttpResponse:
+    """List leave categories and policies."""
+    org = _get_org(request)
+    leave_types = selectors.list_leave_types(organization=org)
+    return render(request, "hr/leave_type_list.html", {"leave_types": leave_types})
+
+
+@permission_required("hr.create")
+def leave_type_create_view(request: HttpRequest) -> HttpResponse:
+    """Create a new leave type."""
+    org = _get_org(request)
+    if request.method == "POST":
+        form = LeaveTypeForm(request.POST)
+        if form.is_valid():
+            services.create_leave_type(
+                organization=org,
+                name=form.cleaned_data["name"],
+                code=form.cleaned_data["code"],
+                is_paid=form.cleaned_data.get("is_paid", True),
+                default_allowance_days=form.cleaned_data.get("default_allowance_days", Decimal("15.00")),
+                requires_approval=form.cleaned_data.get("requires_approval", True),
+                is_active=form.cleaned_data.get("is_active", True),
+                description=form.cleaned_data.get("description", ""),
+                actor=request.user,
+            )
+            messages.success(request, _("Leave type created."))
+            return redirect("hr:leave_type_list")
+    else:
+        form = LeaveTypeForm()
+    return render(request, "hr/leave_type_form.html", {"form": form, "is_edit": False})
+
+
+@permission_required("hr.update")
+def leave_type_edit_view(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Edit leave type policy."""
+    org = _get_org(request)
+    lt = get_object_or_404(LeaveType.all_tenants, organization=org, public_id=public_id)
+    if request.method == "POST":
+        form = LeaveTypeForm(request.POST, instance=lt)
+        if form.is_valid():
+            services.update_leave_type(
+                organization=org,
+                leave_type=lt,
+                name=form.cleaned_data["name"],
+                is_paid=form.cleaned_data.get("is_paid", True),
+                default_allowance_days=form.cleaned_data.get("default_allowance_days", Decimal("15.00")),
+                requires_approval=form.cleaned_data.get("requires_approval", True),
+                is_active=form.cleaned_data.get("is_active", True),
+                description=form.cleaned_data.get("description", ""),
+                actor=request.user,
+            )
+            messages.success(request, _("Leave type updated."))
+            return redirect("hr:leave_type_list")
+    else:
+        form = LeaveTypeForm(instance=lt)
+    return render(request, "hr/leave_type_form.html", {"form": form, "leave_type": lt, "is_edit": True})
+
+
+# =============================================================================
+# 7. Leave Balance Views
+# =============================================================================
+
+
+@permission_required("hr.view")
+def leave_balance_list_view(request: HttpRequest) -> HttpResponse:
+    """View leave quotas and remaining balances per employee."""
+    org = _get_org(request)
+    year_param = request.GET.get("year", "")
+    current_year = int(year_param) if year_param.isdigit() else timezone.now().year
+
+    balances = selectors.list_leave_balances(organization=org, year=current_year)
+    allocate_form = LeaveBalanceAllocateForm(organization=org, initial={"year": current_year})
+
+    return render(
+        request,
+        "hr/leave_balance_list.html",
+        {
+            "balances": balances,
+            "year": current_year,
+            "allocate_form": allocate_form,
+        },
+    )
+
+
+@permission_required("hr.update")
+def leave_balance_allocate_view(request: HttpRequest) -> HttpResponse:
+    """Allocate quota to an employee."""
+    org = _get_org(request)
+    if request.method == "POST":
+        form = LeaveBalanceAllocateForm(request.POST, organization=org)
+        if form.is_valid():
+            services.allocate_leave_balance(
+                organization=org,
+                employee=form.cleaned_data["employee"],
+                leave_type=form.cleaned_data["leave_type"],
+                year=form.cleaned_data["year"],
+                days=form.cleaned_data["allocated_days"],
+                actor=request.user,
+            )
+            messages.success(request, _("Leave quota allocated."))
+    return redirect("hr:leave_balance_list")
+
+
+# =============================================================================
+# 8. Leave Request Views
+# =============================================================================
+
+
+@permission_required("hr.view")
+def leave_request_list_view(request: HttpRequest) -> HttpResponse:
+    """List leave applications with status filter."""
+    org = _get_org(request)
+    status_filter = request.GET.get("status", "")
+    requests = selectors.list_leave_requests(organization=org, status=status_filter or None)
+
+    paginator = Paginator(requests, 25)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+
+    return render(
+        request,
+        "hr/leave_request_list.html",
+        {
+            "page_obj": page_obj,
+            "status_filter": status_filter,
+            "review_form": LeaveRequestReviewForm(),
+        },
+    )
+
+
+@login_required
+def leave_request_create_view(request: HttpRequest) -> HttpResponse:
+    """Self-service endpoint for employees to apply for leave."""
+    org = _get_org(request)
+    employee = selectors.get_employee(organization=org, user=request.user)
+    if not employee:
+        messages.error(request, _("No employee profile found for your account."))
+        return redirect("hr:self_service_profile")
+
+    if request.method == "POST":
+        form = LeaveRequestForm(request.POST, organization=org)
+        if form.is_valid():
+            try:
+                services.submit_leave_request(
+                    organization=org,
+                    employee=employee,
+                    leave_type=form.cleaned_data["leave_type"],
+                    start_date=form.cleaned_data["start_date"],
+                    end_date=form.cleaned_data["end_date"],
+                    days_count=form.cleaned_data.get("days_count"),
+                    reason=form.cleaned_data["reason"],
+                    actor=request.user,
+                )
+                messages.success(request, _("Leave request submitted successfully."))
+                return redirect("hr:self_service_profile")
+            except ValidationError as e:
+                msg = e.message if hasattr(e, "message") else str(e)
+                form.add_error(None, msg)
+    else:
+        form = LeaveRequestForm(organization=org)
+
+    return render(
+        request,
+        "hr/leave_request_form.html",
+        {"form": form, "employee": employee},
+    )
+
+
+@permission_required("hr.approve")
+def leave_request_approve_view(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Approve a pending leave request."""
+    org = _get_org(request)
+    req = get_object_or_404(LeaveRequest.all_tenants, organization=org, public_id=public_id)
+
+    if request.method == "POST":
+        try:
+            services.approve_leave_request(
+                organization=org,
+                leave_request=req,
+                approver=request.user,
+            )
+            messages.success(request, _(f"Leave request for {req.employee.full_name} was approved."))
+        except ValidationError as e:
+            msg = e.message if hasattr(e, "message") else str(e)
+            messages.error(request, str(msg))
+
+    return redirect("hr:leave_request_list")
+
+
+@permission_required("hr.approve")
+def leave_request_reject_view(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Reject a pending leave request with reason."""
+    org = _get_org(request)
+    req = get_object_or_404(LeaveRequest.all_tenants, organization=org, public_id=public_id)
+
+    if request.method == "POST":
+        reason = request.POST.get("rejection_reason", "")
+        try:
+            services.reject_leave_request(
+                organization=org,
+                leave_request=req,
+                reviewer=request.user,
+                rejection_reason=reason,
+            )
+            messages.success(request, _(f"Leave request for {req.employee.full_name} was rejected."))
+        except ValidationError as e:
+            msg = e.message if hasattr(e, "message") else str(e)
+            messages.error(request, str(msg))
+
+    return redirect("hr:leave_request_list")
+
+
+@login_required
+def leave_request_cancel_view(request: HttpRequest, public_id: str) -> HttpResponse:
+    """Cancel a pending or approved leave request."""
+    org = _get_org(request)
+    req = get_object_or_404(LeaveRequest.all_tenants, organization=org, public_id=public_id)
+
+    is_owner = req.employee.user == request.user
+    can_manage = has_permission(request.user, "hr.update", organization=org)
+    if not (is_owner or can_manage):
+        messages.error(request, _("You are not authorized to cancel this request."))
+        return redirect("hr:self_service_profile")
+
+    if request.method == "POST":
+        reason = request.POST.get("reason", _("Cancelled by user"))
+        try:
+            services.cancel_leave_request(
+                organization=org,
+                leave_request=req,
+                actor=request.user,
+                reason=reason,
+            )
+            messages.success(request, _("Leave request was cancelled."))
+        except ValidationError as e:
+            msg = e.message if hasattr(e, "message") else str(e)
+            messages.error(request, str(msg))
+
+    return redirect("hr:self_service_profile" if is_owner and not can_manage else "hr:leave_request_list")
+
+
+# =============================================================================
+# 9. HR Calendar View
+# =============================================================================
+
+
+@permission_required("hr.view")
+def hr_calendar_view(request: HttpRequest) -> HttpResponse:
+    """Visual monthly calendar view of attendance and scheduled leaves."""
+    org = _get_org(request)
+    now = timezone.now().date()
+    year = int(request.GET.get("year", now.year))
+    month = int(request.GET.get("month", now.month))
+
+    num_days = calendar.monthrange(year, month)[1]
+    start_date = datetime.date(year, month, 1)
+    end_date = datetime.date(year, month, num_days)
+
+    events = selectors.get_hr_calendar_events(
+        organization=org,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year if month > 1 else year - 1
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+
+    days_range = [datetime.date(year, month, d) for d in range(1, num_days + 1)]
+
+    # Group events by date ISO string for convenient template display
+    events_by_date: dict[str, list[dict]] = {}
+    for ev in events:
+        d_key = ev["start"]
+        events_by_date.setdefault(d_key, []).append(ev)
+
+    context = {
+        "year": year,
+        "month": month,
+        "month_name": calendar.month_name[month],
+        "days_range": days_range,
+        "events_by_date": events_by_date,
+        "prev_month": prev_month,
+        "prev_year": prev_year,
+        "next_month": next_month,
+        "next_year": next_year,
+        "total_events": len(events),
+    }
+
+    return render(request, "hr/calendar.html", context)

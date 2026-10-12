@@ -51,7 +51,7 @@ Format: `ID title: Done when ...`
 ## P4 People: CRM + HR + Payroll
 - [x] P4-01 CRM: leads, opportunities, pipelines/stages (kanban with HTMX), interactions, tasks, tags, lead->customer conversion, customer 360 view, inactive-customer segments.
 - [x] P4-02 HR core: employees (encrypted sensitive fields), positions, departments link, documents, status lifecycle; self-service profile.
-- [ ] P4-03 Attendance + leave: shifts, check-in/out (web + API), leave types/balances/requests/approvals, calendar.
+- [x] P4-03 Attendance + leave: shifts, check-in/out (web + API), leave types/balances/requests/approvals, calendar.
 - [ ] P4-04 Payroll: salary structures/components, payroll run (draft -> review -> approve -> pay), payslips PDF, accounting posting (expense + liabilities + payable), expense linkage.
 - [ ] P4-05 HR/Payroll reports + dashboard widgets (headcount, attendance, payroll cost, employee performance basics).
 - [ ] P4-06 seed_demo for people modules; permissions tests (HR data visible only to HR/owner).

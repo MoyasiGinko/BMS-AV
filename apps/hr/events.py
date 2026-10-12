@@ -41,3 +41,57 @@ class EmployeeDocumentUploaded(DomainEvent):
     document_id: int = 0
     title: str = ""
     document_type: str = ""
+
+
+@dataclass(frozen=True)
+class AttendanceCheckedIn(DomainEvent):
+    event_type: ClassVar[str] = "hr.attendance_checked_in"
+    attendance_id: int = 0
+    employee_id: int = 0
+    check_in_time: str = ""
+    source: str = ""
+
+
+@dataclass(frozen=True)
+class AttendanceCheckedOut(DomainEvent):
+    event_type: ClassVar[str] = "hr.attendance_checked_out"
+    attendance_id: int = 0
+    employee_id: int = 0
+    check_out_time: str = ""
+    work_hours: str = "0.00"
+
+
+@dataclass(frozen=True)
+class LeaveRequested(DomainEvent):
+    event_type: ClassVar[str] = "hr.leave_requested"
+    leave_request_id: int = 0
+    employee_id: int = 0
+    leave_type_id: int = 0
+    start_date: str = ""
+    end_date: str = ""
+    days_count: str = "0.00"
+
+
+@dataclass(frozen=True)
+class LeaveApproved(DomainEvent):
+    event_type: ClassVar[str] = "hr.leave_approved"
+    leave_request_id: int = 0
+    employee_id: int = 0
+    approved_by_id: int | None = None
+    days_count: str = "0.00"
+
+
+@dataclass(frozen=True)
+class LeaveRejected(DomainEvent):
+    event_type: ClassVar[str] = "hr.leave_rejected"
+    leave_request_id: int = 0
+    employee_id: int = 0
+    reason: str = ""
+
+
+@dataclass(frozen=True)
+class LeaveCancelled(DomainEvent):
+    event_type: ClassVar[str] = "hr.leave_cancelled"
+    leave_request_id: int = 0
+    employee_id: int = 0
+    reason: str = ""

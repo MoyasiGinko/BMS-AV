@@ -6,10 +6,16 @@ from rest_framework import serializers
 
 from apps.core.permissions import has_permission
 from apps.hr.models import (
+    AttendanceRecord,
+    AttendanceStatus,
     Employee,
     EmployeeDocument,
     EmployeeStatus,
+    LeaveBalance,
+    LeaveRequest,
+    LeaveType,
     Position,
+    Shift,
 )
 
 
@@ -212,3 +218,165 @@ class SelfServiceProfileSerializer(serializers.ModelSerializer[Employee]):
             "status",
             "employment_type",
         ]
+
+
+class ShiftSerializer(serializers.ModelSerializer[Shift]):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    public_id = serializers.UUIDField(read_only=True)
+
+    class Meta:
+        model = Shift
+        fields = [
+            "id",
+            "public_id",
+            "name",
+            "start_time",
+            "end_time",
+            "break_minutes",
+            "is_overnight",
+            "description",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class AttendanceRecordSerializer(serializers.ModelSerializer[AttendanceRecord]):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    public_id = serializers.UUIDField(read_only=True)
+    employee_id = serializers.UUIDField(source="employee.public_id", read_only=True)
+    employee_name = serializers.CharField(source="employee.full_name", read_only=True)
+    shift_name = serializers.CharField(source="shift.name", read_only=True, default=None)
+
+    class Meta:
+        model = AttendanceRecord
+        fields = [
+            "id",
+            "public_id",
+            "employee_id",
+            "employee_name",
+            "shift_name",
+            "date",
+            "check_in",
+            "check_out",
+            "source",
+            "status",
+            "work_hours",
+            "ip_address",
+            "notes",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class AttendanceCheckInSerializer(serializers.Serializer):
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+    shift_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+
+
+class AttendanceCheckOutSerializer(serializers.Serializer):
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class AttendanceManualSerializer(serializers.Serializer):
+    employee_id = serializers.UUIDField()
+    date = serializers.DateField()
+    check_in = serializers.DateTimeField()
+    check_out = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    status = serializers.ChoiceField(choices=AttendanceStatus.choices, default=AttendanceStatus.PRESENT)
+    shift_id = serializers.UUIDField(required=False, allow_null=True, default=None)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class LeaveTypeSerializer(serializers.ModelSerializer[LeaveType]):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    public_id = serializers.UUIDField(read_only=True)
+
+    class Meta:
+        model = LeaveType
+        fields = [
+            "id",
+            "public_id",
+            "name",
+            "code",
+            "is_paid",
+            "default_allowance_days",
+            "requires_approval",
+            "is_active",
+            "description",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class LeaveBalanceSerializer(serializers.ModelSerializer[LeaveBalance]):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    public_id = serializers.UUIDField(read_only=True)
+    employee_id = serializers.UUIDField(source="employee.public_id", read_only=True)
+    employee_name = serializers.CharField(source="employee.full_name", read_only=True)
+    leave_type_code = serializers.CharField(source="leave_type.code", read_only=True)
+    leave_type_name = serializers.CharField(source="leave_type.name", read_only=True)
+    remaining_days = serializers.DecimalField(max_digits=6, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = LeaveBalance
+        fields = [
+            "id",
+            "public_id",
+            "employee_id",
+            "employee_name",
+            "leave_type_code",
+            "leave_type_name",
+            "year",
+            "allocated_days",
+            "used_days",
+            "pending_days",
+            "remaining_days",
+        ]
+
+
+class LeaveBalanceAllocateSerializer(serializers.Serializer):
+    employee_id = serializers.UUIDField()
+    leave_type_id = serializers.UUIDField()
+    year = serializers.IntegerField()
+    allocated_days = serializers.DecimalField(max_digits=6, decimal_places=2)
+
+
+class LeaveRequestSerializer(serializers.ModelSerializer[LeaveRequest]):
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    public_id = serializers.UUIDField(read_only=True)
+    employee_id = serializers.UUIDField(source="employee.public_id", read_only=True)
+    employee_name = serializers.CharField(source="employee.full_name", read_only=True)
+    leave_type_code = serializers.CharField(source="leave_type.code", read_only=True)
+    leave_type_name = serializers.CharField(source="leave_type.name", read_only=True)
+
+    class Meta:
+        model = LeaveRequest
+        fields = [
+            "id",
+            "public_id",
+            "employee_id",
+            "employee_name",
+            "leave_type_code",
+            "leave_type_name",
+            "start_date",
+            "end_date",
+            "days_count",
+            "reason",
+            "status",
+            "rejection_reason",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class LeaveRequestCreateSerializer(serializers.Serializer):
+    leave_type_id = serializers.UUIDField()
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    days_count = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, default=None)
+    reason = serializers.CharField()
+
+
+class LeaveRequestReviewSerializer(serializers.Serializer):
+    rejection_reason = serializers.CharField(required=False, allow_blank=True, default="")

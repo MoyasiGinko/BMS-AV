@@ -1,0 +1,162 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Leave Requests" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Leave Requests & Approvals" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Review employee time-off applications, approve or reject with comments, and audit quota consumption." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'hr:leave_balance_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+                {% trans "Balances & Quotas" %}
+            </a>
+            <a href="{% url 'hr:leave_request_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                + {% trans "Apply For Leave" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <a href="{% url 'hr:leave_request_list' %}" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if not status_filter %}bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800{% endif %}">
+            {% trans "All Requests" %}
+        </a>
+        <a href="{% url 'hr:leave_request_list' %}?status=pending" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if status_filter == 'pending' %}bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800{% endif %}">
+            {% trans "Pending Approval" %}
+        </a>
+        <a href="{% url 'hr:leave_request_list' %}?status=approved" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if status_filter == 'approved' %}bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800{% endif %}">
+            {% trans "Approved" %}
+        </a>
+        <a href="{% url 'hr:leave_request_list' %}?status=rejected" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if status_filter == 'rejected' %}bg-rose-50 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800{% endif %}">
+            {% trans "Rejected" %}
+        </a>
+        <a href="{% url 'hr:leave_request_list' %}?status=cancelled" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if status_filter == 'cancelled' %}bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200{% else %}text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800{% endif %}">
+            {% trans "Cancelled" %}
+        </a>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="px-6 py-3.5">{% trans "Employee" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Leave Type" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Dates" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Days" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Reason" %}</th>
+                        <th class="px-6 py-3.5">{% trans "Status" %}</th>
+                        <th class="px-6 py-3.5 text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    {% for req in page_obj %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">
+                            {{ req.employee.full_name }}
+                            <div class="text-xs font-mono text-slate-400 font-normal">{{ req.employee.code }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs font-mono font-medium">
+                                {{ req.leave_type.code }}
+                            </span>
+                            <span class="text-xs text-slate-500 block mt-0.5">{{ req.leave_type.name }}</span>
+                        </td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-700 dark:text-slate-300">
+                            {{ req.start_date|date:"Y-m-d" }} &ndash; {{ req.end_date|date:"Y-m-d" }}
+                        </td>
+                        <td class="px-6 py-4 font-mono font-semibold text-slate-900 dark:text-white">
+                            {{ req.days_count }}
+                        </td>
+                        <td class="px-6 py-4 max-w-xs truncate text-xs text-slate-500 dark:text-slate-400" title="{{ req.reason }}">
+                            {{ req.reason }}
+                            {% if req.rejection_reason %}
+                            <p class="text-rose-500 text-xs mt-0.5 font-medium">{% trans "Note:" %} {{ req.rejection_reason }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if req.status == "pending" %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                {% trans "Pending" %}
+                            </span>
+                            {% elif req.status == "approved" %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                {% trans "Approved" %}
+                            </span>
+                            {% elif req.status == "rejected" %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                                {% trans "Rejected" %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                {% trans "Cancelled" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            {% if req.status == "pending" %}
+                            <div class="flex items-center justify-end gap-2">
+                                <form method="post" action="{% url 'hr:leave_request_approve' req.public_id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                                        {% trans "Approve" %}
+                                    </button>
+                                </form>
+                                <button type="button"
+                                        onclick="document.getElementById('reject-modal-{{ req.pk }}').classList.remove('hidden')"
+                                        class="px-2.5 py-1 text-xs font-semibold rounded bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 transition-colors">
+                                    {% trans "Reject" %}
+                                </button>
+                            </div>
+
+                            <!-- Reject Reason Modal -->
+                            <div id="reject-modal-{{ req.pk }}" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                                <div class="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full shadow-xl border border-slate-200 dark:border-slate-800 text-left">
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">{% trans "Reject Leave Request" %}</h3>
+                                    <p class="text-xs text-slate-500 mb-4">{{ req.employee.full_name }} ({{ req.days_count }} days)</p>
+                                    <form method="post" action="{% url 'hr:leave_request_reject' req.public_id %}" class="space-y-4">
+                                        {% csrf_token %}
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-500 mb-1">{% trans "Reason for Rejection" %}</label>
+                                            <textarea name="rejection_reason" rows="2" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2" placeholder="Explain rejection..."></textarea>
+                                        </div>
+                                        <div class="flex justify-end gap-2 pt-2">
+                                            <button type="button" onclick="document.getElementById('reject-modal-{{ req.pk }}').classList.add('hidden')" class="px-3 py-1.5 text-xs rounded border border-slate-300 dark:border-slate-700">{% trans "Cancel" %}</button>
+                                            <button type="submit" class="px-3 py-1.5 text-xs rounded bg-rose-600 text-white font-medium">{% trans "Confirm Reject" %}</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            {% elif req.status == "approved" %}
+                            <form method="post" action="{% url 'hr:leave_request_cancel' req.public_id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" onclick="return confirm('Cancel this approved leave?')" class="text-xs text-slate-400 hover:text-rose-500">
+                                    {% trans "Cancel Leave" %}
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-xs text-slate-400">--</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-400 dark:text-slate-500">
+                            {% trans "No leave requests found." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

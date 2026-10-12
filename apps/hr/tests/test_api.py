@@ -64,6 +64,7 @@ def hr_api_setup(db: None) -> dict[str, Any]:
             department=dept,
             national_id="999-00-1111",
             bank_account="GB00APOLLO111122223333",
+            user=admin_user,
             actor=admin_user,
         )
         emp_staff = services.create_employee(
@@ -241,3 +242,96 @@ class TestHrApiEndpoints:
 
         emp_staff.refresh_from_db()
         assert emp_staff.personal_email == "katherine.johnson@nasa.gov"
+
+    def test_shift_and_attendance_api(self, hr_api_setup: dict[str, Any]) -> None:
+        client: APIClient = hr_api_setup["admin_client"]
+
+        # Create Shift
+        res_shift = client.post(
+            "/api/v1/hr/shifts/",
+            {
+                "name": "Evening Shift",
+                "start_time": "14:00:00",
+                "end_time": "22:00:00",
+                "break_minutes": 45,
+            },
+        )
+        assert res_shift.status_code == status.HTTP_201_CREATED
+        assert res_shift.data["name"] == "Evening Shift"
+
+        # Check in
+        res_in = client.post(
+            "/api/v1/hr/attendance/check-in/",
+            {"notes": "Starting evening shift"},
+        )
+        assert res_in.status_code == status.HTTP_201_CREATED
+        assert res_in.data["status"] == "present"
+
+        # Check out
+        res_out = client.post(
+            "/api/v1/hr/attendance/check-out/",
+            {"notes": "Done for the day"},
+        )
+        assert res_out.status_code == status.HTTP_200_OK
+        assert res_out.data["check_out"] is not None
+
+        # Attendance list
+        res_list = client.get("/api/v1/hr/attendance/")
+        assert res_list.status_code == status.HTTP_200_OK
+
+    def test_leave_api_lifecycle(self, hr_api_setup: dict[str, Any]) -> None:
+        client: APIClient = hr_api_setup["admin_client"]
+        emp1 = hr_api_setup["emp1"]
+
+        # Create Leave Type
+        res_type = client.post(
+            "/api/v1/hr/leave-types/",
+            {
+                "name": "Sick Leave",
+                "code": "SICK",
+                "default_allowance_days": "10.00",
+                "is_paid": True,
+            },
+        )
+        assert res_type.status_code == status.HTTP_201_CREATED
+        type_id = res_type.data["id"]
+
+        # Allocate Leave
+        res_alloc = client.post(
+            "/api/v1/hr/leave-balances/allocate/",
+            {
+                "employee_id": str(emp1.public_id),
+                "leave_type_id": str(type_id),
+                "year": 2026,
+                "allocated_days": "10.00",
+            },
+        )
+        assert res_alloc.status_code == status.HTTP_200_OK
+        assert res_alloc.data["remaining_days"] == "10.00"
+
+        # Submit Leave Request
+        today = timezone.now().date()
+        res_req = client.post(
+            "/api/v1/hr/leave-requests/",
+            {
+                "leave_type_id": str(type_id),
+                "start_date": today.isoformat(),
+                "end_date": today.isoformat(),
+                "days_count": "1.00",
+                "reason": "Flu symptoms",
+            },
+        )
+        assert res_req.status_code == status.HTTP_201_CREATED
+        req_id = res_req.data["id"]
+
+        # Approve Leave Request
+        res_approve = client.post(
+            f"/api/v1/hr/leave-requests/{req_id}/approve/",
+        )
+        assert res_approve.status_code == status.HTTP_200_OK
+        assert res_approve.data["status"] == "approved"
+
+        # Calendar API
+        res_cal = client.get(f"/api/v1/hr/calendar/?start={today.isoformat()}&end={today.isoformat()}")
+        assert res_cal.status_code == status.HTTP_200_OK
+        assert len(res_cal.data) >= 1

@@ -5761,6 +5761,319 @@ paths:
               schema:
                 $ref: '#/components/schemas/CustomerBalanceEntry'
           description: ''
+  /api/v1/hr/attendance/:
+    get:
+      operationId: hr_attendance_list
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: List attendance records
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - HR Attendance
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAttendanceRecordList'
+          description: ''
+    post:
+      operationId: hr_attendance_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttendanceRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttendanceRecordRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceRecord'
+          description: ''
+  /api/v1/hr/attendance/{public_id}/:
+    get:
+      operationId: hr_attendance_retrieve
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Retrieve attendance record
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Attendance
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceRecord'
+          description: ''
+    put:
+      operationId: hr_attendance_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttendanceRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttendanceRecordRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceRecord'
+          description: ''
+    patch:
+      operationId: hr_attendance_partial_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAttendanceRecordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAttendanceRecordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAttendanceRecordRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceRecord'
+          description: ''
+    delete:
+      operationId: hr_attendance_destroy
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/hr/attendance/check-in/:
+    post:
+      operationId: hr_attendance_check_in_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Clock in for current user's employee profile
+      tags:
+      - HR Attendance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceCheckInRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttendanceCheckInRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttendanceCheckInRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceRecord'
+          description: ''
+  /api/v1/hr/attendance/check-out/:
+    post:
+      operationId: hr_attendance_check_out_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Clock out for current user's active check-in
+      tags:
+      - HR Attendance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceCheckOutRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttendanceCheckOutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttendanceCheckOutRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceRecord'
+          description: ''
+  /api/v1/hr/attendance/manual/:
+    post:
+      operationId: hr_attendance_manual_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Manual attendance logging by HR staff
+      tags:
+      - HR Attendance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttendanceManualRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AttendanceManualRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttendanceManualRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttendanceRecord'
+          description: ''
+  /api/v1/hr/calendar/:
+    get:
+      operationId: hr_calendar_list
+      description: API endpoint providing scheduled attendance and leaves for calendar
+        feeds.
+      summary: List scheduled attendance and leave events
+      tags:
+      - HR Calendar
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: {}
+          description: ''
   /api/v1/hr/employees/:
     get:
       operationId: hr_employees_list
@@ -6059,6 +6372,734 @@ paths:
               schema:
                 $ref: '#/components/schemas/EmployeeStatusTransition'
           description: ''
+  /api/v1/hr/leave-balances/:
+    get:
+      operationId: hr_leave_balances_list
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: List employee leave quota balances
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - HR Leave Balances
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaveBalanceList'
+          description: ''
+    post:
+      operationId: hr_leave_balances_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveBalance'
+          description: ''
+  /api/v1/hr/leave-balances/{public_id}/:
+    get:
+      operationId: hr_leave_balances_retrieve
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Retrieve leave balance detail
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Balances
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveBalance'
+          description: ''
+    put:
+      operationId: hr_leave_balances_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveBalance'
+          description: ''
+    patch:
+      operationId: hr_leave_balances_partial_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveBalanceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveBalanceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveBalanceRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveBalance'
+          description: ''
+    delete:
+      operationId: hr_leave_balances_destroy
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/hr/leave-balances/allocate/:
+    post:
+      operationId: hr_leave_balances_allocate_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Allocate quota to an employee
+      tags:
+      - HR Leave Balances
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceAllocateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceAllocateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveBalanceAllocateRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveBalance'
+          description: ''
+  /api/v1/hr/leave-requests/:
+    get:
+      operationId: hr_leave_requests_list
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: List employee leave applications
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - HR Leave Requests
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaveRequestList'
+          description: ''
+    post:
+      operationId: hr_leave_requests_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Submit a new leave application
+      tags:
+      - HR Leave Requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestCreateRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequest'
+          description: ''
+  /api/v1/hr/leave-requests/{public_id}/:
+    get:
+      operationId: hr_leave_requests_retrieve
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Retrieve leave application detail
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Requests
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequest'
+          description: ''
+    put:
+      operationId: hr_leave_requests_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequest'
+          description: ''
+    patch:
+      operationId: hr_leave_requests_partial_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveRequestRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequest'
+          description: ''
+    delete:
+      operationId: hr_leave_requests_destroy
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - hr
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/hr/leave-requests/{public_id}/approve/:
+    post:
+      operationId: hr_leave_requests_approve_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Approve a pending leave request
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Requests
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequest'
+          description: ''
+  /api/v1/hr/leave-requests/{public_id}/cancel/:
+    post:
+      operationId: hr_leave_requests_cancel_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Cancel a pending or approved leave request
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestReviewRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequest'
+          description: ''
+  /api/v1/hr/leave-requests/{public_id}/reject/:
+    post:
+      operationId: hr_leave_requests_reject_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Reject a pending leave request
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveRequestReviewRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveRequest'
+          description: ''
+  /api/v1/hr/leave-types/:
+    get:
+      operationId: hr_leave_types_list
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: List leave category policies
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - HR Leave Types
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLeaveTypeList'
+          description: ''
+    post:
+      operationId: hr_leave_types_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Create leave type
+      tags:
+      - HR Leave Types
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveTypeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveTypeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveTypeRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveType'
+          description: ''
+  /api/v1/hr/leave-types/{public_id}/:
+    get:
+      operationId: hr_leave_types_retrieve
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Retrieve leave type detail
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Types
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveType'
+          description: ''
+    put:
+      operationId: hr_leave_types_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Update leave type
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Types
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeaveTypeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LeaveTypeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LeaveTypeRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveType'
+          description: ''
+    patch:
+      operationId: hr_leave_types_partial_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Partially update leave type
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Types
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveTypeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveTypeRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLeaveTypeRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaveType'
+          description: ''
+    delete:
+      operationId: hr_leave_types_destroy
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Delete leave type
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Leave Types
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/hr/me/:
     get:
       operationId: hr_me_retrieve
@@ -6299,6 +7340,206 @@ paths:
         required: true
       tags:
       - HR Positions
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/hr/shifts/:
+    get:
+      operationId: hr_shifts_list
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: List work shifts
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - HR Shifts
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedShiftList'
+          description: ''
+    post:
+      operationId: hr_shifts_create
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Create work shift
+      tags:
+      - HR Shifts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShiftRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShiftRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShiftRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shift'
+          description: ''
+  /api/v1/hr/shifts/{public_id}/:
+    get:
+      operationId: hr_shifts_retrieve
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Retrieve work shift
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Shifts
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shift'
+          description: ''
+    put:
+      operationId: hr_shifts_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Update work shift
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Shifts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShiftRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShiftRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShiftRequest'
+        required: true
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shift'
+          description: ''
+    patch:
+      operationId: hr_shifts_partial_update
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Partially update work shift
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Shifts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedShiftRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedShiftRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedShiftRequest'
+      security:
+      - ApiKeyAuth: []
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shift'
+          description: ''
+    delete:
+      operationId: hr_shifts_destroy
+      description: Convenience class combining TenantScopedViewSet with standard CRUD
+        ModelViewSet.
+      summary: Delete work shift
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - HR Shifts
       security:
       - ApiKeyAuth: []
       - jwtAuth: []
@@ -12282,6 +13523,160 @@ components:
           default: 0
           description: Number of hours to keep old key active for migration. 0 means
             immediate revocation.
+    AttendanceCheckInRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          default: ''
+        shift_id:
+          type: string
+          format: uuid
+          nullable: true
+    AttendanceCheckOutRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+          default: ''
+    AttendanceManualRequest:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        check_in:
+          type: string
+          format: date-time
+        check_out:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status773Enum'
+          default: present
+        shift_id:
+          type: string
+          format: uuid
+          nullable: true
+        notes:
+          type: string
+          default: ''
+      required:
+      - check_in
+      - date
+      - employee_id
+    AttendanceRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_name:
+          type: string
+          readOnly: true
+        shift_name:
+          type: string
+          readOnly: true
+        date:
+          type: string
+          format: date
+        check_in:
+          type: string
+          format: date-time
+          title: Check-in Time
+        check_out:
+          type: string
+          format: date-time
+          nullable: true
+          title: Check-out Time
+        source:
+          $ref: '#/components/schemas/AttendanceRecordSourceEnum'
+        status:
+          $ref: '#/components/schemas/Status773Enum'
+        work_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        ip_address:
+          type: string
+          maxLength: 45
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - check_in
+      - created_at
+      - date
+      - employee_id
+      - employee_name
+      - id
+      - public_id
+      - shift_name
+      - updated_at
+    AttendanceRecordRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        check_in:
+          type: string
+          format: date-time
+          title: Check-in Time
+        check_out:
+          type: string
+          format: date-time
+          nullable: true
+          title: Check-out Time
+        source:
+          $ref: '#/components/schemas/AttendanceRecordSourceEnum'
+        status:
+          $ref: '#/components/schemas/Status773Enum'
+        work_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        ip_address:
+          type: string
+          maxLength: 45
+        notes:
+          type: string
+      required:
+      - check_in
+      - date
+    AttendanceRecordSourceEnum:
+      enum:
+      - web
+      - api
+      - kiosk
+      - manual
+      type: string
+      description: |-
+        * `web` - Web Portal
+        * `api` - Mobile / API
+        * `kiosk` - Kiosk / Tablet
+        * `manual` - Manual Entry
     AuditLog:
       type: object
       description: Read-only serializer for tenant audit logs.
@@ -15740,7 +17135,7 @@ components:
           $ref: '#/components/schemas/Status06cEnum'
         source:
           allOf:
-          - $ref: '#/components/schemas/SourceEnum'
+          - $ref: '#/components/schemas/Source209Enum'
           title: Lead Source
         estimated_value:
           type: string
@@ -15830,7 +17225,7 @@ components:
           maxLength: 64
         source:
           allOf:
-          - $ref: '#/components/schemas/SourceEnum'
+          - $ref: '#/components/schemas/Source209Enum'
           title: Lead Source
         status:
           $ref: '#/components/schemas/Status06cEnum'
@@ -15875,7 +17270,7 @@ components:
           maxLength: 64
         source:
           allOf:
-          - $ref: '#/components/schemas/SourceEnum'
+          - $ref: '#/components/schemas/Source209Enum'
           title: Lead Source
         status:
           $ref: '#/components/schemas/Status06cEnum'
@@ -15928,7 +17323,7 @@ components:
           $ref: '#/components/schemas/Status06cEnum'
         source:
           allOf:
-          - $ref: '#/components/schemas/SourceEnum'
+          - $ref: '#/components/schemas/Source209Enum'
           title: Lead Source
         estimated_value:
           type: string
@@ -15943,6 +17338,295 @@ components:
           title: Internal Notes
       required:
       - first_name
+    LeaveBalance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_name:
+          type: string
+          readOnly: true
+        leave_type_code:
+          type: string
+          readOnly: true
+        leave_type_name:
+          type: string
+          readOnly: true
+        year:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        allocated_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        used_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        pending_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        remaining_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+          readOnly: true
+      required:
+      - employee_id
+      - employee_name
+      - id
+      - leave_type_code
+      - leave_type_name
+      - public_id
+      - remaining_days
+      - year
+    LeaveBalanceAllocateRequest:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        leave_type_id:
+          type: string
+          format: uuid
+        year:
+          type: integer
+        allocated_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+      required:
+      - allocated_days
+      - employee_id
+      - leave_type_id
+      - year
+    LeaveBalanceRequest:
+      type: object
+      properties:
+        year:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        allocated_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        used_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        pending_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+      required:
+      - year
+    LeaveRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_name:
+          type: string
+          readOnly: true
+        leave_type_code:
+          type: string
+          readOnly: true
+        leave_type_name:
+          type: string
+          readOnly: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        days_count:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Number of Days
+        reason:
+          type: string
+        status:
+          $ref: '#/components/schemas/StatusFb8Enum'
+        rejection_reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - employee_id
+      - employee_name
+      - end_date
+      - id
+      - leave_type_code
+      - leave_type_name
+      - public_id
+      - reason
+      - start_date
+      - updated_at
+    LeaveRequestCreateRequest:
+      type: object
+      properties:
+        leave_type_id:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        days_count:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        reason:
+          type: string
+          minLength: 1
+      required:
+      - end_date
+      - leave_type_id
+      - reason
+      - start_date
+    LeaveRequestRequest:
+      type: object
+      properties:
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        days_count:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Number of Days
+        reason:
+          type: string
+          minLength: 1
+        status:
+          $ref: '#/components/schemas/StatusFb8Enum'
+        rejection_reason:
+          type: string
+      required:
+      - end_date
+      - reason
+      - start_date
+    LeaveRequestReviewRequest:
+      type: object
+      properties:
+        rejection_reason:
+          type: string
+          default: ''
+    LeaveType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: Leave Type Name
+          maxLength: 64
+        code:
+          type: string
+          title: Leave Code
+          maxLength: 32
+        is_paid:
+          type: boolean
+          title: Is Paid Leave
+        default_allowance_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Default Allowance (Days)
+        requires_approval:
+          type: boolean
+        is_active:
+          type: boolean
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - code
+      - created_at
+      - id
+      - name
+      - public_id
+      - updated_at
+    LeaveTypeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Leave Type Name
+          maxLength: 64
+        code:
+          type: string
+          minLength: 1
+          title: Leave Code
+          maxLength: 32
+        is_paid:
+          type: boolean
+          title: Is Paid Leave
+        default_allowance_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Default Allowance (Days)
+        requires_approval:
+          type: boolean
+        is_active:
+          type: boolean
+        description:
+          type: string
+      required:
+      - code
+      - name
     ManualJournalCreateRequest:
       type: object
       properties:
@@ -16736,6 +18420,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ApiKey'
+    PaginatedAttendanceRecordList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttendanceRecord'
     PaginatedAuditLogList:
       type: object
       required:
@@ -17097,6 +18800,63 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Lead'
+    PaginatedLeaveBalanceList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaveBalance'
+    PaginatedLeaveRequestList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaveRequest'
+    PaginatedLeaveTypeList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaveType'
     PaginatedNumberSequenceList:
       type: object
       required:
@@ -17458,6 +19218,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SalesOrder'
+    PaginatedShiftList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Shift'
     PaginatedStockAdjustmentList:
       type: object
       required:
@@ -17796,6 +19575,34 @@ components:
           format: date-time
           nullable: true
           title: Expiration time
+    PatchedAttendanceRecordRequest:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        check_in:
+          type: string
+          format: date-time
+          title: Check-in Time
+        check_out:
+          type: string
+          format: date-time
+          nullable: true
+          title: Check-out Time
+        source:
+          $ref: '#/components/schemas/AttendanceRecordSourceEnum'
+        status:
+          $ref: '#/components/schemas/Status773Enum'
+        work_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        ip_address:
+          type: string
+          maxLength: 45
+        notes:
+          type: string
     PatchedBankAccountRequest:
       type: object
       properties:
@@ -18352,7 +20159,7 @@ components:
           $ref: '#/components/schemas/Status06cEnum'
         source:
           allOf:
-          - $ref: '#/components/schemas/SourceEnum'
+          - $ref: '#/components/schemas/Source209Enum'
           title: Lead Source
         estimated_value:
           type: string
@@ -18365,6 +20172,73 @@ components:
         notes:
           type: string
           title: Internal Notes
+    PatchedLeaveBalanceRequest:
+      type: object
+      properties:
+        year:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        allocated_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        used_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+        pending_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,4}(?:\.\d{0,2})?$
+    PatchedLeaveRequestRequest:
+      type: object
+      properties:
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        days_count:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Number of Days
+        reason:
+          type: string
+          minLength: 1
+        status:
+          $ref: '#/components/schemas/StatusFb8Enum'
+        rejection_reason:
+          type: string
+    PatchedLeaveTypeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Leave Type Name
+          maxLength: 64
+        code:
+          type: string
+          minLength: 1
+          title: Leave Code
+          maxLength: 32
+        is_paid:
+          type: boolean
+          title: Is Paid Leave
+        default_allowance_days:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          title: Default Allowance (Days)
+        requires_approval:
+          type: boolean
+        is_active:
+          type: boolean
+        description:
+          type: string
     PatchedNumberSequenceRequest:
       type: object
       description: Serializer for tenant NumberSequence configuration.
@@ -18851,6 +20725,31 @@ components:
         emergency_contact_phone:
           type: string
           maxLength: 32
+    PatchedShiftRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Shift Name
+          maxLength: 64
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        break_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Break Duration (Minutes)
+        is_overnight:
+          type: boolean
+        description:
+          type: string
+        is_active:
+          type: boolean
     PatchedStockLevelRequest:
       type: object
       description: Serializer for cached warehouse stock levels.
@@ -21814,7 +23713,84 @@ components:
       - public_id
       - status
       - work_email
-    SourceEnum:
+    Shift:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          title: Shift Name
+          maxLength: 64
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        break_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Break Duration (Minutes)
+        is_overnight:
+          type: boolean
+        description:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - end_time
+      - id
+      - name
+      - public_id
+      - start_time
+      - updated_at
+    ShiftRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Shift Name
+          maxLength: 64
+        start_time:
+          type: string
+          format: time
+        end_time:
+          type: string
+          format: time
+        break_minutes:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Break Duration (Minutes)
+        is_overnight:
+          type: boolean
+        description:
+          type: string
+        is_active:
+          type: boolean
+      required:
+      - end_time
+      - name
+      - start_time
+    Source209Enum:
       enum:
       - website
       - referral
@@ -21913,6 +23889,20 @@ components:
         * `qualified` - Qualified
         * `unqualified` - Unqualified
         * `converted` - Converted
+    Status773Enum:
+      enum:
+      - present
+      - late
+      - half_day
+      - absent
+      - on_leave
+      type: string
+      description: |-
+        * `present` - Present
+        * `late` - Late
+        * `half_day` - Half Day
+        * `absent` - Absent
+        * `on_leave` - On Leave
     StatusBbaEnum:
       enum:
       - draft
@@ -21927,6 +23917,18 @@ components:
         * `on_leave` - On Leave
         * `suspended` - Suspended
         * `terminated` - Terminated
+    StatusFb8Enum:
+      enum:
+      - pending
+      - approved
+      - rejected
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pending Approval
+        * `approved` - Approved
+        * `rejected` - Rejected
+        * `cancelled` - Cancelled
     StockAdjustment:
       type: object
       description: Serializer for stock adjustment documents.

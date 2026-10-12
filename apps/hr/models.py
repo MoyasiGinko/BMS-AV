@@ -57,6 +57,35 @@ class Position(TenantModel):
         return f"{self.title} ({self.code})"
 
 
+class Shift(TenantModel):
+    """Work shift schedules defining working hours, break times, and overnight flags."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    name = models.CharField(_("Shift Name"), max_length=64)
+    start_time = models.TimeField(_("Start Time"))
+    end_time = models.TimeField(_("End Time"))
+    break_minutes = models.PositiveIntegerField(_("Break Duration (Minutes)"), default=60)
+    is_overnight = models.BooleanField(_("Is Overnight"), default=False)
+    description = models.TextField(_("Description"), blank=True)
+    is_active = models.BooleanField(_("Is Active"), default=True)
+
+    class Meta:
+        verbose_name = _("Shift")
+        verbose_name_plural = _("Shifts")
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="uniq_hr_shift_org_name",
+            )
+        ]
+
+    def __str__(self) -> str:
+        start_str = self.start_time.strftime("%H:%M") if self.start_time else ""
+        end_str = self.end_time.strftime("%H:%M") if self.end_time else ""
+        return f"{self.name} ({start_str} - {end_str})"
+
+
 class EmployeeStatus(models.TextChoices):
     DRAFT = "draft", _("Draft")
     ACTIVE = "active", _("Active")
@@ -122,6 +151,14 @@ class Employee(TenantModel):
         blank=True,
         related_name="direct_reports",
         verbose_name=_("Reporting Manager"),
+    )
+    default_shift = models.ForeignKey(
+        Shift,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_employees",
+        verbose_name=_("Default Shift"),
     )
 
     hire_date = models.DateField(_("Hire Date"))
@@ -232,3 +269,246 @@ class EmployeeDocument(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.title} - {self.employee.full_name}"
+
+
+class AttendanceSource(models.TextChoices):
+    WEB = "web", _("Web Portal")
+    API = "api", _("Mobile / API")
+    KIOSK = "kiosk", _("Kiosk / Tablet")
+    MANUAL = "manual", _("Manual Entry")
+
+
+class AttendanceStatus(models.TextChoices):
+    PRESENT = "present", _("Present")
+    LATE = "late", _("Late")
+    HALF_DAY = "half_day", _("Half Day")
+    ABSENT = "absent", _("Absent")
+    ON_LEAVE = "on_leave", _("On Leave")
+
+
+class AttendanceRecord(TenantModel):
+    """Clock-in and clock-out attendance log for employees."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="attendance_records",
+        verbose_name=_("Employee"),
+    )
+    shift = models.ForeignKey(
+        Shift,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="attendance_records",
+        verbose_name=_("Shift"),
+    )
+    date = models.DateField(_("Date"))
+    check_in = models.DateTimeField(_("Check-in Time"))
+    check_out = models.DateTimeField(_("Check-out Time"), null=True, blank=True)
+    source = models.CharField(
+        _("Source"),
+        max_length=32,
+        choices=AttendanceSource.choices,
+        default=AttendanceSource.WEB,
+    )
+    status = models.CharField(
+        _("Status"),
+        max_length=32,
+        choices=AttendanceStatus.choices,
+        default=AttendanceStatus.PRESENT,
+    )
+    work_hours = models.DecimalField(
+        _("Work Hours"),
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    ip_address = models.CharField(_("IP Address"), max_length=45, blank=True)
+    notes = models.TextField(_("Notes"), blank=True)
+    verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="verified_attendances",
+        verbose_name=_("Verified By"),
+    )
+
+    class Meta:
+        verbose_name = _("Attendance Record")
+        verbose_name_plural = _("Attendance Records")
+        ordering = ["-date", "-check_in"]
+        indexes = [
+            models.Index(fields=["organization", "date"]),
+            models.Index(fields=["organization", "employee", "date"]),
+            models.Index(fields=["organization", "status"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.employee.full_name} - {self.date} ({self.status})"
+
+
+class LeaveType(TenantModel):
+    """Policy definition for organization leave categories (Annual, Sick, Unpaid, etc.)."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    name = models.CharField(_("Leave Type Name"), max_length=64)
+    code = models.CharField(_("Leave Code"), max_length=32)
+    is_paid = models.BooleanField(_("Is Paid Leave"), default=True)
+    default_allowance_days = models.DecimalField(
+        _("Default Allowance (Days)"),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("15.00"),
+    )
+    requires_approval = models.BooleanField(_("Requires Approval"), default=True)
+    is_active = models.BooleanField(_("Is Active"), default=True)
+    description = models.TextField(_("Description"), blank=True)
+
+    class Meta:
+        verbose_name = _("Leave Type")
+        verbose_name_plural = _("Leave Types")
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "code"],
+                name="uniq_hr_leavetype_org_code",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.code})"
+
+
+class LeaveBalance(TenantModel):
+    """Yearly leave quota and utilization ledger per employee per leave type."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="leave_balances",
+        verbose_name=_("Employee"),
+    )
+    leave_type = models.ForeignKey(
+        LeaveType,
+        on_delete=models.CASCADE,
+        related_name="balances",
+        verbose_name=_("Leave Type"),
+    )
+    year = models.PositiveIntegerField(_("Year"))
+    allocated_days = models.DecimalField(
+        _("Allocated Days"),
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    used_days = models.DecimalField(
+        _("Used Days"),
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    pending_days = models.DecimalField(
+        _("Pending Days"),
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    class Meta:
+        verbose_name = _("Leave Balance")
+        verbose_name_plural = _("Leave Balances")
+        ordering = ["-year", "employee"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "employee", "leave_type", "year"],
+                name="uniq_hr_leavebalance_org_emp_type_year",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["organization", "employee", "year"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.employee.full_name} - {self.leave_type.code} ({self.year})"
+
+    @property
+    def remaining_days(self) -> Decimal:
+        return max(Decimal("0.00"), self.allocated_days - self.used_days - self.pending_days)
+
+
+class LeaveRequestStatus(models.TextChoices):
+    PENDING = "pending", _("Pending Approval")
+    APPROVED = "approved", _("Approved")
+    REJECTED = "rejected", _("Rejected")
+    CANCELLED = "cancelled", _("Cancelled")
+
+
+class LeaveRequest(TenantModel):
+    """Leave applications requested by employees."""
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="leave_requests",
+        verbose_name=_("Employee"),
+    )
+    leave_type = models.ForeignKey(
+        LeaveType,
+        on_delete=models.PROTECT,
+        related_name="requests",
+        verbose_name=_("Leave Type"),
+    )
+    start_date = models.DateField(_("Start Date"))
+    end_date = models.DateField(_("End Date"))
+    days_count = models.DecimalField(
+        _("Number of Days"),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("1.00"),
+    )
+    reason = models.TextField(_("Reason"))
+    status = models.CharField(
+        _("Status"),
+        max_length=32,
+        choices=LeaveRequestStatus.choices,
+        default=LeaveRequestStatus.PENDING,
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_leaves",
+        verbose_name=_("Approved / Reviewed By"),
+    )
+    approved_at = models.DateTimeField(_("Decision Timestamp"), null=True, blank=True)
+    rejection_reason = models.TextField(_("Rejection Reason"), blank=True)
+
+    ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+        LeaveRequestStatus.PENDING: {
+            LeaveRequestStatus.APPROVED,
+            LeaveRequestStatus.REJECTED,
+            LeaveRequestStatus.CANCELLED,
+        },
+        LeaveRequestStatus.APPROVED: {LeaveRequestStatus.CANCELLED},
+        LeaveRequestStatus.REJECTED: set(),
+        LeaveRequestStatus.CANCELLED: set(),
+    }
+
+    class Meta:
+        verbose_name = _("Leave Request")
+        verbose_name_plural = _("Leave Requests")
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["organization", "employee", "status"]),
+            models.Index(fields=["organization", "start_date"]),
+        ]
+
+    def __str__(self) -> str:
+        date_range = f"{self.start_date}..{self.end_date}"
+        return f"{self.employee.full_name} ({self.leave_type.code}) {date_range} [{self.status}]"

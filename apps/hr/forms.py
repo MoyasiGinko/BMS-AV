@@ -9,10 +9,14 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
 from apps.hr.models import (
+    AttendanceStatus,
     Employee,
     EmployeeDocument,
     EmployeeStatus,
+    LeaveRequest,
+    LeaveType,
     Position,
+    Shift,
 )
 from apps.tenancy.models import Branch, Department, Organization
 
@@ -94,6 +98,7 @@ class EmployeeForm(forms.ModelForm):
             "branch",
             "user",
             "manager",
+            "default_shift",
             "hire_date",
             "employment_type",
             "status",
@@ -115,6 +120,7 @@ class EmployeeForm(forms.ModelForm):
             "branch": forms.Select(attrs={"class": INPUT_CSS}),
             "user": forms.Select(attrs={"class": INPUT_CSS}),
             "manager": forms.Select(attrs={"class": INPUT_CSS}),
+            "default_shift": forms.Select(attrs={"class": INPUT_CSS}),
             "hire_date": forms.DateInput(attrs={"class": INPUT_CSS, "type": "date"}),
             "employment_type": forms.Select(attrs={"class": INPUT_CSS}),
             "status": forms.Select(attrs={"class": INPUT_CSS}),
@@ -139,6 +145,9 @@ class EmployeeForm(forms.ModelForm):
             )
             self.fields["manager"].queryset = Employee.all_tenants.filter(
                 organization=organization, status=EmployeeStatus.ACTIVE
+            )
+            self.fields["default_shift"].queryset = Shift.all_tenants.filter(
+                organization=organization, is_active=True
             )
         if self.instance and self.instance.pk:
             self.fields["national_id"].initial = self.instance.national_id
@@ -213,3 +222,182 @@ class EmployeeStatusTransitionForm(forms.Form):
             }
         ),
     )
+
+
+class ShiftForm(forms.ModelForm):
+    class Meta:
+        model = Shift
+        fields = [
+            "name",
+            "start_time",
+            "end_time",
+            "break_minutes",
+            "is_overnight",
+            "description",
+            "is_active",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": INPUT_CSS, "placeholder": "e.g. Standard 9-5"}),
+            "start_time": forms.TimeInput(attrs={"class": INPUT_CSS, "type": "time"}),
+            "end_time": forms.TimeInput(attrs={"class": INPUT_CSS, "type": "time"}),
+            "break_minutes": forms.NumberInput(attrs={"class": MONO_INPUT_CSS, "step": "5"}),
+            "is_overnight": forms.CheckboxInput(
+                attrs={"class": "rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"}
+            ),
+            "description": forms.Textarea(attrs={"class": INPUT_CSS, "rows": 2}),
+            "is_active": forms.CheckboxInput(
+                attrs={"class": "rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"}
+            ),
+        }
+
+
+class AttendanceCheckInForm(forms.Form):
+    notes = forms.CharField(
+        label=_("Check-in Notes"),
+        required=False,
+        widget=forms.TextInput(attrs={"class": INPUT_CSS, "placeholder": "Optional location or note"}),
+    )
+
+
+class AttendanceCheckOutForm(forms.Form):
+    notes = forms.CharField(
+        label=_("Check-out Notes"),
+        required=False,
+        widget=forms.TextInput(attrs={"class": INPUT_CSS, "placeholder": "Optional handoff or note"}),
+    )
+
+
+class AttendanceManualForm(forms.Form):
+    employee = forms.ModelChoiceField(
+        queryset=Employee.objects.none(),
+        widget=forms.Select(attrs={"class": INPUT_CSS}),
+    )
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={"class": INPUT_CSS, "type": "date"}),
+    )
+    check_in = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={"class": INPUT_CSS, "type": "datetime-local"}),
+    )
+    check_out = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={"class": INPUT_CSS, "type": "datetime-local"}),
+    )
+    status = forms.ChoiceField(
+        choices=AttendanceStatus.choices,
+        widget=forms.Select(attrs={"class": INPUT_CSS}),
+    )
+    shift = forms.ModelChoiceField(
+        queryset=Shift.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={"class": INPUT_CSS}),
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": INPUT_CSS, "rows": 2}),
+    )
+
+    def __init__(self, *args: Any, organization: Organization | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        if organization:
+            self.fields["employee"].queryset = Employee.all_tenants.filter(
+                organization=organization, status=EmployeeStatus.ACTIVE
+            )
+            self.fields["shift"].queryset = Shift.all_tenants.filter(
+                organization=organization, is_active=True
+            )
+
+
+class LeaveTypeForm(forms.ModelForm):
+    class Meta:
+        model = LeaveType
+        fields = [
+            "name",
+            "code",
+            "is_paid",
+            "default_allowance_days",
+            "requires_approval",
+            "is_active",
+            "description",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": INPUT_CSS, "placeholder": "e.g. Annual Vacation"}),
+            "code": forms.TextInput(attrs={"class": UPPER_MONO_CSS, "placeholder": "ANNUAL"}),
+            "is_paid": forms.CheckboxInput(
+                attrs={"class": "rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"}
+            ),
+            "default_allowance_days": forms.NumberInput(attrs={"class": MONO_INPUT_CSS, "step": "0.5"}),
+            "requires_approval": forms.CheckboxInput(
+                attrs={"class": "rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"}
+            ),
+            "is_active": forms.CheckboxInput(
+                attrs={"class": "rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"}
+            ),
+            "description": forms.Textarea(attrs={"class": INPUT_CSS, "rows": 2}),
+        }
+
+
+class LeaveRequestForm(forms.ModelForm):
+    class Meta:
+        model = LeaveRequest
+        fields = [
+            "leave_type",
+            "start_date",
+            "end_date",
+            "days_count",
+            "reason",
+        ]
+        widgets = {
+            "leave_type": forms.Select(attrs={"class": INPUT_CSS}),
+            "start_date": forms.DateInput(attrs={"class": INPUT_CSS, "type": "date"}),
+            "end_date": forms.DateInput(attrs={"class": INPUT_CSS, "type": "date"}),
+            "days_count": forms.NumberInput(attrs={"class": MONO_INPUT_CSS, "step": "0.5"}),
+            "reason": forms.Textarea(
+                attrs={"class": INPUT_CSS, "rows": 3, "placeholder": "Reason for leave request"}
+            ),
+        }
+
+    def __init__(self, *args: Any, organization: Organization | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        if organization:
+            self.fields["leave_type"].queryset = LeaveType.all_tenants.filter(
+                organization=organization, is_active=True
+            )
+
+
+class LeaveRequestReviewForm(forms.Form):
+    rejection_reason = forms.CharField(
+        label=_("Rejection Reason"),
+        required=False,
+        widget=forms.Textarea(
+            attrs={"class": INPUT_CSS, "rows": 2, "placeholder": "Explain reason if rejecting"}
+        ),
+    )
+
+
+class LeaveBalanceAllocateForm(forms.Form):
+    employee = forms.ModelChoiceField(
+        queryset=Employee.objects.none(),
+        widget=forms.Select(attrs={"class": INPUT_CSS}),
+    )
+    leave_type = forms.ModelChoiceField(
+        queryset=LeaveType.objects.none(),
+        widget=forms.Select(attrs={"class": INPUT_CSS}),
+    )
+    year = forms.IntegerField(
+        widget=forms.NumberInput(attrs={"class": MONO_INPUT_CSS}),
+    )
+    allocated_days = forms.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={"class": MONO_INPUT_CSS, "step": "0.5"}),
+    )
+
+    def __init__(self, *args: Any, organization: Organization | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        if organization:
+            self.fields["employee"].queryset = Employee.all_tenants.filter(
+                organization=organization, status=EmployeeStatus.ACTIVE
+            )
+            self.fields["leave_type"].queryset = LeaveType.all_tenants.filter(
+                organization=organization, is_active=True
+            )
