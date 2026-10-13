@@ -40,4 +40,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("hr/", include("apps.hr.api.urls")),
     # Payroll Management
     path("payroll/", include("apps.payroll.api.urls")),
+    # Approvals Engine
+    path("approvals/", include("apps.approvals.api.urls")),
 ]

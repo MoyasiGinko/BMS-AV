@@ -380,6 +380,24 @@ registry.register(
 )
 
 registry.register(
+    "approvals",
+    name="Approvals",
+    description="Multi-tier document approval workflows, rules, and decision inbox",
+    icon="check-badge",
+    sort_order=145,
+    nav_items=[
+        NavItem("Inbox", "approvals:inbox", icon="inbox-stack", permission="approvals.view"),
+        NavItem("Approval Rules", "approvals:rule_list", icon="adjustments-horizontal", permission="approvals.manage"),
+        NavItem("Approval History", "approvals:history_list", icon="clock", permission="approvals.view"),
+    ],
+    permissions=[
+        "approvals.view",
+        "approvals.approve",
+        "approvals.manage",
+    ],
+)
+
+registry.register(
     "integrations",
     name="Integrations & API",
     description="API keys, webhooks, external connectors, and import/export",

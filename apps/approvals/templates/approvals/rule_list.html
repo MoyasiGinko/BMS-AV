@@ -1,0 +1,144 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Approval Rules" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Approval Rules" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Configure organizational policies and thresholds for automated approval routing." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'approvals:inbox' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-xs transition-colors">
+                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2 2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                {% trans "Inbox" %}
+            </a>
+            <a href="{% url 'approvals:rule_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "New Rule" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Rules Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        <th class="px-4 py-3">{% trans "Rule Name" %}</th>
+                        <th class="px-4 py-3">{% trans "Applies To" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Threshold" %}</th>
+                        <th class="px-4 py-3">{% trans "Approver" %}</th>
+                        <th class="px-4 py-3 text-center">{% trans "Priority" %}</th>
+                        <th class="px-4 py-3">{% trans "Status" %}</th>
+                        <th class="px-4 py-3 text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                    {% for rule in rules %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td class="px-4 py-3">
+                                <a href="{% url 'approvals:rule_edit' rule.pk %}" class="font-medium text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400">
+                                    {{ rule.name }}
+                                </a>
+                                {% if rule.description %}
+                                    <p class="text-xs text-slate-400 truncate max-w-xs">{{ rule.description }}</p>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                    {% if rule.rule_type == 'purchase_order' %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300
+                                    {% elif rule.rule_type == 'expense' %}bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300
+                                    {% elif rule.rule_type == 'payroll' %}bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300
+                                    {% elif rule.rule_type == 'discount' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300
+                                    {% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                    {{ rule.get_rule_type_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right font-mono text-sm">
+                                {% if rule.rule_type == 'discount' %}
+                                    &ge; {{ rule.min_discount_percent|floatformat:2 }}%
+                                {% else %}
+                                    &ge; ${{ rule.min_amount|floatformat:2 }}
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-slate-600 dark:text-slate-400">
+                                {% if rule.approver_user %}
+                                    <span class="font-medium text-slate-800 dark:text-slate-200">{{ rule.approver_user.get_full_name|default:rule.approver_user.email }}</span>
+                                {% elif rule.approver_role %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">{{ rule.approver_role.name }}</span>
+                                {% else %}
+                                    <span class="text-xs text-slate-400">{% trans "Any Authorized Role" %}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-center font-mono text-xs text-slate-500">
+                                {{ rule.sort_order }}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if rule.is_active %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                        {% trans "Active" %}
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                        {% trans "Disabled" %}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right text-sm">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="{% url 'approvals:rule_edit' rule.pk %}" class="p-1 rounded text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="{% trans 'Edit' %}">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </a>
+                                    <form method="post" action="{% url 'approvals:rule_delete' rule.pk %}" onsubmit="return confirm('{% trans "Are you sure you want to delete this approval rule?" %}');" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40" title="{% trans 'Delete' %}">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                                <div class="max-w-sm mx-auto space-y-3">
+                                    <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "No approval rules configured" %}</h3>
+                                    <p class="text-xs text-slate-500">
+                                        {% trans "Create rules to automatically require management approval for high-value purchase orders, expenses, payroll runs, or steep discounts." %}
+                                    </p>
+                                    <div class="pt-2">
+                                        <a href="{% url 'approvals:rule_create' %}" class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                                            {% trans "Configure First Rule" %}
+                                        </a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

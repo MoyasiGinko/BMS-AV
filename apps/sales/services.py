@@ -443,6 +443,40 @@ def confirm_sales_order(
             f"(balance: {cur_bal}, limit: {limit})."
         )
 
+    from django.core.exceptions import ValidationError
+
+    from apps.approvals.models import ApprovalRequest, ApprovalRuleType, ApprovalStatus
+    from apps.approvals.services import evaluate_approval_required, request_approval
+
+    max_disc = max((line.discount_percent for line in order.lines.all()), default=Decimal("0.00"))
+    rule = evaluate_approval_required(
+        organization=organization,
+        document_type=ApprovalRuleType.DISCOUNT,
+        discount_percent=max_disc,
+    )
+    if rule:
+        app_req = ApprovalRequest.all_tenants.filter(
+            organization=organization,
+            document_type=ApprovalRuleType.DISCOUNT,
+            document_id=str(order.pk),
+        ).first()
+        if not app_req:
+            app_req = request_approval(
+                organization=organization,
+                actor=actor,
+                document_type=ApprovalRuleType.DISCOUNT,
+                document_id=order.pk,
+                document_reference=order.order_number,
+                document_title=f"Sales Order {order.order_number} ({max_disc}% discount) for {customer.name}",
+                amount=order.grand_total,
+                discount_percent=max_disc,
+                rule=rule,
+            )
+        if app_req.status != ApprovalStatus.APPROVED:
+            raise ValidationError(
+                f"Sales order {order.order_number} requires discount approval ({max_disc}% >= {rule.min_discount_percent}%) before confirmation."
+            )
+
     order.status = SalesOrderStatus.CONFIRMED
     order.save(update_fields=["status", "updated_at"])
 

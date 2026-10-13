@@ -892,6 +892,27 @@ def create_expense(
             vendor_name=expense.vendor_name,
         )
     )
+
+    from apps.approvals.models import ApprovalRuleType
+    from apps.approvals.services import evaluate_approval_required, request_approval
+
+    rule = evaluate_approval_required(
+        organization=organization,
+        document_type=ApprovalRuleType.EXPENSE,
+        amount=expense.total_amount,
+    )
+    if rule:
+        request_approval(
+            organization=organization,
+            actor=actor,
+            document_type=ApprovalRuleType.EXPENSE,
+            document_id=expense.pk,
+            document_reference=expense.expense_number,
+            document_title=f"Expense {expense.expense_number} - {expense.vendor_name or expense.category.name} (${expense.total_amount})",
+            amount=expense.total_amount,
+            rule=rule,
+        )
+
     return expense
 
 
@@ -906,6 +927,26 @@ def post_expense(
     target_exp = Expense.all_tenants.select_for_update().get(pk=expense.pk, organization=organization)
     if target_exp.status != ExpenseStatus.DRAFT:
         raise ExpenseAlreadyPostedError(f"Expense '{target_exp.expense_number}' is not in draft status.")
+
+    from apps.approvals.models import ApprovalRequest, ApprovalRuleType, ApprovalStatus
+    from apps.approvals.services import evaluate_approval_required
+
+    rule = evaluate_approval_required(
+        organization=organization,
+        document_type=ApprovalRuleType.EXPENSE,
+        amount=target_exp.total_amount,
+    )
+    if rule:
+        app_req = ApprovalRequest.all_tenants.filter(
+            organization=organization,
+            document_type=ApprovalRuleType.EXPENSE,
+            document_id=str(target_exp.pk),
+        ).first()
+        if not app_req or app_req.status != ApprovalStatus.APPROVED:
+            raise ValidationError(
+                _("Expense %(num)s requires approval before posting to general ledger.")
+                % {"num": target_exp.expense_number}
+            )
 
     check_fiscal_period_open(organization=organization, posting_date=target_exp.date)
 

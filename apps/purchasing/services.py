@@ -311,6 +311,27 @@ def submit_purchase_order(
 
     po.status = PurchaseOrderStatus.SUBMITTED
     po.save(update_fields=["status", "updated_at"])
+
+    from apps.approvals.models import ApprovalRuleType
+    from apps.approvals.services import evaluate_approval_required, request_approval
+
+    rule = evaluate_approval_required(
+        organization=organization,
+        document_type=ApprovalRuleType.PURCHASE_ORDER,
+        amount=po.total_amount,
+    )
+    if rule:
+        request_approval(
+            organization=organization,
+            actor=actor,
+            document_type=ApprovalRuleType.PURCHASE_ORDER,
+            document_id=po.pk,
+            document_reference=po.order_number,
+            document_title=f"Purchase Order {po.order_number} for {po.supplier.name} (${po.total_amount})",
+            amount=po.total_amount,
+            rule=rule,
+        )
+
     return po
 
 

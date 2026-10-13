@@ -613,6 +613,27 @@ def review_payroll_run(
             reviewer_id=getattr(actor, "pk", None),
         )
     )
+
+    from apps.approvals.models import ApprovalRuleType
+    from apps.approvals.services import evaluate_approval_required, request_approval
+
+    rule = evaluate_approval_required(
+        organization=run.organization,
+        document_type=ApprovalRuleType.PAYROLL,
+        amount=run.total_gross_pay,
+    )
+    if rule:
+        request_approval(
+            organization=run.organization,
+            actor=actor,
+            document_type=ApprovalRuleType.PAYROLL,
+            document_id=run.pk,
+            document_reference=run.run_number,
+            document_title=f"Payroll Run {run.run_number} ({run.period_start} to {run.period_end}) - Gross ${run.total_gross_pay}",
+            amount=run.total_gross_pay,
+            rule=rule,
+        )
+
     return run
 
 

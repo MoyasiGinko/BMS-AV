@@ -113,6 +113,7 @@ layers = [
   "apps.sales | apps.purchasing | apps.hr",
   "apps.accounting | apps.inventory | apps.customers",
   "apps.catalog",
+  "apps.approvals",
   "apps.billing | apps.tenancy | apps.accounts",
   "apps.core",
 ]
