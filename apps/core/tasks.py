@@ -1,17 +1,18 @@
 """Celery tasks for outbox event dispatching and background jobs."""
 
-from __future__ import annotations
-
+import datetime
 import logging
 from typing import Any
 
 from celery import Task, shared_task
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
 from apps.core.events import get_subscribers
 from apps.core.exceptions import TenantAccessError
-from apps.core.models import OutboxEvent
+from apps.core.models import Notification, NotificationStatus, OutboxEvent
+from apps.core.notifications import send_notification
 from apps.core.tenant_context import tenant_context
 
 logger = logging.getLogger(__name__)
@@ -90,3 +91,44 @@ def dispatch_outbox_events(batch_size: int = 100, max_retries: int = 3) -> int:
         if _process_single_outbox_event(event_id, max_retries=max_retries):
             processed_count += 1
     return processed_count
+
+
+@shared_task(base=TenantTask, name="core.send_async_notification")
+def send_async_notification(
+    organization_id: int,
+    *,
+    category: str,
+    title: str,
+    body: str,
+    channel: str = "email",
+    recipient_email: str = "",
+    recipient_user_id: int | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> str:
+    """Deliver an asynchronous notification in the background."""
+    user = None
+    if recipient_user_id:
+        user = get_user_model().objects.filter(pk=recipient_user_id).first()
+
+    notif = send_notification(
+        organization_id=organization_id,
+        category=category,
+        title=title,
+        body=body,
+        channel=channel,
+        recipient_email=recipient_email,
+        recipient_user=user,
+        metadata=metadata,
+    )
+    return str(notif.public_id)
+
+
+@shared_task(name="core.cleanup_old_notifications")
+def cleanup_old_notifications(days: int = 90) -> int:
+    """Periodic task to purge read and skipped notifications older than specified days."""
+    cutoff = timezone.now() - datetime.timedelta(days=days)
+    deleted, _ = Notification.all_tenants.filter(
+        created_at__lt=cutoff,
+        status__in=[NotificationStatus.READ, NotificationStatus.SKIPPED],
+    ).delete()
+    return deleted

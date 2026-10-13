@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from apps.core import services
+from apps.core import selectors, services
 from apps.core.api.idempotency import idempotent
 from apps.core.api.serializers import (
     ApiKeyCreatedResponseSerializer,
@@ -17,13 +17,18 @@ from apps.core.api.serializers import (
     ApiKeySerializer,
     AuditLogSerializer,
     GenerateNumberResponseSerializer,
+    NotificationSerializer,
+    NotificationUnreadCountSerializer,
     NumberSequenceSerializer,
+    UserNotificationPreferenceBulkUpdateSerializer,
+    UserNotificationPreferenceItemSerializer,
 )
 from apps.core.api.viewsets import (
     TenantScopedModelViewSet,
     TenantScopedReadOnlyModelViewSet,
+    TenantScopedViewSet,
 )
-from apps.core.models import ApiKey, AuditLog, NumberSequence
+from apps.core.models import ApiKey, AuditLog, Notification, NumberSequence
 
 
 class NumberSequenceViewSet(TenantScopedModelViewSet):
@@ -185,3 +190,148 @@ class ApiKeyViewSet(TenantScopedModelViewSet):
         api_key = self.get_object()
         services.revoke_api_key(api_key=api_key, actor=request.user)
         return Response(status=204)
+
+
+class NotificationViewSet(TenantScopedReadOnlyModelViewSet):
+    """View and manage in-app and email notifications addressed to the authenticated user."""
+
+    serializer_class = NotificationSerializer
+    lookup_field = "public_id"
+    lookup_url_kwarg = "id"
+
+    def get_queryset(self) -> Any:
+        org = self.get_tenant()
+        if not org or not getattr(self.request.user, "is_authenticated", False):
+            return Notification.objects.none()
+        category = self.request.query_params.get("category")
+        channel = self.request.query_params.get("channel")
+        status_param = self.request.query_params.get("status")
+        return selectors.list_user_notifications(
+            organization_id=org.pk,
+            user=self.request.user,
+            category=category,
+            channel=channel,
+            status=status_param,
+        )
+
+    @extend_schema(
+        summary="Get unread notifications count",
+        responses={200: NotificationUnreadCountSerializer},
+    )
+    @action(detail=False, methods=["get"], url_path="unread-count")
+    def unread_count(self, request: Any) -> Response:
+        org = self.get_tenant()
+        count = selectors.get_unread_notifications_count(
+            organization_id=org.pk,
+            user=request.user,
+        )
+        return Response({"unread_count": count})
+
+    @extend_schema(
+        summary="Mark notification as read",
+        request=None,
+        responses={200: NotificationSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="mark-read")
+    def mark_read(self, request: Any, id: Any = None) -> Response:
+        notif = self.get_object()
+        updated = services.mark_notification_read(
+            notification=notif,
+            user=request.user,
+        )
+        return Response(NotificationSerializer(updated).data)
+
+    @extend_schema(
+        summary="Mark notification as unread",
+        request=None,
+        responses={200: NotificationSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="mark-unread")
+    def mark_unread(self, request: Any, id: Any = None) -> Response:
+        org = self.get_tenant()
+        updated = services.mark_notification_unread(
+            notification_id=str(id),
+            organization_id=org.pk,
+            user=request.user,
+        )
+        if not updated:
+            return Response({"error": "Notification not found"}, status=404)
+        return Response(NotificationSerializer(updated).data)
+
+    @extend_schema(
+        summary="Mark all user notifications as read",
+        request=None,
+        responses={200: dict},
+    )
+    @action(detail=False, methods=["post"], url_path="mark-all-read")
+    def mark_all_read(self, request: Any) -> Response:
+        org = self.get_tenant()
+        count = services.mark_all_notifications_read(
+            organization_id=org.pk,
+            user=request.user,
+        )
+        return Response({"marked_read": count})
+
+
+class UserNotificationPreferenceViewSet(TenantScopedViewSet):
+    """Retrieve and update personal notification preferences for the authenticated user."""
+
+    @extend_schema(
+        summary="List user personal notification preferences",
+        responses={200: UserNotificationPreferenceItemSerializer(many=True)},
+    )
+    def list(self, request: Any) -> Response:
+        org = self.get_tenant()
+        prefs_map = selectors.get_user_notification_preferences_map(
+            organization_id=org.pk,
+            user_id=request.user.pk,
+        )
+        STANDARD_CATEGORIES = [
+            "approvals",
+            "billing",
+            "inventory",
+            "sales",
+            "security",
+            "payroll",
+            "system",
+        ]
+        results = []
+        for cat in STANDARD_CATEGORIES:
+            for ch in ["in_app", "email"]:
+                results.append(
+                    {
+                        "category": cat,
+                        "channel": ch,
+                        "is_enabled": prefs_map.get((cat, ch), True),
+                    }
+                )
+        return Response(results)
+
+    @extend_schema(
+        summary="Update user personal notification preferences",
+        request=UserNotificationPreferenceBulkUpdateSerializer,
+        responses={200: UserNotificationPreferenceItemSerializer(many=True)},
+    )
+    def create(self, request: Any) -> Response:
+        org = self.get_tenant()
+        serializer = UserNotificationPreferenceBulkUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        items = serializer.validated_data["preferences"]
+        updated_list = []
+        for item in items:
+            pref = services.update_user_notification_preference(
+                organization_id=org.pk,
+                user=request.user,
+                category=item["category"],
+                channel=item["channel"],
+                is_enabled=item["is_enabled"],
+                actor=request.user,
+            )
+            updated_list.append(
+                {
+                    "category": pref.category,
+                    "channel": pref.channel,
+                    "is_enabled": pref.is_enabled,
+                }
+            )
+        return Response(updated_list)

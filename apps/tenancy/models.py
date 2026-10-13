@@ -426,3 +426,44 @@ class NotificationPreference(TenantModel):
     def __str__(self) -> str:
         state = "enabled" if self.is_enabled else "disabled"
         return f"[{self.organization}] {self.category} via {self.channel}: {state}"
+
+
+class UserNotificationPreference(TenantModel):
+    """Personal notification preferences per user, channel, and category."""
+
+    CHANNEL_EMAIL = NotificationPreference.CHANNEL_EMAIL
+    CHANNEL_IN_APP = NotificationPreference.CHANNEL_IN_APP
+    CHANNEL_CHOICES = NotificationPreference.CHANNEL_CHOICES
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notification_preferences",
+        verbose_name=_("user"),
+    )
+    channel = models.CharField(
+        _("channel"),
+        max_length=32,
+        choices=CHANNEL_CHOICES,
+        default=CHANNEL_IN_APP,
+    )
+    category = models.CharField(_("category"), max_length=64, db_index=True)
+    is_enabled = models.BooleanField(_("is enabled"), default=True)
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("user notification preference")
+        verbose_name_plural = _("user notification preferences")
+        ordering = ("user", "category", "channel")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "user", "category", "channel"],
+                name="unique_user_org_notification_pref",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        state = "enabled" if self.is_enabled else "disabled"
+        return f"[{self.organization}] User {self.user_id} - {self.category} via {self.channel}: {state}"

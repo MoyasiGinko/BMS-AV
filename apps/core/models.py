@@ -340,3 +340,13 @@ class Notification(TenantModel):
     def __str__(self) -> str:
         recipient = self.recipient_email or (self.recipient_user.email if self.recipient_user else "unknown")
         return f"[{self.channel}] {self.category} -> {recipient} ({self.status})"
+
+    @property
+    def is_read(self) -> bool:
+        return self.status == NotificationStatus.READ
+
+    @property
+    def action_url(self) -> str:
+        if isinstance(self.metadata, dict):
+            return str(self.metadata.get("action_url") or "")
+        return ""

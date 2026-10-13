@@ -6,7 +6,7 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, ClassVar, Protocol, runtime_checkable
 
 from django.apps import apps
 from django.conf import settings
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class NotificationSentEvent(DomainEvent):
     """Domain event published when a notification record is sent."""
 
-    event_type: str = "core.notification.sent"
+    event_type: ClassVar[str] = "core.notification.sent"
     notification_id: str = ""
     recipient: str = ""
     category: str = ""
@@ -115,7 +115,8 @@ class FakeEmailAdapter:
         html_message: str | None = None,
         fail_silently: bool = False,
     ) -> bool:
-        from_addr = from_email or getattr(settings, "DEFAULT_FROM_EMAIL", "notifications@businessos.local")
+        default_from = getattr(settings, "DEFAULT_FROM_EMAIL", "notifications@businessos.local")
+        from_addr = str(from_email or default_from)
         record = SentEmailRecord(
             subject=subject,
             message=message,
@@ -191,28 +192,61 @@ def set_email_adapter(adapter: EmailAdapter | None) -> None:
     _AdapterRegistry.active = adapter
 
 
-def is_notification_enabled(*, organization_id: int, category: str, channel: str) -> bool:
-    """Check tenant NotificationPreference for category and channel."""
+def is_notification_enabled(
+    *,
+    organization_id: int,
+    category: str,
+    channel: str,
+    user_id: int | None = None,
+) -> bool:
+    """Check tenant NotificationPreference and personal UserNotificationPreference.
+
+    Hierarchy:
+    1. If the tenant organization has explicitly disabled the category/channel, return False.
+    2. If user_id is provided and the user has a personal preference for this category/channel,
+       return that setting.
+    3. Otherwise return True (enabled by default).
+    """
+    clean_cat = category.rsplit(".", maxsplit=1)[-1]
+    cat_query = Q(category=category) | Q(category=clean_cat)
+    if not clean_cat.endswith("s"):
+        cat_query |= Q(category=f"{clean_cat}s")
+    elif clean_cat.endswith("s"):
+        cat_query |= Q(category=clean_cat[:-1])
+
+    # 1. Check organization policy
     try:
         pref_model = apps.get_model("tenancy", "NotificationPreference")
         if pref_model:
-            # Match exact category or without module prefix / plurals
-            clean_cat = category.rsplit(".", maxsplit=1)[-1]
-            cat_query = Q(category=category) | Q(category=clean_cat)
-            if not clean_cat.endswith("s"):
-                cat_query |= Q(category=f"{clean_cat}s")
-            elif clean_cat.endswith("s"):
-                cat_query |= Q(category=clean_cat[:-1])
-
             pref = (
                 pref_model.all_tenants.filter(organization_id=organization_id, channel=channel)
                 .filter(cat_query)
                 .first()
             )
-            if pref is not None:
-                return pref.is_enabled
+            if pref is not None and not pref.is_enabled:
+                return False
     except Exception as exc:
         logger.debug("Failed querying NotificationPreference: %s", exc)
+
+    # 2. Check user personal preference
+    if user_id:
+        try:
+            user_pref_model = apps.get_model("tenancy", "UserNotificationPreference")
+            if user_pref_model:
+                user_pref = (
+                    user_pref_model.all_tenants.filter(
+                        organization_id=organization_id,
+                        user_id=user_id,
+                        channel=channel,
+                    )
+                    .filter(cat_query)
+                    .first()
+                )
+                if user_pref is not None:
+                    return user_pref.is_enabled
+        except Exception as exc:
+            logger.debug("Failed querying UserNotificationPreference: %s", exc)
+
     return True
 
 
@@ -228,11 +262,13 @@ def send_notification(
     metadata: dict[str, Any] | None = None,
     actor: Any = None,
 ) -> Notification:
-    """Create a Notification record, check tenant preferences, and deliver via adapter."""
+    """Create a Notification record, check tenant and user preferences, and deliver via adapter."""
+    user_id = getattr(recipient_user, "pk", None) if recipient_user else None
     enabled = is_notification_enabled(
         organization_id=organization_id,
         category=category,
         channel=channel,
+        user_id=user_id,
     )
 
     recipient_addr = recipient_email
@@ -249,7 +285,7 @@ def send_notification(
         body=body,
         metadata=metadata or {},
         status=NotificationStatus.SKIPPED if not enabled else NotificationStatus.PENDING,
-        error_message="Notification preference disabled by tenant." if not enabled else "",
+        error_message="Notification preference disabled by user or organization." if not enabled else "",
         created_by=actor,
     )
 
@@ -302,11 +338,46 @@ def send_notification(
     return notification
 
 
+def notify_user(
+    *,
+    organization_id: int,
+    user: Any,
+    category: str,
+    title: str,
+    body: str,
+    channel: str | None = None,
+    action_url: str = "",
+    metadata: dict[str, Any] | None = None,
+    actor: Any = None,
+) -> list[Notification]:
+    """High-level helper to dispatch notifications to a user across appropriate channels."""
+    meta = dict(metadata or {})
+    if action_url:
+        meta["action_url"] = action_url
+
+    channels_to_send = [channel] if channel else [NotificationChannel.IN_APP, NotificationChannel.EMAIL]
+    results: list[Notification] = []
+    for ch in channels_to_send:
+        notif = send_notification(
+            organization_id=organization_id,
+            category=category,
+            title=title,
+            body=body,
+            channel=ch,
+            recipient_user=user,
+            metadata=meta,
+            actor=actor,
+        )
+        results.append(notif)
+    return results
+
+
 def mark_notification_read(
     *,
     notification: Notification | None = None,
     notification_id: str | None = None,
     organization_id: int | None = None,
+    user: Any = None,
     read_by: Any = None,
 ) -> Notification | None:
     """Mark a notification as read by the recipient."""
@@ -317,13 +388,132 @@ def mark_notification_read(
         return notification
 
     if notification_id and organization_id:
-        notif = Notification.all_tenants.filter(
+        qs = Notification.all_tenants.filter(
             public_id=notification_id,
             organization_id=organization_id,
-        ).first()
+        )
+        if user is not None:
+            user_id = getattr(user, "pk", None)
+            user_email = getattr(user, "email", "")
+            if user_id and user_email:
+                qs = qs.filter(Q(recipient_user_id=user_id) | Q(recipient_email=user_email))
+            elif user_id:
+                qs = qs.filter(recipient_user_id=user_id)
+            elif user_email:
+                qs = qs.filter(recipient_email=user_email)
+            else:
+                return None
+        notif = qs.first()
         if notif:
             notif.status = NotificationStatus.READ
             notif.read_at = timezone.now()
             notif.save(update_fields=["status", "read_at", "updated_at"])
             return notif
     return None
+
+
+def mark_notification_unread(
+    *,
+    notification_id: str,
+    organization_id: int,
+    user: Any = None,
+) -> Notification | None:
+    """Mark a previously read notification as unread."""
+    qs = Notification.all_tenants.filter(
+        public_id=notification_id,
+        organization_id=organization_id,
+    )
+    if user is not None:
+        user_id = getattr(user, "pk", None)
+        user_email = getattr(user, "email", "")
+        if user_id and user_email:
+            qs = qs.filter(Q(recipient_user_id=user_id) | Q(recipient_email=user_email))
+        elif user_id:
+            qs = qs.filter(recipient_user_id=user_id)
+        elif user_email:
+            qs = qs.filter(recipient_email=user_email)
+        else:
+            return None
+    notif = qs.first()
+    if notif:
+        notif.status = NotificationStatus.SENT
+        notif.read_at = None
+        notif.save(update_fields=["status", "read_at", "updated_at"])
+        return notif
+    return None
+
+
+def mark_all_notifications_read(
+    *,
+    organization_id: int,
+    user: Any,
+) -> int:
+    """Mark all unread notifications for a user in an organization as read."""
+    user_id = getattr(user, "pk", None)
+    user_email = getattr(user, "email", "")
+    if not user_id and not user_email:
+        return 0
+
+    qs = Notification.all_tenants.filter(
+        organization_id=organization_id,
+    ).exclude(status__in=[NotificationStatus.READ, NotificationStatus.SKIPPED])
+
+    if user_id and user_email:
+        qs = qs.filter(Q(recipient_user_id=user_id) | Q(recipient_email=user_email))
+    elif user_id:
+        qs = qs.filter(recipient_user_id=user_id)
+    else:
+        qs = qs.filter(recipient_email=user_email)
+
+    return qs.update(status=NotificationStatus.READ, read_at=timezone.now())
+
+
+def delete_notification(
+    *,
+    organization_id: int,
+    notification_id: str,
+    user: Any = None,
+) -> bool:
+    """Delete a notification addressed to the user."""
+    qs = Notification.all_tenants.filter(
+        organization_id=organization_id,
+        public_id=notification_id,
+    )
+    if user is not None:
+        user_id = getattr(user, "pk", None)
+        user_email = getattr(user, "email", "")
+        if user_id and user_email:
+            qs = qs.filter(Q(recipient_user_id=user_id) | Q(recipient_email=user_email))
+        elif user_id:
+            qs = qs.filter(recipient_user_id=user_id)
+        elif user_email:
+            qs = qs.filter(recipient_email=user_email)
+        else:
+            return False
+    deleted_count, _ = qs.delete()
+    return deleted_count > 0
+
+
+def update_user_notification_preference(
+    *,
+    organization_id: int,
+    user: Any,
+    category: str,
+    channel: str,
+    is_enabled: bool,
+    actor: Any = None,
+) -> Any:
+    """Upsert personal notification preference for user, category, and channel."""
+    user_pref_model = apps.get_model("tenancy", "UserNotificationPreference")
+    user_id = getattr(user, "pk", user)
+    pref, _created = user_pref_model.all_tenants.update_or_create(
+        organization_id=organization_id,
+        user_id=user_id,
+        category=category,
+        channel=channel,
+        defaults={
+            "is_enabled": is_enabled,
+            "created_by": actor,
+        },
+    )
+    return pref

@@ -1,21 +1,25 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P5 ERP maturity
-- Last completed task: P5-07 Full-tenant export/import (data portability) + retention settings + GDPR-style deletion/export workflows
-- Next task: P5-08 Notifications center (in-app + email), user notification preferences
+- Last completed task: P5-08 Notifications center (in-app + email), user notification preferences
+- Next task: P5-R Phase review
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (83/83 integrations tests passing, mypy 34 files clean, ruff check and format clean, lint-imports clean)
+- Last `make verify`: PASSED (16/16 notifications tests passing, 9/9 core unit tests passing, ruff check/format clean, lint-imports clean, mypy clean)
 - Notes:
-  - P5-07 Complete: Data portability (tenant export/import), configurable data retention policies, and GDPR compliance workflows:
-    - ADR 0031 (`docs/adr/0031-data-portability-retention-and-gdpr.md`): Full-tenant archive format (ZIP manifest with scoped JSON datasets), transactional schema validation, safe idempotent import, and GDPR erasure with financial immutable ledger preservation.
-    - Data Models: `TenantExportJob`, `TenantImportJob`, `DataRetentionPolicy`, `DataSubjectRequest` with PostgreSQL RLS enabled (`0008`, `0009`, `0010`).
-    - Domain Services:
-      - Export: Streams all tenant entities (catalog, customers, suppliers, inventory, sales, purchases, invoices, payments, journals, employees, webhooks) to a structured archive with SHA-256 integrity checksums.
-      - Import: Validates manifest and organization boundary, imports catalog items, price lists, customer records, and addresses with collision detection and rollback on error.
-      - Data Retention: Configurable retention periods for audit logs, webhook deliveries, export jobs, and customer activity logs with automated Celery cleanup task.
-      - GDPR Compliance: Export of all data subject personal records, and erasure workflow with customer PII pseudonymization while keeping immutable financial transaction histories.
-    - Web UI & HTMX: Portability overview (`/integrations/portability/`), export launcher & detail view (`/integrations/portability/exports/<id>/`), import upload & status tracker, retention policy configuration (`/integrations/retention/`), and data subject request processing dashboard.
-    - REST API: Versioned endpoints under `/api/v1/integrations/portability/` (exports, imports, retention-policy, data-subject-requests) with OpenAPI schema definitions.
-    - Test Suite: 9 tests in `test_data_portability_and_compliance.py`, 83/83 passing in `apps/integrations/tests/`.
-  - Next task: P5-08 Notifications center (in-app + email), user notification preferences.
+  - P5-08 Complete: Notifications center (in-app + email) and user notification preferences:
+    - ADR 0032 (`docs/adr/0032-notifications-center-and-user-preferences.md`): Two-tier notification preference hierarchy (organization policy overrides user preference; user opt-in/opt-out per category and channel), reactive HTMX topbar dropdown & badge counter, in-app notification center, and REST API.
+    - Data Models: `UserNotificationPreference` in `apps/tenancy` with PostgreSQL RLS enabled; `Notification` enhanced with `is_read` and `action_url` properties.
+    - Services & Selectors:
+      - `is_notification_enabled`: Evaluates org-level `NotificationPreference` and user-level `UserNotificationPreference`.
+      - `notify_user`: High-level multi-channel notification dispatcher (in-app + email) respecting user preferences and channel availability.
+      - Mark read/unread, mark all as read, delete, and preference management services.
+      - Selectors for notification feeds, unread counts, and user preference maps.
+    - Celery Tasks: `send_async_notification` for asynchronous delivery, `cleanup_old_notifications` for lifecycle retention.
+    - Web UI & HTMX:
+      - Reactive topbar bell (`/notifications/unread-count/`, `/notifications/preview/`) with unread badge counter.
+      - Notification center (`/notifications/`) with filtering (all/unread/read, categories, search), pagination, and inline actions.
+      - User notification preferences matrix (`/notifications/preferences/`) for configuring email and in-app channels.
+    - REST API: `/api/v1/core/notifications/` with endpoints for listing, unread-count, mark-read, mark-unread, mark-all-read, and personal notification preferences.
+    - Tests: 16 tests in `tests/test_notifications_center.py` covering multi-channel delivery, two-tier preference hierarchy, cross-tenant isolation, web UI HTMX endpoints, REST API viewsets, and async Celery tasks.
+  - Next task: P5-R Phase review.
 

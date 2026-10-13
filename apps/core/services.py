@@ -389,3 +389,33 @@ def record_api_key_usage(
         last_used_ip=ip_address,
     )
     record_metric(api_key.organization_id, "api_calls", 1)
+
+
+# Notification services re-exported for unified services layer
+from apps.core.notifications import (  # noqa: E402
+    delete_notification,
+    is_notification_enabled,
+    mark_all_notifications_read,
+    mark_notification_read,
+    mark_notification_unread,
+    notify_user,
+    send_notification,
+    update_user_notification_preference,
+)
+
+__all__ = [
+    "create_api_key",
+    "delete_notification",
+    "generate_next_number",
+    "is_notification_enabled",
+    "mark_all_notifications_read",
+    "mark_notification_read",
+    "mark_notification_unread",
+    "notify_user",
+    "record_api_key_usage",
+    "revoke_api_key",
+    "rotate_api_key",
+    "send_notification",
+    "update_api_key",
+    "update_user_notification_preference",
+]

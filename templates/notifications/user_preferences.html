@@ -1,0 +1,102 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Notification Preferences" %} - Business OS{% endblock %}
+
+{% block page_header %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+  <div>
+    <div class="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-1">
+      <a href="/" class="hover:text-[var(--text)] transition-colors">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <a href="{% url 'notifications:center' %}" class="hover:text-[var(--text)] transition-colors">{% trans "Notifications" %}</a>
+      <span>/</span>
+      <span class="text-[var(--text)] font-medium">{% trans "Preferences" %}</span>
+    </div>
+    <h1 class="text-xl sm:text-2xl font-bold text-[var(--text)]">{% trans "Personal Notification Preferences" %}</h1>
+    <p class="text-xs text-[var(--text-muted)] mt-1">
+      {% trans "Choose how you want to be alerted for operational events in" %} <strong>{{ organization.name }}</strong>.
+    </p>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <a
+      href="{% url 'notifications:center' %}"
+      class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)] shadow-xs transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+      {% trans "Back to Center" %}
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+  <form method="post" action="{% url 'notifications:preferences' %}" class="space-y-6">
+    {% csrf_token %}
+
+    <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs">
+      <div class="border-b border-[var(--border)] pb-4 mb-6">
+        <h2 class="text-base font-bold text-[var(--text)]">{% trans "Channels & Alerts Matrix" %}</h2>
+        <p class="text-xs text-[var(--text-muted)] mt-1">
+          {% trans "In-app notifications appear in your top-bar bell and center. Email alerts are dispatched directly to your registered inbox." %}
+        </p>
+      </div>
+
+      <div class="divide-y divide-[var(--border)]">
+        {% for item in category_items %}
+          <div class="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex-1">
+              <h3 class="text-sm font-semibold text-[var(--text)]">{{ item.label }}</h3>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ item.description }}</p>
+            </div>
+
+            <!-- Toggles for Email & In-App -->
+            <div class="flex items-center gap-6 shrink-0">
+              <!-- In-App Toggle -->
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="{{ item.key }}_in_app"
+                  {% if item.in_app_enabled %}checked{% endif %}
+                  class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-600)] w-4 h-4"
+                >
+                <span class="text-xs font-medium text-[var(--text)] flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                  {% trans "In-App" %}
+                </span>
+              </label>
+
+              <!-- Email Toggle -->
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="{{ item.key }}_email"
+                  {% if item.email_enabled %}checked{% endif %}
+                  class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-600)] w-4 h-4"
+                >
+                <span class="text-xs font-medium text-[var(--text)] flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  {% trans "Email" %}
+                </span>
+              </label>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="flex items-center justify-end gap-3">
+      <button
+        type="submit"
+        class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        {% trans "Save Preferences" %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

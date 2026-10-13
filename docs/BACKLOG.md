@@ -65,7 +65,7 @@ Format: `ID title: Done when ...`
 - [x] P5-05 Connector framework: registry, IntegrationConnection (encrypted), ExternalReference, sync log; connectors generic_rest, csv_import, fake_payments, fake_sms, smtp_email, zapier_compat.
 - [x] P5-06 OAuth2 provider (PKCE + client credentials) with consent screen, app registry UI, scopes; inbound webhook endpoints framework.
 - [x] P5-07 Full-tenant export/import (data portability) + retention settings + GDPR-style deletion/export workflows.
-- [ ] P5-08 Notifications center (in-app + email), user notification preferences.
+- [x] P5-08 Notifications center (in-app + email), user notification preferences.
 - [ ] P5-R Phase review.
 
 ## P6 Operating system layer

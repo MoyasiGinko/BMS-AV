@@ -1,0 +1,137 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Notifications Center" %} - Business OS{% endblock %}
+
+{% block page_header %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+  <div>
+    <div class="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-1">
+      <a href="/" class="hover:text-[var(--text)] transition-colors">{% trans "Dashboard" %}</a>
+      <span>/</span>
+      <span class="text-[var(--text)] font-medium">{% trans "Notifications" %}</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <h1 class="text-xl sm:text-2xl font-bold text-[var(--text)]">{% trans "Notifications Center" %}</h1>
+      {% if unread_count and unread_count > 0 %}
+        <span class="px-2.5 py-0.5 rounded-full bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)] text-xs font-bold">
+          {% blocktrans with count=unread_count %}{{ count }} unread{% endblocktrans %}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2.5">
+    {% if unread_count and unread_count > 0 %}
+      <form method="post" action="{% url 'notifications:mark_all_read' %}">
+        {% csrf_token %}
+        <button
+          type="submit"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)] shadow-xs transition-colors"
+        >
+          <svg class="w-4 h-4 text-[var(--brand-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          {% trans "Mark All as Read" %}
+        </button>
+      </form>
+    {% endif %}
+
+    <a
+      href="{% url 'notifications:preferences' %}"
+      class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      {% trans "Preferences" %}
+    </a>
+  </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Filter & Search Toolbar -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <!-- Status Tabs -->
+    <div class="flex items-center gap-1 border-b md:border-b-0 border-[var(--border)] pb-2 md:pb-0">
+      <a
+        href="?tab=all{% if active_category %}&category={{ active_category }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if active_tab == 'all' %}bg-[var(--brand-50)] text-[var(--brand-700)] border border-[var(--brand-200)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+      >
+        {% trans "All" %}
+      </a>
+      <a
+        href="?tab=unread{% if active_category %}&category={{ active_category }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if active_tab == 'unread' %}bg-[var(--brand-50)] text-[var(--brand-700)] border border-[var(--brand-200)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+      >
+        {% trans "Unread" %}
+        {% if unread_count and unread_count > 0 %}
+          <span class="ml-1 px-1.5 py-0.2 rounded-full bg-[var(--danger)] text-white text-[10px] font-bold">{{ unread_count }}</span>
+        {% endif %}
+      </a>
+      <a
+        href="?tab=read{% if active_category %}&category={{ active_category }}{% endif %}{% if search_q %}&q={{ search_q }}{% endif %}"
+        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors {% if active_tab == 'read' %}bg-[var(--brand-50)] text-[var(--brand-700)] border border-[var(--brand-200)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+      >
+        {% trans "Read" %}
+      </a>
+    </div>
+
+    <!-- Category Filter & Search Bar -->
+    <form method="get" class="flex items-center gap-2.5">
+      <input type="hidden" name="tab" value="{{ active_tab }}">
+      
+      <!-- Category Dropdown -->
+      <select
+        name="category"
+        onchange="this.form.submit()"
+        class="text-xs rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"
+      >
+        <option value="">{% trans "All Categories" %}</option>
+        {% for cat_key, cat_label, _desc in categories %}
+          <option value="{{ cat_key }}" {% if active_category == cat_key %}selected{% endif %}>
+            {{ cat_label }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <!-- Search Input -->
+      <div class="relative">
+        <svg class="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[var(--text-subtle)] pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input
+          type="text"
+          name="q"
+          value="{{ search_q }}"
+          placeholder="{% trans 'Search notifications...' %}"
+          class="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] placeholder-[var(--text-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)] w-48 sm:w-64"
+        >
+      </div>
+
+      <button
+        type="submit"
+        class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--border)] transition-colors"
+      >
+        {% trans "Filter" %}
+      </button>
+
+      {% if active_category or search_q %}
+        <a
+          href="?tab={{ active_tab }}"
+          class="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] text-xs"
+          title="{% trans 'Clear filters' %}"
+        >
+          ✕
+        </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Notification List Partial -->
+  <div
+    hx-get="{% url 'notifications:unread_count' %}"
+    hx-trigger="refreshUnreadCount from:body"
+    hx-target="#topbar-notification-badge-container"
+    hx-swap="innerHTML"
+  ></div>
+
+  {% include "notifications/partials/notification_list.html" %}
+</div>
+{% endblock %}
