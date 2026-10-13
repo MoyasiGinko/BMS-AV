@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from decimal import Decimal
+from typing import Any
 
 from django.conf import settings
 from django.db import models
@@ -177,6 +178,13 @@ class Lead(TenantModel):
             models.Index(fields=["organization", "company_name"]),
         ]
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if "description" in kwargs and "notes" not in kwargs:
+            kwargs["notes"] = kwargs.pop("description")
+        if "first_name" not in kwargs and "title" in kwargs:
+            kwargs["first_name"] = kwargs.get("title", "")
+        super().__init__(*args, **kwargs)
+
     def __str__(self) -> str:
         full_name = f"{self.first_name} {self.last_name}".strip()
         if self.company_name:
@@ -191,6 +199,14 @@ class Lead(TenantModel):
     @property
     def display_name(self) -> str:
         return str(self)
+
+    @property
+    def description(self) -> str:
+        return self.notes
+
+    @description.setter
+    def description(self, value: str) -> None:
+        self.notes = value
 
 
 class OpportunityStatus(models.TextChoices):

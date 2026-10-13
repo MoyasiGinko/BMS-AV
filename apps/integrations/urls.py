@@ -156,11 +156,26 @@ urlpatterns = [
     path("inbound/logs/", views.inbound_logs_list_view, name="inbound_logs_list"),
     # Data Portability (Full Tenant Backup & Restore)
     path("portability/", views.portability_overview_view, name="portability_overview"),
+    path("portability/exports/", views.portability_overview_view, name="export_list"),
     path("portability/export/", views.tenant_export_create_view, name="tenant_export_create"),
-    path("portability/export/<uuid:job_id>/download/", views.tenant_export_download_view, name="tenant_export_download"),
+    path(
+        "portability/export/<uuid:job_id>/download/",
+        views.tenant_export_download_view,
+        name="tenant_export_download",
+    ),
+    path("portability/exports/<uuid:export_id>/", views.tenant_export_detail_view, name="export_detail"),
+    path(
+        "portability/exports/<uuid:export_id>/download/",
+        views.tenant_export_download_view,
+        name="export_download",
+    ),
     path("portability/import/", views.tenant_import_create_view, name="tenant_import_create"),
     path("portability/import/<uuid:job_id>/", views.tenant_import_detail_view, name="tenant_import_detail"),
-    path("portability/import/<uuid:job_id>/commit/", views.tenant_import_commit_view, name="tenant_import_commit"),
+    path(
+        "portability/import/<uuid:job_id>/commit/",
+        views.tenant_import_commit_view,
+        name="tenant_import_commit",
+    ),
     # Data Retention Policy & Cleanup
     path("retention/", views.retention_policy_view, name="retention_policy"),
     path("retention/cleanup/", views.retention_cleanup_trigger_view, name="retention_cleanup_trigger"),
@@ -168,7 +183,15 @@ urlpatterns = [
     path("privacy/", views.data_subject_requests_list_view, name="privacy_requests_list"),
     path("privacy/new/", views.data_subject_request_create_view, name="privacy_request_create"),
     path("privacy/<uuid:request_id>/", views.data_subject_request_detail_view, name="privacy_request_detail"),
-    path("privacy/<uuid:request_id>/execute/", views.data_subject_request_execute_view, name="privacy_request_execute"),
-    path("privacy/<uuid:request_id>/download/", views.data_subject_sar_download_view, name="privacy_sar_download"),
+    path(
+        "privacy/<uuid:request_id>/execute/",
+        views.data_subject_request_execute_view,
+        name="privacy_request_execute",
+    ),
+    path(
+        "privacy/<uuid:request_id>/download/",
+        views.data_subject_sar_download_view,
+        name="privacy_request_download",
+    ),
+    path("privacy/<uuid:request_id>/sar/", views.data_subject_sar_download_view, name="privacy_sar_download"),
 ]
-

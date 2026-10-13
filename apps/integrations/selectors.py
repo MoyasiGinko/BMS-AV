@@ -8,6 +8,9 @@ from typing import Any
 from django.db.models import QuerySet
 from oauth2_provider.models import AccessToken
 
+from apps.crm.models import Lead
+from apps.customers.models import Customer, CustomerContact
+from apps.hr.models import Employee
 from apps.integrations.models import (
     DataRetentionPolicy,
     DataSubjectRequest,
@@ -25,6 +28,7 @@ from apps.integrations.models import (
     WebhookDeliveryStatus,
     WebhookEndpoint,
 )
+from apps.sales.models import Invoice
 from apps.tenancy.models import Organization
 
 
@@ -431,14 +435,17 @@ def list_inbound_webhook_logs(
 def list_tenant_export_jobs(
     organization: Organization,
     *,
-    limit: int = 50,
+    limit: int | None = None,
 ) -> QuerySet[TenantExportJob]:
     """Retrieve full-tenant data export jobs for an organization."""
-    return (
+    qs = (
         TenantExportJob.all_tenants.filter(organization=organization)
         .select_related("requested_by")
-        .order_by("-created_at")[:limit]
+        .order_by("-created_at")
     )
+    if limit is not None:
+        qs = qs[:limit]
+    return qs
 
 
 def get_tenant_export_job(
@@ -451,7 +458,7 @@ def get_tenant_export_job(
     try:
         val_uuid = uuid.UUID(str(job_id))
         return qs.filter(public_id=val_uuid).first()
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         if str(job_id).isdigit():
             return qs.filter(id=int(job_id)).first()
     return None
@@ -460,14 +467,17 @@ def get_tenant_export_job(
 def list_tenant_import_jobs(
     organization: Organization,
     *,
-    limit: int = 50,
+    limit: int | None = None,
 ) -> QuerySet[TenantImportJob]:
     """Retrieve full-tenant data import jobs for an organization."""
-    return (
+    qs = (
         TenantImportJob.all_tenants.filter(organization=organization)
         .select_related("imported_by")
-        .order_by("-created_at")[:limit]
+        .order_by("-created_at")
     )
+    if limit is not None:
+        qs = qs[:limit]
+    return qs
 
 
 def get_tenant_import_job(
@@ -480,7 +490,7 @@ def get_tenant_import_job(
     try:
         val_uuid = uuid.UUID(str(job_id))
         return qs.filter(public_id=val_uuid).first()
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         if str(job_id).isdigit():
             return qs.filter(id=int(job_id)).first()
     return None
@@ -504,6 +514,11 @@ def get_or_create_retention_policy(organization: Organization) -> DataRetentionP
     return policy
 
 
+def get_retention_policy(organization: Organization) -> DataRetentionPolicy:
+    """Retrieve or create data retention policy for an organization."""
+    return get_or_create_retention_policy(organization)
+
+
 def list_active_retention_policies() -> QuerySet[DataRetentionPolicy]:
     """Retrieve all active data retention policies across tenants for background cleanup."""
     return DataRetentionPolicy.all_tenants.filter(is_active=True).select_related("organization")
@@ -517,7 +532,7 @@ def list_data_subject_requests(
     *,
     request_type: str | None = None,
     status: str | None = None,
-    limit: int = 50,
+    limit: int | None = None,
 ) -> QuerySet[DataSubjectRequest]:
     """Retrieve GDPR Data Subject Requests for an organization."""
     qs = (
@@ -529,7 +544,9 @@ def list_data_subject_requests(
         qs = qs.filter(request_type=request_type)
     if status:
         qs = qs.filter(status=status)
-    return qs[:limit]
+    if limit is not None:
+        qs = qs[:limit]
+    return qs
 
 
 def get_data_subject_request(
@@ -542,7 +559,7 @@ def get_data_subject_request(
     try:
         val_uuid = uuid.UUID(str(request_id))
         return qs.filter(public_id=val_uuid).first()
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         if str(request_id).isdigit():
             return qs.filter(id=int(request_id)).first()
     return None
@@ -557,11 +574,7 @@ def find_subject_personal_records(
     clean_email = email.strip().lower()
 
     # Customers
-    from apps.customers.models import Customer, CustomerContact
-
-    customers = list(
-        Customer.all_tenants.filter(organization=organization, email__iexact=clean_email)
-    )
+    customers = list(Customer.all_tenants.filter(organization=organization, email__iexact=clean_email))
     contacts = list(
         CustomerContact.all_tenants.filter(
             organization=organization, email__iexact=clean_email
@@ -569,13 +582,9 @@ def find_subject_personal_records(
     )
 
     # CRM Leads
-    from apps.crm.models import Lead
-
     leads = list(Lead.all_tenants.filter(organization=organization, email__iexact=clean_email))
 
     # HR Employees
-    from apps.hr.models import Employee
-
     employees = list(
         Employee.all_tenants.filter(
             organization=organization,
@@ -588,14 +597,12 @@ def find_subject_personal_records(
     )
 
     # Sales invoices & payments count
-    from apps.sales.models import SalesInvoice
-
     customer_pks = [c.pk for c in customers] + [
         contact.customer.pk for contact in contacts if contact.customer_id
     ]
     invoices_count = 0
     if customer_pks:
-        invoices_count = SalesInvoice.all_tenants.filter(
+        invoices_count = Invoice.all_tenants.filter(
             organization=organization, customer_id__in=customer_pks
         ).count()
 
@@ -608,4 +615,3 @@ def find_subject_personal_records(
         "sales_invoices_count": invoices_count,
         "total_matches": len(customers) + len(contacts) + len(leads) + len(employees),
     }
-

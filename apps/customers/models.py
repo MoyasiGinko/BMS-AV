@@ -204,9 +204,21 @@ class CustomerContact(TenantModel):
             return f"{name} ({self.title})"
         return name
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if "name" in kwargs and "first_name" not in kwargs:
+            full_name_val = kwargs.pop("name") or ""
+            parts = str(full_name_val).split(" ", 1)
+            kwargs["first_name"] = parts[0]
+            kwargs["last_name"] = parts[1] if len(parts) > 1 else ""
+        super().__init__(*args, **kwargs)
+
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def name(self) -> str:
+        return self.full_name
 
 
 class CustomerBalanceEntry(TenantModel):

@@ -8,6 +8,8 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.event_catalog import list_event_catalog
 from apps.integrations.models import (
+    DataRetentionPolicy,
+    DataSubjectRequest,
     InboundWebhookEndpoint,
     IntegrationConnection,
     OAuthApplication,
@@ -75,13 +77,16 @@ class WebhookEndpointForm(forms.ModelForm):
         choices: list[tuple[str, str]] = [("*", str(_("All Events (*)")))]
         for defn in list_event_catalog():
             choices.append((defn.event_type, f"{defn.event_type} - {defn.description}"))
-        self.fields["selected_events"].choices = choices
+        selected_field = self.fields.get("selected_events")
+        if isinstance(selected_field, forms.ChoiceField):
+            selected_field.choices = choices
 
         if self.instance and self.instance.pk:
             current_events = self.instance.events or ["*"]
-            self.fields["selected_events"].initial = current_events
-        else:
-            self.fields["selected_events"].initial = ["*"]
+            if selected_field:
+                selected_field.initial = current_events
+        elif selected_field:
+            selected_field.initial = ["*"]
 
     def clean_selected_events(self) -> list[str]:
         chosen = self.cleaned_data.get("selected_events") or []
@@ -495,7 +500,10 @@ class TenantExportJobForm(forms.Form):
         help_text=_("Include administrative audit logs (up to 5,000 recent events) in the export archive."),
         widget=forms.CheckboxInput(
             attrs={
-                "class": "h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900",
+                "class": (
+                    "h-4 w-4 rounded border-slate-300 text-indigo-600 "
+                    "focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900"
+                ),
             }
         ),
     )
@@ -536,8 +544,6 @@ class DataRetentionPolicyForm(forms.ModelForm):
     """Form to configure tenant data lifecycle and log retention policies."""
 
     class Meta:
-        from apps.integrations.models import DataRetentionPolicy
-
         model = DataRetentionPolicy
         fields = [
             "audit_log_retention_days",
@@ -589,7 +595,10 @@ class DataRetentionPolicyForm(forms.ModelForm):
             ),
             "is_active": forms.CheckboxInput(
                 attrs={
-                    "class": "h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900",
+                    "class": (
+                        "h-4 w-4 rounded border-slate-300 text-indigo-600 "
+                        "focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900"
+                    ),
                 }
             ),
         }
@@ -599,8 +608,6 @@ class DataSubjectRequestForm(forms.ModelForm):
     """Form to submit a GDPR Right to Access or Right to Erasure request."""
 
     class Meta:
-        from apps.integrations.models import DataSubjectRequest
-
         model = DataSubjectRequest
         fields = [
             "subject_email",
@@ -672,4 +679,3 @@ class DataSubjectRequestForm(forms.ModelForm):
                 }
             ),
         }
-

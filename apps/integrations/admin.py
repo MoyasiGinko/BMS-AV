@@ -241,7 +241,14 @@ class TenantExportJobAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "include_audit_logs", "organization")
     search_fields = ("public_id", "sha256_hash", "organization__name")
-    readonly_fields = ("public_id", "sha256_hash", "file_size_bytes", "created_at", "updated_at", "completed_at")
+    readonly_fields = (
+        "public_id",
+        "sha256_hash",
+        "file_size_bytes",
+        "created_at",
+        "updated_at",
+        "completed_at",
+    )
 
 
 @admin.register(TenantImportJob)
@@ -290,4 +297,3 @@ class DataSubjectRequestAdmin(admin.ModelAdmin):
     list_filter = ("request_type", "subject_type", "status", "organization")
     search_fields = ("subject_email", "subject_name", "organization__name")
     readonly_fields = ("public_id", "created_at", "updated_at", "completed_at")
-

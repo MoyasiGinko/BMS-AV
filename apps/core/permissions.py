@@ -287,7 +287,7 @@ def scope_queryset(
     if branch_field != "branch":
         return queryset.filter(**{f"{branch_field}_id__in": allowed})
 
-    scope_filter = _build_scope_filter({f.name for f in model._meta.get_fields()}, allowed)
+    scope_filter = _build_scope_filter({f.name for f in model._meta.get_fields()}, set(allowed))
     return queryset.filter(scope_filter) if scope_filter is not None else queryset
 
 

@@ -6,14 +6,12 @@ import io
 import json
 import zipfile
 from datetime import timedelta
-from typing import Any
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -21,15 +19,11 @@ from apps.crm.models import Lead
 from apps.customers.models import Customer, CustomerContact
 from apps.integrations import selectors, services
 from apps.integrations.models import (
-    DataRetentionPolicy,
-    DataSubjectRequest,
-    TenantExportJob,
-    TenantImportJob,
     WebhookDelivery,
     WebhookEndpoint,
 )
 from apps.sales.models import Invoice
-from apps.tenancy.models import Membership, Organization, Role, Warehouse
+from apps.tenancy.models import Branch, Membership, Organization, Role, Warehouse
 
 
 @pytest.fixture
@@ -82,7 +76,9 @@ def other_org_owner(db: None) -> tuple[Organization, User]:
 
 
 @pytest.mark.django_db
-def test_create_and_execute_tenant_export_job(org_owner: tuple[Organization, User], other_org_owner: tuple[Organization, User]) -> None:
+def test_create_and_execute_tenant_export_job(
+    org_owner: tuple[Organization, User], other_org_owner: tuple[Organization, User]
+) -> None:
     org_a, user_a = org_owner
     org_b, _ = other_org_owner
 
@@ -126,7 +122,9 @@ def test_create_and_execute_tenant_export_job(org_owner: tuple[Organization, Use
 
 
 @pytest.mark.django_db
-def test_tenant_export_views_and_api(org_owner: tuple[Organization, User], other_org_owner: tuple[Organization, User]) -> None:
+def test_tenant_export_views_and_api(
+    org_owner: tuple[Organization, User], other_org_owner: tuple[Organization, User]
+) -> None:
     org_a, user_a = org_owner
     org_b, user_b = other_org_owner
 
@@ -184,7 +182,9 @@ def test_tenant_export_views_and_api(org_owner: tuple[Organization, User], other
 
 
 @pytest.mark.django_db
-def test_tenant_import_workflow(org_owner: tuple[Organization, User], other_org_owner: tuple[Organization, User]) -> None:
+def test_tenant_import_workflow(
+    org_owner: tuple[Organization, User], other_org_owner: tuple[Organization, User]
+) -> None:
     org_a, user_a = org_owner
     org_b, user_b = other_org_owner
 
@@ -211,7 +211,7 @@ def test_tenant_import_workflow(org_owner: tuple[Organization, User], other_org_
     assert committed_job.status == "completed"
 
     # Check that customer was imported into Org B
-    imported_customer = Customer.objects.filter(organization=org_b, email="restore@test.com").first()
+    imported_customer = Customer.all_tenants.filter(organization=org_b, email="restore@test.com").first()
     assert imported_customer is not None
     assert imported_customer.name == "Restorable Corp"
 
@@ -219,7 +219,9 @@ def test_tenant_import_workflow(org_owner: tuple[Organization, User], other_org_
 @pytest.mark.django_db
 def test_tenant_import_corrupted_file(org_owner: tuple[Organization, User]) -> None:
     org_a, user_a = org_owner
-    corrupt_file = SimpleUploadedFile("invalid.zip", b"not a real zip content", content_type="application/zip")
+    corrupt_file = SimpleUploadedFile(
+        "invalid.zip", b"not a real zip content", content_type="application/zip"
+    )
 
     with pytest.raises(ValueError):
         services.upload_tenant_import_job(
@@ -236,7 +238,7 @@ def test_tenant_import_corrupted_file(org_owner: tuple[Organization, User]) -> N
 
 @pytest.mark.django_db
 def test_retention_policy_defaults_and_cleanup(org_owner: tuple[Organization, User]) -> None:
-    org_a, user_a = org_owner
+    org_a, _ = org_owner
 
     # Verify default creation
     policy = selectors.get_or_create_retention_policy(org_a)
@@ -259,14 +261,14 @@ def test_retention_policy_defaults_and_cleanup(org_owner: tuple[Organization, Us
         response_status=200,
     )
     # Manually age the record past retention threshold
-    WebhookDelivery.objects.filter(id=old_delivery.id).update(
+    WebhookDelivery.all_tenants.filter(id=old_delivery.id).update(
         created_at=timezone.now() - timedelta(days=120)
     )
 
     # Run cleanup
     cleanup_counts = services.execute_data_retention_cleanup(org_a)
     assert cleanup_counts["webhook_logs_deleted"] >= 1
-    assert not WebhookDelivery.objects.filter(id=old_delivery.id).exists()
+    assert not WebhookDelivery.all_tenants.filter(id=old_delivery.id).exists()
 
 
 @pytest.mark.django_db
@@ -278,7 +280,9 @@ def test_retention_api_and_views(org_owner: tuple[Organization, User]) -> None:
     client.force_login(user_a)
     resp = client.get(reverse("integrations:retention_policy"))
     assert resp.status_code == 200
-    assert "Data Retention &amp; Auto-Purge" in resp.content.decode("utf-8") or "Data Retention & Auto-Purge" in resp.content.decode("utf-8")
+    assert "Data Retention &amp; Auto-Purge" in resp.content.decode(
+        "utf-8"
+    ) or "Data Retention & Auto-Purge" in resp.content.decode("utf-8")
 
     # REST API Retrieve
     api_client = APIClient()
@@ -362,7 +366,8 @@ def test_gdpr_subject_erasure_request(org_owner: tuple[Organization, User]) -> N
     )
 
     # Create sales invoice to verify accounting immutability & audit integrity
-    wh = Warehouse.objects.create(organization=org_a, name="Main Warehouse", code="WH-GDPR-1")
+    branch = Branch.objects.create(organization=org_a, name="HQ Branch", code="HQ-GDPR-1")
+    wh = Warehouse.objects.create(organization=org_a, branch=branch, name="Main Warehouse", code="WH-GDPR-1")
     Invoice.objects.create(
         organization=org_a,
         customer=customer,
@@ -400,7 +405,7 @@ def test_gdpr_subject_erasure_request(org_owner: tuple[Organization, User]) -> N
     assert lead.description == "[REDACTED]"
 
     # Verify invoice still exists and references the anonymized customer
-    invoice = Invoice.objects.get(invoice_number="INV-BOB-001")
+    invoice = Invoice.all_tenants.get(invoice_number="INV-BOB-001")
     assert invoice.customer_id == customer.id
 
 
@@ -425,11 +430,15 @@ def test_privacy_requests_views_and_api(org_owner: tuple[Organization, User]) ->
     assert resp.status_code == 200
 
     # Web View Detail
-    resp = client.get(reverse("integrations:privacy_request_detail", kwargs={"request_id": req_obj.public_id}))
+    resp = client.get(
+        reverse("integrations:privacy_request_detail", kwargs={"request_id": req_obj.public_id})
+    )
     assert resp.status_code == 200
 
     # Web View SAR Download
-    resp = client.get(reverse("integrations:privacy_request_download", kwargs={"request_id": req_obj.public_id}))
+    resp = client.get(
+        reverse("integrations:privacy_request_download", kwargs={"request_id": req_obj.public_id})
+    )
     assert resp.status_code == 200
     assert resp["Content-Type"] == "application/json"
 

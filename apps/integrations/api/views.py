@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import permissions, status
 from rest_framework.decorators import action
@@ -41,14 +41,11 @@ from apps.integrations.api.serializers import (
 from apps.integrations.connectors.zapier_compat import SAMPLE_PAYLOADS
 from apps.integrations.models import (
     DataRetentionPolicy,
-    DataSubjectRequest,
     ExternalReference,
     InboundWebhookEndpoint,
     IntegrationConnection,
     IntegrationSyncLog,
     OAuthApplication,
-    TenantExportJob,
-    TenantImportJob,
     WebhookDelivery,
     WebhookEndpoint,
 )
@@ -124,8 +121,9 @@ class WebhookEndpointViewSet(TenantScopedModelViewSet):
     def deliveries(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """List historical deliveries for this endpoint."""
         endpoint = self.get_object()
+        org = self.get_tenant()
         deliveries = WebhookDelivery.all_tenants.filter(
-            organization=request.organization,
+            organization=org,
             endpoint=endpoint,
         ).order_by("-created_at")
 
@@ -237,8 +235,9 @@ class IntegrationConnectionViewSet(TenantScopedModelViewSet):
     def sync(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """Execute synchronous integration run."""
         conn = self.get_object()
-        direction = request.data.get("direction", "inbound")
-        params = request.data.get("params") or {}
+        data = request.data if isinstance(request.data, dict) else {}
+        direction = data.get("direction", "inbound")
+        params = data.get("params") or {}
         log, res = services.run_integration_sync(
             connection=conn,
             direction=direction,
@@ -266,8 +265,9 @@ class IntegrationConnectionViewSet(TenantScopedModelViewSet):
     def execute(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """Execute action on connection."""
         conn = self.get_object()
-        action_name = request.data.get("action", "")
-        payload = request.data.get("payload") or {}
+        data = request.data if isinstance(request.data, dict) else {}
+        action_name = data.get("action", "")
+        payload = data.get("payload") or {}
         res = services.execute_connector_action(
             connection=conn,
             action=action_name,
@@ -376,7 +376,8 @@ class ZapierHooksAPIView(APIView):
         if not conn:
             return Response({"error": "Zapier connection not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        hook_id = request.query_params.get("id") or request.data.get("id")
+        req_data = request.data if isinstance(request.data, dict) else {}
+        hook_id = request.query_params.get("id") or req_data.get("id")
         if not hook_id:
             return Response({"error": "Hook ID required"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -626,11 +627,16 @@ class TenantExportJobViewSet(TenantScopedModelViewSet):
     def download(self, request: Request, public_id: str | None = None) -> Any:
         """Download completed tenant backup archive zip."""
         org = self.get_tenant()
-        job = selectors.get_tenant_export_job(org, job_id=self.kwargs[self.lookup_field])
+        lookup_val = str(self.kwargs.get(self.lookup_field) or self.kwargs.get("pk") or public_id or "")
+        job = selectors.get_tenant_export_job(org, job_id=lookup_val)
         if not job or not job.file:
-            return Response({"error": "Export archive not ready or not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Export archive not ready or not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         response = FileResponse(job.file.open("rb"), content_type="application/zip")
-        response["Content-Disposition"] = f'attachment; filename="tenant_export_{org.slug}_{job.public_id}.zip"'
+        filename = f"tenant_export_{org.slug}_{job.public_id}.zip"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
 
@@ -734,7 +740,9 @@ class DataSubjectRequestViewSet(TenantScopedModelViewSet):
         if not req_obj:
             return Response({"error": "Request not found"}, status=status.HTTP_404_NOT_FOUND)
         if req_obj.request_type == "access_export":
-            processed = services.process_data_subject_access_request(req_obj.public_id, processed_by=request.user)
+            processed = services.process_data_subject_access_request(
+                req_obj.public_id, processed_by=request.user
+            )
         else:
             processed = services.process_data_subject_erasure(req_obj.public_id, processed_by=request.user)
         return Response(DataSubjectRequestSerializer(processed).data, status=status.HTTP_200_OK)
@@ -743,10 +751,13 @@ class DataSubjectRequestViewSet(TenantScopedModelViewSet):
     def sar_download(self, request: Request, public_id: str | None = None) -> Any:
         """Download completed SAR data payload as JSON."""
         org = self.get_tenant()
-        req_obj = selectors.get_data_subject_request(org, request_id=self.kwargs[self.lookup_field])
-        if not req_obj or req_obj.request_type != "access_export" or req_obj.status != "completed" or not req_obj.result_file:
+        lookup_val = str(self.kwargs.get(self.lookup_field) or self.kwargs.get("pk") or public_id or "")
+        req_obj = selectors.get_data_subject_request(org, request_id=lookup_val)
+        if not req_obj or req_obj.request_type != "access_export" or req_obj.status != "completed":
             return Response({"error": "SAR export not available"}, status=status.HTTP_404_NOT_FOUND)
-        response = FileResponse(req_obj.result_file.open("rb"), content_type="application/json")
+        file_field = getattr(req_obj, "result_file", None) or getattr(req_obj, "export_file", None)
+        if not file_field:
+            return Response({"error": "SAR export not available"}, status=status.HTTP_404_NOT_FOUND)
+        response = FileResponse(file_field.open("rb"), content_type="application/json")
         response["Content-Disposition"] = f'attachment; filename="sar_export_{req_obj.public_id}.json"'
         return response
-

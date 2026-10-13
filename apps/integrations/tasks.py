@@ -10,9 +10,11 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from apps.core.tenant_context import tenant_context
-from apps.integrations import services
+from apps.integrations import selectors, services
 from apps.integrations.models import (
     ConnectionStatus,
+    DataSubjectRequest,
+    DataSubjectRequestType,
     IntegrationConnection,
     WebhookDelivery,
     WebhookDeliveryStatus,
@@ -154,7 +156,7 @@ def sync_due_integration_connections_task(batch_size: int = 50) -> int:
 
 
 @shared_task(bind=True, max_retries=2)
-def export_tenant_data_task(self, job_public_id: str) -> str:
+def export_tenant_data_task(self: Any, job_public_id: str) -> str:
     """Execute full-tenant data export and package creation in the background."""
     try:
         job = services.process_tenant_export_job(job_public_id)
@@ -165,7 +167,7 @@ def export_tenant_data_task(self, job_public_id: str) -> str:
 
 
 @shared_task(bind=True, max_retries=1)
-def validate_tenant_import_task(self, job_public_id: str) -> str:
+def validate_tenant_import_task(self: Any, job_public_id: str) -> str:
     """Validate archive format and structure for an uploaded tenant import job."""
     try:
         job = services.validate_tenant_import_job(job_public_id)
@@ -176,7 +178,7 @@ def validate_tenant_import_task(self, job_public_id: str) -> str:
 
 
 @shared_task(bind=True, max_retries=1)
-def commit_tenant_import_task(self, job_public_id: str) -> str:
+def commit_tenant_import_task(self: Any, job_public_id: str) -> str:
     """Commit validated tenant import package into target database."""
     try:
         job = services.commit_tenant_import_job(job_public_id)
@@ -189,9 +191,7 @@ def commit_tenant_import_task(self, job_public_id: str) -> str:
 @shared_task
 def run_data_retention_cleanup_all_task() -> dict[str, Any]:
     """Execute retention policy cleanups across all active tenant organizations."""
-    from apps.integrations.selectors import list_active_retention_policies
-
-    policies = list(list_active_retention_policies())
+    policies = list(selectors.list_active_retention_policies())
     total_cleaned = 0
     org_summaries = {}
 
@@ -204,14 +204,16 @@ def run_data_retention_cleanup_all_task() -> dict[str, Any]:
         except Exception:
             logger.exception("Failed data retention cleanup for org %s", policy.organization.slug)
 
-    return {"organizations_processed": len(policies), "total_cleaned": total_cleaned, "details": org_summaries}
+    return {
+        "organizations_processed": len(policies),
+        "total_cleaned": total_cleaned,
+        "details": org_summaries,
+    }
 
 
 @shared_task(bind=True, max_retries=1)
-def execute_data_subject_request_task(self, request_public_id: str) -> str:
+def execute_data_subject_request_task(self: Any, request_public_id: str) -> str:
     """Execute GDPR Subject Access Request (SAR) export or Erasure in the background."""
-    from apps.integrations.models import DataSubjectRequest, DataSubjectRequestType
-
     dsr = DataSubjectRequest.all_tenants.filter(public_id=request_public_id).first()
     if not dsr:
         return f"DataSubjectRequest {request_public_id} not found."
@@ -229,4 +231,3 @@ def execute_data_subject_request_task(self, request_public_id: str) -> str:
     except Exception as exc:
         logger.exception("Error executing GDPR request %s", request_public_id)
         raise self.retry(exc=exc, countdown=20) from exc
-

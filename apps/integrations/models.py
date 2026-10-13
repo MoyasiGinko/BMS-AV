@@ -257,6 +257,29 @@ class WebhookEndpoint(TenantModel):
 class WebhookDelivery(TenantModel):
     """Historical delivery log record for a signed webhook payload dispatched to an endpoint."""
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if "event_name" in kwargs and "event_type" not in kwargs:
+            kwargs["event_type"] = kwargs.pop("event_name")
+        if "response_status" in kwargs and "response_status_code" not in kwargs:
+            kwargs["response_status_code"] = kwargs.pop("response_status")
+        super().__init__(*args, **kwargs)
+
+    @property
+    def event_name(self) -> str:
+        return self.event_type
+
+    @event_name.setter
+    def event_name(self, value: str) -> None:
+        self.event_type = value
+
+    @property
+    def response_status(self) -> int | None:
+        return self.response_status_code
+
+    @response_status.setter
+    def response_status(self, value: int | None) -> None:
+        self.response_status_code = value
+
     endpoint = models.ForeignKey(
         WebhookEndpoint,
         on_delete=models.CASCADE,
@@ -778,15 +801,9 @@ class TenantExportJob(TenantModel):
         verbose_name=_("export archive"),
     )
     file_size_bytes = models.BigIntegerField(default=0, verbose_name=_("file size in bytes"))
-    sha256_hash = models.CharField(
-        max_length=64, blank=True, default="", verbose_name=_("SHA-256 hash")
-    )
-    include_audit_logs = models.BooleanField(
-        default=True, verbose_name=_("include audit logs in export")
-    )
-    stats = models.JSONField(
-        default=dict, blank=True, verbose_name=_("exported entity counts")
-    )
+    sha256_hash = models.CharField(max_length=64, blank=True, default="", verbose_name=_("SHA-256 hash"))
+    include_audit_logs = models.BooleanField(default=True, verbose_name=_("include audit logs in export"))
+    stats = models.JSONField(default=dict, blank=True, verbose_name=_("exported entity counts"))
     error_message = models.TextField(blank=True, default="", verbose_name=_("error message"))
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("completed at"))
     expires_at = models.DateTimeField(null=True, blank=True, verbose_name=_("expires at"))
@@ -817,9 +834,16 @@ class TenantExportJob(TenantModel):
     def __str__(self) -> str:
         return f"TenantExport {self.public_id} [{self.status}] ({self.created_at})"
 
+    @property
+    def total_rows(self) -> int:
+        if isinstance(self.stats, dict):
+            return sum(self.stats.values())
+        return 0
+
 
 class TenantImportJobStatus(models.TextChoices):
     UPLOADED = "uploaded", _("Uploaded")
+    ANALYZED = "analyzed", _("Analyzed / Staged")
     VALIDATING = "validating", _("Validating")
     VALIDATED = "validated", _("Validated (Ready to Import)")
     COMMITTING = "committing", _("Importing")
@@ -830,21 +854,15 @@ class TenantImportJobStatus(models.TextChoices):
 class TenantImportJob(TenantModel):
     """Full-tenant data archive import job."""
 
-    file = models.FileField(
-        upload_to="tenant_imports/%Y/%m/", verbose_name=_("archive file (.zip)")
-    )
+    file = models.FileField(upload_to="tenant_imports/%Y/%m/", verbose_name=_("archive file (.zip)"))
     status = models.CharField(
         max_length=32,
         choices=TenantImportJobStatus.choices,
         default=TenantImportJobStatus.UPLOADED,
         verbose_name=_("status"),
     )
-    validation_report = models.JSONField(
-        default=dict, blank=True, verbose_name=_("validation report")
-    )
-    imported_stats = models.JSONField(
-        default=dict, blank=True, verbose_name=_("imported entity counts")
-    )
+    validation_report = models.JSONField(default=dict, blank=True, verbose_name=_("validation report"))
+    imported_stats = models.JSONField(default=dict, blank=True, verbose_name=_("imported entity counts"))
     error_message = models.TextField(blank=True, default="", verbose_name=_("error message"))
     started_at = models.DateTimeField(null=True, blank=True, verbose_name=_("started at"))
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("completed at"))
@@ -856,6 +874,20 @@ class TenantImportJob(TenantModel):
         related_name="committed_tenant_imports",
         verbose_name=_("imported by"),
     )
+
+    @property
+    def staging_records_count(self) -> int:
+        if isinstance(self.validation_report, dict):
+            entities = self.validation_report.get("entities_found", {})
+            if isinstance(entities, dict):
+                return sum(entities.values())
+        return 0
+
+    @property
+    def manifest(self) -> dict[str, Any]:
+        if isinstance(self.validation_report, dict):
+            return self.validation_report.get("manifest", {})
+        return {}
 
     class Meta:
         verbose_name = _("tenant import job")
@@ -889,16 +921,12 @@ class DataRetentionPolicy(TenantModel):
     )
     webhook_log_retention_days = models.PositiveIntegerField(
         default=90,
-        help_text=_(
-            "Number of days to retain outbound delivery and inbound webhook logs (minimum 7 days)."
-        ),
+        help_text=_("Number of days to retain outbound delivery and inbound webhook logs (minimum 7 days)."),
         verbose_name=_("webhook log retention days"),
     )
     sync_log_retention_days = models.PositiveIntegerField(
         default=90,
-        help_text=_(
-            "Number of days to retain external connector synchronization logs (minimum 7 days)."
-        ),
+        help_text=_("Number of days to retain external connector synchronization logs (minimum 7 days)."),
         verbose_name=_("sync log retention days"),
     )
     export_file_retention_days = models.PositiveIntegerField(
@@ -913,12 +941,8 @@ class DataRetentionPolicy(TenantModel):
         help_text=_("Whether automated retention cleanup tasks are enabled for this organization."),
         verbose_name=_("policy active"),
     )
-    last_run_at = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("last execution timestamp")
-    )
-    last_run_summary = models.JSONField(
-        default=dict, blank=True, verbose_name=_("last execution summary")
-    )
+    last_run_at = models.DateTimeField(null=True, blank=True, verbose_name=_("last execution timestamp"))
+    last_run_summary = models.JSONField(default=dict, blank=True, verbose_name=_("last execution summary"))
 
     class Meta:
         verbose_name = _("data retention policy")
@@ -944,6 +968,7 @@ class DataSubjectRequestType(models.TextChoices):
 
 
 class DataSubjectRequestStatus(models.TextChoices):
+    PENDING = "pending", _("Pending")
     SUBMITTED = "submitted", _("Submitted")
     PROCESSING = "processing", _("Processing")
     COMPLETED = "completed", _("Completed")
@@ -969,13 +994,11 @@ class DataSubjectRequest(TenantModel):
     status = models.CharField(
         max_length=32,
         choices=DataSubjectRequestStatus.choices,
-        default=DataSubjectRequestStatus.SUBMITTED,
+        default=DataSubjectRequestStatus.PENDING,
         verbose_name=_("status"),
     )
     subject_email = models.EmailField(verbose_name=_("subject email"))
-    subject_name = models.CharField(
-        max_length=255, blank=True, default="", verbose_name=_("subject name")
-    )
+    subject_name = models.CharField(max_length=255, blank=True, default="", verbose_name=_("subject name"))
     subject_type = models.CharField(
         max_length=32,
         choices=DataSubjectType.choices,
@@ -1016,9 +1039,15 @@ class DataSubjectRequest(TenantModel):
         related_name="processed_dsrs",
         verbose_name=_("processed by"),
     )
-    completed_at = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("completed timestamp")
-    )
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("completed timestamp"))
+
+    @property
+    def export_file(self) -> Any:
+        return self.result_file
+
+    @property
+    def erasure_audit_log(self) -> dict[str, Any]:
+        return self.impact_summary
 
     class Meta:
         verbose_name = _("data subject request")
@@ -1041,4 +1070,3 @@ class DataSubjectRequest(TenantModel):
 
     def __str__(self) -> str:
         return f"DSR {self.request_type} for {self.subject_email} [{self.status}]"
-

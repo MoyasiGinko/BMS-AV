@@ -32,9 +32,12 @@ router.register("inbound/endpoints", InboundWebhookEndpointViewSet, basename="in
 router.register("inbound/logs", InboundWebhookLogViewSet, basename="inbound-webhook-log")
 router.register("webhooks/deliveries", WebhookDeliveryViewSet, basename="webhook-delivery")
 router.register("webhooks", WebhookEndpointViewSet, basename="webhook-endpoint")
+router.register("exports", TenantExportJobViewSet, basename="tenant-export-legacy")
 router.register("portability/exports", TenantExportJobViewSet, basename="tenant-export")
 router.register("portability/imports", TenantImportJobViewSet, basename="tenant-import")
+router.register("retention", DataRetentionPolicyViewSet, basename="data-retention-legacy")
 router.register("compliance/retention", DataRetentionPolicyViewSet, basename="data-retention")
+router.register("privacy-requests", DataSubjectRequestViewSet, basename="privacy-request-legacy")
 router.register("compliance/privacy-requests", DataSubjectRequestViewSet, basename="privacy-request")
 
 urlpatterns = [

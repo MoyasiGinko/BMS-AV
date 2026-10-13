@@ -8,12 +8,16 @@ from rest_framework import serializers
 
 from apps.integrations import services
 from apps.integrations.models import (
+    DataRetentionPolicy,
+    DataSubjectRequest,
     ExternalReference,
     InboundWebhookEndpoint,
     InboundWebhookLog,
     IntegrationConnection,
     IntegrationSyncLog,
     OAuthApplication,
+    TenantExportJob,
+    TenantImportJob,
     WebhookDelivery,
     WebhookEndpoint,
 )
@@ -187,6 +191,8 @@ class IntegrationConnectionCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data: dict[str, Any]) -> IntegrationConnection:
         request = self.context["request"]
         org = getattr(request, "organization", None)
+        if org is None:
+            raise serializers.ValidationError({"organization": "Organization context is required."})
         creds = validated_data.pop("credentials", None)
         return services.create_integration_connection(
             organization=org,
@@ -402,10 +408,9 @@ class TenantExportJobSerializer(serializers.ModelSerializer):
 
     id = serializers.UUIDField(source="public_id", read_only=True)
     has_file = serializers.SerializerMethodField()
+    manifest = serializers.JSONField(source="stats", read_only=True)
 
     class Meta:
-        from apps.integrations.models import TenantExportJob
-
         model = TenantExportJob
         fields = [
             "id",
@@ -421,7 +426,7 @@ class TenantExportJobSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_has_file(self, obj) -> bool:
+    def get_has_file(self, obj: TenantExportJob) -> bool:
         return bool(obj.file)
 
 
@@ -435,10 +440,9 @@ class TenantImportJobSerializer(serializers.ModelSerializer):
     """Serializer for tenant backup import/restore jobs."""
 
     id = serializers.UUIDField(source="public_id", read_only=True)
+    manifest = serializers.JSONField(read_only=True)
 
     class Meta:
-        from apps.integrations.models import TenantImportJob
-
         model = TenantImportJob
         fields = [
             "id",
@@ -458,8 +462,6 @@ class DataRetentionPolicySerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="public_id", read_only=True)
 
     class Meta:
-        from apps.integrations.models import DataRetentionPolicy
-
         model = DataRetentionPolicy
         fields = [
             "id",
@@ -479,10 +481,9 @@ class DataSubjectRequestSerializer(serializers.ModelSerializer):
     """Serializer for GDPR data subject requests."""
 
     id = serializers.UUIDField(source="public_id", read_only=True)
+    result_data = serializers.JSONField(source="impact_summary", read_only=True)
 
     class Meta:
-        from apps.integrations.models import DataSubjectRequest
-
         model = DataSubjectRequest
         fields = [
             "id",
@@ -507,7 +508,8 @@ class DataSubjectRequestCreateSerializer(serializers.Serializer):
     request_type = serializers.ChoiceField(choices=["access_export", "erasure"])
     subject_email = serializers.EmailField()
     subject_name = serializers.CharField(required=False, allow_blank=True, default="")
-    subject_type = serializers.ChoiceField(choices=["customer", "contact", "lead", "other"], default="customer")
+    subject_type = serializers.ChoiceField(
+        choices=["customer", "contact", "lead", "other"], default="customer"
+    )
     reason = serializers.CharField(required=False, allow_blank=True, default="")
     verification_notes = serializers.CharField(required=False, allow_blank=True, default="")
-

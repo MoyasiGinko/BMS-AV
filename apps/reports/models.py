@@ -377,7 +377,7 @@ class DailySalesSummary(TenantModel):
         verbose_name = _("daily sales summary")
         verbose_name_plural = _("daily sales summaries")
         ordering = ["-date"]
-        constraints: ClassVar[list[models.Constraint]] = [
+        constraints: ClassVar[list[models.BaseConstraint]] = [
             models.UniqueConstraint(
                 fields=["organization", "date", "branch"],
                 name="unique_daily_sales_summary_branch",
@@ -436,7 +436,7 @@ class DailyExpenseSummary(TenantModel):
         verbose_name = _("daily expense summary")
         verbose_name_plural = _("daily expense summaries")
         ordering = ["-date"]
-        constraints: ClassVar[list[models.Constraint]] = [
+        constraints: ClassVar[list[models.BaseConstraint]] = [
             models.UniqueConstraint(
                 fields=["organization", "date", "category", "branch"],
                 name="unique_daily_expense_summary",

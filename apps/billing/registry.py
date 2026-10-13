@@ -372,7 +372,9 @@ registry.register(
         NavItem("Saved Reports", "reports:saved_reports", icon="bookmark", permission="reports.view"),
         NavItem("Report Builder", "reports:builder", icon="wrench-screwdriver", permission="reports.manage"),
         NavItem("Schedules", "reports:schedules", icon="clock", permission="reports.schedule"),
-        NavItem("Daily Summaries", "reports:daily_summaries", icon="calendar-days", permission="reports.view"),
+        NavItem(
+            "Daily Summaries", "reports:daily_summaries", icon="calendar-days", permission="reports.view"
+        ),
         NavItem("Export Jobs", "reports:exports_list", icon="arrow-down-tray", permission="reports.view"),
     ],
     permissions=[
@@ -400,7 +402,12 @@ registry.register(
     sort_order=145,
     nav_items=[
         NavItem("Inbox", "approvals:inbox", icon="inbox-stack", permission="approvals.view"),
-        NavItem("Approval Rules", "approvals:rule_list", icon="adjustments-horizontal", permission="approvals.manage"),
+        NavItem(
+            "Approval Rules",
+            "approvals:rule_list",
+            icon="adjustments-horizontal",
+            permission="approvals.manage",
+        ),
         NavItem("Approval History", "approvals:history_list", icon="clock", permission="approvals.view"),
     ],
     permissions=[

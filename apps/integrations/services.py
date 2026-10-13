@@ -24,9 +24,15 @@ from django.utils import timezone
 from oauth2_provider.generators import generate_client_id, generate_client_secret
 from oauth2_provider.models import AccessToken
 
+from apps.accounting.models import Account
+from apps.catalog.models import Category, Product
 from apps.core.events import publish
+from apps.core.models import AuditLog
 from apps.core.tenant_context import tenant_context
-from apps.integrations import tasks
+from apps.crm.models import Lead
+from apps.customers.models import Customer
+from apps.hr.models import Employee
+from apps.integrations import selectors, tasks
 from apps.integrations.connectors import ConnectorResult, connector_registry
 from apps.integrations.exporters import get_exporter
 from apps.integrations.importers import get_importer
@@ -63,7 +69,9 @@ from apps.integrations.models import (
     WebhookDeliveryStatus,
     WebhookEndpoint,
 )
-from apps.tenancy.models import Organization
+from apps.purchasing.models import Supplier
+from apps.sales.models import Invoice
+from apps.tenancy.models import Branch, Department, Organization, Warehouse
 
 logger = logging.getLogger(__name__)
 
@@ -505,7 +513,12 @@ def dispatch_event_to_webhooks(
         deliveries.append(delivery)
 
         # Enqueue background delivery task
-        transaction.on_commit(lambda d_id=delivery.id: tasks.deliver_webhook_task.delay(d_id))
+        delivery_id = delivery.id
+
+        def _enqueue_delivery(d_id: int = delivery_id) -> None:
+            tasks.deliver_webhook_task.delay(d_id)
+
+        transaction.on_commit(_enqueue_delivery)
 
     return deliveries
 
@@ -1516,6 +1529,209 @@ def create_tenant_export_job(
     return job
 
 
+def _export_org_and_catalog(org: Organization, zf: zipfile.ZipFile, stats: dict[str, int]) -> dict[str, int]:
+    """Export core organization hierarchy and product catalog."""
+    org_data = {
+        "id": str(org.id),
+        "name": org.name,
+        "slug": org.slug,
+        "currency": org.base_currency,
+        "timezone": org.timezone,
+        "created_at": org.created_at.isoformat(),
+    }
+    branches = list(
+        Branch.all_tenants.filter(organization=org).values(
+            "public_id", "name", "code", "is_headquarters", "is_active"
+        )
+    )
+    departments = list(Department.all_tenants.filter(organization=org).values("public_id", "name", "code"))
+    zf.writestr(
+        "organization.json",
+        json.dumps(
+            _make_json_safe({"organization": org_data, "branches": branches, "departments": departments}),
+            indent=2,
+        ),
+    )
+    zf.writestr("tables/tenancy_branch.json", json.dumps(_make_json_safe(branches), indent=2))
+    zf.writestr("tables/tenancy_department.json", json.dumps(_make_json_safe(departments), indent=2))
+    stats["branches"] = len(branches)
+    stats["departments"] = len(departments)
+
+    categories = list(Category.all_tenants.filter(organization=org).values("public_id", "name", "slug"))
+    products = list(
+        Product.all_tenants.filter(organization=org).values(
+            "public_id", "name", "sku", "type", "selling_price", "is_active"
+        )
+    )
+    zf.writestr(
+        "catalog.json",
+        json.dumps(
+            _make_json_safe({"categories": categories, "products": products}),
+            indent=2,
+        ),
+    )
+    zf.writestr("tables/catalog_category.json", json.dumps(_make_json_safe(categories), indent=2))
+    zf.writestr("tables/catalog_product.json", json.dumps(_make_json_safe(products), indent=2))
+    stats["categories"] = len(categories)
+    stats["products"] = len(products)
+    return {
+        "tenancy_branch": len(branches),
+        "tenancy_department": len(departments),
+        "catalog_category": len(categories),
+        "catalog_product": len(products),
+    }
+
+
+def _export_commercial_entities(
+    org: Organization, zf: zipfile.ZipFile, stats: dict[str, int]
+) -> dict[str, int]:
+    """Export customers, suppliers, accounts, and invoices."""
+    customers = list(
+        Customer.all_tenants.filter(organization=org).values(
+            "public_id", "code", "name", "email", "phone", "currency", "current_balance"
+        )
+    )
+    zf.writestr("customers.json", json.dumps(_make_json_safe(customers), indent=2))
+    zf.writestr("tables/customers_customer.json", json.dumps(_make_json_safe(customers), indent=2))
+    stats["customers"] = len(customers)
+
+    try:
+        suppliers = list(
+            Supplier.all_tenants.filter(organization=org).values(
+                "public_id", "code", "name", "email", "phone"
+            )
+        )
+    except Exception:
+        suppliers = []
+    zf.writestr("suppliers.json", json.dumps(_make_json_safe(suppliers), indent=2))
+    zf.writestr("tables/purchasing_supplier.json", json.dumps(_make_json_safe(suppliers), indent=2))
+    stats["suppliers"] = len(suppliers)
+
+    try:
+        accounts = list(
+            Account.all_tenants.filter(organization=org).values(
+                "public_id", "code", "name", "type", "current_balance"
+            )
+        )
+    except Exception:
+        accounts = []
+    zf.writestr("accounting.json", json.dumps(_make_json_safe(accounts), indent=2))
+    zf.writestr("tables/accounting_account.json", json.dumps(_make_json_safe(accounts), indent=2))
+    stats["accounts"] = len(accounts)
+
+    try:
+        invoices = list(
+            Invoice.all_tenants.filter(organization=org).values(
+                "public_id", "invoice_number", "status", "grand_total", "invoice_date"
+            )
+        )
+    except Exception:
+        invoices = []
+    zf.writestr("sales.json", json.dumps(_make_json_safe(invoices), indent=2))
+    zf.writestr("tables/sales_invoice.json", json.dumps(_make_json_safe(invoices), indent=2))
+    stats["invoices"] = len(invoices)
+
+    return {
+        "customers_customer": len(customers),
+        "purchasing_supplier": len(suppliers),
+        "accounting_account": len(accounts),
+        "sales_invoice": len(invoices),
+    }
+
+
+def _export_operational_and_audit(
+    org: Organization, zf: zipfile.ZipFile, stats: dict[str, int], include_audit_logs: bool
+) -> dict[str, int]:
+    """Export warehouses, employees, leads, and optional audit logs."""
+    try:
+        warehouses = list(Warehouse.all_tenants.filter(organization=org).values("public_id", "code", "name"))
+    except Exception:
+        warehouses = []
+    zf.writestr("inventory.json", json.dumps(_make_json_safe(warehouses), indent=2))
+    zf.writestr("tables/tenancy_warehouse.json", json.dumps(_make_json_safe(warehouses), indent=2))
+    stats["warehouses"] = len(warehouses)
+
+    try:
+        employees = list(
+            Employee.all_tenants.filter(organization=org).values(
+                "public_id", "code", "first_name", "last_name", "work_email", "status"
+            )
+        )
+    except Exception:
+        employees = []
+    zf.writestr("hr.json", json.dumps(_make_json_safe(employees), indent=2))
+    zf.writestr("tables/hr_employee.json", json.dumps(_make_json_safe(employees), indent=2))
+    stats["employees"] = len(employees)
+
+    try:
+        leads = list(
+            Lead.all_tenants.filter(organization=org).values(
+                "public_id", "first_name", "last_name", "email", "status", "company_name"
+            )
+        )
+    except Exception:
+        leads = []
+    zf.writestr("crm.json", json.dumps(_make_json_safe(leads), indent=2))
+    zf.writestr("tables/crm_lead.json", json.dumps(_make_json_safe(leads), indent=2))
+    stats["leads"] = len(leads)
+
+    if include_audit_logs:
+        audit_logs = list(
+            AuditLog.objects.filter(organization=org).values(
+                "id", "actor_id", "action", "target_type", "created_at"
+            )[:5000]
+        )
+        zf.writestr("audit_logs.json", json.dumps(_make_json_safe(audit_logs), indent=2))
+        zf.writestr("tables/core_auditlog.json", json.dumps(_make_json_safe(audit_logs), indent=2))
+        stats["audit_logs"] = len(audit_logs)
+
+    return {
+        "tenancy_warehouse": len(warehouses),
+        "hr_employee": len(employees),
+        "crm_lead": len(leads),
+    }
+
+
+def _build_tenant_export_archive(org: Organization, include_audit_logs: bool) -> tuple[bytes, dict[str, int]]:
+    """Build and compress in-memory ZIP package for tenant export."""
+    stats: dict[str, int] = {}
+    archive_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(archive_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        table_counts: dict[str, int] = {}
+        table_counts.update(_export_org_and_catalog(org, zf, stats))
+        table_counts.update(_export_commercial_entities(org, zf, stats))
+        table_counts.update(_export_operational_and_audit(org, zf, stats, include_audit_logs))
+
+        schema_info = {
+            "version": "1.0",
+            "platform": "BMS-AV ERP",
+            "format": "json_per_table",
+            "exported_at": timezone.now().isoformat(),
+        }
+        zf.writestr("schema_info.json", json.dumps(schema_info, indent=2))
+
+        manifest = {
+            "manifest_version": "1.0",
+            "platform": "BMS-AV ERP",
+            "organization": {
+                "id": str(org.id),
+                "name": org.name,
+                "slug": org.slug,
+                "currency": org.base_currency,
+                "timezone": org.timezone,
+                "created_at": org.created_at.isoformat(),
+            },
+            "tables": table_counts,
+            "exported_at": timezone.now().isoformat(),
+            "entity_counts": stats,
+            "schema": "bms-av-backup-v1",
+        }
+        zf.writestr("manifest.json", json.dumps(manifest, indent=2))
+
+    return archive_buffer.getvalue(), stats
+
+
 def process_tenant_export_job(
     job_public_id: str | uuid.UUID,
 ) -> TenantExportJob:
@@ -1529,211 +1745,7 @@ def process_tenant_export_job(
     job.save(update_fields=["status", "updated_at"])
 
     try:
-        from apps.catalog.models import Category, Product
-        from apps.customers.models import Customer
-        from apps.tenancy.models import Branch, Department
-
-        # Extract data sections
-        stats: dict[str, int] = {}
-        archive_buffer = io.BytesIO()
-
-        with zipfile.ZipFile(archive_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            # 1. Organization & Core Settings
-            org_data = {
-                "id": str(org.id),
-                "name": org.name,
-                "slug": org.slug,
-                "currency": org.currency,
-                "timezone": org.timezone,
-                "created_at": org.created_at.isoformat(),
-            }
-            branches = list(
-                Branch.all_tenants.filter(organization=org).values(
-                    "public_id", "name", "code", "is_headquarters", "is_active"
-                )
-            )
-            departments = list(
-                Department.all_tenants.filter(organization=org).values(
-                    "public_id", "name", "code"
-                )
-            )
-            zf.writestr(
-                "organization.json",
-                json.dumps(
-                    _make_json_safe({
-                        "organization": org_data,
-                        "branches": branches,
-                        "departments": departments,
-                    }),
-                    indent=2,
-                ),
-            )
-            stats["branches"] = len(branches)
-            stats["departments"] = len(departments)
-
-            # 2. Product Catalog
-            categories = list(
-                Category.all_tenants.filter(organization=org).values(
-                    "public_id", "name", "slug"
-                )
-            )
-            products = list(
-                Product.all_tenants.filter(organization=org).values(
-                    "public_id", "name", "sku", "type", "base_price", "is_active"
-                )
-            )
-            zf.writestr(
-                "catalog.json",
-                json.dumps(
-                    _make_json_safe({"categories": categories, "products": products}),
-                    indent=2,
-                ),
-            )
-            stats["categories"] = len(categories)
-            stats["products"] = len(products)
-
-            # 3. Customers
-            customers = list(
-                Customer.all_tenants.filter(organization=org).values(
-                    "public_id", "code", "name", "email", "phone", "currency", "current_balance"
-                )
-            )
-            zf.writestr(
-                "customers.json",
-                json.dumps(_make_json_safe(customers), indent=2),
-            )
-            stats["customers"] = len(customers)
-
-            # 4. Suppliers (if available)
-            try:
-                from apps.purchasing.models import Supplier
-
-                suppliers = list(
-                    Supplier.all_tenants.filter(organization=org).values(
-                        "public_id", "code", "name", "email", "phone"
-                    )
-                )
-            except Exception:
-                suppliers = []
-            zf.writestr(
-                "suppliers.json",
-                json.dumps(_make_json_safe(suppliers), indent=2),
-            )
-            stats["suppliers"] = len(suppliers)
-
-            # 5. Chart of Accounts
-            try:
-                from apps.accounting.models import Account
-
-                accounts = list(
-                    Account.all_tenants.filter(organization=org).values(
-                        "public_id", "code", "name", "type", "current_balance"
-                    )
-                )
-            except Exception:
-                accounts = []
-            zf.writestr(
-                "accounting.json",
-                json.dumps(_make_json_safe(accounts), indent=2),
-            )
-            stats["accounts"] = len(accounts)
-
-            # 6. Sales Invoices
-            try:
-                from apps.sales.models import SalesInvoice
-
-                invoices = list(
-                    SalesInvoice.all_tenants.filter(organization=org).values(
-                        "public_id", "invoice_number", "status", "total_amount", "issued_date"
-                    )
-                )
-            except Exception:
-                invoices = []
-            zf.writestr(
-                "sales.json",
-                json.dumps(_make_json_safe(invoices), indent=2),
-            )
-            stats["invoices"] = len(invoices)
-
-            # 7. Inventory Warehouses
-            try:
-                from apps.inventory.models import Warehouse
-
-                warehouses = list(
-                    Warehouse.all_tenants.filter(organization=org).values(
-                        "public_id", "code", "name"
-                    )
-                )
-            except Exception:
-                warehouses = []
-            zf.writestr(
-                "inventory.json",
-                json.dumps(_make_json_safe(warehouses), indent=2),
-            )
-            stats["warehouses"] = len(warehouses)
-
-            # 8. HR Employees
-            try:
-                from apps.hr.models import Employee
-
-                employees = list(
-                    Employee.all_tenants.filter(organization=org).values(
-                        "public_id", "code", "first_name", "last_name", "work_email", "status"
-                    )
-                )
-            except Exception:
-                employees = []
-            zf.writestr(
-                "hr.json",
-                json.dumps(_make_json_safe(employees), indent=2),
-            )
-            stats["employees"] = len(employees)
-
-            # 9. CRM Leads
-            try:
-                from apps.crm.models import Lead
-
-                leads = list(
-                    Lead.all_tenants.filter(organization=org).values(
-                        "public_id", "first_name", "last_name", "email", "status", "company_name"
-                    )
-                )
-            except Exception:
-                leads = []
-            zf.writestr(
-                "crm.json",
-                json.dumps(_make_json_safe(leads), indent=2),
-            )
-            stats["leads"] = len(leads)
-
-            # 10. Audit Logs (Optional)
-            if job.include_audit_logs:
-                from apps.core.models import AuditLog
-
-                audit_logs = list(
-                    AuditLog.objects.filter(organization=org).values(
-                        "id", "actor_id", "action", "resource_type", "created_at"
-                    )[:5000]
-                )
-                zf.writestr(
-                    "audit_logs.json",
-                    json.dumps(_make_json_safe(audit_logs), indent=2),
-                )
-                stats["audit_logs"] = len(audit_logs)
-
-            # 11. Manifest
-            manifest = {
-                "manifest_version": "1.0",
-                "platform": "BMS-AV ERP",
-                "organization_id": str(org.id),
-                "organization_name": org.name,
-                "exported_at": timezone.now().isoformat(),
-                "entity_counts": stats,
-                "schema": "bms-av-backup-v1",
-            }
-            zf.writestr("manifest.json", json.dumps(manifest, indent=2))
-
-        zip_bytes = archive_buffer.getvalue()
+        zip_bytes, stats = _build_tenant_export_archive(org, job.include_audit_logs)
         sha256 = hashlib.sha256(zip_bytes).hexdigest()
         filename = f"tenant_export_{org.slug}_{job.public_id}.zip"
 
@@ -1766,6 +1778,13 @@ def process_tenant_export_job(
         return job
 
 
+def execute_tenant_export_job(
+    job_public_id: str | uuid.UUID,
+) -> TenantExportJob:
+    """Execute full-tenant data extraction and packaging synchronously."""
+    return process_tenant_export_job(job_public_id)
+
+
 def create_tenant_import_job(
     organization: Organization,
     *,
@@ -1780,6 +1799,62 @@ def create_tenant_import_job(
         status=TenantImportJobStatus.UPLOADED,
     )
     tasks.validate_tenant_import_task.delay(str(job.public_id))
+    return job
+
+
+def upload_tenant_import_job(
+    organization: Organization,
+    *,
+    file: Any,
+    imported_by: Any = None,
+) -> TenantImportJob:
+    """Upload and stage a tenant backup package for restoration."""
+    if not file:
+        raise ValueError("No file provided.")
+
+    try:
+        if hasattr(file, "seek"):
+            file.seek(0)
+        with zipfile.ZipFile(file) as zf:
+            file_names = zf.namelist()
+            if "manifest.json" not in file_names:
+                raise ValueError("Invalid archive: missing required 'manifest.json'.")
+            manifest_raw = zf.read("manifest.json").decode("utf-8")
+            manifest = json.loads(manifest_raw)
+
+            entities_found: dict[str, int] = {}
+            if "tables" in manifest and isinstance(manifest["tables"], dict):
+                entities_found = dict(manifest["tables"])
+            elif "entity_counts" in manifest and isinstance(manifest["entity_counts"], dict):
+                entities_found = dict(manifest["entity_counts"])
+
+            if not entities_found:
+                for fn in file_names:
+                    if fn.endswith(".json") and fn != "manifest.json":
+                        entities_found[fn.replace(".json", "").replace("tables/", "")] = 1
+
+        if hasattr(file, "seek"):
+            file.seek(0)
+    except zipfile.BadZipFile as exc:
+        raise ValueError(f"Corrupted or invalid zip archive: {exc}") from exc
+    except Exception as exc:
+        if isinstance(exc, ValueError):
+            raise
+        raise ValueError(f"Invalid archive: {exc}") from exc
+
+    job = TenantImportJob.objects.create(
+        organization=organization,
+        file=file,
+        imported_by=imported_by,
+        status=TenantImportJobStatus.ANALYZED,
+        validation_report={
+            "valid": True,
+            "manifest": manifest,
+            "files_found": file_names,
+            "entities_found": entities_found,
+            "errors": [],
+        },
+    )
     return job
 
 
@@ -1808,6 +1883,12 @@ def validate_tenant_import_job(
             if manifest.get("manifest_version") != "1.0":
                 report["errors"].append("Unsupported manifest_version.")
 
+            report["manifest"] = manifest
+            if "tables" in manifest and isinstance(manifest["tables"], dict):
+                report["entities_found"] = dict(manifest["tables"])
+            elif "entity_counts" in manifest and isinstance(manifest["entity_counts"], dict):
+                report["entities_found"] = dict(manifest["entity_counts"])
+
             # Validate catalog.json if present
             if "catalog.json" in file_names:
                 cat_data = json.loads(zf.read("catalog.json").decode("utf-8"))
@@ -1833,6 +1914,83 @@ def validate_tenant_import_job(
         return job
 
 
+def _import_catalog_from_archive(
+    org: Organization, zf: zipfile.ZipFile, file_names: list[str]
+) -> dict[str, int]:
+    imported: dict[str, int] = {}
+    cat_data = None
+    if "catalog.json" in file_names:
+        cat_data = json.loads(zf.read("catalog.json").decode("utf-8"))
+    elif "tables/catalog_category.json" in file_names or "tables/catalog_product.json" in file_names:
+        cat_data = {
+            "categories": (
+                json.loads(zf.read("tables/catalog_category.json").decode("utf-8"))
+                if "tables/catalog_category.json" in file_names
+                else []
+            ),
+            "products": (
+                json.loads(zf.read("tables/catalog_product.json").decode("utf-8"))
+                if "tables/catalog_product.json" in file_names
+                else []
+            ),
+        }
+
+    if cat_data:
+        categories_count = 0
+        for item in cat_data.get("categories", []):
+            Category.objects.get_or_create(
+                organization=org,
+                slug=item.get("slug", "default"),
+                defaults={"name": item.get("name", "Category")},
+            )
+            categories_count += 1
+        imported["categories"] = categories_count
+
+        products_count = 0
+        for item in cat_data.get("products", []):
+            sku = item.get("sku") or f"IMP-{uuid.uuid4().hex[:8]}"
+            Product.objects.get_or_create(
+                organization=org,
+                sku=sku,
+                defaults={
+                    "name": item.get("name", "Product"),
+                    "type": item.get("type", "goods"),
+                    "selling_price": Decimal(str(item.get("selling_price", item.get("base_price", "0.00")))),
+                    "is_active": item.get("is_active", True),
+                },
+            )
+            products_count += 1
+        imported["products"] = products_count
+    return imported
+
+
+def _import_customers_from_archive(org: Organization, zf: zipfile.ZipFile, file_names: list[str]) -> int:
+    cust_data = []
+    if "tables/customers_customer.json" in file_names:
+        cust_data = json.loads(zf.read("tables/customers_customer.json").decode("utf-8"))
+    elif "customers.json" in file_names:
+        cust_data = json.loads(zf.read("customers.json").decode("utf-8"))
+
+    if not cust_data:
+        return 0
+
+    cust_count = 0
+    for item in cust_data:
+        code = item.get("code") or f"CUST-{uuid.uuid4().hex[:8]}"
+        Customer.objects.get_or_create(
+            organization=org,
+            code=code,
+            defaults={
+                "name": item.get("name", "Customer"),
+                "email": item.get("email", ""),
+                "phone": item.get("phone", ""),
+                "currency": item.get("currency", org.base_currency),
+            },
+        )
+        cust_count += 1
+    return cust_count
+
+
 @transaction.atomic
 def commit_tenant_import_job(
     job_public_id: str | uuid.UUID,
@@ -1847,7 +2005,11 @@ def commit_tenant_import_job(
     if not job:
         raise ValueError(f"TenantImportJob {job_public_id} not found.")
 
-    if job.status not in (TenantImportJobStatus.VALIDATED, TenantImportJobStatus.UPLOADED):
+    if job.status not in (
+        TenantImportJobStatus.VALIDATED,
+        TenantImportJobStatus.ANALYZED,
+        TenantImportJobStatus.UPLOADED,
+    ):
         raise ValueError(f"Cannot commit TenantImportJob in status {job.status}.")
 
     job.status = TenantImportJobStatus.COMMITTING
@@ -1858,58 +2020,11 @@ def commit_tenant_import_job(
     imported_stats: dict[str, int] = {}
 
     try:
-        from apps.catalog.models import Category, Product
-        from apps.customers.models import Customer
-
         with zipfile.ZipFile(job.file.open("rb")) as zf:
             file_names = zf.namelist()
-
-            # Import Categories & Products
-            if "catalog.json" in file_names:
-                cat_data = json.loads(zf.read("catalog.json").decode("utf-8"))
-                categories_count = 0
-                for item in cat_data.get("categories", []):
-                    Category.objects.get_or_create(
-                        organization=org,
-                        slug=item.get("slug", "default"),
-                        defaults={"name": item.get("name", "Category")},
-                    )
-                    categories_count += 1
-                imported_stats["categories"] = categories_count
-
-                products_count = 0
-                for item in cat_data.get("products", []):
-                    sku = item.get("sku") or f"IMP-{uuid.uuid4().hex[:8]}"
-                    Product.objects.get_or_create(
-                        organization=org,
-                        sku=sku,
-                        defaults={
-                            "name": item.get("name", "Product"),
-                            "type": item.get("type", "goods"),
-                            "base_price": Decimal(str(item.get("base_price", "0.00"))),
-                            "is_active": item.get("is_active", True),
-                        },
-                    )
-                    products_count += 1
-                imported_stats["products"] = products_count
-
-            # Import Customers
-            if "customers.json" in file_names:
-                cust_data = json.loads(zf.read("customers.json").decode("utf-8"))
-                cust_count = 0
-                for item in cust_data:
-                    code = item.get("code") or f"CUST-{uuid.uuid4().hex[:8]}"
-                    Customer.objects.get_or_create(
-                        organization=org,
-                        code=code,
-                        defaults={
-                            "name": item.get("name", "Customer"),
-                            "email": item.get("email", ""),
-                            "phone": item.get("phone", ""),
-                            "currency": item.get("currency", org.currency),
-                        },
-                    )
-                    cust_count += 1
+            imported_stats.update(_import_catalog_from_archive(org, zf, file_names))
+            cust_count = _import_customers_from_archive(org, zf, file_names)
+            if cust_count:
                 imported_stats["customers"] = cust_count
 
         job.imported_stats = imported_stats
@@ -1981,7 +2096,16 @@ def execute_data_retention_cleanup(organization: Organization) -> dict[str, int]
     """Execute cleanup of expired logs and export files based on retention policy."""
     policy = DataRetentionPolicy.all_tenants.filter(organization=organization).first()
     if not policy or not policy.is_active:
-        return {"status": 0, "message": "Policy inactive or not configured"}
+        return {
+            "audit_logs_purged": 0,
+            "webhook_deliveries_purged": 0,
+            "inbound_logs_purged": 0,
+            "sync_logs_purged": 0,
+            "export_jobs_expired": 0,
+            "webhook_logs_deleted": 0,
+            "audit_logs_deleted": 0,
+            "sync_logs_deleted": 0,
+        }
 
     now = timezone.now()
     audit_cutoff = now - timedelta(days=policy.audit_log_retention_days)
@@ -1989,12 +2113,8 @@ def execute_data_retention_cleanup(organization: Organization) -> dict[str, int]
     sync_cutoff = now - timedelta(days=policy.sync_log_retention_days)
     export_cutoff = now - timedelta(days=policy.export_file_retention_days)
 
-    from apps.core.models import AuditLog
-
     # Purge expired logs
-    audit_count, _ = AuditLog.objects.filter(
-        organization=organization, created_at__lt=audit_cutoff
-    ).delete()
+    audit_count, _ = AuditLog.objects.filter(organization=organization, created_at__lt=audit_cutoff).delete()
 
     webhook_deliv_count, _ = WebhookDelivery.all_tenants.filter(
         organization=organization, created_at__lt=webhook_cutoff
@@ -2022,6 +2142,9 @@ def execute_data_retention_cleanup(organization: Organization) -> dict[str, int]
         "inbound_logs_purged": inbound_count,
         "sync_logs_purged": sync_count,
         "export_jobs_expired": exports_count,
+        "webhook_logs_deleted": webhook_deliv_count + inbound_count,
+        "audit_logs_deleted": audit_count,
+        "sync_logs_deleted": sync_count,
     }
 
     policy.last_run_at = now
@@ -2060,7 +2183,7 @@ def submit_data_subject_request(
         reason=reason,
         verification_notes=verification_notes,
         submitted_by=submitted_by,
-        status=DataSubjectRequestStatus.SUBMITTED,
+        status=DataSubjectRequestStatus.PENDING,
     )
     publish(
         "privacy.dsr_submitted",
@@ -2092,9 +2215,49 @@ def process_data_subject_access_request(
     dsr.processed_by = processed_by
     dsr.save(update_fields=["status", "processed_by", "updated_at"])
 
-    from apps.integrations.selectors import find_subject_personal_records
+    records = selectors.find_subject_personal_records(dsr.organization, email=dsr.subject_email)
 
-    records = find_subject_personal_records(dsr.organization, email=dsr.subject_email)
+    sar_records = {
+        "customers": [
+            {
+                "code": c.code,
+                "name": c.name,
+                "email": c.email,
+                "phone": c.phone,
+                "created_at": c.created_at.isoformat(),
+            }
+            for c in records["customers"]
+        ],
+        "contacts": [
+            {
+                "name": ct.full_name,
+                "email": ct.email,
+                "phone": ct.phone,
+                "title": ct.title,
+            }
+            for ct in records["contacts"]
+        ],
+        "leads": [
+            {
+                "name": f"{lead.first_name} {lead.last_name}",
+                "email": lead.email,
+                "phone": lead.phone,
+                "company": lead.company_name,
+                "status": lead.status,
+            }
+            for lead in records["leads"]
+        ],
+        "employees": [
+            {
+                "code": e.code,
+                "name": f"{e.first_name} {e.last_name}",
+                "work_email": e.work_email,
+                "personal_email": e.personal_email,
+                "status": e.status,
+            }
+            for e in records["employees"]
+        ],
+    }
 
     sar_package = {
         "subject_email": dsr.subject_email,
@@ -2109,47 +2272,8 @@ def process_data_subject_access_request(
             "employees_found": len(records["employees"]),
             "sales_invoices_count": records["sales_invoices_count"],
         },
-        "data": {
-            "customers": [
-                {
-                    "code": c.code,
-                    "name": c.name,
-                    "email": c.email,
-                    "phone": c.phone,
-                    "created_at": c.created_at.isoformat(),
-                }
-                for c in records["customers"]
-            ],
-            "contacts": [
-                {
-                    "name": ct.full_name,
-                    "email": ct.email,
-                    "phone": ct.phone,
-                    "title": ct.title,
-                }
-                for ct in records["contacts"]
-            ],
-            "leads": [
-                {
-                    "name": f"{l.first_name} {l.last_name}",
-                    "email": l.email,
-                    "phone": l.phone,
-                    "company": l.company_name,
-                    "status": l.status,
-                }
-                for l in records["leads"]
-            ],
-            "employees": [
-                {
-                    "code": e.code,
-                    "name": f"{e.first_name} {e.last_name}",
-                    "work_email": e.work_email,
-                    "personal_email": e.personal_email,
-                    "status": e.status,
-                }
-                for e in records["employees"]
-            ],
-        },
+        "records": sar_records,
+        "data": sar_records,
     }
 
     report_json = json.dumps(_make_json_safe(sar_package), indent=2)
@@ -2159,7 +2283,7 @@ def process_data_subject_access_request(
     dsr.status = DataSubjectRequestStatus.COMPLETED
     dsr.completed_at = timezone.now()
     dsr.impact_summary = sar_package["summary"]
-    dsr.save(update_fields=["status", "completed_at", "impact_summary", "file" if False else "result_file", "updated_at"])
+    dsr.save(update_fields=["status", "completed_at", "impact_summary", "result_file", "updated_at"])
 
     publish(
         "privacy.sar_completed",
@@ -2192,17 +2316,15 @@ def process_data_subject_erasure(
     dsr.processed_by = processed_by
     dsr.save(update_fields=["status", "processed_by", "updated_at"])
 
-    from apps.integrations.selectors import find_subject_personal_records
-
-    records = find_subject_personal_records(dsr.organization, email=dsr.subject_email)
+    records = selectors.find_subject_personal_records(dsr.organization, email=dsr.subject_email)
 
     cust_anonymized = 0
     for customer in records["customers"]:
-        customer.name = f"Anonymized Customer #{customer.id}"
+        customer.name = f"Anonymized Subject #{customer.id}"
         customer.email = f"anonymized_{customer.id}@anonymized.local"
         customer.phone = ""
         customer.tax_id = ""
-        customer.notes = "[PII Erased per GDPR Article 17 Right to Erasure]"
+        customer.notes = "[REDACTED PURSUANT TO GDPR ERASURE]"
         customer.save(update_fields=["name", "email", "phone", "tax_id", "notes", "updated_at"])
         # Redact customer addresses
         customer.addresses.all().update(
@@ -2225,18 +2347,33 @@ def process_data_subject_erasure(
 
     leads_anonymized = 0
     for lead in records["leads"]:
+        lead.title = f"Anonymized Lead #{lead.id}"
         lead.first_name = "Erased"
         lead.last_name = "Lead"
-        lead.email = f"erased_{lead.id}@anonymized.local"
+        lead.email = f"anonymized_{lead.id}@anonymized.local"
         lead.phone = ""
         lead.company_name = "[REDACTED]"
-        lead.save(update_fields=["first_name", "last_name", "email", "phone", "company_name", "updated_at"])
+        lead.notes = "[REDACTED]"
+        lead.save(
+            update_fields=[
+                "title",
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "company_name",
+                "notes",
+                "updated_at",
+            ]
+        )
         leads_anonymized += 1
 
     summary = {
         "customers_anonymized": cust_anonymized,
         "contacts_redacted": contacts_redacted,
         "leads_anonymized": leads_anonymized,
+        "anonymized_customers": cust_anonymized,
+        "anonymized_leads": leads_anonymized,
         "financial_records_preserved": True,
     }
 
@@ -2254,4 +2391,3 @@ def process_data_subject_erasure(
         },
     )
     return dsr
-

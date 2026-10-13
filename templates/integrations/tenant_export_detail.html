@@ -1,0 +1,102 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Tenant Export Details" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+  <div>
+    <a href="{% url 'integrations:portability_overview' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+      &larr; {% trans "Back to Portability" %}
+    </a>
+    <div class="mt-2 sm:flex sm:items-center sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          {% trans "Backup Export" %}: {{ job.public_id|stringformat:".8s" }}...
+        </h1>
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          {% trans "Requested on" %} {{ job.created_at|date:"Y-m-d H:i:s" }}
+        </p>
+      </div>
+      <div class="mt-4 sm:mt-0 flex items-center space-x-3">
+        {% if job.status == "completed" and job.file %}
+          <a
+            href="{% url 'integrations:export_download' export_id=job.public_id %}"
+            class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30 transition"
+          >
+            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {% trans "Download Archive (.zip)" %}
+          </a>
+        {% elif job.status == "failed" %}
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300">
+            {% trans "Failed" %}
+          </span>
+        {% else %}
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+            {{ job.status|title }}
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if job.error_message %}
+    <div class="p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-xl text-sm text-rose-700 dark:text-rose-300">
+      <h3 class="font-semibold">{% trans "Error Details" %}:</h3>
+      <p class="mt-1 font-mono text-xs">{{ job.error_message }}</p>
+    </div>
+  {% endif %}
+
+  <!-- Export Archive Details Card -->
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+      {% trans "Package Metadata & Security" %}
+    </h2>
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+      <div>
+        <dt class="text-slate-500 dark:text-slate-400">{% trans "Archive File Size" %}</dt>
+        <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">{{ job.file_size_bytes|filesizeformat|default:"-" }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500 dark:text-slate-400">{% trans "Completed At" %}</dt>
+        <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">{{ job.completed_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500 dark:text-slate-400">{% trans "Expires At" %}</dt>
+        <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">{{ job.expires_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
+      </div>
+      <div>
+        <dt class="text-slate-500 dark:text-slate-400">{% trans "Contains Audit Logs" %}</dt>
+        <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">
+          {% if job.include_audit_logs %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}
+        </dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="text-slate-500 dark:text-slate-400">{% trans "SHA-256 Checksum" %}</dt>
+        <dd class="mt-1 font-mono text-xs text-slate-900 dark:text-slate-100 break-all bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+          {{ job.sha256_hash|default:"-" }}
+        </dd>
+      </div>
+    </dl>
+  </div>
+
+  <!-- Entities in Archive -->
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
+    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+      {% trans "Exported Entity Counts" %}
+    </h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {% for entity, count in job.stats.items %}
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+          <div class="text-xs font-medium text-slate-500 uppercase">{{ entity }}</div>
+          <div class="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">{{ count }}</div>
+        </div>
+      {% empty %}
+        <p class="text-sm text-slate-500">{% trans "No entity counts recorded." %}</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
