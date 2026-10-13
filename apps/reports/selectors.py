@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 from decimal import Decimal
 from typing import Any
 
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, F, Q, QuerySet, Sum
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -42,7 +43,14 @@ from apps.purchasing.models import (
     SupplierBill,
     SupplierBillStatus,
 )
-from apps.sales.models import Invoice, InvoiceLine, InvoiceStatus
+from apps.reports.models import (
+    DailyExpenseSummary,
+    DailySalesSummary,
+    DashboardLayout,
+    ReportSchedule,
+    SavedReport,
+)
+from apps.sales.models import Invoice, InvoiceLine, InvoiceStatus, SalesOrder
 from apps.tenancy.models import Branch, Organization, Warehouse
 
 ZERO_DECIMAL = Decimal("0.0000")
@@ -2868,3 +2876,430 @@ def get_employee_performance_report(
             ),
         },
     }
+
+
+# ==============================================================================
+# P5-04 Reporting Engine: Custom Report Builder, Saved Reports, Schedules, Summaries
+# ==============================================================================
+
+CUSTOM_REPORT_ENTITIES: dict[str, dict[str, Any]] = {
+    "sales_orders": {
+        "label": _("Sales Orders"),
+        "model": SalesOrder,
+        "default_fields": ["order_number", "order_date", "customer__name", "status", "grand_total"],
+        "fields": {
+            "order_number": {"label": _("Order Number"), "type": "string", "aggregatable": False},
+            "order_date": {"label": _("Order Date"), "type": "date", "aggregatable": False},
+            "status": {"label": _("Status"), "type": "choice", "aggregatable": False},
+            "customer__name": {"label": _("Customer"), "type": "string", "aggregatable": False},
+            "subtotal": {"label": _("Subtotal"), "type": "decimal", "aggregatable": True},
+            "discount_total": {"label": _("Discount"), "type": "decimal", "aggregatable": True},
+            "tax_total": {"label": _("Tax Amount"), "type": "decimal", "aggregatable": True},
+            "grand_total": {"label": _("Grand Total"), "type": "decimal", "aggregatable": True},
+        },
+    },
+    "invoices": {
+        "label": _("Invoices"),
+        "model": Invoice,
+        "default_fields": [
+            "invoice_number",
+            "invoice_date",
+            "customer__name",
+            "status",
+            "grand_total",
+            "balance_due",
+        ],
+        "fields": {
+            "invoice_number": {"label": _("Invoice Number"), "type": "string", "aggregatable": False},
+            "invoice_date": {"label": _("Invoice Date"), "type": "date", "aggregatable": False},
+            "due_date": {"label": _("Due Date"), "type": "date", "aggregatable": False},
+            "status": {"label": _("Status"), "type": "choice", "aggregatable": False},
+            "customer__name": {"label": _("Customer"), "type": "string", "aggregatable": False},
+            "subtotal": {"label": _("Subtotal"), "type": "decimal", "aggregatable": True},
+            "discount_total": {"label": _("Discount"), "type": "decimal", "aggregatable": True},
+            "tax_total": {"label": _("Tax Amount"), "type": "decimal", "aggregatable": True},
+            "grand_total": {"label": _("Grand Total"), "type": "decimal", "aggregatable": True},
+            "balance_due": {"label": _("Balance Due"), "type": "decimal", "aggregatable": True},
+        },
+    },
+    "expenses": {
+        "label": _("Expenses"),
+        "model": Expense,
+        "default_fields": ["expense_number", "date", "category__name", "vendor_name", "amount", "status"],
+        "fields": {
+            "expense_number": {"label": _("Expense #"), "type": "string", "aggregatable": False},
+            "date": {"label": _("Date"), "type": "date", "aggregatable": False},
+            "category__name": {"label": _("Category"), "type": "string", "aggregatable": False},
+            "vendor_name": {"label": _("Vendor / Payee"), "type": "string", "aggregatable": False},
+            "amount": {"label": _("Net Amount"), "type": "decimal", "aggregatable": True},
+            "tax_amount": {"label": _("Tax Amount"), "type": "decimal", "aggregatable": True},
+            "total_amount": {"label": _("Total Amount"), "type": "decimal", "aggregatable": True},
+            "status": {"label": _("Status"), "type": "choice", "aggregatable": False},
+            "payment_method": {"label": _("Payment Method"), "type": "choice", "aggregatable": False},
+        },
+    },
+    "stock_movements": {
+        "label": _("Stock Movements"),
+        "model": StockMovement,
+        "default_fields": [
+            "occurred_at",
+            "type",
+            "product__name",
+            "warehouse__name",
+            "quantity",
+            "total_cost",
+        ],
+        "fields": {
+            "occurred_at": {"label": _("Date & Time"), "type": "datetime", "aggregatable": False},
+            "type": {"label": _("Movement Type"), "type": "choice", "aggregatable": False},
+            "product__sku": {"label": _("Product SKU"), "type": "string", "aggregatable": False},
+            "product__name": {"label": _("Product Name"), "type": "string", "aggregatable": False},
+            "warehouse__name": {"label": _("Warehouse"), "type": "string", "aggregatable": False},
+            "quantity": {"label": _("Quantity"), "type": "decimal", "aggregatable": True},
+            "unit_cost": {"label": _("Unit Cost"), "type": "decimal", "aggregatable": True},
+            "total_cost": {"label": _("Total Cost"), "type": "decimal", "aggregatable": True},
+        },
+    },
+    "customers": {
+        "label": _("Customers"),
+        "model": Customer,
+        "default_fields": ["name", "code", "email", "phone", "status", "current_balance"],
+        "fields": {
+            "name": {"label": _("Customer Name"), "type": "string", "aggregatable": False},
+            "code": {"label": _("Customer Code"), "type": "string", "aggregatable": False},
+            "email": {"label": _("Email"), "type": "string", "aggregatable": False},
+            "phone": {"label": _("Phone"), "type": "string", "aggregatable": False},
+            "status": {"label": _("Status"), "type": "choice", "aggregatable": False},
+            "current_balance": {"label": _("Current Balance"), "type": "decimal", "aggregatable": True},
+            "credit_limit": {"label": _("Credit Limit"), "type": "decimal", "aggregatable": True},
+        },
+    },
+}
+
+
+def get_custom_report_entities() -> dict[str, Any]:
+    """Return dictionary of available entities and fields for report builder."""
+    entities: dict[str, Any] = {}
+    for key, spec in CUSTOM_REPORT_ENTITIES.items():
+        entities[key] = {
+            "label": str(spec["label"]),
+            "default_fields": spec["default_fields"],
+            "fields": {
+                f: {
+                    "label": str(f_meta["label"]),
+                    "type": f_meta["type"],
+                    "aggregatable": f_meta["aggregatable"],
+                }
+                for f, f_meta in spec["fields"].items()
+            },
+        }
+    return entities
+
+
+ALLOWED_CUSTOM_REPORT_OPERATORS = {
+    "exact",
+    "iexact",
+    "contains",
+    "icontains",
+    "gte",
+    "lte",
+    "gt",
+    "lt",
+    "startswith",
+}
+
+
+def _apply_custom_report_filters(
+    qs: QuerySet[Any],
+    filters: Any,
+    available_fields: dict[str, Any],
+) -> QuerySet[Any]:
+    if not isinstance(filters, list):
+        return qs
+
+    for f in filters:
+        if not isinstance(f, dict):
+            continue
+        field_name = f.get("field")
+        op = f.get("operator", "exact")
+        val = f.get("value")
+        if (
+            field_name not in available_fields
+            or op not in ALLOWED_CUSTOM_REPORT_OPERATORS
+            or val is None
+            or val == ""
+        ):
+            continue
+
+        lookup = f"{field_name}__{op}" if op != "exact" else field_name
+        qs = qs.filter(Q(**{lookup: val}))
+    return qs
+
+
+def _format_custom_cell_value(
+    val: Any,
+    field: str,
+    aggregatable_fields: set[str],
+    totals_map: dict[str, Decimal],
+) -> str:
+    if val is None:
+        return "—"
+    if isinstance(val, (Decimal, int, float)):
+        d_val = Decimal(str(val))
+        if field in aggregatable_fields:
+            totals_map[field] = totals_map.get(field, Decimal("0.0000")) + d_val
+        return f"{d_val:.2f}"
+    if isinstance(val, (datetime.datetime, datetime.date)):
+        return val.strftime("%Y-%m-%d")
+    return str(val)
+
+
+def _format_custom_report_rows(
+    data_rows: list[dict[str, Any]],
+    valid_fields: list[str],
+    available_fields: dict[str, Any],
+) -> tuple[list[list[str]], dict[str, Decimal], list[str] | None]:
+    rows: list[list[str]] = []
+    totals_map: dict[str, Decimal] = {}
+    aggregatable_fields = {f for f in valid_fields if available_fields[f]["aggregatable"]}
+
+    for item in data_rows:
+        row = [
+            _format_custom_cell_value(item.get(f), f, aggregatable_fields, totals_map) for f in valid_fields
+        ]
+        rows.append(row)
+
+    totals_row: list[str] | None = None
+    if aggregatable_fields and data_rows:
+        totals_row = []
+        has_total = False
+        for i, f in enumerate(valid_fields):
+            if i == 0:
+                totals_row.append("TOTALS")
+            elif f in aggregatable_fields:
+                tot = totals_map.get(f, Decimal("0.0000"))
+                totals_row.append(f"{tot:.2f}")
+                has_total = True
+            else:
+                totals_row.append("")
+        if not has_total:
+            totals_row = None
+
+    return rows, totals_map, totals_row
+
+
+def execute_custom_report(
+    organization: Organization,
+    query_spec: dict[str, Any],
+) -> dict[str, Any]:
+    """Execute dynamic custom query spec for basic custom report builder.
+
+    Supports entity selection, field selection, filtering operators, sorting, and summary totals.
+    """
+    entity_key = query_spec.get("entity", "sales_orders")
+    if entity_key not in CUSTOM_REPORT_ENTITIES:
+        raise ValueError(f"Unsupported report entity: {entity_key}")
+
+    entity_spec = CUSTOM_REPORT_ENTITIES[entity_key]
+    model = entity_spec["model"]
+    available_fields = entity_spec["fields"]
+
+    # 1. Resolve fields
+    selected_fields = query_spec.get("fields") or entity_spec["default_fields"]
+    valid_fields = [f for f in selected_fields if f in available_fields]
+    if not valid_fields:
+        valid_fields = list(entity_spec["default_fields"])
+
+    headers = [str(available_fields[f]["label"]) for f in valid_fields]
+
+    # 2. Base QuerySet scoped to organization
+    qs = model.all_tenants.filter(organization=organization)
+
+    # 3. Dynamic Filtering
+    qs = _apply_custom_report_filters(qs, query_spec.get("filters"), available_fields)
+
+    # 4. Sorting
+    sort_by = query_spec.get("sort_by")
+    sort_dir = str(query_spec.get("sort_direction", "desc")).lower()
+    if sort_by in available_fields:
+        order_field = f"-{sort_by}" if sort_dir == "desc" else sort_by
+        qs = qs.order_by(order_field)
+    else:
+        qs = qs.order_by("-id")
+
+    # 5. Limit & fetch
+    limit = min(int(query_spec.get("limit", 500)), 1000)
+    data_rows = list(qs.values(*valid_fields)[:limit])
+
+    # 6. Format rows and compute totals
+    rows, totals_map, totals_row = _format_custom_report_rows(data_rows, valid_fields, available_fields)
+
+    return {
+        "title": query_spec.get("title") or f"{entity_spec['label']} Custom Report",
+        "entity": entity_key,
+        "headers": headers,
+        "field_keys": valid_fields,
+        "rows": rows,
+        "row_dicts": data_rows,
+        "totals": totals_row,
+        "aggregates": totals_map,
+        "total_count": len(rows),
+        "total_rows": len(rows),
+    }
+
+
+def list_saved_reports(
+    organization: Organization,
+    *,
+    user: Any | None = None,
+    report_type: str | None = None,
+    search: str | None = None,
+) -> list[SavedReport]:
+    """List saved reports accessible to the user in the organization."""
+    qs = SavedReport.all_tenants.filter(organization=organization)
+    if user and not user.is_superuser:
+        qs = qs.filter(Q(is_public=True) | Q(created_by=user))
+    if report_type:
+        qs = qs.filter(report_type=report_type)
+    if search:
+        qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
+    return list(qs.select_related("created_by").order_by("-updated_at"))
+
+
+def get_saved_report(
+    organization: Organization,
+    *,
+    report_id: str | uuid.UUID,
+) -> SavedReport | None:
+    """Retrieve a single saved report by public_id or primary key."""
+    if isinstance(report_id, str):
+        try:
+            report_id = uuid.UUID(report_id)
+        except ValueError:
+            return None
+    return SavedReport.all_tenants.filter(organization=organization, public_id=report_id).first()
+
+
+def list_report_schedules(
+    organization: Organization,
+    *,
+    is_active: bool | None = None,
+) -> list[ReportSchedule]:
+    """List report delivery schedules for the organization."""
+    qs = ReportSchedule.all_tenants.filter(organization=organization)
+    if is_active is not None:
+        qs = qs.filter(is_active=is_active)
+    return list(qs.select_related("saved_report").order_by("-created_at"))
+
+
+def get_report_schedule(
+    organization: Organization,
+    *,
+    schedule_id: str | uuid.UUID,
+) -> ReportSchedule | None:
+    """Retrieve a single report schedule by public_id or primary key."""
+    if isinstance(schedule_id, str):
+        try:
+            schedule_id = uuid.UUID(schedule_id)
+        except ValueError:
+            return None
+    return ReportSchedule.all_tenants.filter(organization=organization, public_id=schedule_id).first()
+
+
+def get_daily_sales_summary_data(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+    branch_id: int | None = None,
+) -> dict[str, Any]:
+    """Query pre-aggregated DailySalesSummary records across date range."""
+    qs = DailySalesSummary.all_tenants.filter(
+        organization=organization,
+        date__range=(start_date, end_date),
+    )
+    if branch_id:
+        qs = qs.filter(branch_id=branch_id)
+
+    records = list(qs.select_related("branch").order_by("date"))
+
+    agg = qs.aggregate(
+        tot_orders=Sum("total_orders"),
+        tot_invoices=Sum("total_invoices"),
+        gross_sales=Sum("gross_sales"),
+        discounts=Sum("discounts"),
+        tax_amount=Sum("tax_amount"),
+        net_sales=Sum("net_sales"),
+        cogs=Sum("cogs"),
+        gross_profit=Sum("gross_profit"),
+        pos_amount=Sum("pos_sales_amount"),
+        invoice_amount=Sum("invoice_sales_amount"),
+    )
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "records": records,
+        "summary": {
+            "total_orders": agg["tot_orders"] or 0,
+            "total_invoices": agg["tot_invoices"] or 0,
+            "gross_sales": agg["gross_sales"] or Decimal("0.0000"),
+            "discounts": agg["discounts"] or Decimal("0.0000"),
+            "tax_amount": agg["tax_amount"] or Decimal("0.0000"),
+            "net_sales": agg["net_sales"] or Decimal("0.0000"),
+            "cogs": agg["cogs"] or Decimal("0.0000"),
+            "gross_profit": agg["gross_profit"] or Decimal("0.0000"),
+            "pos_sales_amount": agg["pos_amount"] or Decimal("0.0000"),
+            "invoice_sales_amount": agg["invoice_amount"] or Decimal("0.0000"),
+        },
+    }
+
+
+def get_daily_expense_summary_data(
+    organization: Organization,
+    *,
+    start_date: datetime.date,
+    end_date: datetime.date,
+    category_id: int | None = None,
+    branch_id: int | None = None,
+) -> dict[str, Any]:
+    """Query pre-aggregated DailyExpenseSummary records across date range."""
+    qs = DailyExpenseSummary.all_tenants.filter(
+        organization=organization,
+        date__range=(start_date, end_date),
+    )
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+    if branch_id:
+        qs = qs.filter(branch_id=branch_id)
+
+    records = list(qs.select_related("category", "branch").order_by("date"))
+    agg = qs.aggregate(
+        tot_count=Sum("total_count"),
+        tot_amount=Sum("total_amount"),
+        tax_amount=Sum("tax_amount"),
+    )
+
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "records": records,
+        "summary": {
+            "total_count": agg["tot_count"] or 0,
+            "total_amount": agg["tot_amount"] or Decimal("0.0000"),
+            "tax_amount": agg["tax_amount"] or Decimal("0.0000"),
+        },
+    }
+
+
+def get_dashboard_layout(
+    organization: Organization,
+    *,
+    user: Any | None = None,
+) -> DashboardLayout | None:
+    """Retrieve personalized dashboard layout for user or default layout for tenant."""
+    if user:
+        layout = DashboardLayout.all_tenants.filter(organization=organization, user=user).first()
+        if layout:
+            return layout
+    return DashboardLayout.all_tenants.filter(organization=organization, is_default=True).first()

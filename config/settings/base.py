@@ -295,6 +295,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "sales.dispatch_due_payment_reminders",
         "schedule": 86400.0,
     },
+    "dispatch-due-report-schedules": {
+        "task": "reports.dispatch_due_schedules",
+        "schedule": 300.0,
+    },
+    "refresh-daily-summaries": {
+        "task": "reports.refresh_daily_summaries",
+        "schedule": 3600.0,
+    },
 }
 
 LOGIN_URL = "/accounts/login/"

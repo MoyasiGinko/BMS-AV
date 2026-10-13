@@ -5,17 +5,34 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
+from decimal import Decimal
 from typing import Any
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
+from django.db.models import Count, Sum
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
+from apps.accounting.models import Expense, ExpenseCategory, ExpenseStatus
+from apps.core.notifications import get_email_adapter
 from apps.core.tenant_context import tenant_context
 from apps.reports import exporters, selectors, tasks
-from apps.reports.models import ExportFileFormat, ExportJob, ExportJobStatus, ReportType
-from apps.tenancy.models import Organization
+from apps.reports.models import (
+    DailyExpenseSummary,
+    DailySalesSummary,
+    DashboardLayout,
+    ExportFileFormat,
+    ExportJob,
+    ExportJobStatus,
+    ReportSchedule,
+    ReportType,
+    SavedReport,
+    ScheduleFrequency,
+)
+from apps.sales.models import Invoice, InvoiceStatus, SalesOrder, SalesOrderStatus
+from apps.tenancy.models import Branch, Organization
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +247,7 @@ def _fetch_report_data(
             end_date=effective_end,
             department_id=department_id,
         ),
+        ReportType.CUSTOM: lambda: selectors.execute_custom_report(organization, parameters),
     }
 
     fetcher = fetchers.get(report_type)
@@ -256,3 +274,538 @@ def _parse_int_param(val: Any) -> int | None:
         return int(val)
     except ValueError, TypeError:
         return None
+
+
+# ==============================================================================
+# P5-04 Saved Reports Services
+# ==============================================================================
+
+
+def create_saved_report(
+    *,
+    organization: Organization,
+    actor: Any,
+    name: str,
+    report_type: str = ReportType.CUSTOM,
+    description: str = "",
+    filters: dict[str, Any] | None = None,
+    columns: list[str] | None = None,
+    sort_by: str = "",
+    sort_direction: str = "desc",
+    is_public: bool = True,
+    custom_query: dict[str, Any] | None = None,
+) -> SavedReport:
+    """Create a new saved report configuration."""
+    with tenant_context(organization), transaction.atomic():
+        report = SavedReport.all_tenants.create(
+            organization=organization,
+            name=name.strip(),
+            description=description.strip(),
+            report_type=report_type,
+            filters=filters or {},
+            columns=columns or [],
+            sort_by=sort_by,
+            sort_direction=sort_direction,
+            is_public=is_public,
+            custom_query=custom_query or {},
+            created_by=actor,
+        )
+    return report
+
+
+def update_saved_report(
+    *,
+    organization: Organization,
+    actor: Any,
+    saved_report: SavedReport,
+    name: str | None = None,
+    description: str | None = None,
+    report_type: str | None = None,
+    filters: dict[str, Any] | None = None,
+    columns: list[str] | None = None,
+    sort_by: str | None = None,
+    sort_direction: str | None = None,
+    is_public: bool | None = None,
+    custom_query: dict[str, Any] | None = None,
+) -> SavedReport:
+    """Update saved report configuration."""
+    with transaction.atomic():
+        if name is not None:
+            saved_report.name = name.strip()
+        if description is not None:
+            saved_report.description = description.strip()
+        if report_type is not None:
+            saved_report.report_type = report_type
+        if filters is not None:
+            saved_report.filters = filters
+        if columns is not None:
+            saved_report.columns = columns
+        if sort_by is not None:
+            saved_report.sort_by = sort_by
+        if sort_direction is not None:
+            saved_report.sort_direction = sort_direction
+        if is_public is not None:
+            saved_report.is_public = is_public
+        if custom_query is not None:
+            saved_report.custom_query = custom_query
+
+        saved_report.save()
+    return saved_report
+
+
+def delete_saved_report(
+    *,
+    organization: Organization,
+    actor: Any,
+    saved_report: SavedReport,
+) -> None:
+    """Delete a saved report configuration."""
+    with transaction.atomic():
+        saved_report.delete()
+
+
+def run_saved_report(
+    *,
+    organization: Organization,
+    actor: Any,
+    saved_report: SavedReport,
+    override_filters: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Execute a saved report (standard or custom) and update last_run_at timestamp."""
+    effective_filters = dict(saved_report.filters)
+    if override_filters:
+        effective_filters.update(override_filters)
+
+    if saved_report.report_type == ReportType.CUSTOM:
+        spec = dict(saved_report.custom_query)
+        if override_filters:
+            spec.setdefault("filters", []).extend(
+                [{"field": k, "operator": "exact", "value": v} for k, v in override_filters.items()]
+            )
+        data = selectors.execute_custom_report(organization, spec)
+    else:
+        data = _fetch_report_data(organization, saved_report.report_type, effective_filters)
+
+    saved_report.last_run_at = timezone.now()
+    saved_report.save(update_fields=["last_run_at", "updated_at"])
+    return data
+
+
+# ==============================================================================
+# P5-04 Report Schedules Services
+# ==============================================================================
+
+
+def calculate_next_run_at(
+    *,
+    frequency: str,
+    time_of_day: datetime.time,
+    day_of_week: int | None = None,
+    day_of_month: int | None = None,
+    from_dt: datetime.datetime | None = None,
+) -> datetime.datetime:
+    """Calculate the next timestamp for a recurring schedule."""
+    base = from_dt or timezone.now()
+    candidate = datetime.datetime.combine(base.date(), time_of_day, tzinfo=base.tzinfo)
+
+    if frequency == ScheduleFrequency.DAILY:
+        if candidate <= base:
+            candidate += datetime.timedelta(days=1)
+        return candidate
+
+    elif frequency == ScheduleFrequency.WEEKLY:
+        target_dow = day_of_week if day_of_week is not None else 0  # 0=Monday
+        days_ahead = (target_dow - candidate.weekday()) % 7
+        if days_ahead == 0 and candidate <= base:
+            days_ahead = 7
+        return candidate + datetime.timedelta(days=days_ahead)
+
+    elif frequency == ScheduleFrequency.MONTHLY:
+        target_dom = day_of_month or 1
+        year = base.year
+        month = base.month
+        try:
+            cand = datetime.datetime(
+                year, month, target_dom, time_of_day.hour, time_of_day.minute, tzinfo=base.tzinfo
+            )
+        except ValueError:
+            cand = datetime.datetime(
+                year, month, 28, time_of_day.hour, time_of_day.minute, tzinfo=base.tzinfo
+            )
+
+        if cand <= base:
+            if month == 12:
+                year += 1
+                month = 1
+            else:
+                month += 1
+            try:
+                cand = datetime.datetime(
+                    year, month, target_dom, time_of_day.hour, time_of_day.minute, tzinfo=base.tzinfo
+                )
+            except ValueError:
+                cand = datetime.datetime(
+                    year, month, 28, time_of_day.hour, time_of_day.minute, tzinfo=base.tzinfo
+                )
+        return cand
+
+    return candidate + datetime.timedelta(days=1)
+
+
+def create_report_schedule(
+    *,
+    organization: Organization,
+    actor: Any,
+    name: str,
+    frequency: str = ScheduleFrequency.WEEKLY,
+    recipients: list[str],
+    saved_report: SavedReport | None = None,
+    report_type: str = "",
+    parameters: dict[str, Any] | None = None,
+    format: str = ExportFileFormat.PDF,
+    day_of_week: int | None = None,
+    day_of_month: int | None = None,
+    time_of_day: datetime.time = datetime.time(8, 0),
+    is_active: bool = True,
+) -> ReportSchedule:
+    """Create a new report delivery schedule."""
+    if not recipients:
+        raise ValueError("At least one email recipient is required.")
+    if not saved_report and not report_type:
+        raise ValueError("Either a saved_report or report_type must be specified.")
+
+    r_type = report_type or (saved_report.report_type if saved_report else "")
+    next_run = calculate_next_run_at(
+        frequency=frequency,
+        time_of_day=time_of_day,
+        day_of_week=day_of_week,
+        day_of_month=day_of_month,
+    )
+
+    with tenant_context(organization), transaction.atomic():
+        schedule = ReportSchedule.all_tenants.create(
+            organization=organization,
+            name=name.strip(),
+            saved_report=saved_report,
+            report_type=r_type,
+            parameters=parameters or {},
+            frequency=frequency,
+            day_of_week=day_of_week,
+            day_of_month=day_of_month,
+            time_of_day=time_of_day,
+            format=format,
+            recipients=recipients,
+            is_active=is_active,
+            next_run_at=next_run,
+            created_by=actor,
+        )
+    return schedule
+
+
+def update_report_schedule(
+    *,
+    organization: Organization,
+    actor: Any,
+    schedule: ReportSchedule,
+    name: str | None = None,
+    frequency: str | None = None,
+    recipients: list[str] | None = None,
+    saved_report: SavedReport | None = None,
+    report_type: str | None = None,
+    parameters: dict[str, Any] | None = None,
+    format: str | None = None,
+    day_of_week: int | None = None,
+    day_of_month: int | None = None,
+    time_of_day: datetime.time | None = None,
+    is_active: bool | None = None,
+) -> ReportSchedule:
+    """Update report delivery schedule."""
+    with transaction.atomic():
+        if name is not None:
+            schedule.name = name.strip()
+        if frequency is not None:
+            schedule.frequency = frequency
+        if recipients is not None:
+            schedule.recipients = recipients
+        if saved_report is not None:
+            schedule.saved_report = saved_report
+        if report_type is not None:
+            schedule.report_type = report_type
+        if parameters is not None:
+            schedule.parameters = parameters
+        if format is not None:
+            schedule.format = format
+        if day_of_week is not None:
+            schedule.day_of_week = day_of_week
+        if day_of_month is not None:
+            schedule.day_of_month = day_of_month
+        if time_of_day is not None:
+            schedule.time_of_day = time_of_day
+        if is_active is not None:
+            schedule.is_active = is_active
+
+        schedule.next_run_at = calculate_next_run_at(
+            frequency=schedule.frequency,
+            time_of_day=schedule.time_of_day,
+            day_of_week=schedule.day_of_week,
+            day_of_month=schedule.day_of_month,
+        )
+        schedule.save()
+    return schedule
+
+
+def delete_report_schedule(
+    *,
+    organization: Organization,
+    actor: Any,
+    schedule: ReportSchedule,
+) -> None:
+    """Delete a report delivery schedule."""
+    with transaction.atomic():
+        schedule.delete()
+
+
+def run_report_schedule_now(
+    *,
+    organization: Organization,
+    schedule: ReportSchedule,
+    actor: Any | None = None,
+) -> tuple[str, bytes, int]:
+    """Execute scheduled report immediately, dispatch email with attachment, and update next_run_at."""
+    r_type = schedule.report_type
+    params = dict(schedule.parameters)
+    if schedule.saved_report:
+        r_type = schedule.saved_report.report_type
+        params = dict(schedule.saved_report.filters)
+        params.update(schedule.parameters)
+        if r_type == ReportType.CUSTOM:
+            data = selectors.execute_custom_report(organization, schedule.saved_report.custom_query)
+        else:
+            data = _fetch_report_data(organization, r_type, params)
+    else:
+        data = _fetch_report_data(organization, r_type, params)
+
+    filename, file_bytes, row_count = exporters.generate_report_export(
+        r_type,
+        schedule.format,
+        data,
+        organization_name=organization.name,
+    )
+
+    # Deliver via email adapter
+    if schedule.recipients:
+        subject = f"[{organization.name}] Scheduled Report: {schedule.name}"
+        body = (
+            f"Attached is your scheduled report: {schedule.name}.\n"
+            f"Frequency: {schedule.get_frequency_display()}\n"
+            f"Generated At: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
+            f"Rows: {row_count}\n"
+        )
+        adapter = get_email_adapter()
+        adapter.send_mail(
+            subject=subject,
+            message=body,
+            recipient_list=schedule.recipients,
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "reports@businessos.local"),
+        )
+
+    schedule.last_run_at = timezone.now()
+    schedule.last_error = ""
+    schedule.next_run_at = calculate_next_run_at(
+        frequency=schedule.frequency,
+        time_of_day=schedule.time_of_day,
+        day_of_week=schedule.day_of_week,
+        day_of_month=schedule.day_of_month,
+        from_dt=schedule.last_run_at,
+    )
+    schedule.save(update_fields=["last_run_at", "last_error", "next_run_at", "updated_at"])
+
+    return filename, file_bytes, row_count
+
+
+def dispatch_due_report_schedules() -> int:
+    """Find and execute all due report schedules across tenants."""
+    now = timezone.now()
+    due_schedules = list(
+        ReportSchedule.all_tenants.select_related("organization", "saved_report").filter(
+            is_active=True,
+            next_run_at__lte=now,
+        )
+    )
+
+    count = 0
+    for sched in due_schedules:
+        try:
+            with tenant_context(sched.organization):
+                run_report_schedule_now(organization=sched.organization, schedule=sched)
+                count += 1
+        except Exception as exc:
+            logger.exception("Failed to dispatch schedule %s: %s", sched.id, exc)
+            sched.last_error = str(exc)
+            sched.save(update_fields=["last_error", "updated_at"])
+
+    return count
+
+
+# ==============================================================================
+# P5-04 Daily Summary Tables Aggregators
+# ==============================================================================
+
+
+def rebuild_daily_sales_summary(
+    *,
+    organization: Organization,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> int:
+    """Aggregate operational invoices into DailySalesSummary records per branch."""
+    cur_d = start_date
+    updated_count = 0
+    branches = list(Branch.all_tenants.filter(organization=organization))
+    branch_candidates = [None, *branches]
+
+    with tenant_context(organization), transaction.atomic():
+        while cur_d <= end_date:
+            for b in branch_candidates:
+                inv_qs = Invoice.all_tenants.filter(
+                    organization=organization,
+                    invoice_date=cur_d,
+                    status__in=[InvoiceStatus.POSTED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID],
+                )
+                so_qs = SalesOrder.all_tenants.filter(
+                    organization=organization,
+                    order_date=cur_d,
+                    status__in=[SalesOrderStatus.CONFIRMED, SalesOrderStatus.FULFILLED],
+                )
+                if b is not None:
+                    inv_qs = inv_qs.filter(branch=b)
+                    so_qs = so_qs.filter(branch=b)
+                else:
+                    inv_qs = inv_qs.filter(branch__isnull=True)
+                    so_qs = so_qs.filter(branch__isnull=True)
+
+                inv_agg = inv_qs.aggregate(
+                    tot_inv=Count("id"),
+                    subtotal=Sum("subtotal"),
+                    discount_total=Sum("discount_total"),
+                    tax_total=Sum("tax_total"),
+                    grand_total=Sum("grand_total"),
+                )
+                tot_orders = so_qs.count()
+
+                gross = inv_agg["subtotal"] or Decimal("0.0000")
+                disc = inv_agg["discount_total"] or Decimal("0.0000")
+                tax = inv_agg["tax_total"] or Decimal("0.0000")
+                net = inv_agg["grand_total"] or Decimal("0.0000")
+
+                DailySalesSummary.all_tenants.update_or_create(
+                    organization=organization,
+                    date=cur_d,
+                    branch=b,
+                    defaults={
+                        "total_orders": tot_orders,
+                        "total_invoices": inv_agg["tot_inv"] or 0,
+                        "gross_sales": gross,
+                        "discounts": disc,
+                        "tax_amount": tax,
+                        "net_sales": net,
+                        "cogs": Decimal("0.0000"),
+                        "gross_profit": net,
+                        "pos_sales_count": 0,
+                        "pos_sales_amount": Decimal("0.0000"),
+                        "invoice_sales_amount": net,
+                    },
+                )
+                updated_count += 1
+            cur_d += datetime.timedelta(days=1)
+
+    return updated_count
+
+
+def rebuild_daily_expense_summary(
+    *,
+    organization: Organization,
+    start_date: datetime.date,
+    end_date: datetime.date,
+) -> int:
+    """Aggregate operational expenses into DailyExpenseSummary records."""
+    cur_d = start_date
+    updated_count = 0
+    categories = list(ExpenseCategory.all_tenants.filter(organization=organization))
+
+    with tenant_context(organization), transaction.atomic():
+        while cur_d <= end_date:
+            exp_qs = Expense.all_tenants.filter(
+                organization=organization,
+                date=cur_d,
+                status=ExpenseStatus.POSTED,
+            )
+            # Overall per category
+            for cat in categories:
+                cat_qs = exp_qs.filter(category=cat)
+                agg = cat_qs.aggregate(
+                    cnt=Count("id"),
+                    tot_amt=Sum("amount"),
+                    tot_tax=Sum("tax_amount"),
+                )
+                if agg["cnt"]:
+                    DailyExpenseSummary.all_tenants.update_or_create(
+                        organization=organization,
+                        date=cur_d,
+                        category=cat,
+                        branch=None,
+                        defaults={
+                            "total_count": agg["cnt"],
+                            "total_amount": agg["tot_amt"] or Decimal("0.0000"),
+                            "tax_amount": agg["tot_tax"] or Decimal("0.0000"),
+                        },
+                    )
+                    updated_count += 1
+
+            # Also if there are uncategorized expenses
+            uncat_qs = exp_qs.filter(category__isnull=True)
+            uncat_agg = uncat_qs.aggregate(
+                cnt=Count("id"),
+                tot_amt=Sum("amount"),
+                tot_tax=Sum("tax_amount"),
+            )
+            if uncat_agg["cnt"]:
+                DailyExpenseSummary.all_tenants.update_or_create(
+                    organization=organization,
+                    date=cur_d,
+                    category=None,
+                    branch=None,
+                    defaults={
+                        "total_count": uncat_agg["cnt"],
+                        "total_amount": uncat_agg["tot_amt"] or Decimal("0.0000"),
+                        "tax_amount": uncat_agg["tot_tax"] or Decimal("0.0000"),
+                    },
+                )
+                updated_count += 1
+            cur_d += datetime.timedelta(days=1)
+
+    return updated_count
+
+
+def save_dashboard_layout(
+    *,
+    organization: Organization,
+    actor: Any,
+    name: str = "Default",
+    widgets: list[dict[str, Any]] | None = None,
+    is_default: bool = False,
+    user: Any | None = None,
+) -> DashboardLayout:
+    """Save or update user-specific or tenant-default dashboard layout."""
+    with transaction.atomic():
+        layout, _ = DashboardLayout.objects.update_or_create(
+            organization=organization,
+            user=user,
+            is_default=is_default,
+            defaults={
+                "name": name,
+                "widgets": widgets or [],
+                "created_by": actor,
+            },
+        )
+    return layout

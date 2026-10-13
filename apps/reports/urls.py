@@ -1,4 +1,4 @@
-"""URL routing for Reports module and background export jobs."""
+"""URL routing for Reports module, background exports, report builder, schedules, and summaries."""
 
 from django.urls import path
 
@@ -8,6 +8,7 @@ app_name = "reports"
 
 urlpatterns = [
     path("", views.reports_index_view, name="index"),
+    # Operational Reports
     path("sales-by-product/", views.sales_by_product_view, name="sales_by_product"),
     path("sales-by-customer/", views.sales_by_customer_view, name="sales_by_customer"),
     path("sales-by-branch/", views.sales_by_branch_view, name="sales_by_branch"),
@@ -29,6 +30,23 @@ urlpatterns = [
     path("attendance/", views.attendance_report_view, name="attendance"),
     path("payroll-cost/", views.payroll_cost_report_view, name="payroll_cost"),
     path("employee-performance/", views.employee_performance_report_view, name="employee_performance"),
+    # P5-04 Saved Reports
+    path("saved/", views.saved_reports_list_view, name="saved_reports"),
+    path("saved/<str:report_id>/", views.saved_report_detail_view, name="saved_report_detail"),
+    path("saved/<str:report_id>/delete/", views.saved_report_delete_view, name="saved_report_delete"),
+    # P5-04 Report Builder
+    path("builder/", views.report_builder_view, name="builder"),
+    path("builder/preview/", views.report_builder_preview_view, name="builder_preview"),
+    path("builder/save/", views.report_builder_save_view, name="builder_save"),
+    # P5-04 Report Schedules
+    path("schedules/", views.report_schedules_list_view, name="schedules"),
+    path("schedules/create/", views.report_schedule_create_view, name="schedule_create"),
+    path("schedules/<str:schedule_id>/edit/", views.report_schedule_edit_view, name="schedule_edit"),
+    path("schedules/<str:schedule_id>/delete/", views.report_schedule_delete_view, name="schedule_delete"),
+    path("schedules/<str:schedule_id>/run/", views.report_schedule_run_now_view, name="schedule_run_now"),
+    # P5-04 Daily Summaries
+    path("summaries/", views.daily_summaries_view, name="daily_summaries"),
+    path("summaries/rebuild/", views.daily_summaries_rebuild_view, name="daily_summaries_rebuild"),
     # Export endpoints
     path("export/", views.export_report_view, name="export"),
     path("exports/", views.export_jobs_list_view, name="exports_list"),

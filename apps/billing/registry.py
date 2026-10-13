@@ -367,7 +367,20 @@ registry.register(
     description="Operational dashboards, financial statements, and data exports",
     icon="chart-bar",
     sort_order=130,
-    permissions=["reports.view", "reports.export"],
+    nav_items=[
+        NavItem("All Reports", "reports:index", icon="chart-bar", permission="reports.view"),
+        NavItem("Saved Reports", "reports:saved_reports", icon="bookmark", permission="reports.view"),
+        NavItem("Report Builder", "reports:builder", icon="wrench-screwdriver", permission="reports.manage"),
+        NavItem("Schedules", "reports:schedules", icon="clock", permission="reports.schedule"),
+        NavItem("Daily Summaries", "reports:daily_summaries", icon="calendar-days", permission="reports.view"),
+        NavItem("Export Jobs", "reports:exports_list", icon="arrow-down-tray", permission="reports.view"),
+    ],
+    permissions=[
+        "reports.view",
+        "reports.export",
+        "reports.manage",
+        "reports.schedule",
+    ],
 )
 
 registry.register(

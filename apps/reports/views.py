@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import datetime
+import json
 from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import FileResponse, Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -19,11 +20,14 @@ from apps.catalog.models import Category, Product
 from apps.core.permissions import get_user_allowed_branch_ids, scope_queryset
 from apps.customers.models import Customer
 from apps.reports import selectors, services
+from apps.reports.forms import ReportScheduleForm
 from apps.reports.models import ExportJob, ExportJobStatus, ReportType
 from apps.reports.permissions import (
     check_hr_reports_permission,
     check_payroll_reports_permission,
     check_reports_export_permission,
+    check_reports_manage_permission,
+    check_reports_schedule_permission,
     check_reports_view_permission,
 )
 from apps.tenancy.models import Branch, Department, Organization, Warehouse
@@ -833,3 +837,421 @@ def employee_performance_report_view(request: HttpRequest) -> HttpResponse:
         "data": report_data,
     }
     return render(request, "reports/employee_performance.html", context)
+
+
+# ==============================================================================
+# P5-04 Saved Reports Views
+# ==============================================================================
+
+
+@login_required
+@require_GET
+def saved_reports_list_view(request: HttpRequest) -> HttpResponse:
+    """List of all saved reports for the tenant."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    search = request.GET.get("q", "").strip()
+    report_type = request.GET.get("report_type", "").strip()
+    reports = selectors.list_saved_reports(
+        org, user=request.user, report_type=report_type or None, search=search or None
+    )
+
+    context = {
+        "organization": org,
+        "reports": reports,
+        "search": search,
+        "selected_report_type": report_type,
+        "report_types": ReportType.choices,
+    }
+    return render(request, "reports/saved_reports.html", context)
+
+
+@login_required
+@require_GET
+def saved_report_detail_view(request: HttpRequest, report_id: str) -> HttpResponse:
+    """View and execute a saved report."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    saved_rep = selectors.get_saved_report(org, report_id=report_id)
+    if not saved_rep:
+        raise Http404("Saved report not found.")
+
+    data = services.run_saved_report(
+        organization=org,
+        actor=request.user,
+        saved_report=saved_rep,
+    )
+
+    context = {
+        "organization": org,
+        "report": saved_rep,
+        "data": data,
+        "headers": data.get("headers", []),
+        "rows": data.get("rows", []),
+        "totals": data.get("totals"),
+        "total_count": data.get("total_count", len(data.get("rows", []))),
+    }
+    return render(request, "reports/saved_report_detail.html", context)
+
+
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def saved_report_delete_view(request: HttpRequest, report_id: str) -> HttpResponse:
+    """Delete a saved report configuration."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_manage_permission(request.user, org)
+
+    saved_rep = selectors.get_saved_report(org, report_id=report_id)
+    if not saved_rep:
+        raise Http404("Saved report not found.")
+
+    services.delete_saved_report(
+        organization=org,
+        actor=request.user,
+        saved_report=saved_rep,
+    )
+    messages.success(request, f"Saved report '{saved_rep.name}' deleted.")
+    return redirect("reports:saved_reports")
+
+
+# ==============================================================================
+# P5-04 Custom Report Builder Views
+# ==============================================================================
+
+
+@login_required
+@require_GET
+def report_builder_view(request: HttpRequest) -> HttpResponse:
+    """Interactive custom report builder interface."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_manage_permission(request.user, org)
+
+    entities = selectors.get_custom_report_entities()
+    selected_entity = request.GET.get("entity", "sales_orders")
+    if selected_entity not in entities:
+        selected_entity = "sales_orders"
+
+    context = {
+        "organization": org,
+        "entities": entities,
+        "selected_entity": selected_entity,
+        "entity_meta": entities[selected_entity],
+    }
+    return render(request, "reports/report_builder.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def report_builder_preview_view(request: HttpRequest) -> HttpResponse:
+    """Execute dynamic query spec and return preview rows (HTML partial or JSON)."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_manage_permission(request.user, org)
+
+    if request.method == "POST":
+        try:
+            if request.content_type == "application/json":
+                query_spec = json.loads(request.body)
+            else:
+                raw_spec = request.POST.get("query_spec")
+                query_spec = json.loads(raw_spec) if raw_spec else request.POST.dict()
+        except Exception:
+            return HttpResponseBadRequest("Invalid query specification JSON.")
+    else:
+        # GET query params fallback
+        entity = request.GET.get("entity", "sales_orders")
+        fields = request.GET.getlist("fields")
+        query_spec = {
+            "entity": entity,
+            "fields": fields or None,
+            "filters": [],
+            "sort_by": request.GET.get("sort_by", ""),
+            "sort_direction": request.GET.get("sort_direction", "desc"),
+        }
+
+    try:
+        data = selectors.execute_custom_report(org, query_spec)
+    except Exception as exc:
+        return HttpResponse(
+            f'<div class="p-4 bg-rose-50 text-rose-700 rounded-lg text-sm">{exc}</div>',
+            status=400,
+        )
+
+    if request.headers.get("Accept") == "application/json":
+        return JsonResponse(data)
+
+    context = {
+        "data": data,
+        "headers": data.get("headers", []),
+        "rows": data.get("rows", []),
+        "totals": data.get("totals"),
+        "total_count": data.get("total_count", 0),
+    }
+    return render(request, "reports/partials/builder_preview_table.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def report_builder_save_view(request: HttpRequest) -> HttpResponse:
+    """Save report builder query as a persistent SavedReport."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_manage_permission(request.user, org)
+
+    name = request.POST.get("name", "").strip()
+    if not name:
+        messages.error(request, "Report name is required.")
+        return redirect("reports:builder")
+
+    description = request.POST.get("description", "").strip()
+    is_public = request.POST.get("is_public") == "on"
+    raw_spec = request.POST.get("query_spec", "{}")
+    try:
+        query_spec = json.loads(raw_spec)
+    except Exception:
+        query_spec = {"entity": request.POST.get("entity", "sales_orders")}
+
+    rep = services.create_saved_report(
+        organization=org,
+        actor=request.user,
+        name=name,
+        report_type=ReportType.CUSTOM,
+        description=description,
+        filters=query_spec.get("filters", {}),
+        columns=query_spec.get("fields", []),
+        sort_by=query_spec.get("sort_by", ""),
+        sort_direction=query_spec.get("sort_direction", "desc"),
+        is_public=is_public,
+        custom_query=query_spec,
+    )
+    messages.success(request, f"Custom report '{rep.name}' saved successfully.")
+    return redirect("reports:saved_report_detail", report_id=str(rep.public_id))
+
+
+# ==============================================================================
+# P5-04 Report Schedules Views
+# ==============================================================================
+
+
+@login_required
+@require_GET
+def report_schedules_list_view(request: HttpRequest) -> HttpResponse:
+    """List of all configured report email schedules."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_schedule_permission(request.user, org)
+
+    schedules = selectors.list_report_schedules(org)
+    context = {
+        "organization": org,
+        "schedules": schedules,
+    }
+    return render(request, "reports/schedules_list.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def report_schedule_create_view(request: HttpRequest) -> HttpResponse:
+    """Create a new report delivery schedule."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_schedule_permission(request.user, org)
+
+    if request.method == "POST":
+        form = ReportScheduleForm(request.POST, organization=org)
+        if form.is_valid():
+            dow_raw = form.cleaned_data.get("day_of_week")
+            dow = int(dow_raw) if dow_raw not in (None, "") else None
+            services.create_report_schedule(
+                organization=org,
+                actor=request.user,
+                name=form.cleaned_data["name"],
+                frequency=form.cleaned_data["frequency"],
+                recipients=form.cleaned_data["recipient_emails"],
+                saved_report=form.cleaned_data.get("saved_report"),
+                format=form.cleaned_data.get("format"),
+                day_of_week=dow,
+                day_of_month=form.cleaned_data.get("day_of_month"),
+                time_of_day=form.cleaned_data["time_of_day"],
+                is_active=form.cleaned_data.get("is_active", True),
+            )
+            messages.success(request, "Report schedule created successfully.")
+            return redirect("reports:schedules")
+    else:
+        form = ReportScheduleForm(organization=org)
+
+    context = {
+        "organization": org,
+        "form": form,
+        "is_edit": False,
+    }
+    return render(request, "reports/schedule_form.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def report_schedule_edit_view(request: HttpRequest, schedule_id: str) -> HttpResponse:
+    """Edit an existing report schedule."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_schedule_permission(request.user, org)
+
+    schedule = selectors.get_report_schedule(org, schedule_id=schedule_id)
+    if not schedule:
+        raise Http404("Report schedule not found.")
+
+    if request.method == "POST":
+        form = ReportScheduleForm(request.POST, instance=schedule, organization=org)
+        if form.is_valid():
+            dow_raw = form.cleaned_data.get("day_of_week")
+            dow = int(dow_raw) if dow_raw not in (None, "") else None
+            services.update_report_schedule(
+                organization=org,
+                actor=request.user,
+                schedule=schedule,
+                name=form.cleaned_data["name"],
+                frequency=form.cleaned_data["frequency"],
+                recipients=form.cleaned_data["recipient_emails"],
+                saved_report=form.cleaned_data.get("saved_report"),
+                format=form.cleaned_data.get("format"),
+                day_of_week=dow,
+                day_of_month=form.cleaned_data.get("day_of_month"),
+                time_of_day=form.cleaned_data["time_of_day"],
+                is_active=form.cleaned_data.get("is_active", True),
+            )
+            messages.success(request, f"Schedule '{schedule.name}' updated successfully.")
+            return redirect("reports:schedules")
+    else:
+        form = ReportScheduleForm(instance=schedule, organization=org)
+
+    context = {
+        "organization": org,
+        "schedule": schedule,
+        "form": form,
+        "is_edit": True,
+    }
+    return render(request, "reports/schedule_form.html", context)
+
+
+@login_required
+@require_http_methods(["POST", "DELETE"])
+def report_schedule_delete_view(request: HttpRequest, schedule_id: str) -> HttpResponse:
+    """Delete a report delivery schedule."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_schedule_permission(request.user, org)
+
+    schedule = selectors.get_report_schedule(org, schedule_id=schedule_id)
+    if not schedule:
+        raise Http404("Report schedule not found.")
+
+    services.delete_report_schedule(
+        organization=org,
+        actor=request.user,
+        schedule=schedule,
+    )
+    messages.success(request, f"Schedule '{schedule.name}' deleted.")
+    return redirect("reports:schedules")
+
+
+@login_required
+@require_http_methods(["POST"])
+def report_schedule_run_now_view(request: HttpRequest, schedule_id: str) -> HttpResponse:
+    """Manually dispatch a report schedule immediately."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_schedule_permission(request.user, org)
+
+    schedule = selectors.get_report_schedule(org, schedule_id=schedule_id)
+    if not schedule:
+        raise Http404("Report schedule not found.")
+
+    fname, _, rows = services.run_report_schedule_now(
+        organization=org,
+        schedule=schedule,
+        actor=request.user,
+    )
+    recipient_count = len(schedule.recipients)
+    messages.success(
+        request,
+        f"Schedule executed: '{fname}' ({rows} records) generated and sent to {recipient_count} recipients.",
+    )
+    return redirect("reports:schedules")
+
+
+# ==============================================================================
+# P5-04 Daily Summaries Views
+# ==============================================================================
+
+
+@login_required
+@require_GET
+def daily_summaries_view(request: HttpRequest) -> HttpResponse:
+    """Executive view of pre-aggregated DailySalesSummary and DailyExpenseSummary."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_view_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request, default_days=14)
+    branch_id = _resolve_report_branch_id(request, org)
+
+    sales_data = selectors.get_daily_sales_summary_data(
+        org, start_date=start_date, end_date=end_date, branch_id=branch_id
+    )
+    expense_data = selectors.get_daily_expense_summary_data(
+        org, start_date=start_date, end_date=end_date, branch_id=branch_id
+    )
+    branches = _get_scoped_branches(request, org)
+
+    context = {
+        "organization": org,
+        "start_date": start_date,
+        "end_date": end_date,
+        "selected_branch_id": branch_id,
+        "branches": branches,
+        "sales_data": sales_data,
+        "expense_data": expense_data,
+    }
+    return render(request, "reports/daily_summaries.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def daily_summaries_rebuild_view(request: HttpRequest) -> HttpResponse:
+    """Trigger manual re-aggregation of daily summary tables."""
+    org = getattr(request, "organization", None)
+    if not org:
+        raise PermissionDenied("Active organization required.")
+    check_reports_manage_permission(request.user, org)
+
+    start_date, end_date = _get_date_range(request, default_days=30)
+    sales_cnt = services.rebuild_daily_sales_summary(
+        organization=org, start_date=start_date, end_date=end_date
+    )
+    exp_cnt = services.rebuild_daily_expense_summary(
+        organization=org, start_date=start_date, end_date=end_date
+    )
+
+    messages.success(
+        request,
+        f"Daily summaries recalculated successfully: {sales_cnt} sales records, {exp_cnt} expense records.",
+    )
+    return redirect("reports:daily_summaries")

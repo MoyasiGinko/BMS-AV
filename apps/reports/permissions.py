@@ -11,6 +11,8 @@ from apps.core.permissions import has_feature_entitlement, has_permission, regis
 PERMISSIONS = {
     "reports.view": "View operational and financial reports",
     "reports.export": "Export operational reports to CSV, XLSX, and PDF",
+    "reports.manage": "Create, edit, and delete saved reports and builder queries",
+    "reports.schedule": "Configure and trigger scheduled report deliveries",
 }
 
 
@@ -41,6 +43,30 @@ def check_reports_export_permission(user: Any, organization: Any) -> None:
 
     if not has_permission(user, "reports.export", organization=organization):
         raise PermissionDenied("You do not have permission to export reports.")
+
+
+def check_reports_manage_permission(user: Any, organization: Any) -> None:
+    """Verify tenant has reports entitlement and user has reports.manage permission."""
+    check_reports_view_permission(user, organization)
+
+    if not (
+        has_permission(user, "reports.manage", organization=organization)
+        or has_permission(user, "reports.*", organization=organization)
+        or getattr(user, "is_superuser", False)
+    ):
+        raise PermissionDenied("You do not have permission to manage custom or saved reports.")
+
+
+def check_reports_schedule_permission(user: Any, organization: Any) -> None:
+    """Verify tenant has reports entitlement and user has reports.schedule permission."""
+    check_reports_view_permission(user, organization)
+
+    if not (
+        has_permission(user, "reports.schedule", organization=organization)
+        or has_permission(user, "reports.*", organization=organization)
+        or getattr(user, "is_superuser", False)
+    ):
+        raise PermissionDenied("You do not have permission to configure report delivery schedules.")
 
 
 def check_hr_reports_permission(user: Any, organization: Any) -> None:

@@ -798,6 +798,23 @@ def _meta_employee_performance(
     return title, headers, rows, totals
 
 
+def _meta_custom_report(data: dict[str, Any]) -> tuple[str, list[str], list[list[str]], list[str] | None]:
+    title = data.get("title", "Custom Report")
+    headers = [str(h) for h in data.get("headers", ["Column"])]
+    raw_rows = data.get("rows", [])
+    rows = []
+    for r in raw_rows:
+        if isinstance(r, (list, tuple)):
+            rows.append([str(c) for c in r])
+        elif isinstance(r, dict):
+            field_keys = data.get("field_keys", headers)
+            rows.append([str(r.get(k, "")) for k in field_keys])
+        else:
+            rows.append([str(r)])
+    totals = [str(t) for t in data["totals"]] if data.get("totals") else None
+    return title, headers, rows, totals
+
+
 META_BUILDERS: dict[str, Any] = {
     ReportType.SALES_BY_PRODUCT: _meta_sales_product,
     ReportType.SALES_BY_CUSTOMER: _meta_sales_customer,
@@ -818,6 +835,7 @@ META_BUILDERS: dict[str, Any] = {
     ReportType.ATTENDANCE: _meta_attendance,
     ReportType.PAYROLL_COST: _meta_payroll_cost,
     ReportType.EMPLOYEE_PERFORMANCE: _meta_employee_performance,
+    ReportType.CUSTOM: _meta_custom_report,
 }
 
 
@@ -828,6 +846,8 @@ def get_report_meta(
     builder = META_BUILDERS.get(report_type)
     if builder:
         return builder(data)
+    if "headers" in data and "rows" in data:
+        return _meta_custom_report(data)
     return "Operational Report", ["Item"], [["Data"]], None
 
 

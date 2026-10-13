@@ -1,0 +1,140 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Report Schedules" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Report Schedules" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Automated Report Schedules" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Configure automated periodic report generation and email delivery." %}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'reports:schedule_create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                {% trans "New Schedule" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Schedules Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        {% if schedules %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        <th class="py-3 px-4">{% trans "Schedule Name" %}</th>
+                        <th class="py-3 px-4">{% trans "Target Report" %}</th>
+                        <th class="py-3 px-4">{% trans "Frequency" %}</th>
+                        <th class="py-3 px-4">{% trans "Format" %}</th>
+                        <th class="py-3 px-4">{% trans "Recipients" %}</th>
+                        <th class="py-3 px-4">{% trans "Next Run" %}</th>
+                        <th class="py-3 px-4">{% trans "Status" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for s in schedules %}
+                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="py-3.5 px-4 font-medium text-slate-900 dark:text-white">
+                            {{ s.name }}
+                            {% if s.last_error %}
+                            <span class="block text-xs text-rose-500 font-mono mt-0.5 truncate max-w-xs" title="{{ s.last_error }}">
+                                {% trans "Error:" %} {{ s.last_error }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-xs text-slate-700 dark:text-slate-300">
+                            {% if s.saved_report %}
+                            <a href="{% url 'reports:saved_report_detail' report_id=s.saved_report.public_id %}" class="hover:text-indigo-600 font-medium">
+                                {{ s.saved_report.name }}
+                            </a>
+                            {% else %}
+                            {{ s.get_report_type_display|default:s.report_type }}
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-xs font-medium text-slate-600 dark:text-slate-300">
+                            {{ s.get_frequency_display }}
+                            <span class="block text-[11px] text-slate-400 font-mono">{{ s.time_of_day|time:"H:i" }} UTC</span>
+                        </td>
+                        <td class="py-3.5 px-4 uppercase text-xs font-mono font-semibold text-slate-600 dark:text-slate-300">
+                            {{ s.format }}
+                        </td>
+                        <td class="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-400">
+                            <span title="{{ s.recipients|join:', ' }}">{{ s.recipients|length }} {% trans "recipients" %}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-xs font-mono text-slate-600 dark:text-slate-400">
+                            {% if s.next_run_at %}
+                            {{ s.next_run_at|date:"Y-m-d H:i" }}
+                            {% else %}
+                            <span class="text-slate-400">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            {% if s.is_active %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">
+                                {% trans "Active" %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400">
+                                {% trans "Paused" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="inline-flex items-center gap-2">
+                                <form method="post" action="{% url 'reports:schedule_run_now' schedule_id=s.public_id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="inline-flex items-center px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-semibold rounded-md transition-colors" title="Send report now">
+                                        {% trans "Run Now" %}
+                                    </button>
+                                </form>
+                                <a href="{% url 'reports:schedule_edit' schedule_id=s.public_id %}" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1" title="Edit">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </a>
+                                <form method="post" action="{% url 'reports:schedule_delete' schedule_id=s.public_id %}" onsubmit="return confirm('{% trans "Delete this schedule?" %}');" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-slate-400 hover:text-rose-600 p-1" title="Delete">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="py-12 text-center text-slate-500 dark:text-slate-400 space-y-3">
+            <svg class="w-12 h-12 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-base font-medium text-slate-900 dark:text-white">{% trans "No report delivery schedules configured." %}</p>
+            <p class="text-sm max-w-sm mx-auto">{% trans "Set up recurring emails to automatically send key operational or financial reports to team members." %}</p>
+            <div class="pt-2">
+                <a href="{% url 'reports:schedule_create' %}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">
+                    {% trans "Create First Schedule" %}
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
