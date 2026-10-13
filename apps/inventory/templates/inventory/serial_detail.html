@@ -1,0 +1,78 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Serial" %} {{ serial.serial_number }} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="{% url 'inventory:serial_list' %}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+                &larr; {% trans "Back to Serial Numbers" %}
+            </a>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+                {{ serial.serial_number }}
+            </h1>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {% if serial.status == 'in_stock' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300{% elif serial.status == 'issued' %}bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300{% else %}bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+            {{ serial.get_status_display }}
+        </span>
+    </div>
+
+    <!-- Metadata Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-6">
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Product" %}</span>
+            <div class="mt-1 font-medium text-slate-900 dark:text-white">{{ serial.product.name }}</div>
+            <div class="text-xs text-slate-400 font-mono">{{ serial.product.sku }}</div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Current Warehouse" %}</span>
+            <div class="mt-1 text-slate-900 dark:text-white">{{ serial.warehouse.name|default:"Not in warehouse" }}</div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Batch / Lot" %}</span>
+            <div class="mt-1 font-mono text-slate-900 dark:text-white">
+                {% if serial.batch %}
+                <a href="{% url 'inventory:batch_detail' serial.batch.pk %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                    {{ serial.batch.batch_number }}
+                </a>
+                {% else %}
+                &mdash;
+                {% endif %}
+            </div>
+        </div>
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Registered" %}</span>
+            <div class="mt-1 text-slate-700 dark:text-slate-300">{{ serial.created_at|date:"Y-m-d H:i" }}</div>
+        </div>
+    </div>
+
+    <!-- Last Movement Info -->
+    {% if serial.last_movement %}
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+        <h3 class="font-semibold text-slate-900 dark:text-white text-sm mb-4">{% trans "Last Stock Ledger Activity" %}</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+            <div>
+                <span class="text-xs text-slate-400 uppercase">{% trans "Movement Type" %}</span>
+                <div class="font-medium text-slate-900 dark:text-white">{{ serial.last_movement.get_type_display }}</div>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 uppercase">{% trans "Occurred At" %}</span>
+                <div class="text-slate-700 dark:text-slate-300">{{ serial.last_movement.occurred_at|date:"Y-m-d H:i" }}</div>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 uppercase">{% trans "Reference" %}</span>
+                <div class="font-mono text-xs text-slate-700 dark:text-slate-300">
+                    {{ serial.last_movement.reference_type|default:"Direct" }} #{{ serial.last_movement.reference_id|default:"-" }}
+                </div>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 uppercase">{% trans "Notes" %}</span>
+                <div class="text-xs text-slate-500">{{ serial.last_movement.notes|default:"-" }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

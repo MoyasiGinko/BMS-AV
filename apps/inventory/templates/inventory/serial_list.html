@@ -1,0 +1,147 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Serial Numbers" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Serial Number Tracking" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Track individual serialized assets, their location, batch links, and custody changes." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'inventory:batch_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                {% trans "Batches & Expiry" %}
+            </a>
+            <a href="{% url 'inventory:reorder_suggestions' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                {% trans "Reorder Suggestions" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get" class="flex flex-wrap items-center gap-3">
+            <div class="flex-1 min-w-[200px]">
+                <input type="text" name="query" value="{{ query }}" placeholder="{% trans 'Search serial number, product, or SKU...' %}"
+                       class="w-full py-2 px-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500" />
+            </div>
+            <div>
+                <select name="warehouse" class="py-2 px-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm">
+                    <option value="">{% trans "All Warehouses" %}</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.pk }}" {% if selected_warehouse and selected_warehouse.pk == wh.pk %}selected{% endif %}>{{ wh.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <select name="status" class="py-2 px-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm">
+                    <option value="">{% trans "All Statuses" %}</option>
+                    {% for code, label in statuses %}
+                    <option value="{{ code }}" {% if selected_status == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-xs transition-colors">
+                {% trans "Filter" %}
+            </button>
+            {% if query or selected_warehouse or selected_status %}
+            <a href="{% url 'inventory:serial_list' %}" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">{% trans "Clear" %}</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Serials Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        <table class="w-full text-left border-collapse text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                    <th class="py-3 px-4">{% trans "Serial Number" %}</th>
+                    <th class="py-3 px-4">{% trans "Product" %}</th>
+                    <th class="py-3 px-4">{% trans "Warehouse" %}</th>
+                    <th class="py-3 px-4">{% trans "Batch" %}</th>
+                    <th class="py-3 px-4">{% trans "Status" %}</th>
+                    <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                {% for s in page_obj %}
+                <tr>
+                    <td class="py-3 px-4 font-mono font-medium text-indigo-600 dark:text-indigo-400">
+                        <a href="{% url 'inventory:serial_detail' s.pk %}" class="hover:underline">
+                            {{ s.serial_number }}
+                        </a>
+                    </td>
+                    <td class="py-3 px-4 text-slate-900 dark:text-white">
+                        <span class="font-medium">{{ s.product.name }}</span>
+                        <div class="text-xs text-slate-400 font-mono">{{ s.product.sku }}</div>
+                    </td>
+                    <td class="py-3 px-4 text-slate-700 dark:text-slate-300">
+                        {{ s.warehouse.name|default:"&mdash;" }}
+                    </td>
+                    <td class="py-3 px-4 font-mono text-xs text-slate-500">
+                        {% if s.batch %}
+                        <a href="{% url 'inventory:batch_detail' s.batch.pk %}" class="hover:underline text-indigo-600 dark:text-indigo-400">
+                            {{ s.batch.batch_number }}
+                        </a>
+                        {% else %}
+                        &mdash;
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4">
+                        {% if s.status == 'in_stock' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            {{ s.get_status_display }}
+                        </span>
+                        {% elif s.status == 'issued' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                            {{ s.get_status_display }}
+                        </span>
+                        {% elif s.status == 'in_transit' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            {{ s.get_status_display }}
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            {{ s.get_status_display }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <a href="{% url 'inventory:serial_detail' s.pk %}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                            {% trans "View Details" %} &rarr;
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-slate-500 dark:text-slate-400">
+                        {% trans "No serial numbers found matching your criteria." %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if page_obj.has_other_pages %}
+        <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div class="text-xs text-slate-500">
+                {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+            </div>
+            <div class="flex gap-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&query={{ query }}&warehouse={{ selected_warehouse.pk|default:'' }}&status={{ selected_status }}" class="px-3 py-1 text-xs border rounded hover:bg-slate-50 dark:hover:bg-slate-800">{% trans "Previous" %}</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&query={{ query }}&warehouse={{ selected_warehouse.pk|default:'' }}&status={{ selected_status }}" class="px-3 py-1 text-xs border rounded hover:bg-slate-50 dark:hover:bg-slate-800">{% trans "Next" %}</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

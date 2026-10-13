@@ -28,7 +28,7 @@ from apps.purchasing.models import (
     Supplier,
     SupplierBill,
 )
-from apps.tenancy.models import Organization
+from apps.tenancy.models import Organization, Warehouse
 
 
 def _get_org(request: HttpRequest) -> Organization:
@@ -492,3 +492,33 @@ def purchase_return_post(request: HttpRequest, pk: int) -> HttpResponse:
         except ValidationError as err:
             messages.error(request, str(err))
     return redirect("purchasing:purchase_return_detail", pk=ret.pk)
+
+
+@permission_required("purchasing.create")
+def purchase_orders_from_reorder(request: HttpRequest) -> HttpResponse:
+    """Generate draft purchase orders grouped by supplier from reorder suggestions."""
+    org = _get_org(request)
+    if request.method == "POST":
+        wh_val = request.POST.get("warehouse_id")
+        wh_id = int(wh_val) if wh_val and wh_val.isdigit() else None
+        warehouse = Warehouse.objects.filter(organization=org, pk=wh_id).first() if wh_id else None
+        supp_val = request.POST.get("supplier_id")
+        supp_id = int(supp_val) if supp_val and supp_val.isdigit() else None
+        try:
+            pos = services.create_purchase_orders_from_reorder_suggestions(
+                organization=org,
+                warehouse=warehouse,
+                default_supplier_id=supp_id,
+                actor=request.user,
+            )
+            if pos:
+                messages.success(
+                    request,
+                    _("Created %(count)d draft purchase order(s) from low-stock suggestions.")
+                    % {"count": len(pos)},
+                )
+            else:
+                messages.info(request, _("No purchase orders were needed or generated."))
+        except Exception as err:
+            messages.error(request, str(err))
+    return redirect("purchasing:purchase_order_list")

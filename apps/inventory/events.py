@@ -123,3 +123,48 @@ class StockCountCompleted(DomainEvent):
     count_id: int = 0
     count_number: str = ""
     warehouse_id: int = 0
+
+
+@dataclass(frozen=True)
+class BatchCreated(DomainEvent):
+    """Fired when a new inventory batch is created."""
+
+    event_type: ClassVar[str] = "inventory.batch_created"
+
+    batch_id: int = 0
+    product_id: int = 0
+    batch_number: str = ""
+    expiry_date: str = ""
+
+
+@dataclass(frozen=True)
+class BatchStockUpdated(DomainEvent):
+    """Fired when batch stock quantity in a warehouse changes."""
+
+    event_type: ClassVar[str] = "inventory.batch_stock_updated"
+
+    batch_id: int = 0
+    warehouse_id: int = 0
+    quantity: str = "0.0000"
+
+
+@dataclass(frozen=True)
+class SerialRegistered(DomainEvent):
+    """Fired when serial numbers are registered in a warehouse."""
+
+    event_type: ClassVar[str] = "inventory.serial_registered"
+
+    product_id: int = 0
+    warehouse_id: int = 0
+    serial_count: int = 0
+
+
+@dataclass(frozen=True)
+class SerialIssued(DomainEvent):
+    """Fired when serial numbers are issued."""
+
+    event_type: ClassVar[str] = "inventory.serial_issued"
+
+    product_id: int = 0
+    warehouse_id: int = 0
+    serial_count: int = 0

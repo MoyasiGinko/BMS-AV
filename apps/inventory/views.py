@@ -20,6 +20,7 @@ from apps.inventory.forms import (
     StockFilterForm,
     StockTransferForm,
 )
+from apps.inventory.models import SerialStatus
 from apps.tenancy.models import Organization, Warehouse
 
 
@@ -299,7 +300,7 @@ def count_detail(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("inventory:count_list")
 
     if request.method == "POST" and stock_count.status != "completed":
-        # Process recorded counts
+        action = request.POST.get("action", "reconcile")
         counted_items = []
         for line in stock_count.lines.all():
             field_name = f"count_line_{line.pk}"
@@ -310,22 +311,200 @@ def count_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 except ValueError, TypeError, ArithmeticError:
                     continue
 
-        try:
-            services.reconcile_count(
-                count_id=stock_count.pk,
-                counted_items=counted_items,
-                actor=request.user,
-            )
-            messages.success(
-                request,
-                _("Cycle count %(num)s reconciled and variances adjusted.")
-                % {"num": stock_count.count_number},
-            )
-            return redirect("inventory:count_detail", pk=stock_count.pk)
-        except Exception as err:
-            messages.error(request, str(err))
+        if action == "save_progress":
+            try:
+                services.record_stock_count_progress(
+                    organization=org,
+                    count=stock_count,
+                    counted_items=counted_items,
+                    notes=request.POST.get("notes", ""),
+                    actor=request.user,
+                )
+                messages.success(request, _("Count progress saved."))
+                return redirect("inventory:count_detail", pk=stock_count.pk)
+            except Exception as err:
+                messages.error(request, str(err))
+        else:
+            try:
+                services.reconcile_count(
+                    count_id=stock_count.pk,
+                    counted_items=counted_items,
+                    actor=request.user,
+                )
+                messages.success(
+                    request,
+                    _("Cycle count %(num)s reconciled and variances adjusted.")
+                    % {"num": stock_count.count_number},
+                )
+                return redirect("inventory:count_detail", pk=stock_count.pk)
+            except Exception as err:
+                messages.error(request, str(err))
 
     return render(request, "inventory/count_detail.html", {"stock_count": stock_count})
+
+
+@permission_required("inventory.count")
+def count_start(request: HttpRequest, pk: int) -> HttpResponse:
+    """Transition a draft stock count into progress."""
+    org = _get_org(request)
+    stock_count = selectors.get_stock_count(organization=org, count_id=pk)
+    if not stock_count:
+        messages.error(request, _("Cycle count not found."))
+        return redirect("inventory:count_list")
+
+    if request.method == "POST":
+        try:
+            services.start_stock_count(organization=org, count=stock_count, actor=request.user)
+            messages.success(request, _("Stock count is now in progress."))
+        except Exception as err:
+            messages.error(request, str(err))
+    return redirect("inventory:count_detail", pk=pk)
+
+
+@permission_required("inventory.count")
+def count_complete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Complete a stock count and auto-generate compensating adjustments."""
+    org = _get_org(request)
+    stock_count = selectors.get_stock_count(organization=org, count_id=pk)
+    if not stock_count:
+        messages.error(request, _("Cycle count not found."))
+        return redirect("inventory:count_list")
+
+    if request.method == "POST":
+        try:
+            services.complete_stock_count(
+                organization=org, count=stock_count, actor=request.user, auto_adjust=True
+            )
+            messages.success(request, _("Stock count completed and variance adjustment posted."))
+        except Exception as err:
+            messages.error(request, str(err))
+    return redirect("inventory:count_detail", pk=pk)
+
+
+@permission_required("inventory.view")
+def batch_list(request: HttpRequest) -> HttpResponse:
+    """List inventory batches with expiry status and filters."""
+    org = _get_org(request)
+    wh_id = request.GET.get("warehouse")
+    warehouse = Warehouse.objects.filter(organization=org, pk=wh_id).first() if wh_id else None
+    product_id = request.GET.get("product")
+    product_id_val = int(product_id) if product_id and product_id.isdigit() else None
+    filter_expiring = request.GET.get("expiring") in ("1", "true", "True")
+    query = request.GET.get("query", "")
+
+    batches = selectors.list_batches(
+        organization=org,
+        product_id=product_id_val,
+        query=query,
+    )
+    batches = scope_queryset(batches, request.user, organization=org)
+
+    expiring_batches = []
+    if filter_expiring:
+        expiring_batches = selectors.get_expiring_batches(
+            organization=org,
+            warehouse=warehouse,
+            days=30,
+        )
+
+    paginator = Paginator(batches, 25)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+    warehouses = Warehouse.objects.filter(organization=org, is_active=True).order_by("name")
+
+    context = {
+        "page_obj": page_obj,
+        "warehouses": warehouses,
+        "selected_warehouse": warehouse,
+        "filter_expiring": filter_expiring,
+        "expiring_batches": expiring_batches,
+        "query": query,
+    }
+    return render(request, "inventory/batch_list.html", context)
+
+
+@permission_required("inventory.view")
+def batch_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """Detail view for a batch showing stock per warehouse and movement activity."""
+    org = _get_org(request)
+    batch = selectors.get_batch(organization=org, batch_id=pk)
+    if not batch:
+        messages.error(request, _("Batch not found."))
+        return redirect("inventory:batch_list")
+
+    stocks = selectors.list_batch_stocks(organization=org, batch_id=pk)
+    context = {
+        "batch": batch,
+        "stocks": stocks,
+    }
+    return render(request, "inventory/batch_detail.html", context)
+
+
+@permission_required("inventory.view")
+def serial_list(request: HttpRequest) -> HttpResponse:
+    """List tracked serial numbers with status and search."""
+    org = _get_org(request)
+    wh_id = request.GET.get("warehouse")
+    warehouse = Warehouse.objects.filter(organization=org, pk=wh_id).first() if wh_id else None
+    status = request.GET.get("status", "")
+    query = request.GET.get("query", "")
+
+    serials = selectors.list_serial_numbers(
+        organization=org,
+        warehouse=warehouse,
+        status=status,
+        query=query,
+    )
+    serials = scope_queryset(serials, request.user, organization=org)
+
+    paginator = Paginator(serials, 25)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+    warehouses = Warehouse.objects.filter(organization=org, is_active=True).order_by("name")
+
+    context = {
+        "page_obj": page_obj,
+        "warehouses": warehouses,
+        "selected_warehouse": warehouse,
+        "selected_status": status,
+        "statuses": SerialStatus.choices,
+        "query": query,
+    }
+    return render(request, "inventory/serial_list.html", context)
+
+
+@permission_required("inventory.view")
+def serial_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """Detail view for an individual serial number."""
+    org = _get_org(request)
+    serial = selectors.get_serial_number(organization=org, serial_id=pk)
+    if not serial:
+        messages.error(request, _("Serial number not found."))
+        return redirect("inventory:serial_list")
+
+    return render(request, "inventory/serial_detail.html", {"serial": serial})
+
+
+@permission_required("inventory.view")
+def reorder_suggestions(request: HttpRequest) -> HttpResponse:
+    """Identify inventory items below reorder threshold with suggested order quantities."""
+    org = _get_org(request)
+    wh_id = request.GET.get("warehouse")
+    warehouse = Warehouse.objects.filter(organization=org, pk=wh_id).first() if wh_id else None
+
+    suggestions = selectors.get_reorder_suggestions(
+        organization=org,
+        warehouse=warehouse,
+    )
+    warehouses = Warehouse.objects.filter(organization=org, is_active=True).order_by("name")
+
+    total_est_cost = sum((s["estimated_cost"] for s in suggestions), Decimal("0.0000"))
+
+    context = {
+        "suggestions": suggestions,
+        "warehouses": warehouses,
+        "selected_warehouse": warehouse,
+        "total_est_cost": total_est_cost,
+    }
+    return render(request, "inventory/reorder_suggestions.html", context)
 
 
 @permission_required("inventory.manage")

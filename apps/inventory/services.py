@@ -7,15 +7,24 @@ from typing import Any
 
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import F, Sum
 from django.utils import timezone
 
 from apps.catalog.models import Product, ProductVariant
 from apps.core.events import publish
 from apps.core.permissions import get_user_allowed_branch_ids
 from apps.core.services import generate_next_number
-from apps.inventory.costing import DEFAULT_COSTING_STRATEGY, CostingStrategy
+from apps.inventory.costing import (
+    FIFO_COSTING_STRATEGY,
+    CostingStrategy,
+    FIFOCostingStrategy,
+    get_costing_strategy,
+)
 from apps.inventory.events import (
+    BatchCreated,
+    BatchStockUpdated,
+    SerialIssued,
+    SerialRegistered,
     StockAdjusted,
     StockCountCompleted,
     StockIssued,
@@ -27,19 +36,28 @@ from apps.inventory.events import (
     StockTransferred,
 )
 from apps.inventory.exceptions import (
+    BatchError,
+    BatchExpiredError,
     InsufficientStock,
     InvalidMovement,
     ReservationError,
+    SerialError,
+    SerialNotFoundError,
     TransferError,
     WarehouseInactive,
 )
 from apps.inventory.models import (
     AdjustmentReason,
+    Batch,
+    BatchStock,
     CountStatus,
     MovementType,
     ReservationStatus,
+    SerialNumber,
+    SerialStatus,
     StockAdjustment,
     StockAdjustmentLine,
+    StockCostLayer,
     StockCount,
     StockCountLine,
     StockLevel,
@@ -98,6 +116,186 @@ def _get_or_create_stock_level(
     return level
 
 
+def create_or_get_batch(
+    *,
+    organization: Organization,
+    product: Product,
+    batch_number: str,
+    manufacturing_date: Any = None,
+    expiry_date: Any = None,
+    notes: str = "",
+    actor: Any = None,
+) -> Batch:
+    """Retrieve or create an inventory batch/lot with expiration tracking."""
+    clean_number = batch_number.strip()
+    batch = Batch.all_tenants.filter(
+        organization=organization,
+        product=product,
+        batch_number=clean_number,
+    ).first()
+    if batch is None:
+        batch = Batch.objects.create(
+            organization=organization,
+            product=product,
+            batch_number=clean_number,
+            manufacturing_date=manufacturing_date,
+            expiry_date=expiry_date,
+            notes=notes,
+            created_by=actor,
+        )
+        publish(
+            BatchCreated(
+                organization_id=organization.pk,
+                batch_id=batch.pk,
+                product_id=product.pk,
+                batch_number=batch.batch_number,
+                expiry_date=str(expiry_date or ""),
+            )
+        )
+    return batch
+
+
+def adjust_batch_stock(
+    *,
+    organization: Organization,
+    batch: Batch,
+    warehouse: Warehouse,
+    quantity_delta: Decimal,
+) -> BatchStock:
+    """Adjust current on-hand quantity for a specific batch in a warehouse."""
+    b_stock = (
+        BatchStock.all_tenants.select_for_update()
+        .filter(organization=organization, batch=batch, warehouse=warehouse)
+        .first()
+    )
+    if b_stock is None:
+        b_stock, _ = BatchStock.all_tenants.get_or_create(
+            organization=organization,
+            batch=batch,
+            warehouse=warehouse,
+            defaults={"quantity": DECIMAL_ZERO},
+        )
+        b_stock = (
+            BatchStock.all_tenants.select_for_update()
+            .filter(organization=organization, batch=batch, warehouse=warehouse)
+            .first()
+        )
+        assert b_stock is not None
+
+    b_stock.quantity += quantity_delta
+    b_stock.quantity = max(b_stock.quantity, DECIMAL_ZERO)
+    b_stock.save(update_fields=["quantity", "updated_at"])
+
+    publish(
+        BatchStockUpdated(
+            organization_id=organization.pk,
+            batch_id=batch.pk,
+            warehouse_id=warehouse.pk,
+            quantity=str(b_stock.quantity),
+        )
+    )
+    return b_stock
+
+
+def register_serial_numbers(
+    *,
+    organization: Organization,
+    product: Product,
+    warehouse: Warehouse,
+    serial_numbers: list[str],
+    batch: Batch | None = None,
+    movement: StockMovement | None = None,
+    notes: str = "",
+    actor: Any = None,
+) -> list[SerialNumber]:
+    """Register serial numbers into active stock for a warehouse."""
+    results: list[SerialNumber] = []
+    for sn_raw in serial_numbers:
+        sn = sn_raw.strip()
+        if not sn:
+            continue
+        existing = SerialNumber.all_tenants.filter(
+            organization=organization, product=product, serial_number=sn
+        ).first()
+        if existing is not None:
+            if existing.status == SerialStatus.IN_STOCK:
+                raise SerialError(f"Serial number '{sn}' is already in stock for '{product.name}'.")
+            existing.status = SerialStatus.IN_STOCK
+            existing.warehouse = warehouse
+            existing.batch = batch or existing.batch
+            existing.last_movement = movement or existing.last_movement
+            existing.save(update_fields=["status", "warehouse", "batch", "last_movement", "updated_at"])
+            results.append(existing)
+        else:
+            obj = SerialNumber.objects.create(
+                organization=organization,
+                product=product,
+                serial_number=sn,
+                warehouse=warehouse,
+                status=SerialStatus.IN_STOCK,
+                batch=batch,
+                last_movement=movement,
+                notes=notes,
+                created_by=actor,
+            )
+            results.append(obj)
+
+    publish(
+        SerialRegistered(
+            organization_id=organization.pk,
+            product_id=product.pk,
+            warehouse_id=warehouse.pk,
+            serial_count=len(results),
+        )
+    )
+    return results
+
+
+def issue_serial_numbers(
+    *,
+    organization: Organization,
+    product: Product,
+    warehouse: Warehouse,
+    serial_numbers: list[str],
+    movement: StockMovement | None = None,
+    actor: Any = None,
+) -> list[SerialNumber]:
+    """Mark serial numbers as issued from a source warehouse."""
+    issued: list[SerialNumber] = []
+    for sn_raw in serial_numbers:
+        sn = sn_raw.strip()
+        record = (
+            SerialNumber.all_tenants.select_for_update()
+            .filter(
+                organization=organization,
+                product=product,
+                warehouse=warehouse,
+                serial_number=sn,
+                status=SerialStatus.IN_STOCK,
+            )
+            .first()
+        )
+        if record is None:
+            raise SerialNotFoundError(
+                f"Serial number '{sn}' for '{product.name}' is not in stock at warehouse '{warehouse.name}'."
+            )
+        record.status = SerialStatus.ISSUED
+        record.warehouse = None
+        record.last_movement = movement
+        record.save(update_fields=["status", "warehouse", "last_movement", "updated_at"])
+        issued.append(record)
+
+    publish(
+        SerialIssued(
+            organization_id=organization.pk,
+            product_id=product.pk,
+            warehouse_id=warehouse.pk,
+            serial_count=len(issued),
+        )
+    )
+    return issued
+
+
 @transaction.atomic
 def receive_stock(
     *,
@@ -113,7 +311,11 @@ def receive_stock(
     notes: str = "",
     actor: Any = None,
     occurred_at: Any = None,
-    costing_strategy: CostingStrategy = DEFAULT_COSTING_STRATEGY,
+    costing_strategy: CostingStrategy | None = None,
+    batch: Batch | str | None = None,
+    batch_expiry_date: Any = None,
+    batch_manufacturing_date: Any = None,
+    serial_numbers: list[str] | None = None,
 ) -> StockMovement:
     """Receive inventory into a warehouse, update moving average cost, and append to the ledger."""
     if not warehouse.is_active:
@@ -125,6 +327,31 @@ def receive_stock(
     if unit_cost < DECIMAL_ZERO:
         raise InvalidMovement("Unit cost cannot be negative.")
 
+    batch_obj: Batch | None = None
+    if batch is not None:
+        if isinstance(batch, str):
+            batch_obj = create_or_get_batch(
+                organization=organization,
+                product=product,
+                batch_number=batch,
+                expiry_date=batch_expiry_date,
+                manufacturing_date=batch_manufacturing_date,
+                actor=actor,
+            )
+        else:
+            batch_obj = batch
+        adjust_batch_stock(
+            organization=organization,
+            batch=batch_obj,
+            warehouse=warehouse,
+            quantity_delta=quantity,
+        )
+
+    if serial_numbers is not None and len(serial_numbers) != int(quantity):
+        raise SerialError(
+            f"Received quantity is {quantity}, but {len(serial_numbers)} serial numbers were provided."
+        )
+
     level = _get_or_create_stock_level(
         organization=organization,
         warehouse=warehouse,
@@ -132,7 +359,8 @@ def receive_stock(
         variant=variant,
     )
 
-    new_avg_cost = costing_strategy.calculate_new_average_cost(
+    strategy = costing_strategy or get_costing_strategy(organization)
+    new_avg_cost = strategy.calculate_new_average_cost(
         current_qty=level.on_hand,
         current_avg_cost=level.avg_cost,
         incoming_qty=quantity,
@@ -153,12 +381,39 @@ def receive_stock(
         quantity=quantity,
         unit_cost=unit_cost,
         total_cost=total_cost,
+        batch=batch_obj,
         reference_type=reference_type,
         reference_id=str(reference_id),
         notes=notes,
         occurred_at=occurred_at or timezone.now(),
         created_by=actor,
     )
+
+    if (
+        isinstance(strategy, FIFOCostingStrategy)
+        or getattr(strategy, "__name__", "") == "FIFOCostingStrategy"
+    ):
+        FIFO_COSTING_STRATEGY.record_intake_layer(
+            organization=organization,
+            warehouse=warehouse,
+            product=product,
+            variant=variant,
+            quantity=quantity,
+            unit_cost=unit_cost,
+            movement=movement,
+            received_at=occurred_at,
+        )
+
+    if serial_numbers:
+        register_serial_numbers(
+            organization=organization,
+            product=product,
+            warehouse=warehouse,
+            serial_numbers=serial_numbers,
+            batch=batch_obj,
+            movement=movement,
+            actor=actor,
+        )
 
     publish(
         StockReceived(
@@ -172,6 +427,115 @@ def receive_stock(
     )
 
     return movement
+
+
+def _allocate_batch_for_issue(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    product: Product,
+    quantity: Decimal,
+    batch: Batch | str | None,
+    allow_expired_batch: bool,
+    auto_fefo: bool,
+    auto_allocate_batch: bool,
+    allow_negative: bool,
+) -> Batch | None:
+    if batch is not None:
+        if isinstance(batch, str):
+            batch_obj = Batch.all_tenants.filter(
+                organization=organization, product=product, batch_number=batch
+            ).first()
+            if batch_obj is None:
+                raise BatchError(f"Batch '{batch}' not found for product '{product.name}'.")
+        else:
+            batch_obj = batch
+
+        if batch_obj.is_expired and not allow_expired_batch:
+            raise BatchExpiredError(f"Batch '{batch_obj.batch_number}' expired on {batch_obj.expiry_date}.")
+
+        b_stock = (
+            BatchStock.all_tenants.select_for_update()
+            .filter(organization=organization, batch=batch_obj, warehouse=warehouse)
+            .first()
+        )
+        avail_b = b_stock.quantity if b_stock else DECIMAL_ZERO
+        if not allow_negative and avail_b < quantity:
+            raise InsufficientStock(
+                f"Batch '{batch_obj.batch_number}' has only {avail_b} in '{warehouse.name}'; "
+                f"needed {quantity}."
+            )
+        adjust_batch_stock(
+            organization=organization,
+            batch=batch_obj,
+            warehouse=warehouse,
+            quantity_delta=-quantity,
+        )
+        return batch_obj
+
+    if auto_fefo or auto_allocate_batch:
+        b_stocks = list(
+            BatchStock.all_tenants.select_for_update()
+            .filter(
+                organization=organization,
+                warehouse=warehouse,
+                batch__product=product,
+                quantity__gt=DECIMAL_ZERO,
+            )
+            .select_related("batch")
+            .order_by("batch__expiry_date", "batch__created_at")
+        )
+        valid_stocks = [bs for bs in b_stocks if not bs.batch.is_expired or allow_expired_batch]
+        if valid_stocks:
+            chosen = valid_stocks[0]
+            batch_obj = chosen.batch
+            adjust_batch_stock(
+                organization=organization,
+                batch=batch_obj,
+                warehouse=warehouse,
+                quantity_delta=-quantity,
+            )
+            return batch_obj
+
+    return None
+
+
+def _allocate_serials_for_issue(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    product: Product,
+    quantity: Decimal,
+    serial_numbers: list[str] | None,
+    auto_allocate_serials: bool,
+) -> list[str] | None:
+    if serial_numbers is not None:
+        if len(serial_numbers) != int(quantity):
+            raise SerialError(
+                f"Product '{product.name}' requires {int(quantity)} serial numbers, "
+                f"got {len(serial_numbers)}."
+            )
+        return serial_numbers
+
+    if auto_allocate_serials or getattr(product, "track_serial", False):
+        avail_serials = list(
+            SerialNumber.all_tenants.filter(
+                organization=organization,
+                product=product,
+                warehouse=warehouse,
+                status=SerialStatus.IN_STOCK,
+            )
+            .order_by("serial_number")
+            .values_list("serial_number", flat=True)[: int(quantity)]
+        )
+        if len(avail_serials) < int(quantity):
+            raise InsufficientStock(
+                f"Product '{product.name}' requires {int(quantity)} serial numbers, but only "
+                f"{len(avail_serials)} are available in warehouse '{warehouse.name}'."
+            )
+        return avail_serials
+
+    return None
 
 
 @transaction.atomic
@@ -189,8 +553,14 @@ def issue_stock(
     actor: Any = None,
     occurred_at: Any = None,
     check_available: bool = True,
+    batch: Batch | str | None = None,
+    serial_numbers: list[str] | None = None,
+    allow_expired_batch: bool = False,
+    auto_fefo: bool = True,
+    auto_allocate_batch: bool = False,
+    auto_allocate_serials: bool = False,
 ) -> StockMovement:
-    """Issue inventory out of a warehouse at current average cost and append to the ledger."""
+    """Issue inventory out of a warehouse with batch allocation, serial numbers, and FIFO/average costing."""
     if not warehouse.is_active:
         raise WarehouseInactive(f"Warehouse '{warehouse.name}' is inactive.")
 
@@ -204,18 +574,78 @@ def issue_stock(
         variant=variant,
     )
 
-    allow_negative = organization.settings.get("allow_negative_stock", False)
+    allow_negative = False
+    settings_obj = getattr(organization, "settings_obj", None)
+    if settings_obj is not None:
+        allow_negative = getattr(settings_obj, "allow_negative_stock", False)
+    elif hasattr(organization, "settings"):
+        settings_attr = organization.settings
+        if isinstance(settings_attr, dict):
+            allow_negative = settings_attr.get("allow_negative_stock", False)
+        else:
+            allow_negative = getattr(settings_attr, "allow_negative_stock", False)
+
     limit = (level.on_hand - level.reserved) if check_available else level.on_hand
     if not allow_negative and quantity > limit:
         raise InsufficientStock(
             f"Cannot issue {quantity} of '{product.name}'; only {limit} is available in '{warehouse.name}'."
         )
 
-    unit_cost = level.avg_cost
-    total_cost = (quantity * unit_cost).quantize(Decimal("0.0001"))
+    batch_obj = _allocate_batch_for_issue(
+        organization=organization,
+        warehouse=warehouse,
+        product=product,
+        quantity=quantity,
+        batch=batch,
+        allow_expired_batch=allow_expired_batch,
+        auto_fefo=auto_fefo,
+        auto_allocate_batch=auto_allocate_batch,
+        allow_negative=allow_negative,
+    )
+
+    serial_numbers = _allocate_serials_for_issue(
+        organization=organization,
+        warehouse=warehouse,
+        product=product,
+        quantity=quantity,
+        serial_numbers=serial_numbers,
+        auto_allocate_serials=auto_allocate_serials,
+    )
+
+    strategy = get_costing_strategy(organization)
+    if (
+        isinstance(strategy, FIFOCostingStrategy)
+        or getattr(strategy, "__name__", "") == "FIFOCostingStrategy"
+    ):
+        total_cost, unit_cost = FIFO_COSTING_STRATEGY.consume_layers_for_issue(
+            organization=organization,
+            warehouse=warehouse,
+            product=product,
+            variant=variant,
+            quantity=quantity,
+            fallback_cost=level.avg_cost,
+        )
+        rem_layers = StockCostLayer.all_tenants.filter(
+            organization=organization,
+            warehouse=warehouse,
+            product=product,
+            variant=variant,
+            remaining_quantity__gt=DECIMAL_ZERO,
+        )
+        agg = rem_layers.aggregate(
+            tot_val=Sum(F("remaining_quantity") * F("unit_cost")),
+            tot_qty=Sum("remaining_quantity"),
+        )
+        tot_val = agg["tot_val"] or DECIMAL_ZERO
+        tot_qty = agg["tot_qty"] or DECIMAL_ZERO
+        if tot_qty > DECIMAL_ZERO:
+            level.avg_cost = (tot_val / tot_qty).quantize(Decimal("0.0001"))
+    else:
+        unit_cost = level.avg_cost
+        total_cost = (quantity * unit_cost).quantize(Decimal("0.0001"))
 
     level.on_hand -= quantity
-    level.save(update_fields=["on_hand", "updated_at"])
+    level.save(update_fields=["on_hand", "avg_cost", "updated_at"])
 
     movement = StockMovement.objects.create(
         organization=organization,
@@ -226,12 +656,23 @@ def issue_stock(
         quantity=-quantity,
         unit_cost=unit_cost,
         total_cost=total_cost,
+        batch=batch_obj,
         reference_type=reference_type,
         reference_id=str(reference_id),
         notes=notes,
         occurred_at=occurred_at or timezone.now(),
         created_by=actor,
     )
+
+    if serial_numbers:
+        issue_serial_numbers(
+            organization=organization,
+            product=product,
+            warehouse=warehouse,
+            serial_numbers=serial_numbers,
+            movement=movement,
+            actor=actor,
+        )
 
     publish(
         StockIssued(
@@ -909,21 +1350,51 @@ def create_stock_count(
 
 
 @transaction.atomic
-def reconcile_count(
+def start_stock_count(
     *,
-    count_id: int,
-    counted_items: list[dict[str, Any]],
+    organization: Organization,
+    count: StockCount | int,
     actor: Any = None,
 ) -> StockCount:
-    """Record verified counts, compute variances, and automatically apply stock adjustments."""
-    count = StockCount.all_tenants.select_for_update().filter(pk=count_id).first()
-    if count is None:
-        raise InvalidMovement(f"StockCount {count_id} not found.")
+    """Transition a draft stock count into progress."""
+    if isinstance(count, int):
+        cnt = StockCount.all_tenants.select_for_update().filter(organization=organization, pk=count).first()
+        if cnt is None:
+            raise InvalidMovement(f"StockCount {count} not found.")
+        count = cnt
+    else:
+        count = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
+        assert count is not None
+
+    if count.status != CountStatus.DRAFT:
+        raise InvalidMovement(f"Cannot start stock count in status '{count.get_status_display()}'.")
+
+    count.status = CountStatus.IN_PROGRESS
+    count.save(update_fields=["status", "updated_at"])
+    return count
+
+
+@transaction.atomic
+def record_stock_count_progress(
+    *,
+    organization: Organization,
+    count: StockCount | int,
+    counted_items: list[dict[str, Any]],
+    notes: str = "",
+    actor: Any = None,
+) -> StockCount:
+    """Record verified counts and update line variances without closing the count."""
+    if isinstance(count, int):
+        cnt = StockCount.all_tenants.select_for_update().filter(organization=organization, pk=count).first()
+        if cnt is None:
+            raise InvalidMovement(f"StockCount {count} not found.")
+        count = cnt
+    else:
+        count = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
+        assert count is not None
 
     if count.status == CountStatus.COMPLETED:
-        return count
-
-    adjustment_lines = []
+        raise InvalidMovement("Cannot record counts on an already completed stock count.")
 
     for item in counted_items:
         line_id = item.get("line_id")
@@ -954,30 +1425,61 @@ def reconcile_count(
                 )
 
         if line is not None:
-            variance = counted_qty - line.expected_qty
             line.counted_qty = counted_qty
-            line.variance = variance
+            line.variance = counted_qty - line.expected_qty
             line.save(update_fields=["counted_qty", "variance", "updated_at"])
 
-            if variance != DECIMAL_ZERO:
-                lvl = StockLevel.all_tenants.filter(
-                    organization=count.organization,
-                    warehouse=count.warehouse,
-                    product=line.product,
-                    variant=line.variant,
-                ).first()
-                cost = lvl.avg_cost if lvl else DECIMAL_ZERO
-                adjustment_lines.append(
-                    {
-                        "product": line.product,
-                        "variant": line.variant,
-                        "quantity": variance,
-                        "unit_cost": cost,
-                    }
-                )
+    if notes:
+        count.notes = notes
+        count.save(update_fields=["notes", "updated_at"])
 
-    if adjustment_lines:
-        adjust_stock(
+    return count
+
+
+@transaction.atomic
+def complete_stock_count(
+    *,
+    organization: Organization,
+    count: StockCount | int,
+    actor: Any = None,
+    auto_adjust: bool = True,
+) -> StockCount:
+    """Complete a stock count and optionally apply a compensating StockAdjustment."""
+    if isinstance(count, int):
+        cnt = StockCount.all_tenants.select_for_update().filter(organization=organization, pk=count).first()
+        if cnt is None:
+            raise InvalidMovement(f"StockCount {count} not found.")
+        count = cnt
+    else:
+        count = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
+        assert count is not None
+
+    if count.status == CountStatus.COMPLETED:
+        return count
+
+    adjustment_lines = []
+    lines = count.lines.select_related("product", "variant").all()
+    for line in lines:
+        if line.variance != DECIMAL_ZERO:
+            lvl = StockLevel.all_tenants.filter(
+                organization=count.organization,
+                warehouse=count.warehouse,
+                product=line.product,
+                variant=line.variant,
+            ).first()
+            cost = lvl.avg_cost if lvl else DECIMAL_ZERO
+            adjustment_lines.append(
+                {
+                    "product": line.product,
+                    "variant": line.variant,
+                    "quantity": line.variance,
+                    "unit_cost": cost,
+                }
+            )
+
+    adj = None
+    if auto_adjust and adjustment_lines:
+        adj = adjust_stock(
             organization=count.organization,
             warehouse=count.warehouse,
             reason=AdjustmentReason.COUNT_VARIANCE,
@@ -986,9 +1488,10 @@ def reconcile_count(
             actor=actor,
         )
 
+    count.adjustment = adj
     count.status = CountStatus.COMPLETED
     count.completed_at = timezone.now()
-    count.save(update_fields=["status", "completed_at", "updated_at"])
+    count.save(update_fields=["adjustment", "status", "completed_at", "updated_at"])
 
     publish(
         StockCountCompleted(
@@ -1000,6 +1503,32 @@ def reconcile_count(
     )
 
     return count
+
+
+@transaction.atomic
+def reconcile_count(
+    *,
+    count_id: int,
+    counted_items: list[dict[str, Any]],
+    actor: Any = None,
+) -> StockCount:
+    """Record verified counts, compute variances, and automatically apply stock adjustments."""
+    count = StockCount.all_tenants.select_for_update().filter(pk=count_id).first()
+    if count is None:
+        raise InvalidMovement(f"StockCount {count_id} not found.")
+
+    record_stock_count_progress(
+        organization=count.organization,
+        count=count,
+        counted_items=counted_items,
+        actor=actor,
+    )
+    return complete_stock_count(
+        organization=count.organization,
+        count=count,
+        actor=actor,
+        auto_adjust=True,
+    )
 
 
 @transaction.atomic

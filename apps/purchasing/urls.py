@@ -15,6 +15,7 @@ urlpatterns = [
     # Purchase Orders
     path("orders/", views.purchase_order_list, name="purchase_order_list"),
     path("orders/new/", views.purchase_order_create, name="purchase_order_create"),
+    path("orders/from-reorder/", views.purchase_orders_from_reorder, name="purchase_orders_from_reorder"),
     path("orders/<int:pk>/", views.purchase_order_detail, name="purchase_order_detail"),
     path("orders/<int:pk>/approve/", views.purchase_order_approve, name="purchase_order_approve"),
     path("orders/<int:pk>/cancel/", views.purchase_order_cancel, name="purchase_order_cancel"),

@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.catalog.models import Category, Product, ProductType, Unit
-from apps.inventory import services
+from apps.inventory import selectors, services
 from apps.inventory.models import AdjustmentReason
 from apps.tenancy.models import Branch, Membership, Organization, Role, Warehouse
 
@@ -194,3 +194,95 @@ class TestInventoryViews:
         resp_post = client.post(reverse("inventory:reconcile"), {"fix": "0"}, **headers)
         assert resp_post.status_code == 200
         assert "100% In Sync" in resp_post.content.decode()
+
+    def test_batch_views_flow(self, view_setup: dict[str, Any]) -> None:
+        client: Client = view_setup["client"]
+        headers: dict[str, str] = view_setup["headers"]
+        org: Organization = view_setup["org"]
+        wh: Warehouse = view_setup["warehouse_1"]
+        prod: Product = view_setup["product"]
+
+        # Receive stock with batch
+        mv = services.receive_stock(
+            organization=org,
+            warehouse=wh,
+            product=prod,
+            quantity=Decimal("15.0000"),
+            unit_cost=Decimal("25.0000"),
+            batch="BATCH-VIEW-01",
+        )
+
+        resp_list = client.get(reverse("inventory:batch_list"), **headers)
+        assert resp_list.status_code == 200
+        assert "BATCH-VIEW-01" in resp_list.content.decode()
+
+        resp_detail = client.get(reverse("inventory:batch_detail", kwargs={"pk": mv.batch.pk}), **headers)
+        assert resp_detail.status_code == 200
+        assert "BATCH-VIEW-01" in resp_detail.content.decode()
+
+    def test_serial_views_flow(self, view_setup: dict[str, Any]) -> None:
+        client: Client = view_setup["client"]
+        headers: dict[str, str] = view_setup["headers"]
+        org: Organization = view_setup["org"]
+        wh: Warehouse = view_setup["warehouse_1"]
+        prod: Product = view_setup["product"]
+
+        # Receive stock with serial
+        services.receive_stock(
+            organization=org,
+            warehouse=wh,
+            product=prod,
+            quantity=Decimal("1.0000"),
+            unit_cost=Decimal("25.0000"),
+            serial_numbers=["SN-VIEW-999"],
+        )
+
+        resp_list = client.get(reverse("inventory:serial_list"), **headers)
+        assert resp_list.status_code == 200
+        assert "SN-VIEW-999" in resp_list.content.decode()
+
+        sn = selectors.list_serial_numbers(organization=org, query="SN-VIEW-999").first()
+        assert sn is not None
+        resp_detail = client.get(reverse("inventory:serial_detail", kwargs={"pk": sn.pk}), **headers)
+        assert resp_detail.status_code == 200
+        assert "SN-VIEW-999" in resp_detail.content.decode()
+
+    def test_reorder_suggestions_view(self, view_setup: dict[str, Any]) -> None:
+        client: Client = view_setup["client"]
+        headers: dict[str, str] = view_setup["headers"]
+
+        resp_get = client.get(reverse("inventory:reorder_suggestions"), **headers)
+        assert resp_get.status_code == 200
+        assert "Reorder Suggestions" in resp_get.content.decode()
+
+    def test_cycle_count_start_and_complete_views(self, view_setup: dict[str, Any]) -> None:
+        client: Client = view_setup["client"]
+        headers: dict[str, str] = view_setup["headers"]
+        org: Organization = view_setup["org"]
+        wh: Warehouse = view_setup["warehouse_1"]
+
+        cnt = services.create_stock_count(
+            organization=org,
+            warehouse=wh,
+            scheduled_date="2026-10-10",
+        )
+
+        # POST count_start
+        resp_start = client.post(reverse("inventory:count_start", kwargs={"pk": cnt.pk}), **headers)
+        assert resp_start.status_code == 302
+        cnt.refresh_from_db()
+        assert cnt.status == "in_progress"
+
+        # POST save_progress
+        resp_prog = client.post(
+            reverse("inventory:count_detail", kwargs={"pk": cnt.pk}),
+            {"action": "save_progress"},
+            **headers,
+        )
+        assert resp_prog.status_code == 302
+
+        # POST count_complete
+        resp_comp = client.post(reverse("inventory:count_complete", kwargs={"pk": cnt.pk}), **headers)
+        assert resp_comp.status_code == 302
+        cnt.refresh_from_db()
+        assert cnt.status == "completed"

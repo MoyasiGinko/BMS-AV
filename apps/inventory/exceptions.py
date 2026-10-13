@@ -52,3 +52,31 @@ class TransferError(InventoryError):
 
     default_message = "Stock transfer operation failed."
     default_code = "transfer_error"
+
+
+class BatchError(InventoryError):
+    """Raised when batch validation or allocation fails."""
+
+    default_message = "Batch tracking error."
+    default_code = "batch_error"
+
+
+class BatchExpiredError(BatchError):
+    """Raised when attempting to issue expired batch without override."""
+
+    default_message = "Cannot issue stock from an expired batch."
+    default_code = "batch_expired"
+
+
+class SerialError(InventoryError):
+    """Raised when serial number tracking, intake, or issue fails."""
+
+    default_message = "Serial number tracking error."
+    default_code = "serial_error"
+
+
+class SerialNotFoundError(SerialError):
+    """Raised when a requested serial number is not found or not in stock."""
+
+    default_message = "Serial number not found or not currently in stock."
+    default_code = "serial_not_found"

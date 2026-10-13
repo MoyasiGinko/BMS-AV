@@ -215,6 +215,14 @@ class StockMovement(TenantModel):
         blank=True,
         default="",
     )
+    batch = models.ForeignKey(
+        "inventory.Batch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="movements",
+        verbose_name=_("batch"),
+    )
 
     class Meta:
         base_manager_name = "all_tenants"
@@ -225,6 +233,7 @@ class StockMovement(TenantModel):
             models.Index(fields=["organization", "warehouse", "product", "-occurred_at"]),
             models.Index(fields=["organization", "reference_type", "reference_id"]),
             models.Index(fields=["organization", "type", "-occurred_at"]),
+            models.Index(fields=["organization", "batch"]),
         ]
 
     def __str__(self) -> str:
@@ -538,6 +547,14 @@ class StockCount(TenantModel):
     )
     notes = models.TextField(_("notes"), blank=True, default="")
     completed_at = models.DateTimeField(_("completed at"), null=True, blank=True)
+    adjustment = models.ForeignKey(
+        "inventory.StockAdjustment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_counts",
+        verbose_name=_("reconciliation adjustment"),
+    )
 
     class Meta:
         base_manager_name = "all_tenants"
@@ -603,3 +620,230 @@ class StockCountLine(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.product.name}: expected {self.expected_qty}, counted {self.counted_qty}"
+
+
+class Batch(TenantModel):
+    """Product batch / lot with manufacturing and expiration dates."""
+
+    product = models.ForeignKey(
+        "catalog.Product",
+        on_delete=models.CASCADE,
+        related_name="batches",
+        verbose_name=_("product"),
+    )
+    batch_number = models.CharField(_("batch / lot number"), max_length=64)
+    manufacturing_date = models.DateField(_("manufacturing date"), null=True, blank=True)
+    expiry_date = models.DateField(_("expiry date"), null=True, blank=True)
+    received_date = models.DateField(_("received date"), default=timezone.now)
+    notes = models.TextField(_("notes"), blank=True, default="")
+    is_active = models.BooleanField(_("is active"), default=True)
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("batch")
+        verbose_name_plural = _("batches")
+        ordering = ["expiry_date", "batch_number"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "product", "batch_number"],
+                name="uniq_batch_org_product_number",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "product", "expiry_date"]),
+            models.Index(fields=["organization", "batch_number"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.product.name} (Batch: {self.batch_number})"
+
+    @property
+    def is_expired(self) -> bool:
+        if self.expiry_date:
+            return self.expiry_date < timezone.now().date()
+        return False
+
+    @property
+    def days_until_expiry(self) -> int | None:
+        if self.expiry_date:
+            return (self.expiry_date - timezone.now().date()).days
+        return None
+
+
+class BatchStock(TenantModel):
+    """Tracks current stock of a specific batch in a warehouse."""
+
+    batch = models.ForeignKey(
+        Batch,
+        on_delete=models.CASCADE,
+        related_name="stock_levels",
+        verbose_name=_("batch"),
+    )
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.CASCADE,
+        related_name="batch_stocks",
+        verbose_name=_("warehouse"),
+    )
+    quantity = models.DecimalField(
+        _("quantity"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("batch stock")
+        verbose_name_plural = _("batch stocks")
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "batch", "warehouse"],
+                name="uniq_batchstock_org_batch_wh",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "warehouse", "quantity"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.batch.batch_number} @ {self.warehouse.name}: {self.quantity}"
+
+
+class SerialStatus(models.TextChoices):
+    IN_STOCK = "in_stock", _("In Stock")
+    ISSUED = "issued", _("Issued")
+    IN_TRANSIT = "in_transit", _("In Transit")
+    RETURNED = "returned", _("Returned")
+    DAMAGED = "damaged", _("Damaged")
+
+
+class SerialNumber(TenantModel):
+    """Individual serialized item tracked through its inventory lifecycle."""
+
+    product = models.ForeignKey(
+        "catalog.Product",
+        on_delete=models.CASCADE,
+        related_name="serial_numbers",
+        verbose_name=_("product"),
+    )
+    serial_number = models.CharField(_("serial number"), max_length=128)
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="serial_numbers",
+        verbose_name=_("warehouse"),
+    )
+    status = models.CharField(
+        _("status"),
+        max_length=32,
+        choices=SerialStatus.choices,
+        default=SerialStatus.IN_STOCK,
+    )
+    batch = models.ForeignKey(
+        Batch,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="serial_numbers",
+        verbose_name=_("batch"),
+    )
+    last_movement = models.ForeignKey(
+        "inventory.StockMovement",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="serial_numbers",
+        verbose_name=_("last movement"),
+    )
+    notes = models.TextField(_("notes"), blank=True, default="")
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("serial number")
+        verbose_name_plural = _("serial numbers")
+        ordering = ["serial_number"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "product", "serial_number"],
+                name="uniq_serial_org_product_number",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "product", "status"]),
+            models.Index(fields=["organization", "warehouse", "status"]),
+            models.Index(fields=["organization", "serial_number"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.product.name} [SN: {self.serial_number}] ({self.get_status_display()})"
+
+
+class StockCostLayer(TenantModel):
+    """Individual intake cost layer for First-In, First-Out (FIFO) inventory costing."""
+
+    product = models.ForeignKey(
+        "catalog.Product",
+        on_delete=models.CASCADE,
+        related_name="cost_layers",
+        verbose_name=_("product"),
+    )
+    variant = models.ForeignKey(
+        "catalog.ProductVariant",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="cost_layers",
+        verbose_name=_("product variant"),
+    )
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.CASCADE,
+        related_name="cost_layers",
+        verbose_name=_("warehouse"),
+    )
+    unit_cost = models.DecimalField(
+        _("unit cost"),
+        max_digits=18,
+        decimal_places=4,
+    )
+    initial_quantity = models.DecimalField(
+        _("initial quantity"),
+        max_digits=18,
+        decimal_places=4,
+    )
+    remaining_quantity = models.DecimalField(
+        _("remaining quantity"),
+        max_digits=18,
+        decimal_places=4,
+    )
+    received_at = models.DateTimeField(
+        _("received at"),
+        default=timezone.now,
+    )
+    movement = models.ForeignKey(
+        "inventory.StockMovement",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="cost_layers",
+        verbose_name=_("source movement"),
+    )
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("stock cost layer")
+        verbose_name_plural = _("stock cost layers")
+        ordering = ["received_at", "id"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "warehouse", "product", "remaining_quantity"]),
+            models.Index(fields=["organization", "received_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.product.name} @ {self.warehouse.name}: {self.remaining_quantity}/"
+            f"{self.initial_quantity} @ ${self.unit_cost}"
+        )

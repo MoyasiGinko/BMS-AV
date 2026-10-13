@@ -1,0 +1,133 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Reorder Suggestions" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Reorder Suggestions" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Items at or below safe reorder thresholds with computed replenishment recommendations." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if suggestions %}
+            <form method="post" action="{% url 'purchasing:purchase_orders_from_reorder' %}">
+                {% csrf_token %}
+                {% if selected_warehouse %}
+                <input type="hidden" name="warehouse_id" value="{{ selected_warehouse.pk }}" />
+                {% endif %}
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {% trans "Generate Draft Purchase Orders" %}
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'inventory:stock_level_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                {% trans "Stock Levels" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Items Below Threshold" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-rose-600 dark:text-rose-400">{{ suggestions|length }}</span>
+                <span class="text-xs text-slate-400">{% trans "SKUs requiring replenishment" %}</span>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Estimated Replenishment Cost" %}</span>
+            <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-2xl font-bold text-slate-900 dark:text-white font-mono">${{ total_est_cost }}</span>
+                <span class="text-xs text-slate-400">{% trans "Based on standard unit cost" %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <form method="get" class="flex flex-wrap items-center gap-3">
+            <div class="min-w-[220px]">
+                <select name="warehouse" class="w-full py-2 px-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm">
+                    <option value="">{% trans "All Warehouses" %}</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.pk }}" {% if selected_warehouse and selected_warehouse.pk == wh.pk %}selected{% endif %}>{{ wh.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-xs transition-colors">
+                {% trans "Filter" %}
+            </button>
+            {% if selected_warehouse %}
+            <a href="{% url 'inventory:reorder_suggestions' %}" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">{% trans "Clear" %}</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Suggestions Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+        <table class="w-full text-left border-collapse text-sm">
+            <thead>
+                <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                    <th class="py-3 px-4">{% trans "Product" %}</th>
+                    <th class="py-3 px-4">{% trans "Warehouse / Branch" %}</th>
+                    <th class="py-3 px-4 text-right">{% trans "On Hand" %}</th>
+                    <th class="py-3 px-4 text-right">{% trans "Available" %}</th>
+                    <th class="py-3 px-4 text-right">{% trans "Reorder Point" %}</th>
+                    <th class="py-3 px-4 text-right">{% trans "Suggested Qty" %}</th>
+                    <th class="py-3 px-4 text-right">{% trans "Est. Cost" %}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono text-xs">
+                {% for s in suggestions %}
+                <tr>
+                    <td class="py-3 px-4 font-sans text-sm">
+                        <span class="font-medium text-slate-900 dark:text-white">{{ s.product_name }}</span>
+                        <div class="text-xs text-slate-400 font-mono">{{ s.product_sku }}</div>
+                    </td>
+                    <td class="py-3 px-4 font-sans text-xs text-slate-700 dark:text-slate-300">
+                        {{ s.warehouse_name }}
+                        {% if s.branch_name %}
+                        <span class="text-slate-400">({{ s.branch_name }})</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-4 text-right text-slate-600 dark:text-slate-400">
+                        {{ s.on_hand }}
+                    </td>
+                    <td class="py-3 px-4 text-right font-semibold text-rose-600 dark:text-rose-400">
+                        {{ s.available }}
+                    </td>
+                    <td class="py-3 px-4 text-right text-slate-600 dark:text-slate-400">
+                        {{ s.reorder_point }}
+                    </td>
+                    <td class="py-3 px-4 text-right font-bold text-indigo-600 dark:text-indigo-400 text-sm">
+                        {{ s.suggested_qty }}
+                    </td>
+                    <td class="py-3 px-4 text-right font-semibold text-slate-900 dark:text-white">
+                        ${{ s.estimated_cost }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="py-12 text-center text-slate-500 dark:text-slate-400 font-sans">
+                        <svg class="w-12 h-12 mx-auto text-emerald-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-base font-medium text-slate-800 dark:text-slate-200">{% trans "Stock levels are healthy!" %}</p>
+                        <p class="text-xs text-slate-400 mt-1">{% trans "No products currently need replenishment." %}</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

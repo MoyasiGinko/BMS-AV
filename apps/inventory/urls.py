@@ -18,5 +18,12 @@ urlpatterns = [
     path("counts/", views.count_list, name="count_list"),
     path("counts/new/", views.count_create, name="count_create"),
     path("counts/<int:pk>/", views.count_detail, name="count_detail"),
+    path("counts/<int:pk>/start/", views.count_start, name="count_start"),
+    path("counts/<int:pk>/complete/", views.count_complete, name="count_complete"),
+    path("batches/", views.batch_list, name="batch_list"),
+    path("batches/<int:pk>/", views.batch_detail, name="batch_detail"),
+    path("serials/", views.serial_list, name="serial_list"),
+    path("serials/<int:pk>/", views.serial_detail, name="serial_detail"),
+    path("reorder-suggestions/", views.reorder_suggestions, name="reorder_suggestions"),
     path("reconcile/", views.reconcile_view, name="reconcile"),
 ]

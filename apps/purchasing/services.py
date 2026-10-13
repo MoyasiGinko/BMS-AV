@@ -17,6 +17,7 @@ from apps.accounting import services as accounting_services
 from apps.catalog.models import Product
 from apps.core import events
 from apps.core.services import generate_next_number
+from apps.inventory import selectors as inventory_selectors
 from apps.inventory import services as inventory_services
 from apps.purchasing.events import (
     GoodsReceiptCreated,
@@ -1002,3 +1003,68 @@ def post_purchase_return(
         )
     )
     return ret
+
+
+@transaction.atomic
+def create_purchase_orders_from_reorder_suggestions(
+    *,
+    organization: Organization,
+    warehouse: Warehouse | None = None,
+    suggestions: list[dict[str, Any]] | None = None,
+    default_supplier_id: int | None = None,
+    actor: Any = None,
+) -> list[PurchaseOrder]:
+    """Generate draft purchase orders grouped by supplier from low-stock reorder suggestions."""
+    if suggestions is None:
+        suggestions = inventory_selectors.get_reorder_suggestions(
+            organization=organization, warehouse=warehouse
+        )
+
+    if not suggestions:
+        return []
+
+    target_wh = warehouse
+    if target_wh is None:
+        target_wh = suggestions[0].get("warehouse")
+    if target_wh is None:
+        target_wh = Warehouse.objects.filter(organization=organization, is_active=True).first()
+    if target_wh is None:
+        return []
+
+    default_supplier = None
+    if default_supplier_id:
+        default_supplier = Supplier.all_tenants.filter(
+            organization=organization, pk=default_supplier_id
+        ).first()
+    if default_supplier is None:
+        default_supplier = Supplier.all_tenants.filter(organization=organization, is_active=True).first()
+
+    by_supplier: dict[Supplier, list[dict[str, Any]]] = {}
+
+    for sug in suggestions:
+        supplier = sug.get("supplier") or default_supplier
+        if not supplier:
+            continue
+        by_supplier.setdefault(supplier, []).append(sug)
+
+    created_pos: list[PurchaseOrder] = []
+    for supplier, items in by_supplier.items():
+        lines = [
+            {
+                "product": item["product"],
+                "quantity": item["suggested_qty"],
+                "unit_price": item["unit_cost"],
+            }
+            for item in items
+        ]
+        po = create_purchase_order(
+            organization=organization,
+            supplier=supplier,
+            warehouse=target_wh,
+            lines=lines,
+            notes=f"Auto-generated draft PO from {target_wh.name} low stock reorder suggestions",
+            actor=actor,
+        )
+        created_pos.append(po)
+
+    return created_pos
