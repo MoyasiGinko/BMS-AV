@@ -66,10 +66,10 @@ Format: `ID title: Done when ...`
 - [x] P5-06 OAuth2 provider (PKCE + client credentials) with consent screen, app registry UI, scopes; inbound webhook endpoints framework.
 - [x] P5-07 Full-tenant export/import (data portability) + retention settings + GDPR-style deletion/export workflows.
 - [x] P5-08 Notifications center (in-app + email), user notification preferences.
-- [ ] P5-R Phase review.
+- [x] P5-R Phase review.
 
 ## P6 Operating system layer
-- [ ] P6-01 Automation engine: rules (trigger/conditions/actions), templates (low stock reorder draft PO, overdue reminders, win-back), run history, plan limits, UI builder.
+- [x] P6-01 Automation engine: rules (trigger/conditions/actions), templates (low stock reorder draft PO, overdue reminders, win-back), run history, plan limits, UI builder.
 - [ ] P6-02 AI assistant: provider abstraction (fake default + real adapters via env), tool registry over selectors/services (sales summary, low stock, inactive customers, profit change explanation, draft PO), permission-aware execution, draft/confirm action flow, chat UI (HTMX), AiAuditLog, usage limits, evaluation test set with the fake provider.
 - [ ] P6-03 "What needs attention today" intelligence panel on the dashboard (rule-based insights first; AI summary optional).
 - [ ] P6-04 Analytics: cohort/retention for customers, product ABC analysis, margin analysis, forecasting basic (moving average) for reorder.

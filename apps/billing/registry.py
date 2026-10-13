@@ -388,10 +388,19 @@ registry.register(
 registry.register(
     "automation",
     name="Automation & Workflows",
-    description="Trigger-action event rules, webhooks, and alerts",
+    description="Trigger-action event rules, background schedules, and workflows",
     icon="bolt",
     sort_order=140,
-    permissions=["settings.manage"],
+    nav_items=[
+        NavItem("Rules", "automation:rule_list", icon="bolt", permission="automation.view"),
+        NavItem("Templates", "automation:template_list", icon="squares-2x2", permission="automation.manage"),
+        NavItem("Run History", "automation:run_list", icon="clock", permission="automation.view"),
+    ],
+    permissions=[
+        "automation.view",
+        "automation.manage",
+        "automation.run",
+    ],
 )
 
 registry.register(

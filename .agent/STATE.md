@@ -1,25 +1,29 @@
 # Build State (updated by the agent after every task)
 
-- Phase: P5 ERP maturity
-- Last completed task: P5-08 Notifications center (in-app + email), user notification preferences
-- Next task: P5-R Phase review
+- Phase: P6 Operating system layer
+- Last completed task: P6-01 Automation engine: rules, templates, run history, plan limits, UI builder
+- Next task: P6-02 AI assistant
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (16/16 notifications tests passing, 9/9 core unit tests passing, ruff check/format clean, lint-imports clean, mypy clean)
+- Last `make verify`: PASSED (40/40 automation tests passing, ruff check/format clean, lint-imports clean, makemigrations clean, mypy clean)
 - Notes:
-  - P5-08 Complete: Notifications center (in-app + email) and user notification preferences:
-    - ADR 0032 (`docs/adr/0032-notifications-center-and-user-preferences.md`): Two-tier notification preference hierarchy (organization policy overrides user preference; user opt-in/opt-out per category and channel), reactive HTMX topbar dropdown & badge counter, in-app notification center, and REST API.
-    - Data Models: `UserNotificationPreference` in `apps/tenancy` with PostgreSQL RLS enabled; `Notification` enhanced with `is_read` and `action_url` properties.
-    - Services & Selectors:
-      - `is_notification_enabled`: Evaluates org-level `NotificationPreference` and user-level `UserNotificationPreference`.
-      - `notify_user`: High-level multi-channel notification dispatcher (in-app + email) respecting user preferences and channel availability.
-      - Mark read/unread, mark all as read, delete, and preference management services.
-      - Selectors for notification feeds, unread counts, and user preference maps.
-    - Celery Tasks: `send_async_notification` for asynchronous delivery, `cleanup_old_notifications` for lifecycle retention.
-    - Web UI & HTMX:
-      - Reactive topbar bell (`/notifications/unread-count/`, `/notifications/preview/`) with unread badge counter.
-      - Notification center (`/notifications/`) with filtering (all/unread/read, categories, search), pagination, and inline actions.
-      - User notification preferences matrix (`/notifications/preferences/`) for configuring email and in-app channels.
-    - REST API: `/api/v1/core/notifications/` with endpoints for listing, unread-count, mark-read, mark-unread, mark-all-read, and personal notification preferences.
-    - Tests: 16 tests in `tests/test_notifications_center.py` covering multi-channel delivery, two-tier preference hierarchy, cross-tenant isolation, web UI HTMX endpoints, REST API viewsets, and async Celery tasks.
-  - Next task: P5-R Phase review.
-
+  - P6-01 Complete: Automation engine:
+    - ADR 0033 (`docs/adr/0033-automation-engine-and-rules.md`): Event & scheduled triggers, AST condition evaluator, pluggable actions, template catalog, plan limits & quota tracking.
+    - Data Models: `AutomationRule` and `AutomationRun` in `apps/automation` with PostgreSQL Row-Level Security (`enable_rls`).
+    - Core Engine:
+      - Declarative condition evaluator supporting numeric comparisons, string patterns, collection membership, and emptiness with dot-notation path extraction.
+      - Action executors: `create_draft_po`, `send_notification`, `create_crm_task`, `send_email`, `send_webhook`.
+      - Built-in templates: Low stock auto-reorder, Overdue invoice reminders, Customer win-back, High-value deal alert.
+      - Plan limits & quota enforcement (`apps/automation/limits.py`) for max active rules and monthly runs using `increment_usage`.
+      - Outbox event listener (`apps/automation/handlers.py`) and background Celery tasks (`apps/automation/tasks.py`) for event and scheduled scans.
+    - Web UI & HTMX (`templates/automation/`):
+      - Rule list with KPI metric cards, status toggles, and live search.
+      - Template catalog with one-click instantiation.
+      - Visual rule builder for event triggers, conditions, and actions.
+      - Test bench for dry-run simulation with mock JSON payloads.
+      - Run history audit log with execution detail viewer.
+    - REST API:
+      - `/api/v1/automation/rules/` (CRUD + toggle + test).
+      - `/api/v1/automation/runs/` (audit log and details).
+      - `/api/v1/automation/templates/` (catalog and instantiation).
+    - Tests: 40 tests covering evaluator, services, limits, cross-tenant isolation, web views, and REST API.
+  - Next task: P6-02 AI assistant.

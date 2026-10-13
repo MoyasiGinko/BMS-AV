@@ -44,4 +44,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("approvals/", include("apps.approvals.api.urls")),
     # Reports & Analytics
     path("reports/", include("apps.reports.api.urls")),
+    # Automation Engine
+    path("automation/", include("apps.automation.api.urls")),
 ]
