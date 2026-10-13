@@ -8,8 +8,11 @@ from apps.integrations.models import (
     ExportJob,
     ExternalReference,
     ImportJob,
+    InboundWebhookEndpoint,
+    InboundWebhookLog,
     IntegrationConnection,
     IntegrationSyncLog,
+    OAuthApplication,
     WebhookDelivery,
     WebhookEndpoint,
 )
@@ -163,4 +166,59 @@ class IntegrationSyncLogAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "direction", "connection", "organization")
     search_fields = ("summary", "action", "organization__name")
+    readonly_fields = ("public_id", "created_at", "updated_at")
+
+
+if admin.site.is_registered(OAuthApplication):
+    admin.site.unregister(OAuthApplication)
+
+
+@admin.register(OAuthApplication)
+class OAuthApplicationAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "name",
+        "organization",
+        "client_id",
+        "client_type",
+        "authorization_grant_type",
+        "created_at",
+    )
+    list_filter = ("client_type", "authorization_grant_type", "organization")
+    search_fields = ("name", "client_id", "organization__name")
+    readonly_fields = ("public_id", "client_id", "created_at", "updated_at")
+
+
+@admin.register(InboundWebhookEndpoint)
+class InboundWebhookEndpointAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "name",
+        "organization",
+        "provider",
+        "signature_algorithm",
+        "status",
+        "total_received_count",
+        "last_received_at",
+    )
+    list_filter = ("provider", "signature_algorithm", "status", "organization")
+    search_fields = ("name", "target_event", "organization__name")
+    readonly_fields = ("public_id", "created_at", "updated_at", "last_received_at")
+
+
+@admin.register(InboundWebhookLog)
+class InboundWebhookLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "endpoint",
+        "event_id",
+        "event_type",
+        "verification_status",
+        "processing_status",
+        "duration_ms",
+        "created_at",
+    )
+    list_filter = ("verification_status", "processing_status", "endpoint", "organization")
+    search_fields = ("event_id", "event_type", "error_message", "organization__name")
     readonly_fields = ("public_id", "created_at", "updated_at")

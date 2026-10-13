@@ -7,9 +7,11 @@ from typing import Any, ClassVar
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from oauth2_provider.models import AbstractApplication
 
 from apps.core.crypto import decrypt_value, encrypt_value
-from apps.core.models import TenantModel
+from apps.core.models import TenantManager, TenantModel, TenantQuerySet
+from apps.core.tenant_context import get_current_organization_id
 
 
 class EntityType(models.TextChoices):
@@ -542,3 +544,207 @@ class IntegrationSyncLog(TenantModel):
 
     def __str__(self) -> str:
         return f"SyncLog {self.connection.name} [{self.direction}] ({self.status})"
+
+
+class OAuthApplicationManager(TenantManager):
+    """Tenant-scoped manager for OAuth applications with global resolution support for token exchange."""
+
+    def get_queryset(self) -> TenantQuerySet[Any]:
+        qs: TenantQuerySet[Any] = TenantQuerySet(self.model, using=self._db)
+        org_id = get_current_organization_id()
+        if org_id is None:
+            # During OAuth token exchange, lookups occur without tenant context
+            return qs
+        return qs.filter(organization_id=org_id)
+
+
+class OAuthApplication(AbstractApplication, TenantModel):
+    """Tenant-registered OAuth2 application supporting PKCE and Client Credentials."""
+
+    objects: ClassVar[OAuthApplicationManager] = OAuthApplicationManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    description = models.TextField(blank=True, default="", verbose_name=_("description"))
+    allowed_scopes = models.TextField(
+        blank=True,
+        default="read",
+        help_text=_("Space-separated list of scopes permitted for this application."),
+        verbose_name=_("allowed scopes"),
+    )
+
+    class Meta:
+        db_table = "integrations_oauth_application"
+        verbose_name = _("OAuth application")
+        verbose_name_plural = _("OAuth applications")
+        ordering = ["-created_at"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="unique_oauth_app_name_per_org",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.client_id[:8]}...)"
+
+
+class InboundWebhookProvider(models.TextChoices):
+    GENERIC = "generic", _("Generic Webhook")
+    STRIPE = "stripe", _("Stripe")
+    SHOPIFY = "shopify", _("Shopify")
+    GITHUB = "github", _("GitHub")
+    ZAPIER = "zapier", _("Zapier")
+    CUSTOM = "custom", _("Custom Service")
+
+
+class InboundSignatureAlgorithm(models.TextChoices):
+    HMAC_SHA256 = "hmac_sha256", _("HMAC-SHA256")
+    HMAC_SHA1 = "hmac_sha1", _("HMAC-SHA1")
+    BEARER_TOKEN = "bearer_token", _("Bearer Token")
+    NONE = "none", _("None (Unverified)")
+
+
+class InboundWebhookStatus(models.TextChoices):
+    ACTIVE = "active", _("Active")
+    PAUSED = "paused", _("Paused")
+    DISABLED = "disabled", _("Disabled")
+
+
+class InboundVerificationStatus(models.TextChoices):
+    PENDING = "pending", _("Pending")
+    VERIFIED = "verified", _("Verified")
+    FAILED = "failed", _("Failed")
+    SKIPPED = "skipped", _("Skipped")
+
+
+class InboundProcessingStatus(models.TextChoices):
+    PENDING = "pending", _("Pending")
+    PROCESSED = "processed", _("Processed")
+    FAILED = "failed", _("Failed")
+
+
+class InboundWebhookEndpoint(TenantModel):
+    """Destination endpoint configured by a tenant to accept incoming event webhooks."""
+
+    name = models.CharField(max_length=255, verbose_name=_("endpoint name"))
+    provider = models.CharField(
+        max_length=32,
+        choices=InboundWebhookProvider.choices,
+        default=InboundWebhookProvider.GENERIC,
+        verbose_name=_("provider"),
+    )
+    description = models.TextField(blank=True, default="", verbose_name=_("description"))
+    encrypted_secret = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("encrypted secret"),
+        help_text=_("Shared signing secret or token encrypted at rest via symmetric Fernet key."),
+    )
+    signature_header = models.CharField(
+        max_length=128,
+        default="X-Signature",
+        verbose_name=_("signature header"),
+    )
+    signature_algorithm = models.CharField(
+        max_length=32,
+        choices=InboundSignatureAlgorithm.choices,
+        default=InboundSignatureAlgorithm.HMAC_SHA256,
+        verbose_name=_("signature algorithm"),
+    )
+    target_event = models.CharField(
+        max_length=128,
+        default="inbound_webhook.received",
+        verbose_name=_("target domain event"),
+    )
+    status = models.CharField(
+        max_length=32,
+        choices=InboundWebhookStatus.choices,
+        default=InboundWebhookStatus.ACTIVE,
+        verbose_name=_("status"),
+    )
+    last_received_at = models.DateTimeField(null=True, blank=True, verbose_name=_("last received at"))
+    total_received_count = models.PositiveIntegerField(default=0, verbose_name=_("total received count"))
+    last_error = models.TextField(blank=True, default="", verbose_name=_("last error"))
+    config = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("configuration"),
+        help_text=_("Provider-specific settings, header aliases, and event mappings."),
+    )
+
+    class Meta:
+        verbose_name = _("inbound webhook endpoint")
+        verbose_name_plural = _("inbound webhook endpoints")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "status"], name="inbound_ep_org_status_idx"),
+            models.Index(fields=["organization", "-created_at"], name="inbound_ep_org_created_idx"),
+        ]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "name"],
+                name="unique_inbound_endpoint_name_per_org",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} [{self.provider}]"
+
+    @property
+    def secret(self) -> str:
+        """Decrypt secret at rest."""
+        if not self.encrypted_secret:
+            return ""
+        return decrypt_value(self.encrypted_secret)
+
+    @secret.setter
+    def secret(self, val: str) -> None:
+        """Encrypt secret before saving."""
+        if not val:
+            self.encrypted_secret = ""
+        else:
+            self.encrypted_secret = encrypt_value(val)
+
+
+class InboundWebhookLog(TenantModel):
+    """Transcript and audit log of an inbound webhook event receipt."""
+
+    endpoint = models.ForeignKey(
+        InboundWebhookEndpoint,
+        on_delete=models.CASCADE,
+        related_name="logs",
+        verbose_name=_("endpoint"),
+    )
+    event_id = models.CharField(max_length=255, blank=True, default="", verbose_name=_("event ID"))
+    event_type = models.CharField(max_length=128, blank=True, default="", verbose_name=_("event type"))
+    verification_status = models.CharField(
+        max_length=32,
+        choices=InboundVerificationStatus.choices,
+        default=InboundVerificationStatus.PENDING,
+        verbose_name=_("verification status"),
+    )
+    processing_status = models.CharField(
+        max_length=32,
+        choices=InboundProcessingStatus.choices,
+        default=InboundProcessingStatus.PENDING,
+        verbose_name=_("processing status"),
+    )
+    headers = models.JSONField(default=dict, blank=True, verbose_name=_("request headers"))
+    payload = models.JSONField(default=dict, blank=True, verbose_name=_("parsed payload"))
+    raw_body = models.TextField(blank=True, default="", verbose_name=_("raw body"))
+    error_message = models.TextField(blank=True, default="", verbose_name=_("error message"))
+    duration_ms = models.PositiveIntegerField(default=0, verbose_name=_("duration in ms"))
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name=_("IP address"))
+
+    class Meta:
+        verbose_name = _("inbound webhook log")
+        verbose_name_plural = _("inbound webhook logs")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "-created_at"], name="inbound_log_org_created_idx"),
+            models.Index(fields=["endpoint", "-created_at"], name="inbound_log_ep_created_idx"),
+            models.Index(fields=["organization", "verification_status"], name="inbound_log_org_vstatus_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"InboundLog {self.endpoint.name} [{self.verification_status}] ({self.created_at})"

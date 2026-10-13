@@ -1,0 +1,150 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}
+  {% if is_new %}{% trans "New Inbound Webhook Endpoint" %}{% else %}{% trans "Edit Inbound Endpoint" %}{% endif %} - Business OS
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+  <!-- Header -->
+  <div>
+    <a href="{% url 'integrations:inbound_endpoints_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+      &larr; {% trans "Inbound Webhooks" %}
+    </a>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+      {% if is_new %}{% trans "Configure Inbound Webhook Endpoint" %}{% else %}{% trans "Edit Endpoint" %}: {{ endpoint.name }}{% endif %}
+    </h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      {% trans "Configure signature verification headers, cryptographic hashing algorithms, and internal routing events." %}
+    </p>
+  </div>
+
+  <!-- Form -->
+  <form method="post" action="" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+    {% csrf_token %}
+
+    <!-- Name & Provider Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          {% trans "Endpoint Name" %} <span class="text-rose-500">*</span>
+        </label>
+        {{ form.name }}
+        {% if form.name.errors %}
+        <p class="mt-1 text-xs text-rose-500">{{ form.name.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <label for="{{ form.provider.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          {% trans "Source Provider" %} <span class="text-rose-500">*</span>
+        </label>
+        {{ form.provider }}
+        {% if form.provider.errors %}
+        <p class="mt-1 text-xs text-rose-500">{{ form.provider.errors.0 }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Security Verification Settings -->
+    <div class="border-t border-slate-200 dark:border-slate-800 pt-5 space-y-4">
+      <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+        {% trans "Cryptographic Verification" %}
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="{{ form.signature_header.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            {% trans "Signature Header" %}
+          </label>
+          {{ form.signature_header }}
+          <p class="mt-1 text-xs text-slate-500">{% trans "e.g. Stripe-Signature, X-Hub-Signature-256, or Authorization." %}</p>
+          {% if form.signature_header.errors %}
+          <p class="mt-1 text-xs text-rose-500">{{ form.signature_header.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label for="{{ form.signature_algorithm.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            {% trans "Algorithm" %}
+          </label>
+          {{ form.signature_algorithm }}
+          {% if form.signature_algorithm.errors %}
+          <p class="mt-1 text-xs text-rose-500">{{ form.signature_algorithm.errors.0 }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Secret -->
+      <div>
+        <label for="{{ form.custom_secret.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          {% trans "Signing Secret" %}
+        </label>
+        {{ form.custom_secret }}
+        <p class="mt-1 text-xs text-slate-500">{{ form.custom_secret.help_text }}</p>
+        {% if form.custom_secret.errors %}
+        <p class="mt-1 text-xs text-rose-500">{{ form.custom_secret.errors.0 }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Internal Dispatch Settings -->
+    <div class="border-t border-slate-200 dark:border-slate-800 pt-5 space-y-4">
+      <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+        {% trans "Routing & Dispatch" %}
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="{{ form.target_event.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            {% trans "Target Domain Event" %}
+          </label>
+          {{ form.target_event }}
+          <p class="mt-1 text-xs text-slate-500">{% trans "Published to transactional outbox on verified receipt." %}</p>
+          {% if form.target_event.errors %}
+          <p class="mt-1 text-xs text-rose-500">{{ form.target_event.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            {% trans "Operational Status" %}
+          </label>
+          {{ form.status }}
+          {% if form.status.errors %}
+          <p class="mt-1 text-xs text-rose-500">{{ form.status.errors.0 }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div>
+      <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        {% trans "Description" %}
+      </label>
+      {{ form.description }}
+      {% if form.description.errors %}
+      <p class="mt-1 text-xs text-rose-500">{{ form.description.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+      <a
+        href="{% url 'integrations:inbound_endpoints_list' %}"
+        class="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 transition"
+      >
+        {% trans "Cancel" %}
+      </a>
+      <button
+        type="submit"
+        class="px-5 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-600/30 transition"
+      >
+        {% if is_new %}{% trans "Create Endpoint" %}{% else %}{% trans "Save Changes" %}{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

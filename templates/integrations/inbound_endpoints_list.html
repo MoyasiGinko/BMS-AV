@@ -1,0 +1,150 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Inbound Webhooks" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- Header -->
+  <div class="sm:flex sm:items-center sm:justify-between">
+    <div>
+      <div class="flex items-center space-x-3">
+        <a href="{% url 'integrations:connections_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+          &larr; {% trans "Integrations" %}
+        </a>
+      </div>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+        {% trans "Inbound Webhooks" %}
+      </h1>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        {% trans "Receive real-time external notifications from Stripe, Shopify, GitHub, Zapier, and custom webhooks with cryptographic signature verification." %}
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0 flex items-center space-x-3">
+      <a
+        href="{% url 'integrations:inbound_logs_list' %}"
+        class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+      >
+        {% trans "Global Delivery Logs" %}
+      </a>
+      <a
+        href="{% url 'integrations:inbound_endpoint_create' %}"
+        class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30 transition"
+      >
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        {% trans "Add Inbound Endpoint" %}
+      </a>
+    </div>
+  </div>
+
+  <!-- Endpoints Table -->
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Endpoint" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Provider" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Verification" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Target Event" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Status" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Received" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Actions" %}
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for ep in endpoints %}
+          <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <a href="{% url 'integrations:inbound_endpoint_detail' ep.public_id %}" class="font-medium text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400">
+                {{ ep.name }}
+              </a>
+              {% if ep.description %}
+              <div class="text-xs text-slate-500 truncate max-w-xs">{{ ep.description }}</div>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                {{ ep.provider }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300 font-mono">
+              {{ ep.signature_algorithm }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300 font-mono">
+              {{ ep.target_event }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if ep.status == "active" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                {% trans "Active" %}
+              </span>
+              {% elif ep.status == "paused" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                {% trans "Paused" %}
+              </span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                {% trans "Disabled" %}
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
+              <div class="font-medium text-slate-900 dark:text-slate-100">{{ ep.total_received_count }} {% trans "events" %}</div>
+              {% if ep.last_received_at %}
+              <div class="text-[11px]">{{ ep.last_received_at|timesince }} {% trans "ago" %}</div>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+              <a href="{% url 'integrations:inbound_endpoint_detail' ep.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                {% trans "View URL & Logs" %}
+              </a>
+              <a href="{% url 'integrations:inbound_endpoint_edit' ep.public_id %}" class="text-slate-600 dark:text-slate-400 hover:underline">
+                {% trans "Edit" %}
+              </a>
+              <a href="{% url 'integrations:inbound_endpoint_delete' ep.public_id %}" class="text-rose-600 dark:text-rose-400 hover:underline">
+                {% trans "Delete" %}
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="px-6 py-12 text-center text-slate-500">
+              <div class="max-w-sm mx-auto space-y-3">
+                <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+                <div class="font-medium text-slate-900 dark:text-slate-100">{% trans "No inbound webhook endpoints configured" %}</div>
+                <p class="text-xs text-slate-500">{% trans "Receive real-time events from payment gateways, external e-commerce platforms, or automated triggers." %}</p>
+                <a
+                  href="{% url 'integrations:inbound_endpoint_create' %}"
+                  class="inline-flex items-center px-3 py-1.5 border border-transparent rounded-lg text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
+                >
+                  {% trans "Create First Inbound Endpoint" %}
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

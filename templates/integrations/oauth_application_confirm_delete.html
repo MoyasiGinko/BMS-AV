@@ -1,0 +1,45 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete OAuth Application" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+    <div class="flex items-center space-x-3 text-rose-600 dark:text-rose-400">
+      <div class="h-10 w-10 rounded-full bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+      <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">
+        {% trans "Delete Application" %}
+      </h2>
+    </div>
+
+    <p class="text-sm text-slate-600 dark:text-slate-400">
+      {% blocktrans with name=application.name %}Are you sure you want to delete application <strong>{{ name }}</strong>?{% endblocktrans %}
+    </p>
+
+    <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-xl p-4 text-xs text-rose-700 dark:text-rose-300">
+      {% trans "This will immediately revoke all issued tokens. Third-party integrations connecting through this client will fail." %}
+    </div>
+
+    <form method="post" action="" class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+      {% csrf_token %}
+      <a
+        href="{% url 'integrations:oauth_application_detail' application.public_id %}"
+        class="px-4 py-2 border border-slate-300 dark:border-slate-700 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 transition"
+      >
+        {% trans "Cancel" %}
+      </a>
+      <button
+        type="submit"
+        class="px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-rose-600 hover:bg-rose-700 transition"
+      >
+        {% trans "Revoke and Delete" %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "OAuth Application Created" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+  <!-- Warning Banner -->
+  <div class="rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-6 shadow-sm">
+    <div class="flex items-start space-x-3">
+      <div class="flex-shrink-0">
+        <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-base font-semibold text-amber-900 dark:text-amber-200">
+          {% trans "Save Your Client Secret Now!" %}
+        </h3>
+        <p class="mt-1 text-sm text-amber-800 dark:text-amber-300">
+          {% trans "This client secret is only shown once and cannot be retrieved later. If you lose it, you will need to regenerate a new one." %}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credentials Card -->
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+    <div class="border-b border-slate-200 dark:border-slate-800 pb-5">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">
+        {{ application.name }}
+      </h2>
+      <p class="text-sm text-slate-500 mt-1">
+        {% trans "OAuth2 client credentials successfully provisioned." %}
+      </p>
+    </div>
+
+    <!-- Client ID -->
+    <div class="space-y-2">
+      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {% trans "Client ID" %}
+      </label>
+      <div class="flex items-center space-x-2">
+        <input
+          type="text"
+          readonly
+          value="{{ application.client_id }}"
+          class="flex-1 font-mono text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-slate-100 focus:outline-none"
+        />
+        <button
+          type="button"
+          onclick="navigator.clipboard.writeText('{{ application.client_id }}'); alert('Client ID copied to clipboard!');"
+          class="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+        >
+          {% trans "Copy" %}
+        </button>
+      </div>
+    </div>
+
+    <!-- Client Secret -->
+    <div class="space-y-2">
+      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {% trans "Client Secret" %}
+      </label>
+      <div class="flex items-center space-x-2">
+        <input
+          type="text"
+          readonly
+          value="{{ raw_secret }}"
+          class="flex-1 font-mono text-sm bg-amber-50/50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-slate-100 font-bold focus:outline-none"
+        />
+        <button
+          type="button"
+          onclick="navigator.clipboard.writeText('{{ raw_secret }}'); alert('Client Secret copied to clipboard!');"
+          class="px-4 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition"
+        >
+          {% trans "Copy Secret" %}
+        </button>
+      </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-slate-800 text-sm">
+      <div>
+        <span class="text-slate-500">{% trans "Grant Type:" %}</span>
+        <span class="font-medium text-slate-900 dark:text-slate-100 ml-1">{{ application.get_authorization_grant_type_display }}</span>
+      </div>
+      <div>
+        <span class="text-slate-500">{% trans "Client Type:" %}</span>
+        <span class="font-medium text-slate-900 dark:text-slate-100 ml-1 capitalize">{{ application.client_type }}</span>
+      </div>
+      <div>
+        <span class="text-slate-500">{% trans "Allowed Scopes:" %}</span>
+        <span class="font-mono text-xs text-indigo-600 dark:text-indigo-400 ml-1">{{ application.allowed_scopes }}</span>
+      </div>
+      {% if application.redirect_uris %}
+      <div class="col-span-2">
+        <span class="text-slate-500 block mb-1">{% trans "Redirect URIs:" %}</span>
+        <pre class="font-mono text-xs bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{{ application.redirect_uris }}</pre>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-3">
+      <a
+        href="{% url 'integrations:oauth_application_detail' application.public_id %}"
+        class="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
+      >
+        {% trans "Go to Application" %} &rarr;
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

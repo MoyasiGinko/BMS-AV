@@ -38,6 +38,7 @@ THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
     "allauth.mfa",
+    "oauth2_provider",
 ]
 LOCAL_APPS = [
     "apps.core",
@@ -168,6 +169,7 @@ FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="dev-only-32-byte-bas
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "apps.core.api.authentication.ApiKeyAuthentication",
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
@@ -201,6 +203,36 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+}
+
+OAUTH2_PROVIDER_APPLICATION_MODEL = "integrations.OAuthApplication"
+OAUTH2_PROVIDER = {
+    "SCOPES": {
+        "read": "Read basic resources",
+        "write": "Write basic resources",
+        "admin": "Full tenant administrator access",
+        "catalog:read": "View catalog products and price lists",
+        "catalog:write": "Manage catalog products and categories",
+        "inventory:read": "View inventory stock levels and locations",
+        "inventory:write": "Manage stock movements and transfers",
+        "sales:read": "View sales orders and quotes",
+        "sales:write": "Create and update sales orders",
+        "purchasing:read": "View purchase orders and suppliers",
+        "purchasing:write": "Create and manage purchase orders",
+        "customers:read": "View customer contacts and balances",
+        "customers:write": "Manage customer accounts",
+        "accounting:read": "View journal entries, accounts, and invoices",
+        "accounting:write": "Post journal entries and manage invoices",
+        "reports:read": "Run and export reports",
+        "integrations:read": "View integrations and webhooks",
+        "integrations:write": "Manage connectors and webhooks",
+    },
+    "DEFAULT_SCOPES": ["read"],
+    "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,
+    "REFRESH_TOKEN_EXPIRE_SECONDS": 86400 * 30,
+    "ROTATE_REFRESH_TOKEN": True,
+    "PKCE_REQUIRED": False,
+    "APPLICATION_MODEL": "integrations.OAuthApplication",
 }
 
 SPECTACULAR_SETTINGS = {

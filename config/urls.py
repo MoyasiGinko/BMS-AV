@@ -40,6 +40,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("accounts/2fa/", include("allauth.mfa.urls")),
+    path("oauth/", include("oauth2_provider.urls", namespace="oauth2_provider")),
     path("tenancy/", include("apps.tenancy.urls")),
     path("billing/", include("apps.billing.urls")),
     path("settings/", include("apps.tenancy.settings_urls")),

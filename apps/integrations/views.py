@@ -9,13 +9,19 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from apps.core.event_catalog import list_events_by_module
 from apps.core.permissions import permission_required
 from apps.integrations import selectors, services
 from apps.integrations.connectors import connector_registry
-from apps.integrations.forms import IntegrationConnectionForm, WebhookEndpointForm
+from apps.integrations.forms import (
+    InboundWebhookEndpointForm,
+    IntegrationConnectionForm,
+    OAuthApplicationForm,
+    WebhookEndpointForm,
+)
 from apps.integrations.importers import get_importer
 from apps.integrations.models import (
     ConnectorType,
@@ -750,4 +756,340 @@ def external_references_list_view(request: HttpRequest) -> HttpResponse:
             "references": references,
             "selected_entity": entity_filter,
         },
+    )
+
+
+# --- OAuth Application Views ---
+
+
+@permission_required("integrations.view")
+def oauth_applications_list_view(request: HttpRequest) -> HttpResponse:
+    """List registered OAuth2 applications for the tenant."""
+    org = _get_active_org(request)
+    applications = selectors.list_oauth_applications(org)
+    return render(
+        request,
+        "integrations/oauth_applications_list.html",
+        {"applications": applications},
+    )
+
+
+@permission_required("integrations.oauth_manage")
+def oauth_application_create_view(request: HttpRequest) -> HttpResponse:
+    """Register a new OAuth2 client application."""
+    org = _get_active_org(request)
+
+    if request.method == "POST":
+        form = OAuthApplicationForm(request.POST)
+        if form.is_valid():
+            scopes_str = form.clean_scopes()
+            app, raw_secret = services.create_oauth_application(
+                organization=org,
+                name=form.cleaned_data["name"],
+                client_type=form.cleaned_data["client_type"],
+                authorization_grant_type=form.cleaned_data["authorization_grant_type"],
+                redirect_uris=form.cleaned_data.get("redirect_uris", ""),
+                allowed_scopes=scopes_str,
+                description=form.cleaned_data.get("description", ""),
+                skip_authorization=form.cleaned_data.get("skip_authorization", False),
+                actor=request.user,
+            )
+            return render(
+                request,
+                "integrations/oauth_application_created.html",
+                {
+                    "application": app,
+                    "raw_secret": raw_secret,
+                },
+            )
+    else:
+        form = OAuthApplicationForm()
+
+    return render(
+        request,
+        "integrations/oauth_application_form.html",
+        {"form": form, "is_new": True},
+    )
+
+
+@permission_required("integrations.view")
+def oauth_application_detail_view(request: HttpRequest, app_id: str) -> HttpResponse:
+    """View details and configuration of an OAuth application."""
+    org = _get_active_org(request)
+    app = selectors.get_oauth_application(org, application_id=app_id)
+    if not app:
+        raise Http404(_("OAuth application not found."))
+
+    return render(
+        request,
+        "integrations/oauth_application_detail.html",
+        {"application": app},
+    )
+
+
+@permission_required("integrations.oauth_manage")
+def oauth_application_edit_view(request: HttpRequest, app_id: str) -> HttpResponse:
+    """Edit settings on an OAuth application."""
+    org = _get_active_org(request)
+    app = selectors.get_oauth_application(org, application_id=app_id)
+    if not app:
+        raise Http404(_("OAuth application not found."))
+
+    if request.method == "POST":
+        form = OAuthApplicationForm(request.POST, instance=app)
+        if form.is_valid():
+            scopes_str = form.clean_scopes()
+            services.update_oauth_application(
+                application=app,
+                name=form.cleaned_data["name"],
+                client_type=form.cleaned_data["client_type"],
+                authorization_grant_type=form.cleaned_data["authorization_grant_type"],
+                redirect_uris=form.cleaned_data.get("redirect_uris", ""),
+                allowed_scopes=scopes_str,
+                description=form.cleaned_data.get("description", ""),
+                skip_authorization=form.cleaned_data.get("skip_authorization", False),
+                actor=request.user,
+            )
+            messages.success(request, _("OAuth application updated successfully."))
+            return redirect("integrations:oauth_application_detail", app_id=app.public_id)
+    else:
+        form = OAuthApplicationForm(instance=app)
+
+    return render(
+        request,
+        "integrations/oauth_application_form.html",
+        {"form": form, "application": app, "is_new": False},
+    )
+
+
+@permission_required("integrations.oauth_manage")
+def oauth_application_delete_view(request: HttpRequest, app_id: str) -> HttpResponse:
+    """Delete an OAuth application and revoke tokens."""
+    org = _get_active_org(request)
+    app = selectors.get_oauth_application(org, application_id=app_id)
+    if not app:
+        raise Http404(_("OAuth application not found."))
+
+    if request.method == "POST":
+        services.delete_oauth_application(application=app, actor=request.user)
+        messages.success(request, _("OAuth application deleted."))
+        return redirect("integrations:oauth_applications_list")
+
+    return render(
+        request,
+        "integrations/oauth_application_confirm_delete.html",
+        {"application": app},
+    )
+
+
+@permission_required("integrations.oauth_manage")
+def oauth_application_rotate_secret_view(request: HttpRequest, app_id: str) -> HttpResponse:
+    """Rotate secret for an OAuth application."""
+    if request.method != "POST":
+        raise Http404(_("Method not allowed"))
+    org = _get_active_org(request)
+    app = selectors.get_oauth_application(org, application_id=app_id)
+    if not app:
+        raise Http404(_("OAuth application not found."))
+
+    new_secret = services.rotate_oauth_client_secret(application=app, actor=request.user)
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "integrations/partials/_oauth_secret_result.html",
+            {"new_secret": new_secret, "application": app},
+        )
+    messages.success(request, _("Client secret rotated. New secret: %s") % new_secret)
+    return redirect("integrations:oauth_application_detail", app_id=app.public_id)
+
+
+def oauth_authorized_tokens_list_view(request: HttpRequest) -> HttpResponse:
+    """User-facing view of authorized third-party applications."""
+    if not request.user.is_authenticated:
+        raise PermissionDenied
+    org = _get_active_org(request)
+    tokens = selectors.list_user_authorized_tokens(request.user, org)
+
+    return render(
+        request,
+        "integrations/oauth_authorized_tokens.html",
+        {"tokens": tokens},
+    )
+
+
+def oauth_revoke_token_view(request: HttpRequest, token_id: int) -> HttpResponse:
+    """Revoke user authorization for a token."""
+    if request.method != "POST" or not request.user.is_authenticated:
+        raise PermissionDenied
+    org = _get_active_org(request)
+    services.revoke_user_oauth_token(
+        token_id=token_id, user=request.user, organization=org, actor=request.user
+    )
+    messages.success(request, _("Application access revoked."))
+    return redirect("integrations:oauth_authorized_tokens")
+
+
+# --- Inbound Webhook Views ---
+
+
+@permission_required("integrations.view")
+def inbound_endpoints_list_view(request: HttpRequest) -> HttpResponse:
+    """List inbound webhook receiver endpoints."""
+    org = _get_active_org(request)
+    endpoints = selectors.list_inbound_webhook_endpoints(org)
+
+    return render(
+        request,
+        "integrations/inbound_endpoints_list.html",
+        {"endpoints": endpoints},
+    )
+
+
+@permission_required("integrations.inbound_manage")
+def inbound_endpoint_create_view(request: HttpRequest) -> HttpResponse:
+    """Create a new inbound webhook endpoint."""
+    org = _get_active_org(request)
+
+    if request.method == "POST":
+        form = InboundWebhookEndpointForm(request.POST)
+        if form.is_valid():
+            secret_val = form.cleaned_data.get("custom_secret") or None
+            endpoint = services.create_inbound_webhook_endpoint(
+                organization=org,
+                name=form.cleaned_data["name"],
+                provider=form.cleaned_data["provider"],
+                signature_header=form.cleaned_data.get("signature_header", "X-Signature"),
+                signature_algorithm=form.cleaned_data.get("signature_algorithm", "hmac_sha256"),
+                secret=secret_val,
+                target_event=form.cleaned_data.get("target_event", "inbound_webhook.received"),
+                description=form.cleaned_data.get("description", ""),
+                actor=request.user,
+            )
+            messages.success(request, _("Inbound webhook endpoint created successfully."))
+            return redirect("integrations:inbound_endpoint_detail", endpoint_id=endpoint.public_id)
+    else:
+        form = InboundWebhookEndpointForm()
+
+    return render(
+        request,
+        "integrations/inbound_endpoint_form.html",
+        {"form": form, "is_new": True},
+    )
+
+
+@permission_required("integrations.view")
+def inbound_endpoint_detail_view(request: HttpRequest, endpoint_id: str) -> HttpResponse:
+    """View details, receipt URL, curl sample, and recent logs for an inbound webhook."""
+    org = _get_active_org(request)
+    endpoint = selectors.get_inbound_webhook_endpoint(org, endpoint_id=endpoint_id)
+    if not endpoint:
+        raise Http404(_("Inbound webhook endpoint not found."))
+
+    logs = selectors.list_inbound_webhook_logs(org, endpoint=endpoint, limit=30)
+    receive_url = request.build_absolute_uri(
+        reverse("api:inbound-webhook-receive", kwargs={"public_id": endpoint.public_id})
+    )
+
+    return render(
+        request,
+        "integrations/inbound_endpoint_detail.html",
+        {
+            "endpoint": endpoint,
+            "logs": logs,
+            "receive_url": receive_url,
+        },
+    )
+
+
+@permission_required("integrations.inbound_manage")
+def inbound_endpoint_edit_view(request: HttpRequest, endpoint_id: str) -> HttpResponse:
+    """Edit settings on an inbound webhook endpoint."""
+    org = _get_active_org(request)
+    endpoint = selectors.get_inbound_webhook_endpoint(org, endpoint_id=endpoint_id)
+    if not endpoint:
+        raise Http404(_("Inbound webhook endpoint not found."))
+
+    if request.method == "POST":
+        form = InboundWebhookEndpointForm(request.POST, instance=endpoint)
+        if form.is_valid():
+            custom_sec = form.cleaned_data.get("custom_secret")
+            if custom_sec and custom_sec != endpoint.secret:
+                endpoint.secret = custom_sec
+            services.update_inbound_webhook_endpoint(
+                endpoint=endpoint,
+                name=form.cleaned_data["name"],
+                provider=form.cleaned_data["provider"],
+                signature_header=form.cleaned_data.get("signature_header", "X-Signature"),
+                signature_algorithm=form.cleaned_data.get("signature_algorithm", "hmac_sha256"),
+                target_event=form.cleaned_data.get("target_event", "inbound_webhook.received"),
+                status=form.cleaned_data.get("status", "active"),
+                description=form.cleaned_data.get("description", ""),
+                actor=request.user,
+            )
+            messages.success(request, _("Inbound webhook endpoint updated."))
+            return redirect("integrations:inbound_endpoint_detail", endpoint_id=endpoint.public_id)
+    else:
+        form = InboundWebhookEndpointForm(instance=endpoint)
+
+    return render(
+        request,
+        "integrations/inbound_endpoint_form.html",
+        {"form": form, "endpoint": endpoint, "is_new": False},
+    )
+
+
+@permission_required("integrations.inbound_manage")
+def inbound_endpoint_delete_view(request: HttpRequest, endpoint_id: str) -> HttpResponse:
+    """Delete an inbound webhook endpoint."""
+    org = _get_active_org(request)
+    endpoint = selectors.get_inbound_webhook_endpoint(org, endpoint_id=endpoint_id)
+    if not endpoint:
+        raise Http404(_("Inbound webhook endpoint not found."))
+
+    if request.method == "POST":
+        services.delete_inbound_webhook_endpoint(endpoint=endpoint, actor=request.user)
+        messages.success(request, _("Inbound webhook endpoint deleted."))
+        return redirect("integrations:inbound_endpoints_list")
+
+    return render(
+        request,
+        "integrations/inbound_endpoint_confirm_delete.html",
+        {"endpoint": endpoint},
+    )
+
+
+@permission_required("integrations.inbound_manage")
+def inbound_endpoint_rotate_secret_view(request: HttpRequest, endpoint_id: str) -> HttpResponse:
+    """Rotate signing secret for an inbound endpoint."""
+    if request.method != "POST":
+        raise Http404(_("Method not allowed"))
+    org = _get_active_org(request)
+    endpoint = selectors.get_inbound_webhook_endpoint(org, endpoint_id=endpoint_id)
+    if not endpoint:
+        raise Http404(_("Inbound webhook endpoint not found."))
+
+    new_secret = services.rotate_inbound_webhook_secret(endpoint=endpoint, actor=request.user)
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "integrations/partials/_inbound_secret_result.html",
+            {"new_secret": new_secret, "endpoint": endpoint},
+        )
+    messages.success(request, _("Secret rotated. New secret: %s") % new_secret)
+    return redirect("integrations:inbound_endpoint_detail", endpoint_id=endpoint.public_id)
+
+
+@permission_required("integrations.view")
+def inbound_logs_list_view(request: HttpRequest) -> HttpResponse:
+    """Global audit log of inbound webhook events received across all endpoints."""
+    org = _get_active_org(request)
+    v_status = request.GET.get("status")
+    logs = selectors.list_inbound_webhook_logs(org, verification_status=v_status, limit=100)
+
+    return render(
+        request,
+        "integrations/inbound_logs_list.html",
+        {"logs": logs, "selected_status": v_status},
     )

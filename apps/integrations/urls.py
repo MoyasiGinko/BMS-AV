@@ -101,4 +101,57 @@ urlpatterns = [
         views.external_references_list_view,
         name="external_references_list",
     ),
+    # OAuth2 Application Registry & Authorized Tokens
+    path("oauth/applications/", views.oauth_applications_list_view, name="oauth_applications_list"),
+    path("oauth/applications/new/", views.oauth_application_create_view, name="oauth_application_create"),
+    path(
+        "oauth/applications/<uuid:app_id>/",
+        views.oauth_application_detail_view,
+        name="oauth_application_detail",
+    ),
+    path(
+        "oauth/applications/<uuid:app_id>/edit/",
+        views.oauth_application_edit_view,
+        name="oauth_application_edit",
+    ),
+    path(
+        "oauth/applications/<uuid:app_id>/delete/",
+        views.oauth_application_delete_view,
+        name="oauth_application_delete",
+    ),
+    path(
+        "oauth/applications/<uuid:app_id>/rotate-secret/",
+        views.oauth_application_rotate_secret_view,
+        name="oauth_application_rotate_secret",
+    ),
+    path("oauth/authorized/", views.oauth_authorized_tokens_list_view, name="oauth_authorized_tokens"),
+    path(
+        "oauth/authorized/<int:token_id>/revoke/",
+        views.oauth_revoke_token_view,
+        name="oauth_revoke_token",
+    ),
+    # Inbound Webhooks
+    path("inbound/", views.inbound_endpoints_list_view, name="inbound_endpoints_list"),
+    path("inbound/new/", views.inbound_endpoint_create_view, name="inbound_endpoint_create"),
+    path(
+        "inbound/<uuid:endpoint_id>/",
+        views.inbound_endpoint_detail_view,
+        name="inbound_endpoint_detail",
+    ),
+    path(
+        "inbound/<uuid:endpoint_id>/edit/",
+        views.inbound_endpoint_edit_view,
+        name="inbound_endpoint_edit",
+    ),
+    path(
+        "inbound/<uuid:endpoint_id>/delete/",
+        views.inbound_endpoint_delete_view,
+        name="inbound_endpoint_delete",
+    ),
+    path(
+        "inbound/<uuid:endpoint_id>/rotate-secret/",
+        views.inbound_endpoint_rotate_secret_view,
+        name="inbound_endpoint_rotate_secret",
+    ),
+    path("inbound/logs/", views.inbound_logs_list_view, name="inbound_logs_list"),
 ]

@@ -63,7 +63,7 @@ Format: `ID title: Done when ...`
 - [x] P5-03 Approvals engine: configurable approval rules (PO over X, expense over Y, payroll, discounts) with inbox UI.
 - [x] P5-04 Reporting engine: saved reports/filters, schedules (email), summary tables (DailySalesSummary etc.), report builder for basic custom reports.
 - [x] P5-05 Connector framework: registry, IntegrationConnection (encrypted), ExternalReference, sync log; connectors generic_rest, csv_import, fake_payments, fake_sms, smtp_email, zapier_compat.
-- [ ] P5-06 OAuth2 provider (PKCE + client credentials) with consent screen, app registry UI, scopes; inbound webhook endpoints framework.
+- [x] P5-06 OAuth2 provider (PKCE + client credentials) with consent screen, app registry UI, scopes; inbound webhook endpoints framework.
 - [ ] P5-07 Full-tenant export/import (data portability) + retention settings + GDPR-style deletion/export workflows.
 - [ ] P5-08 Notifications center (in-app + email), user notification preferences.
 - [ ] P5-R Phase review.

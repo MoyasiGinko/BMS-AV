@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import datetime
 import hashlib
 import hmac
@@ -17,6 +18,8 @@ import httpx
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
+from oauth2_provider.generators import generate_client_id, generate_client_secret
+from oauth2_provider.models import AccessToken
 
 from apps.core.events import publish
 from apps.core.tenant_context import tenant_context
@@ -33,8 +36,15 @@ from apps.integrations.models import (
     FileFormat,
     ImportJob,
     ImportJobStatus,
+    InboundProcessingStatus,
+    InboundSignatureAlgorithm,
+    InboundVerificationStatus,
+    InboundWebhookEndpoint,
+    InboundWebhookLog,
+    InboundWebhookProvider,
     IntegrationConnection,
     IntegrationSyncLog,
+    OAuthApplication,
     SyncDirection,
     SyncStatus,
     WebhookDelivery,
@@ -967,3 +977,499 @@ def zapier_unsubscribe_hook(
         ref.delete()
         return True
     return False
+
+
+# --- OAuth Application Services ---
+
+
+@transaction.atomic
+def create_oauth_application(
+    *,
+    organization: Organization,
+    name: str,
+    client_type: str,
+    authorization_grant_type: str,
+    redirect_uris: str = "",
+    allowed_scopes: str = "read",
+    description: str = "",
+    skip_authorization: bool = False,
+    algorithm: str = "",
+    actor: Any = None,
+) -> tuple[OAuthApplication, str]:
+    """Register a new OAuth application for a tenant and return it with the plaintext secret."""
+    client_id = generate_client_id()
+    raw_secret = generate_client_secret()
+
+    app = OAuthApplication(
+        organization=organization,
+        name=name,
+        client_id=client_id,
+        client_secret=raw_secret,
+        client_type=client_type,
+        authorization_grant_type=authorization_grant_type,
+        redirect_uris=redirect_uris,
+        allowed_scopes=allowed_scopes,
+        description=description,
+        skip_authorization=skip_authorization,
+        algorithm=algorithm,
+        user=actor if getattr(actor, "is_authenticated", False) else None,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+    app.save()
+
+    publish(
+        "oauth.application.created",
+        organization_id=organization.id,
+        payload={
+            "application_id": str(app.public_id),
+            "client_id": app.client_id,
+            "name": app.name,
+            "client_type": app.client_type,
+            "grant_type": app.authorization_grant_type,
+        },
+        actor_id=getattr(actor, "id", None),
+    )
+    return app, raw_secret
+
+
+@transaction.atomic
+def update_oauth_application(
+    *,
+    application: OAuthApplication,
+    name: str | None = None,
+    redirect_uris: str | None = None,
+    allowed_scopes: str | None = None,
+    description: str | None = None,
+    client_type: str | None = None,
+    authorization_grant_type: str | None = None,
+    skip_authorization: bool | None = None,
+    actor: Any = None,
+) -> OAuthApplication:
+    """Update settings on an existing OAuth application."""
+    update_fields = ["updated_at"]
+
+    if name is not None:
+        application.name = name
+        update_fields.append("name")
+    if redirect_uris is not None:
+        application.redirect_uris = redirect_uris
+        update_fields.append("redirect_uris")
+    if allowed_scopes is not None:
+        application.allowed_scopes = allowed_scopes
+        update_fields.append("allowed_scopes")
+    if description is not None:
+        application.description = description
+        update_fields.append("description")
+    if client_type is not None:
+        application.client_type = client_type
+        update_fields.append("client_type")
+    if authorization_grant_type is not None:
+        application.authorization_grant_type = authorization_grant_type
+        update_fields.append("authorization_grant_type")
+    if skip_authorization is not None:
+        application.skip_authorization = skip_authorization
+        update_fields.append("skip_authorization")
+
+    application.save(update_fields=update_fields)
+
+    publish(
+        "oauth.application.updated",
+        organization_id=application.organization_id,
+        payload={
+            "application_id": str(application.public_id),
+            "client_id": application.client_id,
+            "name": application.name,
+        },
+        actor_id=getattr(actor, "id", None),
+    )
+    return application
+
+
+@transaction.atomic
+def rotate_oauth_client_secret(
+    *,
+    application: OAuthApplication,
+    actor: Any = None,
+) -> str:
+    """Regenerate client secret for an existing application and return plaintext value."""
+    new_secret = generate_client_secret()
+    application.client_secret = new_secret
+    application.save(update_fields=["client_secret", "updated_at"])
+
+    publish(
+        "oauth.application.secret_rotated",
+        organization_id=application.organization_id,
+        payload={
+            "application_id": str(application.public_id),
+            "client_id": application.client_id,
+        },
+        actor_id=getattr(actor, "id", None),
+    )
+    return new_secret
+
+
+@transaction.atomic
+def delete_oauth_application(
+    *,
+    application: OAuthApplication,
+    actor: Any = None,
+) -> None:
+    """Delete an OAuth application and revoke all related access tokens."""
+    app_id = str(application.public_id)
+    org_id = application.organization_id
+    client_id = application.client_id
+
+    AccessToken.objects.filter(application=application).delete()
+    application.delete()
+
+    publish(
+        "oauth.application.deleted",
+        organization_id=org_id,
+        payload={"application_id": app_id, "client_id": client_id},
+        actor_id=getattr(actor, "id", None),
+    )
+
+
+@transaction.atomic
+def revoke_user_oauth_token(
+    *,
+    token_id: int | str,
+    user: Any,
+    organization: Organization,
+    actor: Any = None,
+) -> bool:
+    """Revoke an authorized OAuth access token for a user."""
+    token = AccessToken.objects.filter(
+        id=token_id,
+        user=user,
+        application__organization=organization,
+    ).first()
+    if token:
+        token.delete()
+        publish(
+            "oauth.token.revoked",
+            organization_id=organization.id,
+            payload={"token_id": str(token_id), "user_id": user.id},
+            actor_id=getattr(actor, "id", None),
+        )
+        return True
+    return False
+
+
+# --- Inbound Webhook Services ---
+
+
+@transaction.atomic
+def create_inbound_webhook_endpoint(
+    *,
+    organization: Organization,
+    name: str,
+    provider: str = InboundWebhookProvider.GENERIC,
+    signature_header: str = "X-Signature",
+    signature_algorithm: str = InboundSignatureAlgorithm.HMAC_SHA256,
+    secret: str | None = None,
+    target_event: str = "inbound_webhook.received",
+    description: str = "",
+    config: dict[str, Any] | None = None,
+    actor: Any = None,
+) -> InboundWebhookEndpoint:
+    """Register a new inbound webhook endpoint for receiving external notifications."""
+    raw_secret = secret or secrets.token_hex(32)
+
+    endpoint = InboundWebhookEndpoint(
+        organization=organization,
+        name=name,
+        provider=provider,
+        signature_header=signature_header or "X-Signature",
+        signature_algorithm=signature_algorithm or InboundSignatureAlgorithm.HMAC_SHA256,
+        target_event=target_event or "inbound_webhook.received",
+        description=description,
+        config=config or {},
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+    endpoint.secret = raw_secret
+    endpoint.save()
+
+    publish(
+        "inbound_webhook.endpoint_created",
+        organization_id=organization.id,
+        payload={
+            "endpoint_id": str(endpoint.public_id),
+            "name": endpoint.name,
+            "provider": endpoint.provider,
+            "signature_algorithm": endpoint.signature_algorithm,
+        },
+        actor_id=getattr(actor, "id", None),
+    )
+    return endpoint
+
+
+@transaction.atomic
+def update_inbound_webhook_endpoint(
+    *,
+    endpoint: InboundWebhookEndpoint,
+    name: str | None = None,
+    provider: str | None = None,
+    signature_header: str | None = None,
+    signature_algorithm: str | None = None,
+    target_event: str | None = None,
+    status: str | None = None,
+    description: str | None = None,
+    config: dict[str, Any] | None = None,
+    actor: Any = None,
+) -> InboundWebhookEndpoint:
+    """Update settings on an inbound webhook endpoint."""
+    update_fields = ["updated_at"]
+
+    if name is not None:
+        endpoint.name = name
+        update_fields.append("name")
+    if provider is not None:
+        endpoint.provider = provider
+        update_fields.append("provider")
+    if signature_header is not None:
+        endpoint.signature_header = signature_header
+        update_fields.append("signature_header")
+    if signature_algorithm is not None:
+        endpoint.signature_algorithm = signature_algorithm
+        update_fields.append("signature_algorithm")
+    if target_event is not None:
+        endpoint.target_event = target_event
+        update_fields.append("target_event")
+    if status is not None:
+        endpoint.status = status
+        update_fields.append("status")
+    if description is not None:
+        endpoint.description = description
+        update_fields.append("description")
+    if config is not None:
+        endpoint.config = config
+        update_fields.append("config")
+
+    endpoint.save(update_fields=update_fields)
+
+    publish(
+        "inbound_webhook.endpoint_updated",
+        organization_id=endpoint.organization_id,
+        payload={
+            "endpoint_id": str(endpoint.public_id),
+            "name": endpoint.name,
+            "status": endpoint.status,
+        },
+        actor_id=getattr(actor, "id", None),
+    )
+    return endpoint
+
+
+@transaction.atomic
+def rotate_inbound_webhook_secret(
+    *,
+    endpoint: InboundWebhookEndpoint,
+    actor: Any = None,
+) -> str:
+    """Generate a fresh signing secret token for an inbound webhook endpoint."""
+    new_secret = secrets.token_hex(32)
+    endpoint.secret = new_secret
+    endpoint.save(update_fields=["encrypted_secret", "updated_at"])
+
+    publish(
+        "inbound_webhook.secret_rotated",
+        organization_id=endpoint.organization_id,
+        payload={"endpoint_id": str(endpoint.public_id)},
+        actor_id=getattr(actor, "id", None),
+    )
+    return new_secret
+
+
+@transaction.atomic
+def delete_inbound_webhook_endpoint(
+    *,
+    endpoint: InboundWebhookEndpoint,
+    actor: Any = None,
+) -> None:
+    """Delete an inbound webhook endpoint and all related delivery logs."""
+    ep_id = str(endpoint.public_id)
+    org_id = endpoint.organization_id
+    endpoint.delete()
+
+    publish(
+        "inbound_webhook.endpoint_deleted",
+        organization_id=org_id,
+        payload={"endpoint_id": ep_id},
+        actor_id=getattr(actor, "id", None),
+    )
+
+
+def _verify_stripe_signature(raw_body: bytes, secret: str, signature_val: str) -> tuple[bool, str]:
+    parts = dict(item.split("=", 1) for item in signature_val.split(",") if "=" in item)
+    timestamp = parts.get("t")
+    v1_sig = parts.get("v1")
+    if not timestamp or not v1_sig:
+        return False, "Invalid Stripe-Signature format (missing t or v1)"
+    signed_payload = f"{timestamp}.".encode() + raw_body
+    expected = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
+    if hmac.compare_digest(v1_sig, expected):
+        return True, "Stripe HMAC-SHA256 verified"
+    return False, "Stripe signature mismatch"
+
+
+def _verify_shopify_signature(raw_body: bytes, secret: str, signature_val: str) -> tuple[bool, str]:
+    digest = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).digest()
+    expected = base64.b64encode(digest).decode()
+    if hmac.compare_digest(signature_val, expected):
+        return True, "Shopify Base64 HMAC-SHA256 verified"
+    return False, "Shopify signature mismatch"
+
+
+def _verify_hmac_hash(
+    raw_body: bytes, secret: str, signature_val: str, hash_fn: Any, algo_name: str
+) -> tuple[bool, str]:
+    prefix = f"{algo_name.lower()}="
+    clean_sig = signature_val.removeprefix(prefix).strip()
+    expected = hmac.new(secret.encode("utf-8"), raw_body, hash_fn).hexdigest()
+    if hmac.compare_digest(clean_sig, expected):
+        return True, f"HMAC-{algo_name.upper()} verified"
+    return False, f"HMAC-{algo_name.upper()} signature mismatch"
+
+
+def _verify_bearer_token(
+    secret: str, normalized_headers: dict[str, str], signature_val: str
+) -> tuple[bool, str]:
+    auth_header = normalized_headers.get("authorization", "")
+    token = (
+        auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else signature_val
+    )
+    if hmac.compare_digest(token, secret):
+        return True, "Bearer token verified"
+    return False, "Bearer token mismatch"
+
+
+def _verify_hmac_by_algo(
+    endpoint: InboundWebhookEndpoint, raw_body: bytes, secret: str, signature_val: str
+) -> tuple[bool, str]:
+    algo = endpoint.signature_algorithm
+    if algo == InboundSignatureAlgorithm.HMAC_SHA256:
+        if endpoint.provider == InboundWebhookProvider.STRIPE:
+            return _verify_stripe_signature(raw_body, secret, signature_val)
+        if endpoint.provider == InboundWebhookProvider.SHOPIFY:
+            return _verify_shopify_signature(raw_body, secret, signature_val)
+        return _verify_hmac_hash(raw_body, secret, signature_val, hashlib.sha256, "sha256")
+    if algo == InboundSignatureAlgorithm.HMAC_SHA1:
+        return _verify_hmac_hash(raw_body, secret, signature_val, hashlib.sha1, "sha1")
+    return False, f"Unsupported algorithm '{algo}'"
+
+
+def verify_inbound_signature(
+    *,
+    endpoint: InboundWebhookEndpoint,
+    raw_body: bytes,
+    headers: dict[str, str],
+) -> tuple[bool, str]:
+    """Verify cryptographic authenticity of incoming webhook HTTP payload."""
+    algo = endpoint.signature_algorithm
+    if algo == InboundSignatureAlgorithm.NONE:
+        return True, "Verification skipped (none configured)"
+
+    secret = endpoint.secret
+    if not secret:
+        return False, "Endpoint secret is not configured"
+
+    normalized_headers = {k.lower(): v for k, v in headers.items()}
+    header_name = endpoint.signature_header.lower()
+    signature_val = normalized_headers.get(header_name, "").strip()
+
+    if algo == InboundSignatureAlgorithm.BEARER_TOKEN:
+        return _verify_bearer_token(secret, normalized_headers, signature_val)
+
+    if not signature_val:
+        return False, f"Missing signature header '{endpoint.signature_header}'"
+
+    return _verify_hmac_by_algo(endpoint, raw_body, secret, signature_val)
+
+
+@transaction.atomic
+def process_inbound_webhook(
+    *,
+    endpoint: InboundWebhookEndpoint,
+    raw_body: bytes,
+    headers: dict[str, str],
+    ip_address: str | None = None,
+) -> tuple[InboundWebhookLog, bool]:
+    """Ingest, verify, persist, and publish an inbound webhook event."""
+    start_time = time.perf_counter()
+
+    body_text = raw_body.decode("utf-8", errors="replace")
+    parsed_payload: dict[str, Any] = {}
+    try:
+        if body_text.strip():
+            parsed_payload = json.loads(body_text)
+            if not isinstance(parsed_payload, dict):
+                parsed_payload = {"data": parsed_payload}
+    except Exception:
+        parsed_payload = {"raw": body_text[:2000]}
+
+    norm_headers = {k.lower(): v for k, v in headers.items()}
+    event_id = str(
+        norm_headers.get("x-event-id")
+        or norm_headers.get("x-github-delivery")
+        or parsed_payload.get("id")
+        or parsed_payload.get("event_id")
+        or ""
+    )[:255]
+    event_type = str(
+        norm_headers.get("x-event-type")
+        or norm_headers.get("x-github-event")
+        or parsed_payload.get("type")
+        or parsed_payload.get("event")
+        or ""
+    )[:128]
+
+    is_valid, msg = verify_inbound_signature(
+        endpoint=endpoint,
+        raw_body=raw_body,
+        headers=headers,
+    )
+
+    duration_ms = int((time.perf_counter() - start_time) * 1000)
+
+    verif_status = InboundVerificationStatus.VERIFIED if is_valid else InboundVerificationStatus.FAILED
+    proc_status = InboundProcessingStatus.PROCESSED if is_valid else InboundProcessingStatus.FAILED
+
+    log = InboundWebhookLog(
+        organization=endpoint.organization,
+        endpoint=endpoint,
+        event_id=event_id,
+        event_type=event_type,
+        verification_status=verif_status,
+        processing_status=proc_status,
+        headers={k: v for k, v in headers.items() if not k.lower().startswith("cookie")},
+        payload=parsed_payload,
+        raw_body=body_text[:5000],
+        error_message="" if is_valid else msg,
+        duration_ms=duration_ms,
+        ip_address=ip_address,
+    )
+    log.save()
+
+    if is_valid:
+        endpoint.last_received_at = timezone.now()
+        endpoint.total_received_count += 1
+        endpoint.save(update_fields=["last_received_at", "total_received_count", "updated_at"])
+
+        publish(
+            endpoint.target_event or "inbound_webhook.received",
+            organization_id=endpoint.organization_id,
+            payload={
+                "endpoint_id": str(endpoint.public_id),
+                "log_id": str(log.public_id),
+                "provider": endpoint.provider,
+                "event_type": event_type,
+                "event_id": event_id,
+                "payload": parsed_payload,
+            },
+        )
+    else:
+        endpoint.last_error = msg
+        endpoint.save(update_fields=["last_error", "updated_at"])
+
+    return log, is_valid

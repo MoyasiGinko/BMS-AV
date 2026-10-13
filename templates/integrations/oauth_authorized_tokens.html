@@ -1,0 +1,55 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Authorized Applications" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+  <!-- Header -->
+  <div>
+    <a href="{% url 'integrations:oauth_applications_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+      &larr; {% trans "OAuth Applications" %}
+    </a>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+      {% trans "Authorized Applications" %}
+    </h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      {% trans "Third-party applications you have granted permission to access your tenant data." %}
+    </p>
+  </div>
+
+  <!-- Tokens List -->
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800">
+    {% for token in tokens %}
+    <div class="p-6 flex items-center justify-between">
+      <div class="space-y-1">
+        <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">
+          {{ token.application.name }}
+        </h3>
+        <div class="flex items-center space-x-3 text-xs text-slate-500">
+          <span>{% trans "Granted on" %} {{ token.created|date:"Y-m-d H:i" }}</span>
+          <span>&bull;</span>
+          <span>{% trans "Scopes:" %} <code class="text-indigo-600 dark:text-indigo-400 font-mono">{{ token.scope }}</code></span>
+        </div>
+      </div>
+      <div>
+        <form method="post" action="{% url 'integrations:oauth_revoke_token' token.id %}">
+          {% csrf_token %}
+          <button
+            type="submit"
+            onclick="return confirm('{% trans "Revoke access for this application?" %}');"
+            class="px-3.5 py-1.5 border border-rose-300 dark:border-rose-800 text-xs font-medium rounded-lg text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+          >
+            {% trans "Revoke Access" %}
+          </button>
+        </form>
+      </div>
+    </div>
+    {% empty %}
+    <div class="p-12 text-center text-slate-500">
+      <p class="text-sm">{% trans "You haven't authorized any third-party applications." %}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

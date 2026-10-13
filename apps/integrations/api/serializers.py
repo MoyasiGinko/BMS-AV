@@ -9,8 +9,11 @@ from rest_framework import serializers
 from apps.integrations import services
 from apps.integrations.models import (
     ExternalReference,
+    InboundWebhookEndpoint,
+    InboundWebhookLog,
     IntegrationConnection,
     IntegrationSyncLog,
+    OAuthApplication,
     WebhookDelivery,
     WebhookEndpoint,
 )
@@ -265,3 +268,130 @@ class ConnectorActionSerializer(serializers.Serializer):
         default=dict,
         help_text="Action arguments dictionary",
     )
+
+
+class OAuthApplicationSerializer(serializers.ModelSerializer):
+    """Representation of an OAuth application."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    client_secret = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = OAuthApplication
+        fields = [
+            "id",
+            "name",
+            "client_id",
+            "client_secret",
+            "client_type",
+            "authorization_grant_type",
+            "redirect_uris",
+            "allowed_scopes",
+            "description",
+            "skip_authorization",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "client_id",
+            "client_secret",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class OAuthApplicationCreateSerializer(serializers.Serializer):
+    """Payload to register a new OAuth application."""
+
+    name = serializers.CharField(max_length=255)
+    client_type = serializers.ChoiceField(
+        choices=[("confidential", "Confidential"), ("public", "Public")],
+        default="confidential",
+    )
+    authorization_grant_type = serializers.ChoiceField(
+        choices=[
+            ("authorization-code", "Authorization code"),
+            ("client-credentials", "Client credentials"),
+        ],
+        default="authorization-code",
+    )
+    redirect_uris = serializers.CharField(required=False, allow_blank=True, default="")
+    allowed_scopes = serializers.CharField(required=False, default="read")
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    skip_authorization = serializers.BooleanField(required=False, default=False)
+
+
+class InboundWebhookEndpointSerializer(serializers.ModelSerializer):
+    """Representation of an inbound webhook endpoint."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    secret = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = InboundWebhookEndpoint
+        fields = [
+            "id",
+            "name",
+            "provider",
+            "signature_header",
+            "signature_algorithm",
+            "target_event",
+            "status",
+            "secret",
+            "description",
+            "last_received_at",
+            "total_received_count",
+            "last_error",
+            "config",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "secret",
+            "last_received_at",
+            "total_received_count",
+            "last_error",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class InboundWebhookEndpointCreateSerializer(serializers.Serializer):
+    """Payload to create an inbound webhook endpoint."""
+
+    name = serializers.CharField(max_length=255)
+    provider = serializers.CharField(max_length=32, default="generic")
+    signature_header = serializers.CharField(max_length=128, default="X-Signature")
+    signature_algorithm = serializers.CharField(max_length=32, default="hmac_sha256")
+    secret = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    target_event = serializers.CharField(max_length=128, default="inbound_webhook.received")
+    status = serializers.CharField(max_length=32, default="active")
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    config = serializers.DictField(required=False, default=dict)
+
+
+class InboundWebhookLogSerializer(serializers.ModelSerializer):
+    """Read-only log of an inbound webhook delivery event."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    endpoint = serializers.UUIDField(source="endpoint.public_id", read_only=True)
+
+    class Meta:
+        model = InboundWebhookLog
+        fields = [
+            "id",
+            "endpoint",
+            "event_id",
+            "event_type",
+            "verification_status",
+            "processing_status",
+            "headers",
+            "payload",
+            "error_message",
+            "duration_ms",
+            "ip_address",
+            "created_at",
+        ]
+        read_only_fields = fields

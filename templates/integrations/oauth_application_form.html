@@ -1,0 +1,135 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}
+  {% if is_new %}{% trans "Register OAuth Application" %}{% else %}{% trans "Edit OAuth Application" %}{% endif %} - Business OS
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+  <!-- Header -->
+  <div>
+    <a href="{% url 'integrations:oauth_applications_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+      &larr; {% trans "OAuth Applications" %}
+    </a>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+      {% if is_new %}{% trans "Register OAuth Application" %}{% else %}{% trans "Edit Application" %}: {{ application.name }}{% endif %}
+    </h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      {% trans "Configure client credentials, callback redirect URIs, and permitted API scopes." %}
+    </p>
+  </div>
+
+  <!-- Form -->
+  <form method="post" action="" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+    {% csrf_token %}
+
+    <!-- Name -->
+    <div>
+      <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        {% trans "Application Name" %} <span class="text-rose-500">*</span>
+      </label>
+      {{ form.name }}
+      {% if form.name.errors %}
+      <p class="mt-1 text-xs text-rose-500">{{ form.name.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Client Type & Grant Type Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label for="{{ form.client_type.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          {% trans "Client Type" %} <span class="text-rose-500">*</span>
+        </label>
+        {{ form.client_type }}
+        <p class="mt-1 text-xs text-slate-500">{% trans "Confidential (server-to-server) or Public (SPA/mobile)." %}</p>
+        {% if form.client_type.errors %}
+        <p class="mt-1 text-xs text-rose-500">{{ form.client_type.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <label for="{{ form.authorization_grant_type.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          {% trans "Grant Type" %} <span class="text-rose-500">*</span>
+        </label>
+        {{ form.authorization_grant_type }}
+        <p class="mt-1 text-xs text-slate-500">{% trans "Authorization code (with PKCE) or Client credentials." %}</p>
+        {% if form.authorization_grant_type.errors %}
+        <p class="mt-1 text-xs text-rose-500">{{ form.authorization_grant_type.errors.0 }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Redirect URIs -->
+    <div>
+      <label for="{{ form.redirect_uris.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        {% trans "Redirect URIs" %}
+      </label>
+      {{ form.redirect_uris }}
+      <p class="mt-1 text-xs text-slate-500">
+        {% trans "Allowed callback URLs separated by spaces or newlines (Required for Authorization Code grant)." %}
+      </p>
+      {% if form.redirect_uris.errors %}
+      <p class="mt-1 text-xs text-rose-500">{{ form.redirect_uris.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Allowed Scopes Checkboxes -->
+    <div class="border-t border-slate-200 dark:border-slate-800 pt-5">
+      <label class="block text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+        {% trans "Permitted Scopes" %}
+      </label>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+        {% for val, label in form.fields.scopes.choices %}
+        <label class="flex items-center space-x-2.5 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
+          <input
+            type="checkbox"
+            name="scopes"
+            value="{{ val }}"
+            {% if val in form.fields.scopes.initial or val in form.data.getlist %}checked{% endif %}
+            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          <span class="font-mono font-medium">{{ val }}</span>
+          <span class="text-slate-500 text-[11px]">({{ label }})</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div>
+      <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        {% trans "Description" %}
+      </label>
+      {{ form.description }}
+      {% if form.description.errors %}
+      <p class="mt-1 text-xs text-rose-500">{{ form.description.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Skip Authorization -->
+    <div class="flex items-center space-x-3 pt-2">
+      {{ form.skip_authorization }}
+      <label for="{{ form.skip_authorization.id_for_label }}" class="text-sm text-slate-700 dark:text-slate-300">
+        {% trans "Skip user consent screen for first-party internal clients" %}
+      </label>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+      <a
+        href="{% url 'integrations:oauth_applications_list' %}"
+        class="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+      >
+        {% trans "Cancel" %}
+      </a>
+      <button
+        type="submit"
+        class="px-5 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-600/30 transition"
+      >
+        {% if is_new %}{% trans "Register Application" %}{% else %}{% trans "Save Changes" %}{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

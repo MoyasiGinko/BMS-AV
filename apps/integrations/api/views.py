@@ -16,9 +16,14 @@ from apps.integrations import selectors, services
 from apps.integrations.api.serializers import (
     ConnectorActionSerializer,
     ExternalReferenceSerializer,
+    InboundWebhookEndpointCreateSerializer,
+    InboundWebhookEndpointSerializer,
+    InboundWebhookLogSerializer,
     IntegrationConnectionCreateSerializer,
     IntegrationConnectionSerializer,
     IntegrationSyncLogSerializer,
+    OAuthApplicationCreateSerializer,
+    OAuthApplicationSerializer,
     PingResponseSerializer,
     SecretRotationResponseSerializer,
     WebhookDeliverySerializer,
@@ -29,8 +34,10 @@ from apps.integrations.api.serializers import (
 from apps.integrations.connectors.zapier_compat import SAMPLE_PAYLOADS
 from apps.integrations.models import (
     ExternalReference,
+    InboundWebhookEndpoint,
     IntegrationConnection,
     IntegrationSyncLog,
+    OAuthApplication,
     WebhookDelivery,
     WebhookEndpoint,
 )
@@ -384,3 +391,192 @@ class ZapierSampleAPIView(APIView):
     def get(self, request: Request, event_type: str) -> Response:
         sample = SAMPLE_PAYLOADS.get(event_type) or SAMPLE_PAYLOADS.get("customer.created")
         return Response(sample, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["OAuth2"], summary="List registered OAuth applications"),
+    create=extend_schema(tags=["OAuth2"], summary="Register an OAuth application"),
+    retrieve=extend_schema(tags=["OAuth2"], summary="Retrieve OAuth application details"),
+    destroy=extend_schema(tags=["OAuth2"], summary="Delete OAuth application and revoke tokens"),
+)
+class OAuthApplicationViewSet(TenantScopedModelViewSet):
+    """ViewSet for tenant-registered OAuth2 client applications."""
+
+    serializer_class = OAuthApplicationSerializer
+    lookup_field = "public_id"
+    filterset_fields = ["client_type", "authorization_grant_type"]
+    search_fields = ["name", "client_id", "description"]
+    ordering_fields = ["created_at", "name"]
+    ordering = ["-created_at"]
+
+    def get_queryset(self) -> Any:
+        org = self.get_tenant()
+        return selectors.list_oauth_applications(org)
+
+    def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        org = self.get_tenant()
+        serializer = OAuthApplicationCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        app, raw_secret = services.create_oauth_application(
+            organization=org,
+            name=data["name"],
+            client_type=data.get("client_type", "confidential"),
+            authorization_grant_type=data.get("authorization_grant_type", "authorization-code"),
+            redirect_uris=data.get("redirect_uris", ""),
+            allowed_scopes=data.get("allowed_scopes", "read"),
+            description=data.get("description", ""),
+            skip_authorization=data.get("skip_authorization", False),
+            actor=request.user,
+        )
+
+        resp_data = OAuthApplicationSerializer(app).data
+        resp_data["client_secret"] = raw_secret
+        return Response(resp_data, status=status.HTTP_201_CREATED)
+
+    def perform_destroy(self, instance: OAuthApplication) -> None:
+        services.delete_oauth_application(application=instance, actor=self.request.user)
+
+    @extend_schema(
+        tags=["OAuth2"],
+        summary="Rotate client secret for an OAuth application",
+        responses={200: SecretRotationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="rotate-secret")
+    def rotate_secret(self, request: Request, public_id: str | None = None) -> Response:
+        app = self.get_object()
+        new_secret = services.rotate_oauth_client_secret(application=app, actor=request.user)
+        return Response({"new_secret": new_secret}, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["Inbound Webhooks"], summary="List inbound webhook endpoints"),
+    create=extend_schema(tags=["Inbound Webhooks"], summary="Create an inbound webhook endpoint"),
+    retrieve=extend_schema(tags=["Inbound Webhooks"], summary="Retrieve inbound webhook endpoint"),
+    destroy=extend_schema(tags=["Inbound Webhooks"], summary="Delete inbound webhook endpoint"),
+)
+class InboundWebhookEndpointViewSet(TenantScopedModelViewSet):
+    """ViewSet for tenant inbound webhook receiver endpoints."""
+
+    serializer_class = InboundWebhookEndpointSerializer
+    lookup_field = "public_id"
+    filterset_fields = ["provider", "signature_algorithm", "status"]
+    search_fields = ["name", "target_event", "description"]
+    ordering_fields = ["created_at", "name", "total_received_count"]
+    ordering = ["-created_at"]
+
+    def get_queryset(self) -> Any:
+        org = self.get_tenant()
+        return selectors.list_inbound_webhook_endpoints(org)
+
+    def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        org = self.get_tenant()
+        serializer = InboundWebhookEndpointCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        endpoint = services.create_inbound_webhook_endpoint(
+            organization=org,
+            name=data["name"],
+            provider=data.get("provider", "generic"),
+            signature_header=data.get("signature_header", "X-Signature"),
+            signature_algorithm=data.get("signature_algorithm", "hmac_sha256"),
+            secret=data.get("secret"),
+            target_event=data.get("target_event", "inbound_webhook.received"),
+            description=data.get("description", ""),
+            config=data.get("config"),
+            actor=request.user,
+        )
+        return Response(InboundWebhookEndpointSerializer(endpoint).data, status=status.HTTP_201_CREATED)
+
+    def perform_destroy(self, instance: InboundWebhookEndpoint) -> None:
+        services.delete_inbound_webhook_endpoint(endpoint=instance, actor=self.request.user)
+
+    @extend_schema(
+        tags=["Inbound Webhooks"],
+        summary="Rotate signing secret for an inbound webhook endpoint",
+        responses={200: SecretRotationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="rotate-secret")
+    def rotate_secret(self, request: Request, public_id: str | None = None) -> Response:
+        endpoint = self.get_object()
+        new_secret = services.rotate_inbound_webhook_secret(endpoint=endpoint, actor=request.user)
+        return Response({"new_secret": new_secret}, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["Inbound Webhooks"], summary="List inbound webhook receipt logs"),
+    retrieve=extend_schema(tags=["Inbound Webhooks"], summary="Retrieve an inbound webhook receipt log"),
+)
+class InboundWebhookLogViewSet(TenantScopedModelViewSet):
+    """Read-only ViewSet for incoming webhook logs and audit entries."""
+
+    serializer_class = InboundWebhookLogSerializer
+    lookup_field = "public_id"
+    http_method_names = ["get", "head", "options"]
+    filterset_fields = ["verification_status", "processing_status"]
+    search_fields = ["event_id", "event_type", "error_message"]
+    ordering_fields = ["created_at", "duration_ms"]
+    ordering = ["-created_at"]
+
+    def get_queryset(self) -> Any:
+        org = self.get_tenant()
+        endpoint_param = self.request.query_params.get("endpoint")
+        endpoint_obj = None
+        if endpoint_param:
+            endpoint_obj = selectors.get_inbound_webhook_endpoint(org, endpoint_id=endpoint_param)
+        return selectors.list_inbound_webhook_logs(org, endpoint=endpoint_obj, limit=200)
+
+
+class PublicInboundWebhookReceiveAPIView(APIView):
+    """Public receiver endpoint for inbound webhooks with cryptographic verification."""
+
+    authentication_classes: list[Any] = []
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        tags=["Inbound Webhooks"],
+        summary="Public webhook listener (signature-verified)",
+        responses={200: dict, 401: dict, 404: dict},
+    )
+    def post(self, request: Request, public_id: str) -> Response:
+        endpoint = selectors.get_inbound_webhook_endpoint_public(public_id)
+        if not endpoint or endpoint.status != "active":
+            return Response(
+                {"error": "Inbound webhook endpoint not found or inactive"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        raw_body = request.body
+        headers = dict(request.headers.items())
+        ip_addr = request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip() or request.META.get(
+            "REMOTE_ADDR"
+        )
+
+        log, is_valid = services.process_inbound_webhook(
+            endpoint=endpoint,
+            raw_body=raw_body,
+            headers=headers,
+            ip_address=ip_addr,
+        )
+
+        if not is_valid:
+            return Response(
+                {
+                    "status": "rejected",
+                    "error": log.error_message,
+                    "log_id": str(log.public_id),
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        return Response(
+            {
+                "status": "received",
+                "event_id": log.event_id,
+                "event_type": log.event_type,
+                "log_id": str(log.public_id),
+            },
+            status=status.HTTP_200_OK,
+        )

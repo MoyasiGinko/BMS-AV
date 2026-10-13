@@ -1,0 +1,146 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "OAuth2 Applications" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- Header -->
+  <div class="sm:flex sm:items-center sm:justify-between">
+    <div>
+      <div class="flex items-center space-x-3">
+        <a href="{% url 'integrations:connections_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+          &larr; {% trans "Integrations" %}
+        </a>
+      </div>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+        {% trans "OAuth2 Applications" %}
+      </h1>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        {% trans "Register third-party API clients, SPAs, and server integrations using OAuth2 with PKCE or Client Credentials." %}
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0 flex items-center space-x-3">
+      <a
+        href="{% url 'integrations:oauth_authorized_tokens' %}"
+        class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+      >
+        {% trans "Authorized Tokens" %}
+      </a>
+      <a
+        href="{% url 'integrations:oauth_application_create' %}"
+        class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-indigo-600/30 transition"
+      >
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        {% trans "Register Application" %}
+      </a>
+    </div>
+  </div>
+
+  <!-- Applications Table -->
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Application Name" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Client ID" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Grant Type" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Type" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Status" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Actions" %}
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for app in applications %}
+          <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div class="h-9 w-9 flex-shrink-0 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                  {{ app.name|slice:":2"|upper }}
+                </div>
+                <div class="ml-3">
+                  <a href="{% url 'integrations:oauth_application_detail' app.public_id %}" class="font-medium text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400">
+                    {{ app.name }}
+                  </a>
+                  {% if app.description %}
+                  <div class="text-xs text-slate-500 truncate max-w-xs">{{ app.description }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="font-mono text-xs text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                {{ app.client_id|slice:":12" }}...
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                {{ app.get_authorization_grant_type_display }}
+              </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+              <span class="capitalize text-xs">{{ app.client_type }}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {% if app.is_active %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+                {% trans "Active" %}
+              </span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                {% trans "Inactive" %}
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+              <a href="{% url 'integrations:oauth_application_detail' app.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                {% trans "Manage" %}
+              </a>
+              <a href="{% url 'integrations:oauth_application_edit' app.public_id %}" class="text-slate-600 dark:text-slate-400 hover:underline">
+                {% trans "Edit" %}
+              </a>
+              <a href="{% url 'integrations:oauth_application_delete' app.public_id %}" class="text-rose-600 dark:text-rose-400 hover:underline">
+                {% trans "Delete" %}
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+              <div class="max-w-sm mx-auto space-y-3">
+                <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <div class="font-medium text-slate-900 dark:text-slate-100">{% trans "No OAuth applications registered" %}</div>
+                <p class="text-xs text-slate-500">{% trans "Register an application to authenticate third-party services and mobile/SPA clients." %}</p>
+                <a
+                  href="{% url 'integrations:oauth_application_create' %}"
+                  class="inline-flex items-center px-3 py-1.5 border border-transparent rounded-lg text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
+                >
+                  {% trans "Register First Application" %}
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

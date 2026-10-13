@@ -6,13 +6,17 @@ import uuid
 from typing import Any
 
 from django.db.models import QuerySet
+from oauth2_provider.models import AccessToken
 
 from apps.integrations.models import (
     ExportJob,
     ExternalReference,
     ImportJob,
+    InboundWebhookEndpoint,
+    InboundWebhookLog,
     IntegrationConnection,
     IntegrationSyncLog,
+    OAuthApplication,
     WebhookDelivery,
     WebhookDeliveryStatus,
     WebhookEndpoint,
@@ -292,4 +296,126 @@ def list_sync_logs(
         qs = qs.filter(connection=connection)
     if status:
         qs = qs.filter(status=status)
+    return qs[:limit]
+
+
+# --- OAuth Selectors ---
+
+
+def list_oauth_applications(
+    organization: Organization,
+    *,
+    is_active: bool | None = None,
+) -> QuerySet[OAuthApplication]:
+    """List OAuth2 applications registered for a tenant organization."""
+    qs = OAuthApplication.all_tenants.filter(organization=organization).order_by("-created_at")
+    if is_active is not None:
+        qs = qs.filter(is_active=is_active)
+    return qs
+
+
+def get_oauth_application(
+    organization: Organization,
+    *,
+    application_id: str | int | uuid.UUID | None = None,
+    client_id: str | None = None,
+) -> OAuthApplication | None:
+    """Retrieve an OAuth application by ID or client_id within tenant scope."""
+    qs = OAuthApplication.all_tenants.filter(organization=organization)
+    if client_id:
+        return qs.filter(client_id=client_id).first()
+    if application_id:
+        try:
+            val_uuid = uuid.UUID(str(application_id))
+            return qs.filter(public_id=val_uuid).first()
+        except ValueError, AttributeError:
+            if str(application_id).isdigit():
+                return qs.filter(id=int(application_id)).first()
+    return None
+
+
+def get_oauth_application_by_client_id(client_id: str) -> OAuthApplication | None:
+    """Retrieve an OAuth application globally by client_id."""
+    return OAuthApplication.all_tenants.select_related("organization").filter(client_id=client_id).first()
+
+
+def list_user_authorized_tokens(
+    user: Any,
+    organization: Organization,
+) -> QuerySet[AccessToken]:
+    """List active OAuth tokens granted by a user in the organization."""
+    return (
+        AccessToken.objects.filter(
+            user=user,
+            application__organization=organization,
+        )
+        .select_related("application")
+        .order_by("-created")
+    )
+
+
+# --- Inbound Webhook Selectors ---
+
+
+def list_inbound_webhook_endpoints(
+    organization: Organization,
+    *,
+    provider: str | None = None,
+    status: str | None = None,
+) -> QuerySet[InboundWebhookEndpoint]:
+    """List inbound webhook endpoints configured for an organization."""
+    qs = InboundWebhookEndpoint.all_tenants.filter(organization=organization).order_by("-created_at")
+    if provider:
+        qs = qs.filter(provider=provider)
+    if status:
+        qs = qs.filter(status=status)
+    return qs
+
+
+def get_inbound_webhook_endpoint(
+    organization: Organization,
+    *,
+    endpoint_id: str | int | uuid.UUID,
+) -> InboundWebhookEndpoint | None:
+    """Retrieve an inbound webhook endpoint within tenant scope."""
+    qs = InboundWebhookEndpoint.all_tenants.filter(organization=organization)
+    try:
+        val_uuid = uuid.UUID(str(endpoint_id))
+        return qs.filter(public_id=val_uuid).first()
+    except ValueError, AttributeError:
+        if str(endpoint_id).isdigit():
+            return qs.filter(id=int(endpoint_id)).first()
+    return None
+
+
+def get_inbound_webhook_endpoint_public(public_id: str | uuid.UUID) -> InboundWebhookEndpoint | None:
+    """Retrieve an active inbound webhook endpoint globally for receiving webhooks."""
+    try:
+        val_uuid = uuid.UUID(str(public_id))
+        return (
+            InboundWebhookEndpoint.all_tenants.select_related("organization")
+            .filter(public_id=val_uuid)
+            .first()
+        )
+    except ValueError, AttributeError:
+        return None
+
+
+def list_inbound_webhook_logs(
+    organization: Organization,
+    *,
+    endpoint: InboundWebhookEndpoint | None = None,
+    verification_status: str | None = None,
+    limit: int = 50,
+) -> QuerySet[InboundWebhookLog]:
+    """Retrieve audit log history for inbound webhooks."""
+    qs = (
+        InboundWebhookLog.all_tenants.filter(organization=organization)
+        .select_related("endpoint")
+        .order_by("-created_at")
+    )
+    if endpoint:
+        qs = qs.filter(endpoint=endpoint)
+    if verification_status:
+        qs = qs.filter(verification_status=verification_status)
     return qs[:limit]
