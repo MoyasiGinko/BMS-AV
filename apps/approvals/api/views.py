@@ -46,7 +46,7 @@ class ApprovalRuleViewSet(TenantScopedModelViewSet):
     ordering = ["sort_order", "id"]
 
     def perform_create(self, serializer: Any) -> None:
-        org = self.get_organization()
+        org = self.get_tenant()
         rule = services.create_approval_rule(
             organization=org,
             actor=self.request.user,
@@ -63,7 +63,7 @@ class ApprovalRuleViewSet(TenantScopedModelViewSet):
         serializer.instance = rule
 
     def perform_destroy(self, instance: ApprovalRule) -> None:
-        org = self.get_organization()
+        org = self.get_tenant()
         services.delete_approval_rule(
             organization=org,
             actor=self.request.user,
@@ -78,13 +78,17 @@ class ApprovalRuleViewSet(TenantScopedModelViewSet):
 class ApprovalRequestViewSet(TenantScopedModelViewSet):
     """View and decide approval requests."""
 
-    queryset = ApprovalRequest.objects.all().select_related(
-        "rule",
-        "requester",
-        "assigned_role",
-        "assigned_user",
-        "reviewed_by",
-    ).prefetch_related("history", "history__actor")
+    queryset = (
+        ApprovalRequest.objects.all()
+        .select_related(
+            "rule",
+            "requester",
+            "assigned_role",
+            "assigned_user",
+            "reviewed_by",
+        )
+        .prefetch_related("history", "history__actor")
+    )
     serializer_class = ApprovalRequestSerializer
     filterset_fields = ["status", "document_type"]
     search_fields = ["document_reference", "document_title", "submission_notes"]
@@ -107,12 +111,12 @@ class ApprovalRequestViewSet(TenantScopedModelViewSet):
 
         try:
             updated = services.approve_request(
-                organization=self.get_organization(),
+                organization=self.get_tenant(),
                 actor=request.user,
                 request=approval_req,
                 notes=notes,
             )
-            return Response(self.get_serializer(updated).data)
+            return Response(ApprovalRequestSerializer(updated).data)
         except (InvalidApprovalStateError, UnauthorizedApproverError, ApprovalsException) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -132,12 +136,12 @@ class ApprovalRequestViewSet(TenantScopedModelViewSet):
 
         try:
             updated = services.reject_request(
-                organization=self.get_organization(),
+                organization=self.get_tenant(),
                 actor=request.user,
                 request=approval_req,
                 notes=notes,
             )
-            return Response(self.get_serializer(updated).data)
+            return Response(ApprovalRequestSerializer(updated).data)
         except (InvalidApprovalStateError, UnauthorizedApproverError, ApprovalsException) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -157,11 +161,11 @@ class ApprovalRequestViewSet(TenantScopedModelViewSet):
 
         try:
             updated = services.cancel_request(
-                organization=self.get_organization(),
+                organization=self.get_tenant(),
                 actor=request.user,
                 request=approval_req,
                 notes=notes,
             )
-            return Response(self.get_serializer(updated).data)
+            return Response(ApprovalRequestSerializer(updated).data)
         except (InvalidApprovalStateError, UnauthorizedApproverError, ApprovalsException) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

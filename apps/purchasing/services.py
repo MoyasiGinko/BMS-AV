@@ -14,6 +14,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.accounting import services as accounting_services
+from apps.approvals.models import ApprovalRuleType
+from apps.approvals.services import evaluate_approval_required, request_approval
 from apps.catalog.models import Product
 from apps.core import events
 from apps.core.services import generate_next_number
@@ -312,13 +314,10 @@ def submit_purchase_order(
     po.status = PurchaseOrderStatus.SUBMITTED
     po.save(update_fields=["status", "updated_at"])
 
-    from apps.approvals.models import ApprovalRuleType
-    from apps.approvals.services import evaluate_approval_required, request_approval
-
     rule = evaluate_approval_required(
         organization=organization,
         document_type=ApprovalRuleType.PURCHASE_ORDER,
-        amount=po.total_amount,
+        amount=po.grand_total,
     )
     if rule:
         request_approval(
@@ -327,8 +326,8 @@ def submit_purchase_order(
             document_type=ApprovalRuleType.PURCHASE_ORDER,
             document_id=po.pk,
             document_reference=po.order_number,
-            document_title=f"Purchase Order {po.order_number} for {po.supplier.name} (${po.total_amount})",
-            amount=po.total_amount,
+            document_title=f"Purchase Order {po.order_number} for {po.supplier.name} (${po.grand_total})",
+            amount=po.grand_total,
             rule=rule,
         )
 

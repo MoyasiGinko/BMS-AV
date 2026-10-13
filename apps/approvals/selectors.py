@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
 import uuid
+from typing import Any
 
 from django.db.models import Q, QuerySet
 
@@ -26,15 +26,17 @@ def list_approval_requests(
     only_assigned: bool = False,
 ) -> QuerySet[ApprovalRequest]:
     """Return filtered queryset of approval requests for an organization."""
-    qs = ApprovalRequest.all_tenants.filter(
-        organization=organization
-    ).select_related(
-        "rule",
-        "requester",
-        "assigned_role",
-        "assigned_user",
-        "reviewed_by",
-    ).order_by("-created_at")
+    qs = (
+        ApprovalRequest.all_tenants.filter(organization=organization)
+        .select_related(
+            "rule",
+            "requester",
+            "assigned_role",
+            "assigned_user",
+            "reviewed_by",
+        )
+        .order_by("-created_at")
+    )
 
     if status:
         qs = qs.filter(status=status)
@@ -62,9 +64,7 @@ def list_approval_requests(
         # Show if assigned directly to user, or to user's role, or unassigned (open)
         role_q = Q(assigned_role_id=user_role_id) if user_role_id else Q()
         qs = qs.filter(
-            Q(assigned_user=user)
-            | role_q
-            | (Q(assigned_user__isnull=True) & Q(assigned_role__isnull=True))
+            Q(assigned_user=user) | role_q | (Q(assigned_user__isnull=True) & Q(assigned_role__isnull=True))
         )
 
     return qs
@@ -77,17 +77,19 @@ def get_approval_request(
     public_id: uuid.UUID | str | None = None,
 ) -> ApprovalRequest | None:
     """Retrieve an approval request with all relations loaded."""
-    qs = ApprovalRequest.all_tenants.filter(
-        organization=organization
-    ).select_related(
-        "rule",
-        "requester",
-        "assigned_role",
-        "assigned_user",
-        "reviewed_by",
-    ).prefetch_related(
-        "history",
-        "history__actor",
+    qs = (
+        ApprovalRequest.all_tenants.filter(organization=organization)
+        .select_related(
+            "rule",
+            "requester",
+            "assigned_role",
+            "assigned_user",
+            "reviewed_by",
+        )
+        .prefetch_related(
+            "history",
+            "history__actor",
+        )
     )
 
     if pk is not None:
@@ -117,13 +119,15 @@ def list_approval_rules(
     is_active: bool | None = None,
 ) -> QuerySet[ApprovalRule]:
     """Return approval rules ordered by sort order."""
-    qs = ApprovalRule.all_tenants.filter(
-        organization=organization
-    ).select_related(
-        "approver_role",
-        "approver_user",
-        "created_by",
-    ).order_by("sort_order", "id")
+    qs = (
+        ApprovalRule.all_tenants.filter(organization=organization)
+        .select_related(
+            "approver_role",
+            "approver_user",
+            "created_by",
+        )
+        .order_by("sort_order", "id")
+    )
 
     if rule_type:
         qs = qs.filter(rule_type=rule_type)
@@ -141,9 +145,9 @@ def get_approval_rule(
     public_id: uuid.UUID | str | None = None,
 ) -> ApprovalRule | None:
     """Retrieve an approval rule by primary key or public ID."""
-    qs = ApprovalRule.all_tenants.filter(
-        organization=organization
-    ).select_related("approver_role", "approver_user", "created_by")
+    qs = ApprovalRule.all_tenants.filter(organization=organization).select_related(
+        "approver_role", "approver_user", "created_by"
+    )
 
     if pk is not None:
         return qs.filter(pk=pk).first()
@@ -158,12 +162,14 @@ def list_approval_history(
     request: ApprovalRequest | None = None,
 ) -> QuerySet[ApprovalHistory]:
     """Return audit history records for requests in an organization."""
-    qs = ApprovalHistory.all_tenants.filter(
-        organization=organization
-    ).select_related(
-        "request",
-        "actor",
-    ).order_by("-created_at")
+    qs = (
+        ApprovalHistory.all_tenants.filter(organization=organization)
+        .select_related(
+            "request",
+            "actor",
+        )
+        .order_by("-created_at")
+    )
 
     if request is not None:
         qs = qs.filter(request=request)

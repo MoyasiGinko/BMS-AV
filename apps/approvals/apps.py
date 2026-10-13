@@ -1,3 +1,5 @@
+import importlib
+
 from django.apps import AppConfig
 from django.utils.translation import gettext_lazy as _
 
@@ -8,4 +10,4 @@ class ApprovalsConfig(AppConfig):
     verbose_name = _("Approvals Engine")
 
     def ready(self) -> None:
-        import apps.approvals.permissions  # noqa: F401
+        importlib.import_module("apps.approvals.permissions")

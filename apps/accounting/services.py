@@ -9,8 +9,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.accounting.events import (
     BankAccountCreated,
@@ -56,6 +58,8 @@ from apps.accounting.models import (
     TaxPeriodSummary,
     TaxSummaryStatus,
 )
+from apps.approvals.models import ApprovalRequest, ApprovalRuleType, ApprovalStatus
+from apps.approvals.services import evaluate_approval_required, request_approval
 from apps.core.events import publish
 from apps.core.services import generate_next_number
 from apps.tenancy.models import Organization
@@ -893,22 +897,20 @@ def create_expense(
         )
     )
 
-    from apps.approvals.models import ApprovalRuleType
-    from apps.approvals.services import evaluate_approval_required, request_approval
-
     rule = evaluate_approval_required(
         organization=organization,
         document_type=ApprovalRuleType.EXPENSE,
         amount=expense.total_amount,
     )
     if rule:
+        desc = f"Expense {expense.expense_number} - {expense.vendor_name or expense.category.name}"
         request_approval(
             organization=organization,
             actor=actor,
             document_type=ApprovalRuleType.EXPENSE,
             document_id=expense.pk,
             document_reference=expense.expense_number,
-            document_title=f"Expense {expense.expense_number} - {expense.vendor_name or expense.category.name} (${expense.total_amount})",
+            document_title=f"{desc} (${expense.total_amount})",
             amount=expense.total_amount,
             rule=rule,
         )
@@ -927,9 +929,6 @@ def post_expense(
     target_exp = Expense.all_tenants.select_for_update().get(pk=expense.pk, organization=organization)
     if target_exp.status != ExpenseStatus.DRAFT:
         raise ExpenseAlreadyPostedError(f"Expense '{target_exp.expense_number}' is not in draft status.")
-
-    from apps.approvals.models import ApprovalRequest, ApprovalRuleType, ApprovalStatus
-    from apps.approvals.services import evaluate_approval_required
 
     rule = evaluate_approval_required(
         organization=organization,

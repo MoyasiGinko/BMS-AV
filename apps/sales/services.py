@@ -8,12 +8,15 @@ import logging
 from decimal import Decimal
 from typing import Any
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
 from apps.accounting import services as accounting_services
 from apps.accounting.exceptions import PeriodClosed
 from apps.accounting.services import Cr, Dr
+from apps.approvals.models import ApprovalRequest, ApprovalRuleType, ApprovalStatus
+from apps.approvals.services import evaluate_approval_required, request_approval
 from apps.catalog.models import Product, ProductType, ProductVariant
 from apps.core.events import publish
 from apps.core.notifications import send_notification
@@ -408,6 +411,25 @@ def create_sales_order(
     order.grand_total = subtotal - discount_total + tax_total
     order.save(update_fields=["subtotal", "discount_total", "tax_total", "grand_total", "updated_at"])
 
+    max_disc = max((line.discount_percent for line in order.lines.all()), default=Decimal("0.00"))
+    rule = evaluate_approval_required(
+        organization=organization,
+        document_type=ApprovalRuleType.DISCOUNT,
+        discount_percent=max_disc,
+    )
+    if rule:
+        request_approval(
+            organization=organization,
+            actor=actor,
+            document_type=ApprovalRuleType.DISCOUNT,
+            document_id=order.pk,
+            document_reference=order.order_number,
+            document_title=f"Sales Order {order.order_number} ({max_disc}% discount) for {customer.name}",
+            amount=order.grand_total,
+            discount_percent=max_disc,
+            rule=rule,
+        )
+
     publish(
         SalesOrderCreated(organization_id=organization.pk, order_id=order.pk, order_number=order.order_number)
     )
@@ -443,11 +465,6 @@ def confirm_sales_order(
             f"(balance: {cur_bal}, limit: {limit})."
         )
 
-    from django.core.exceptions import ValidationError
-
-    from apps.approvals.models import ApprovalRequest, ApprovalRuleType, ApprovalStatus
-    from apps.approvals.services import evaluate_approval_required, request_approval
-
     max_disc = max((line.discount_percent for line in order.lines.all()), default=Decimal("0.00"))
     rule = evaluate_approval_required(
         organization=organization,
@@ -460,22 +477,12 @@ def confirm_sales_order(
             document_type=ApprovalRuleType.DISCOUNT,
             document_id=str(order.pk),
         ).first()
-        if not app_req:
-            app_req = request_approval(
-                organization=organization,
-                actor=actor,
-                document_type=ApprovalRuleType.DISCOUNT,
-                document_id=order.pk,
-                document_reference=order.order_number,
-                document_title=f"Sales Order {order.order_number} ({max_disc}% discount) for {customer.name}",
-                amount=order.grand_total,
-                discount_percent=max_disc,
-                rule=rule,
+        if not app_req or app_req.status != ApprovalStatus.APPROVED:
+            msg = (
+                f"Sales order {order.order_number} requires discount approval "
+                f"({max_disc}% >= {rule.min_discount_percent}%) before confirmation."
             )
-        if app_req.status != ApprovalStatus.APPROVED:
-            raise ValidationError(
-                f"Sales order {order.order_number} requires discount approval ({max_disc}% >= {rule.min_discount_percent}%) before confirmation."
-            )
+            raise ValidationError(msg)
 
     order.status = SalesOrderStatus.CONFIRMED
     order.save(update_fields=["status", "updated_at"])

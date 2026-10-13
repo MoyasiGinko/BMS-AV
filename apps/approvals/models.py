@@ -9,28 +9,12 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.approvals.constants import (
+    ApprovalAction,
+    ApprovalRuleType,
+    ApprovalStatus,
+)
 from apps.core.models import TenantModel
-
-
-class ApprovalRuleType(models.TextChoices):
-    PURCHASE_ORDER = "purchase_order", _("Purchase Order")
-    EXPENSE = "expense", _("Expense")
-    PAYROLL = "payroll", _("Payroll Run")
-    DISCOUNT = "discount", _("Sales Discount")
-
-
-class ApprovalStatus(models.TextChoices):
-    PENDING = "pending", _("Pending Approval")
-    APPROVED = "approved", _("Approved")
-    REJECTED = "rejected", _("Rejected")
-    CANCELLED = "cancelled", _("Cancelled")
-
-
-class ApprovalAction(models.TextChoices):
-    SUBMITTED = "submitted", _("Submitted")
-    APPROVED = "approved", _("Approved")
-    REJECTED = "rejected", _("Rejected")
-    CANCELLED = "cancelled", _("Cancelled")
 
 
 class ApprovalRule(TenantModel):
@@ -55,7 +39,9 @@ class ApprovalRule(TenantModel):
         max_digits=5,
         decimal_places=2,
         default=Decimal("0.00"),
-        help_text=_("Trigger approval when sales discount percentage is greater than or equal to this percentage."),
+        help_text=_(
+            "Trigger approval when sales discount percentage is greater than or equal to this percentage."
+        ),
     )
     approver_role = models.ForeignKey(
         "tenancy.Role",
@@ -64,7 +50,9 @@ class ApprovalRule(TenantModel):
         blank=True,
         related_name="approval_rules",
         verbose_name=_("assigned approver role"),
-        help_text=_("Designated role authorized to approve or reject this request. If blank, any authorized user can approve."),
+        help_text=_(
+            "Designated role authorized to approve or reject this request. If blank, any user can approve."
+        ),
     )
     approver_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -73,7 +61,9 @@ class ApprovalRule(TenantModel):
         blank=True,
         related_name="assigned_approval_rules",
         verbose_name=_("assigned approver user"),
-        help_text=_("Specific user assigned to approve. If blank, any member with the approver role can approve."),
+        help_text=_(
+            "Specific user assigned to approve. If blank, any member with the approver role can approve."
+        ),
     )
     is_active = models.BooleanField(_("active"), default=True)
     sort_order = models.PositiveIntegerField(_("sort order / priority"), default=10)

@@ -13,7 +13,17 @@ from apps.approvals.models import (
     ApprovalRuleType,
     ApprovalStatus,
 )
-from apps.tenancy.models import Organization, Role
+from apps.tenancy.models import Membership, Organization, Role
+
+_INPUT_CLS = (
+    "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 "
+    "text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500"
+)
+_MONO_INPUT_CLS = f"{_INPUT_CLS} font-mono"
+_FILTER_INPUT_CLS = (
+    "rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 "
+    "text-slate-900 dark:text-white text-sm px-3 py-1.5 focus:ring-2 focus:ring-primary-500"
+)
 
 
 class ApprovalRuleForm(forms.ModelForm):
@@ -35,50 +45,38 @@ class ApprovalRuleForm(forms.ModelForm):
         widgets = {
             "name": forms.TextInput(
                 attrs={
-                    "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500",
+                    "class": _INPUT_CLS,
                     "placeholder": _("e.g. Purchase Order over $5,000"),
                 }
             ),
-            "rule_type": forms.Select(
-                attrs={
-                    "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500",
-                }
-            ),
+            "rule_type": forms.Select(attrs={"class": _INPUT_CLS}),
             "description": forms.Textarea(
                 attrs={
-                    "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500",
+                    "class": _INPUT_CLS,
                     "rows": 3,
                     "placeholder": _("Optional description of policy rationale..."),
                 }
             ),
             "min_amount": forms.NumberInput(
                 attrs={
-                    "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 font-mono",
+                    "class": _MONO_INPUT_CLS,
                     "step": "0.01",
                     "min": "0",
                 }
             ),
             "min_discount_percent": forms.NumberInput(
                 attrs={
-                    "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 font-mono",
+                    "class": _MONO_INPUT_CLS,
                     "step": "0.01",
                     "min": "0",
                     "max": "100",
                 }
             ),
-            "approver_role": forms.Select(
-                attrs={
-                    "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500",
-                }
-            ),
-            "approver_user": forms.Select(
-                attrs={
-                    "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500",
-                }
-            ),
+            "approver_role": forms.Select(attrs={"class": _INPUT_CLS}),
+            "approver_user": forms.Select(attrs={"class": _INPUT_CLS}),
             "sort_order": forms.NumberInput(
                 attrs={
-                    "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 font-mono",
+                    "class": _MONO_INPUT_CLS,
                     "min": "1",
                 }
             ),
@@ -96,7 +94,9 @@ class ApprovalRuleForm(forms.ModelForm):
         self.fields["approver_role"].queryset = Role.objects.filter(organization=organization)
         self.fields["approver_role"].empty_label = _("Any Authorized Role (Default)")
 
-        org_user_ids = organization.memberships.values_list("user_id", flat=True)
+        org_user_ids = Membership.all_tenants.filter(organization=organization).values_list(
+            "user_id", flat=True
+        )
         self.fields["approver_user"].queryset = User.objects.filter(id__in=org_user_ids).order_by("email")
         self.fields["approver_user"].empty_label = _("Any User in Role (Default)")
 
@@ -108,7 +108,7 @@ class ApprovalDecisionForm(forms.Form):
         required=False,
         widget=forms.Textarea(
             attrs={
-                "class": "w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500",
+                "class": _INPUT_CLS,
                 "rows": 3,
                 "placeholder": _("Add decision notes or rejection reasons..."),
             }
@@ -123,26 +123,18 @@ class ApprovalFilterForm(forms.Form):
     status = forms.ChoiceField(
         required=False,
         choices=[("", _("All Statuses")), *list(ApprovalStatus.choices)],
-        widget=forms.Select(
-            attrs={
-                "class": "rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm px-3 py-1.5 focus:ring-2 focus:ring-primary-500",
-            }
-        ),
+        widget=forms.Select(attrs={"class": _FILTER_INPUT_CLS}),
     )
     document_type = forms.ChoiceField(
         required=False,
         choices=[("", _("All Types")), *list(ApprovalRuleType.choices)],
-        widget=forms.Select(
-            attrs={
-                "class": "rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm px-3 py-1.5 focus:ring-2 focus:ring-primary-500",
-            }
-        ),
+        widget=forms.Select(attrs={"class": _FILTER_INPUT_CLS}),
     )
     search = forms.CharField(
         required=False,
         widget=forms.TextInput(
             attrs={
-                "class": "rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm px-3 py-1.5 focus:ring-2 focus:ring-primary-500",
+                "class": _FILTER_INPUT_CLS,
                 "placeholder": _("Search reference, title..."),
             }
         ),

@@ -11,6 +11,8 @@ from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounting import services as accounting_services
+from apps.approvals.models import ApprovalRuleType
+from apps.approvals.services import evaluate_approval_required, request_approval
 from apps.core.events import publish
 from apps.core.services import generate_next_number
 from apps.hr.models import Employee, LeaveRequest, LeaveRequestStatus
@@ -614,22 +616,20 @@ def review_payroll_run(
         )
     )
 
-    from apps.approvals.models import ApprovalRuleType
-    from apps.approvals.services import evaluate_approval_required, request_approval
-
     rule = evaluate_approval_required(
         organization=run.organization,
         document_type=ApprovalRuleType.PAYROLL,
         amount=run.total_gross_pay,
     )
     if rule:
+        title = f"Payroll Run {run.number} ({run.period_start} to {run.period_end}) - ${run.total_gross_pay}"
         request_approval(
             organization=run.organization,
             actor=actor,
             document_type=ApprovalRuleType.PAYROLL,
             document_id=run.pk,
-            document_reference=run.run_number,
-            document_title=f"Payroll Run {run.run_number} ({run.period_start} to {run.period_end}) - Gross ${run.total_gross_pay}",
+            document_reference=run.number,
+            document_title=title,
             amount=run.total_gross_pay,
             rule=rule,
         )

@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404, HttpRequest, HttpResponse
+from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
@@ -25,7 +23,6 @@ from apps.approvals.forms import (
 )
 from apps.approvals.models import (
     ApprovalRequest,
-    ApprovalRule,
     ApprovalRuleType,
     ApprovalStatus,
 )
@@ -85,8 +82,7 @@ def request_detail(request: HttpRequest, pk: int) -> HttpResponse:
     org = get_current_organization()
     req = selectors.get_approval_request(organization=org, pk=pk)
     if not req:
-        messages.error(request, _("Approval request not found."))
-        return redirect("approvals:inbox")
+        raise Http404(_("Approval request not found."))
 
     can_approve = services.check_can_approve(
         organization=org,
@@ -111,10 +107,9 @@ def request_approve(request: HttpRequest, pk: int) -> HttpResponse:
     org = get_current_organization()
     req = selectors.get_approval_request(organization=org, pk=pk)
     if not req:
-        messages.error(request, _("Approval request not found."))
-        return redirect("approvals:inbox")
+        raise Http404(_("Approval request not found."))
 
-    notes = request.POST.get("notes", "")
+    notes = request.POST.get("decision_notes") or request.POST.get("notes", "")
 
     try:
         services.approve_request(
@@ -151,10 +146,9 @@ def request_reject(request: HttpRequest, pk: int) -> HttpResponse:
     org = get_current_organization()
     req = selectors.get_approval_request(organization=org, pk=pk)
     if not req:
-        messages.error(request, _("Approval request not found."))
-        return redirect("approvals:inbox")
+        raise Http404(_("Approval request not found."))
 
-    notes = request.POST.get("notes", "")
+    notes = request.POST.get("decision_notes") or request.POST.get("notes", "")
 
     try:
         services.reject_request(
@@ -190,10 +184,9 @@ def request_cancel(request: HttpRequest, pk: int) -> HttpResponse:
     org = get_current_organization()
     req = selectors.get_approval_request(organization=org, pk=pk)
     if not req:
-        messages.error(request, _("Approval request not found."))
-        return redirect("approvals:inbox")
+        raise Http404(_("Approval request not found."))
 
-    notes = request.POST.get("notes", "")
+    notes = request.POST.get("decision_notes") or request.POST.get("notes", "")
 
     try:
         services.cancel_request(
@@ -263,8 +256,7 @@ def rule_edit(request: HttpRequest, pk: int) -> HttpResponse:
     org = get_current_organization()
     rule = selectors.get_approval_rule(organization=org, pk=pk)
     if not rule:
-        messages.error(request, _("Approval rule not found."))
-        return redirect("approvals:rule_list")
+        raise Http404(_("Approval rule not found."))
 
     if request.method == "POST":
         form = ApprovalRuleForm(request.POST, instance=rule, organization=org)
@@ -302,8 +294,7 @@ def rule_delete(request: HttpRequest, pk: int) -> HttpResponse:
     org = get_current_organization()
     rule = selectors.get_approval_rule(organization=org, pk=pk)
     if not rule:
-        messages.error(request, _("Approval rule not found."))
-        return redirect("approvals:rule_list")
+        raise Http404(_("Approval rule not found."))
 
     name = rule.name
     services.delete_approval_rule(organization=org, actor=request.user, rule=rule)

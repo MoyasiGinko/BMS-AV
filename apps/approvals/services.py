@@ -54,7 +54,9 @@ def check_can_approve(
     """Return True if actor is authorized to approve or reject this request."""
     if not actor or not actor.is_authenticated:
         return False
-    if getattr(actor, "is_superuser", False):
+    if getattr(actor, "is_superuser", False) or (
+        request.assigned_user_id and actor.pk == request.assigned_user_id
+    ):
         return True
 
     membership = (
@@ -62,24 +64,18 @@ def check_can_approve(
         if hasattr(actor, "memberships")
         else None
     )
-    if membership and membership.role:
-        # Organization Owner and Admin can decide all requests
-        if membership.role.name in ("Owner", "Admin"):
-            return True
-        # Assigned role match
-        if request.assigned_role_id and membership.role_id == request.assigned_role_id:
-            return True
+    if not membership or not membership.role:
+        return False
 
-    # Specific assigned user match
-    if request.assigned_user_id and actor.pk == request.assigned_user_id:
+    role = membership.role
+    if role.name in ("Owner", "Admin") or (
+        request.assigned_role_id and membership.role_id == request.assigned_role_id
+    ):
         return True
 
-    # Unassigned request: any user with approvals.approve permission
     if not request.assigned_role_id and not request.assigned_user_id:
-        if membership and membership.role:
-            perms = membership.role.permissions or []
-            if "*" in perms or "approvals.*" in perms or "approvals.approve" in perms:
-                return True
+        perms = role.permissions or []
+        return any(p in perms for p in ("*", "approvals.*", "approvals.approve"))
 
     return False
 
@@ -87,6 +83,23 @@ def check_can_approve(
 # ---------------------------------------------------------------------------
 # Approval Rule Services
 # ---------------------------------------------------------------------------
+
+
+def _validate_rule_thresholds(
+    *,
+    name: str | None,
+    rule_type: str | None,
+    min_amount: Decimal | None,
+    min_discount_percent: Decimal | None,
+) -> None:
+    if name is not None and not name.strip():
+        raise ApprovalRuleValidationError("Rule name cannot be empty.")
+    if rule_type is not None and rule_type not in ApprovalRuleType.values:
+        raise ApprovalRuleValidationError(f"Invalid rule type '{rule_type}'.")
+    if min_amount is not None and min_amount < 0:
+        raise ApprovalRuleValidationError("Minimum amount cannot be negative.")
+    if min_discount_percent is not None and (min_discount_percent < 0 or min_discount_percent > 100):
+        raise ApprovalRuleValidationError("Discount percent must be between 0 and 100.")
 
 
 @transaction.atomic
@@ -105,14 +118,12 @@ def create_approval_rule(
     description: str = "",
 ) -> ApprovalRule:
     """Create a new configurable approval rule for the organization."""
-    if not name or not name.strip():
-        raise ApprovalRuleValidationError("Rule name cannot be empty.")
-    if rule_type not in ApprovalRuleType.values:
-        raise ApprovalRuleValidationError(f"Invalid rule type '{rule_type}'.")
-    if min_amount < 0:
-        raise ApprovalRuleValidationError("Minimum amount cannot be negative.")
-    if min_discount_percent < 0 or min_discount_percent > 100:
-        raise ApprovalRuleValidationError("Discount percent must be between 0 and 100.")
+    _validate_rule_thresholds(
+        name=name,
+        rule_type=rule_type,
+        min_amount=min_amount,
+        min_discount_percent=min_discount_percent,
+    )
 
     rule = ApprovalRule(
         organization=organization,
@@ -158,54 +169,45 @@ def update_approval_rule(
     description: str | None = None,
 ) -> ApprovalRule:
     """Update an existing approval rule."""
-    target_rule = ApprovalRule.all_tenants.select_for_update().filter(
-        pk=rule.pk, organization=organization
-    ).first()
+    target_rule = (
+        ApprovalRule.all_tenants.select_for_update().filter(pk=rule.pk, organization=organization).first()
+    )
     if not target_rule:
         raise ApprovalRuleNotFoundError("Approval rule not found.")
+
+    _validate_rule_thresholds(
+        name=name,
+        rule_type=rule_type,
+        min_amount=min_amount,
+        min_discount_percent=min_discount_percent,
+    )
 
     update_fields = ["updated_at"]
 
     if name is not None:
-        if not name.strip():
-            raise ApprovalRuleValidationError("Rule name cannot be empty.")
         target_rule.name = name.strip()
         update_fields.append("name")
-
     if rule_type is not None:
-        if rule_type not in ApprovalRuleType.values:
-            raise ApprovalRuleValidationError(f"Invalid rule type '{rule_type}'.")
         target_rule.rule_type = rule_type
         update_fields.append("rule_type")
-
     if min_amount is not None:
-        if min_amount < 0:
-            raise ApprovalRuleValidationError("Minimum amount cannot be negative.")
         target_rule.min_amount = min_amount
         update_fields.append("min_amount")
-
     if min_discount_percent is not None:
-        if min_discount_percent < 0 or min_discount_percent > 100:
-            raise ApprovalRuleValidationError("Discount percent must be between 0 and 100.")
         target_rule.min_discount_percent = min_discount_percent
         update_fields.append("min_discount_percent")
-
     if approver_role is not ...:
         target_rule.approver_role = approver_role
         update_fields.append("approver_role")
-
     if approver_user is not ...:
         target_rule.approver_user = approver_user
         update_fields.append("approver_user")
-
     if is_active is not None:
         target_rule.is_active = is_active
         update_fields.append("is_active")
-
     if sort_order is not None:
         target_rule.sort_order = sort_order
         update_fields.append("sort_order")
-
     if description is not None:
         target_rule.description = description.strip()
         update_fields.append("description")
@@ -232,9 +234,9 @@ def delete_approval_rule(
     rule: ApprovalRule,
 ) -> None:
     """Delete an approval rule."""
-    target_rule = ApprovalRule.all_tenants.select_for_update().filter(
-        pk=rule.pk, organization=organization
-    ).first()
+    target_rule = (
+        ApprovalRule.all_tenants.select_for_update().filter(pk=rule.pk, organization=organization).first()
+    )
     if not target_rule:
         raise ApprovalRuleNotFoundError("Approval rule not found.")
 
@@ -275,16 +277,18 @@ def evaluate_approval_required(
     ).order_by("sort_order", "-min_amount", "-min_discount_percent")
 
     for rule in rules:
-        if document_type in (
-            ApprovalRuleType.PURCHASE_ORDER,
-            ApprovalRuleType.EXPENSE,
-            ApprovalRuleType.PAYROLL,
+        if (
+            document_type
+            in (
+                ApprovalRuleType.PURCHASE_ORDER,
+                ApprovalRuleType.EXPENSE,
+                ApprovalRuleType.PAYROLL,
+            )
+            and amount >= rule.min_amount
         ):
-            if amount >= rule.min_amount:
-                return rule
-        elif document_type == ApprovalRuleType.DISCOUNT:
-            if discount_percent >= rule.min_discount_percent:
-                return rule
+            return rule
+        if document_type == ApprovalRuleType.DISCOUNT and discount_percent >= rule.min_discount_percent:
+            return rule
 
     return None
 
@@ -376,16 +380,20 @@ def approve_request(
     notes: str = "",
 ) -> ApprovalRequest:
     """Approve a pending approval request, execute registered callbacks, and record history."""
-    req = ApprovalRequest.all_tenants.select_for_update().filter(
-        pk=request.pk, organization=organization
-    ).first()
+    req = (
+        ApprovalRequest.all_tenants.select_for_update()
+        .filter(pk=request.pk, organization=organization)
+        .first()
+    )
     if not req:
         raise ApprovalRequestNotFoundError("Approval request not found.")
 
     if req.status != ApprovalStatus.PENDING:
-        raise InvalidApprovalStateError(
-            f"Cannot approve request with status '{req.get_status_display()}'. Only pending requests can be approved."
+        msg = (
+            f"Cannot approve request with status '{req.get_status_display()}'. "
+            "Only pending requests can be approved."
         )
+        raise InvalidApprovalStateError(msg)
 
     if not check_can_approve(organization=organization, actor=actor, request=req):
         raise UnauthorizedApproverError("You do not have permission to approve this request.")
@@ -433,16 +441,20 @@ def reject_request(
     notes: str = "",
 ) -> ApprovalRequest:
     """Reject a pending approval request, execute registered callbacks, and record history."""
-    req = ApprovalRequest.all_tenants.select_for_update().filter(
-        pk=request.pk, organization=organization
-    ).first()
+    req = (
+        ApprovalRequest.all_tenants.select_for_update()
+        .filter(pk=request.pk, organization=organization)
+        .first()
+    )
     if not req:
         raise ApprovalRequestNotFoundError("Approval request not found.")
 
     if req.status != ApprovalStatus.PENDING:
-        raise InvalidApprovalStateError(
-            f"Cannot reject request with status '{req.get_status_display()}'. Only pending requests can be rejected."
+        msg = (
+            f"Cannot reject request with status '{req.get_status_display()}'. "
+            "Only pending requests can be rejected."
         )
+        raise InvalidApprovalStateError(msg)
 
     if not check_can_approve(organization=organization, actor=actor, request=req):
         raise UnauthorizedApproverError("You do not have permission to reject this request.")
@@ -490,16 +502,16 @@ def cancel_request(
     notes: str = "",
 ) -> ApprovalRequest:
     """Cancel a pending approval request (typically by the original requester or admin)."""
-    req = ApprovalRequest.all_tenants.select_for_update().filter(
-        pk=request.pk, organization=organization
-    ).first()
+    req = (
+        ApprovalRequest.all_tenants.select_for_update()
+        .filter(pk=request.pk, organization=organization)
+        .first()
+    )
     if not req:
         raise ApprovalRequestNotFoundError("Approval request not found.")
 
     if req.status != ApprovalStatus.PENDING:
-        raise InvalidApprovalStateError(
-            f"Cannot cancel request with status '{req.get_status_display()}'."
-        )
+        raise InvalidApprovalStateError(f"Cannot cancel request with status '{req.get_status_display()}'.")
 
     # Actor must be the requester or have admin/owner privilege
     is_requester = req.requester_id == getattr(actor, "pk", None)
