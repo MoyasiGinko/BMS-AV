@@ -6,6 +6,8 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from apps.integrations.api.views import (
+    DataRetentionPolicyViewSet,
+    DataSubjectRequestViewSet,
     ExternalReferenceViewSet,
     InboundWebhookEndpointViewSet,
     InboundWebhookLogViewSet,
@@ -13,6 +15,8 @@ from apps.integrations.api.views import (
     IntegrationSyncLogViewSet,
     OAuthApplicationViewSet,
     PublicInboundWebhookReceiveAPIView,
+    TenantExportJobViewSet,
+    TenantImportJobViewSet,
     WebhookDeliveryViewSet,
     WebhookEndpointViewSet,
     ZapierHooksAPIView,
@@ -28,6 +32,10 @@ router.register("inbound/endpoints", InboundWebhookEndpointViewSet, basename="in
 router.register("inbound/logs", InboundWebhookLogViewSet, basename="inbound-webhook-log")
 router.register("webhooks/deliveries", WebhookDeliveryViewSet, basename="webhook-delivery")
 router.register("webhooks", WebhookEndpointViewSet, basename="webhook-endpoint")
+router.register("portability/exports", TenantExportJobViewSet, basename="tenant-export")
+router.register("portability/imports", TenantImportJobViewSet, basename="tenant-import")
+router.register("compliance/retention", DataRetentionPolicyViewSet, basename="data-retention")
+router.register("compliance/privacy-requests", DataSubjectRequestViewSet, basename="privacy-request")
 
 urlpatterns = [
     *router.urls,

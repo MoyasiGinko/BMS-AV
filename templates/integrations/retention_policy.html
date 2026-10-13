@@ -1,0 +1,131 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Data Retention Policy" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- Header -->
+  <div class="sm:flex sm:items-center sm:justify-between">
+    <div>
+      <div class="flex items-center space-x-3">
+        <a href="{% url 'integrations:connections_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+          &larr; {% trans "Integrations" %}
+        </a>
+      </div>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+        {% trans "Data Retention Policies & Archiving" %}
+      </h1>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        {% trans "Configure automated cleanup schedules and retention windows for audit trails, webhook logs, synchronization runs, and export files to meet GDPR and corporate compliance rules." %}
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0">
+      <form method="post" action="{% url 'integrations:retention_cleanup_trigger' %}" hx-post="{% url 'integrations:retention_cleanup_trigger' %}" hx-target="#cleanup-result">
+        {% csrf_token %}
+        <button
+          type="submit"
+          class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm transition"
+        >
+          <svg class="-ml-1 mr-2 h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          {% trans "Run Cleanup Now" %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="cleanup-result"></div>
+
+  <!-- Settings Form -->
+  <form method="post" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-xl text-sm text-rose-700 dark:rose-300">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="flex items-start">
+      <div class="flex items-center h-5">
+        {{ form.is_active }}
+      </div>
+      <div class="ml-3 text-sm">
+        <label for="{{ form.is_active.id_for_label }}" class="font-medium text-slate-700 dark:text-slate-300">
+          {{ form.is_active.label }}
+        </label>
+        <p class="text-slate-500 dark:text-slate-400">
+          {{ form.is_active.help_text }}
+        </p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+      <div>
+        <label for="{{ form.audit_log_retention_days.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          {{ form.audit_log_retention_days.label }}
+        </label>
+        <div class="mt-1">
+          {{ form.audit_log_retention_days }}
+        </div>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {{ form.audit_log_retention_days.help_text }}
+        </p>
+      </div>
+
+      <div>
+        <label for="{{ form.webhook_log_retention_days.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          {{ form.webhook_log_retention_days.label }}
+        </label>
+        <div class="mt-1">
+          {{ form.webhook_log_retention_days }}
+        </div>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {{ form.webhook_log_retention_days.help_text }}
+        </p>
+      </div>
+
+      <div>
+        <label for="{{ form.sync_log_retention_days.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          {{ form.sync_log_retention_days.label }}
+        </label>
+        <div class="mt-1">
+          {{ form.sync_log_retention_days }}
+        </div>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {{ form.sync_log_retention_days.help_text }}
+        </p>
+      </div>
+
+      <div>
+        <label for="{{ form.export_file_retention_days.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          {{ form.export_file_retention_days.label }}
+        </label>
+        <div class="mt-1">
+          {{ form.export_file_retention_days }}
+        </div>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {{ form.export_file_retention_days.help_text }}
+        </p>
+      </div>
+    </div>
+
+    {% if policy.last_cleaned_at %}
+      <div class="pt-4 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+        {% trans "Last automated cleanup execution" %}: <span class="font-medium text-slate-700 dark:text-slate-300">{{ policy.last_cleaned_at|date:"Y-m-d H:i:s" }}</span>
+      </div>
+    {% endif %}
+
+    <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end space-x-3">
+      <button
+        type="submit"
+        class="px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
+      >
+        {% trans "Save Retention Policies" %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

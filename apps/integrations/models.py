@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any, ClassVar
 
+from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from oauth2_provider.models import AbstractApplication
@@ -748,3 +749,296 @@ class InboundWebhookLog(TenantModel):
 
     def __str__(self) -> str:
         return f"InboundLog {self.endpoint.name} [{self.verification_status}] ({self.created_at})"
+
+
+# --- Data Portability: Full-Tenant Export & Import ---
+
+
+class TenantExportJobStatus(models.TextChoices):
+    PENDING = "pending", _("Pending")
+    PROCESSING = "processing", _("Processing")
+    COMPLETED = "completed", _("Completed")
+    FAILED = "failed", _("Failed")
+    EXPIRED = "expired", _("Expired")
+
+
+class TenantExportJob(TenantModel):
+    """Asynchronous full-tenant portability data export job."""
+
+    status = models.CharField(
+        max_length=32,
+        choices=TenantExportJobStatus.choices,
+        default=TenantExportJobStatus.PENDING,
+        verbose_name=_("status"),
+    )
+    file = models.FileField(
+        upload_to="tenant_exports/%Y/%m/",
+        null=True,
+        blank=True,
+        verbose_name=_("export archive"),
+    )
+    file_size_bytes = models.BigIntegerField(default=0, verbose_name=_("file size in bytes"))
+    sha256_hash = models.CharField(
+        max_length=64, blank=True, default="", verbose_name=_("SHA-256 hash")
+    )
+    include_audit_logs = models.BooleanField(
+        default=True, verbose_name=_("include audit logs in export")
+    )
+    stats = models.JSONField(
+        default=dict, blank=True, verbose_name=_("exported entity counts")
+    )
+    error_message = models.TextField(blank=True, default="", verbose_name=_("error message"))
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("completed at"))
+    expires_at = models.DateTimeField(null=True, blank=True, verbose_name=_("expires at"))
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="requested_tenant_exports",
+        verbose_name=_("requested by"),
+    )
+
+    class Meta:
+        verbose_name = _("tenant export job")
+        verbose_name_plural = _("tenant export jobs")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(
+                fields=["organization", "-created_at"],
+                name="tenant_export_org_created_idx",
+            ),
+            models.Index(
+                fields=["organization", "status"],
+                name="tenant_export_org_status_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"TenantExport {self.public_id} [{self.status}] ({self.created_at})"
+
+
+class TenantImportJobStatus(models.TextChoices):
+    UPLOADED = "uploaded", _("Uploaded")
+    VALIDATING = "validating", _("Validating")
+    VALIDATED = "validated", _("Validated (Ready to Import)")
+    COMMITTING = "committing", _("Importing")
+    COMPLETED = "completed", _("Completed")
+    FAILED = "failed", _("Failed")
+
+
+class TenantImportJob(TenantModel):
+    """Full-tenant data archive import job."""
+
+    file = models.FileField(
+        upload_to="tenant_imports/%Y/%m/", verbose_name=_("archive file (.zip)")
+    )
+    status = models.CharField(
+        max_length=32,
+        choices=TenantImportJobStatus.choices,
+        default=TenantImportJobStatus.UPLOADED,
+        verbose_name=_("status"),
+    )
+    validation_report = models.JSONField(
+        default=dict, blank=True, verbose_name=_("validation report")
+    )
+    imported_stats = models.JSONField(
+        default=dict, blank=True, verbose_name=_("imported entity counts")
+    )
+    error_message = models.TextField(blank=True, default="", verbose_name=_("error message"))
+    started_at = models.DateTimeField(null=True, blank=True, verbose_name=_("started at"))
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("completed at"))
+    imported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="committed_tenant_imports",
+        verbose_name=_("imported by"),
+    )
+
+    class Meta:
+        verbose_name = _("tenant import job")
+        verbose_name_plural = _("tenant import jobs")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(
+                fields=["organization", "-created_at"],
+                name="tenant_import_org_created_idx",
+            ),
+            models.Index(
+                fields=["organization", "status"],
+                name="tenant_import_org_status_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"TenantImport {self.public_id} [{self.status}] ({self.created_at})"
+
+
+# --- Data Retention Settings ---
+
+
+class DataRetentionPolicy(TenantModel):
+    """Tenant-scoped data lifecycle retention rules."""
+
+    audit_log_retention_days = models.PositiveIntegerField(
+        default=365,
+        help_text=_("Number of days to retain system audit logs (minimum 30 days)."),
+        verbose_name=_("audit log retention days"),
+    )
+    webhook_log_retention_days = models.PositiveIntegerField(
+        default=90,
+        help_text=_(
+            "Number of days to retain outbound delivery and inbound webhook logs (minimum 7 days)."
+        ),
+        verbose_name=_("webhook log retention days"),
+    )
+    sync_log_retention_days = models.PositiveIntegerField(
+        default=90,
+        help_text=_(
+            "Number of days to retain external connector synchronization logs (minimum 7 days)."
+        ),
+        verbose_name=_("sync log retention days"),
+    )
+    export_file_retention_days = models.PositiveIntegerField(
+        default=30,
+        help_text=_(
+            "Number of days before generated export files and temporary archives are purged (minimum 1 day)."
+        ),
+        verbose_name=_("export file retention days"),
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text=_("Whether automated retention cleanup tasks are enabled for this organization."),
+        verbose_name=_("policy active"),
+    )
+    last_run_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("last execution timestamp")
+    )
+    last_run_summary = models.JSONField(
+        default=dict, blank=True, verbose_name=_("last execution summary")
+    )
+
+    class Meta:
+        verbose_name = _("data retention policy")
+        verbose_name_plural = _("data retention policies")
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization"],
+                name="unique_org_data_retention_policy",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"RetentionPolicy for {self.organization.name} (active={self.is_active})"
+
+
+# --- GDPR / Privacy: Data Subject Access Requests (DSAR) & Erasure ---
+
+
+class DataSubjectRequestType(models.TextChoices):
+    ACCESS_EXPORT = "access_export", _("Subject Access Request (SAR / Data Portability)")
+    ERASURE = "erasure", _("Right to Erasure (Right to Be Forgotten / Pseudonymize)")
+    RECTIFICATION = "rectification", _("Data Rectification / Correction")
+
+
+class DataSubjectRequestStatus(models.TextChoices):
+    SUBMITTED = "submitted", _("Submitted")
+    PROCESSING = "processing", _("Processing")
+    COMPLETED = "completed", _("Completed")
+    REJECTED = "rejected", _("Rejected")
+
+
+class DataSubjectType(models.TextChoices):
+    CUSTOMER = "customer", _("Customer / Contact")
+    EMPLOYEE = "employee", _("Employee / Staff")
+    LEAD = "lead", _("CRM Lead / Prospect")
+    OTHER = "other", _("Other Individual")
+
+
+class DataSubjectRequest(TenantModel):
+    """GDPR / Privacy Subject Access Request and Erasure workflow tracker."""
+
+    request_type = models.CharField(
+        max_length=32,
+        choices=DataSubjectRequestType.choices,
+        default=DataSubjectRequestType.ACCESS_EXPORT,
+        verbose_name=_("request type"),
+    )
+    status = models.CharField(
+        max_length=32,
+        choices=DataSubjectRequestStatus.choices,
+        default=DataSubjectRequestStatus.SUBMITTED,
+        verbose_name=_("status"),
+    )
+    subject_email = models.EmailField(verbose_name=_("subject email"))
+    subject_name = models.CharField(
+        max_length=255, blank=True, default="", verbose_name=_("subject name")
+    )
+    subject_type = models.CharField(
+        max_length=32,
+        choices=DataSubjectType.choices,
+        default=DataSubjectType.CUSTOMER,
+        verbose_name=_("subject category"),
+    )
+    reason = models.TextField(blank=True, default="", verbose_name=_("request reason / details"))
+    verification_notes = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("identity verification notes"),
+        help_text=_("Notes documenting how the requester's identity was verified."),
+    )
+    result_file = models.FileField(
+        upload_to="gdpr_requests/%Y/%m/",
+        null=True,
+        blank=True,
+        verbose_name=_("generated SAR report package"),
+    )
+    impact_summary = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("impact / anonymization summary"),
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="submitted_dsrs",
+        verbose_name=_("submitted by"),
+    )
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="processed_dsrs",
+        verbose_name=_("processed by"),
+    )
+    completed_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("completed timestamp")
+    )
+
+    class Meta:
+        verbose_name = _("data subject request")
+        verbose_name_plural = _("data subject requests")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(
+                fields=["organization", "-created_at"],
+                name="dsr_org_created_idx",
+            ),
+            models.Index(
+                fields=["organization", "status"],
+                name="dsr_org_status_idx",
+            ),
+            models.Index(
+                fields=["organization", "subject_email"],
+                name="dsr_org_email_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"DSR {self.request_type} for {self.subject_email} [{self.status}]"
+

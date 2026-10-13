@@ -1,0 +1,127 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "GDPR & Privacy Requests" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- Header -->
+  <div class="sm:flex sm:items-center sm:justify-between">
+    <div>
+      <div class="flex items-center space-x-3">
+        <a href="{% url 'integrations:connections_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+          &larr; {% trans "Integrations" %}
+        </a>
+      </div>
+      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+        {% trans "GDPR Privacy & Data Subject Requests" %}
+      </h1>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        {% trans "Fulfill EU GDPR and privacy compliance obligations: Right to Access (Subject Access Requests / SAR) and Right to Erasure ('Right to be Forgotten') with audit trails." %}
+      </p>
+    </div>
+    <div class="mt-4 sm:mt-0 flex items-center space-x-3">
+      <a
+        href="{% url 'integrations:privacy_request_create' %}"
+        class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/30 transition"
+      >
+        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        {% trans "New Privacy Request" %}
+      </a>
+    </div>
+  </div>
+
+  <!-- Requests Table -->
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Request ID" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Type" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Subject Email" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Status" %}
+            </th>
+            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {% trans "Submitted" %}
+            </th>
+            <th scope="col" class="relative px-6 py-3.5">
+              <span class="sr-only">{% trans "Actions" %}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+          {% for req in requests %}
+          <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-900 dark:text-slate-100">
+              <a href="{% url 'integrations:privacy_request_detail' request_id=req.public_id %}" class="hover:underline text-indigo-600 dark:text-indigo-400">
+                {{ req.public_id|stringformat:".8s" }}...
+              </a>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm">
+              {% if req.request_type == "access_export" %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300">
+                  {% trans "Access Export (SAR)" %}
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300">
+                  {% trans "Erasure (Forget Me)" %}
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100 font-medium">
+              {{ req.subject_email }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm">
+              {% if req.status == "completed" %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
+                  {% trans "Completed" %}
+                </span>
+              {% elif req.status == "pending" or req.status == "verified" %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                  {{ req.status|title }}
+                </span>
+              {% elif req.status == "failed" %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300">
+                  {% trans "Failed" %}
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  {{ req.status|title }}
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+              {{ req.created_at|date:"Y-m-d H:i" }}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <a
+                href="{% url 'integrations:privacy_request_detail' request_id=req.public_id %}"
+                class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300"
+              >
+                {% trans "Review" %} &rarr;
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+              {% trans "No privacy or data subject requests on record." %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

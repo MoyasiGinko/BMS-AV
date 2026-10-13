@@ -12,6 +12,9 @@ PERMISSIONS = {
     "integrations.sync": "Execute synchronization and test connector connections",
     "integrations.oauth_manage": "Register and configure OAuth applications",
     "integrations.inbound_manage": "Create and configure inbound webhook endpoints",
+    "integrations.portability_manage": "Generate, download, and import full-tenant backup archives",
+    "integrations.retention_manage": "Configure data retention policies and trigger log cleanup",
+    "integrations.privacy_manage": "Process GDPR data subject access requests and erasure requests",
 }
 
 for code, description in PERMISSIONS.items():

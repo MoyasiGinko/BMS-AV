@@ -9,6 +9,8 @@ from django.db.models import QuerySet
 from oauth2_provider.models import AccessToken
 
 from apps.integrations.models import (
+    DataRetentionPolicy,
+    DataSubjectRequest,
     ExportJob,
     ExternalReference,
     ImportJob,
@@ -17,6 +19,8 @@ from apps.integrations.models import (
     IntegrationConnection,
     IntegrationSyncLog,
     OAuthApplication,
+    TenantExportJob,
+    TenantImportJob,
     WebhookDelivery,
     WebhookDeliveryStatus,
     WebhookEndpoint,
@@ -419,3 +423,189 @@ def list_inbound_webhook_logs(
     if verification_status:
         qs = qs.filter(verification_status=verification_status)
     return qs[:limit]
+
+
+# --- Data Portability Selectors ---
+
+
+def list_tenant_export_jobs(
+    organization: Organization,
+    *,
+    limit: int = 50,
+) -> QuerySet[TenantExportJob]:
+    """Retrieve full-tenant data export jobs for an organization."""
+    return (
+        TenantExportJob.all_tenants.filter(organization=organization)
+        .select_related("requested_by")
+        .order_by("-created_at")[:limit]
+    )
+
+
+def get_tenant_export_job(
+    organization: Organization,
+    *,
+    job_id: str | uuid.UUID,
+) -> TenantExportJob | None:
+    """Retrieve a single tenant export job within organization scope."""
+    qs = TenantExportJob.all_tenants.filter(organization=organization)
+    try:
+        val_uuid = uuid.UUID(str(job_id))
+        return qs.filter(public_id=val_uuid).first()
+    except (ValueError, AttributeError):
+        if str(job_id).isdigit():
+            return qs.filter(id=int(job_id)).first()
+    return None
+
+
+def list_tenant_import_jobs(
+    organization: Organization,
+    *,
+    limit: int = 50,
+) -> QuerySet[TenantImportJob]:
+    """Retrieve full-tenant data import jobs for an organization."""
+    return (
+        TenantImportJob.all_tenants.filter(organization=organization)
+        .select_related("imported_by")
+        .order_by("-created_at")[:limit]
+    )
+
+
+def get_tenant_import_job(
+    organization: Organization,
+    *,
+    job_id: str | uuid.UUID,
+) -> TenantImportJob | None:
+    """Retrieve a single tenant import job within organization scope."""
+    qs = TenantImportJob.all_tenants.filter(organization=organization)
+    try:
+        val_uuid = uuid.UUID(str(job_id))
+        return qs.filter(public_id=val_uuid).first()
+    except (ValueError, AttributeError):
+        if str(job_id).isdigit():
+            return qs.filter(id=int(job_id)).first()
+    return None
+
+
+# --- Data Retention Selectors ---
+
+
+def get_or_create_retention_policy(organization: Organization) -> DataRetentionPolicy:
+    """Retrieve existing retention policy or initialize default policy for organization."""
+    policy = DataRetentionPolicy.all_tenants.filter(organization=organization).first()
+    if policy is None:
+        policy = DataRetentionPolicy.objects.create(
+            organization=organization,
+            audit_log_retention_days=365,
+            webhook_log_retention_days=90,
+            sync_log_retention_days=90,
+            export_file_retention_days=30,
+            is_active=True,
+        )
+    return policy
+
+
+def list_active_retention_policies() -> QuerySet[DataRetentionPolicy]:
+    """Retrieve all active data retention policies across tenants for background cleanup."""
+    return DataRetentionPolicy.all_tenants.filter(is_active=True).select_related("organization")
+
+
+# --- GDPR / Privacy Selectors ---
+
+
+def list_data_subject_requests(
+    organization: Organization,
+    *,
+    request_type: str | None = None,
+    status: str | None = None,
+    limit: int = 50,
+) -> QuerySet[DataSubjectRequest]:
+    """Retrieve GDPR Data Subject Requests for an organization."""
+    qs = (
+        DataSubjectRequest.all_tenants.filter(organization=organization)
+        .select_related("submitted_by", "processed_by")
+        .order_by("-created_at")
+    )
+    if request_type:
+        qs = qs.filter(request_type=request_type)
+    if status:
+        qs = qs.filter(status=status)
+    return qs[:limit]
+
+
+def get_data_subject_request(
+    organization: Organization,
+    *,
+    request_id: str | uuid.UUID,
+) -> DataSubjectRequest | None:
+    """Retrieve single GDPR Data Subject Request within organization scope."""
+    qs = DataSubjectRequest.all_tenants.filter(organization=organization)
+    try:
+        val_uuid = uuid.UUID(str(request_id))
+        return qs.filter(public_id=val_uuid).first()
+    except (ValueError, AttributeError):
+        if str(request_id).isdigit():
+            return qs.filter(id=int(request_id)).first()
+    return None
+
+
+def find_subject_personal_records(
+    organization: Organization,
+    *,
+    email: str,
+) -> dict[str, Any]:
+    """Find all personal records associated with an email across domain modules."""
+    clean_email = email.strip().lower()
+
+    # Customers
+    from apps.customers.models import Customer, CustomerContact
+
+    customers = list(
+        Customer.all_tenants.filter(organization=organization, email__iexact=clean_email)
+    )
+    contacts = list(
+        CustomerContact.all_tenants.filter(
+            organization=organization, email__iexact=clean_email
+        ).select_related("customer")
+    )
+
+    # CRM Leads
+    from apps.crm.models import Lead
+
+    leads = list(Lead.all_tenants.filter(organization=organization, email__iexact=clean_email))
+
+    # HR Employees
+    from apps.hr.models import Employee
+
+    employees = list(
+        Employee.all_tenants.filter(
+            organization=organization,
+            work_email__iexact=clean_email,
+        )
+        | Employee.all_tenants.filter(
+            organization=organization,
+            personal_email__iexact=clean_email,
+        )
+    )
+
+    # Sales invoices & payments count
+    from apps.sales.models import SalesInvoice
+
+    customer_pks = [c.pk for c in customers] + [
+        contact.customer.pk for contact in contacts if contact.customer_id
+    ]
+    invoices_count = 0
+    if customer_pks:
+        invoices_count = SalesInvoice.all_tenants.filter(
+            organization=organization, customer_id__in=customer_pks
+        ).count()
+
+    return {
+        "email": clean_email,
+        "customers": customers,
+        "contacts": contacts,
+        "leads": leads,
+        "employees": employees,
+        "sales_invoices_count": invoices_count,
+        "total_matches": len(customers) + len(contacts) + len(leads) + len(employees),
+    }
+

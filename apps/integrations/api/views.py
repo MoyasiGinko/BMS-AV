@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.http import FileResponse, JsonResponse
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import permissions, status
 from rest_framework.decorators import action
@@ -15,6 +16,9 @@ from apps.core.api.viewsets import TenantScopedModelViewSet
 from apps.integrations import selectors, services
 from apps.integrations.api.serializers import (
     ConnectorActionSerializer,
+    DataRetentionPolicySerializer,
+    DataSubjectRequestCreateSerializer,
+    DataSubjectRequestSerializer,
     ExternalReferenceSerializer,
     InboundWebhookEndpointCreateSerializer,
     InboundWebhookEndpointSerializer,
@@ -26,6 +30,9 @@ from apps.integrations.api.serializers import (
     OAuthApplicationSerializer,
     PingResponseSerializer,
     SecretRotationResponseSerializer,
+    TenantExportJobCreateSerializer,
+    TenantExportJobSerializer,
+    TenantImportJobSerializer,
     WebhookDeliverySerializer,
     WebhookEndpointCreateSerializer,
     WebhookEndpointSerializer,
@@ -33,11 +40,15 @@ from apps.integrations.api.serializers import (
 )
 from apps.integrations.connectors.zapier_compat import SAMPLE_PAYLOADS
 from apps.integrations.models import (
+    DataRetentionPolicy,
+    DataSubjectRequest,
     ExternalReference,
     InboundWebhookEndpoint,
     IntegrationConnection,
     IntegrationSyncLog,
     OAuthApplication,
+    TenantExportJob,
+    TenantImportJob,
     WebhookDelivery,
     WebhookEndpoint,
 )
@@ -580,3 +591,162 @@ class PublicInboundWebhookReceiveAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["Data Portability"], summary="List tenant export backup jobs"),
+    retrieve=extend_schema(tags=["Data Portability"], summary="Retrieve tenant export backup details"),
+    create=extend_schema(tags=["Data Portability"], summary="Trigger full tenant backup export"),
+)
+class TenantExportJobViewSet(TenantScopedModelViewSet):
+    """ViewSet for asynchronous tenant data backup exports."""
+
+    serializer_class = TenantExportJobSerializer
+    lookup_field = "public_id"
+    ordering = ["-created_at"]
+
+    def get_queryset(self) -> Any:
+        org = self.get_tenant()
+        return selectors.list_tenant_export_jobs(org)
+
+    def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        org = self.get_tenant()
+        serializer = TenantExportJobCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        include_audit = serializer.validated_data.get("include_audit_logs", False)
+
+        job = services.create_tenant_export_job(
+            organization=org,
+            include_audit_logs=include_audit,
+            requested_by=request.user,
+        )
+        return Response(TenantExportJobSerializer(job).data, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=True, methods=["get"])
+    def download(self, request: Request, public_id: str | None = None) -> Any:
+        """Download completed tenant backup archive zip."""
+        org = self.get_tenant()
+        job = selectors.get_tenant_export_job(org, job_id=self.kwargs[self.lookup_field])
+        if not job or not job.file:
+            return Response({"error": "Export archive not ready or not found"}, status=status.HTTP_404_NOT_FOUND)
+        response = FileResponse(job.file.open("rb"), content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="tenant_export_{org.slug}_{job.public_id}.zip"'
+        return response
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["Data Portability"], summary="List tenant import / restore jobs"),
+    retrieve=extend_schema(tags=["Data Portability"], summary="Retrieve tenant import details"),
+)
+class TenantImportJobViewSet(TenantScopedModelViewSet):
+    """ViewSet for tenant backup restore/import jobs."""
+
+    serializer_class = TenantImportJobSerializer
+    lookup_field = "public_id"
+    ordering = ["-created_at"]
+
+    def get_queryset(self) -> Any:
+        org = self.get_tenant()
+        return selectors.list_tenant_import_jobs(org)
+
+    @action(detail=True, methods=["post"])
+    def commit(self, request: Request, public_id: str | None = None) -> Response:
+        """Commit an analyzed staging import job into the tenant database."""
+        org = self.get_tenant()
+        job = selectors.get_tenant_import_job(org, job_id=self.kwargs[self.lookup_field])
+        if not job:
+            return Response({"error": "Import job not found"}, status=status.HTTP_404_NOT_FOUND)
+        committed_job = services.commit_tenant_import_job(job.public_id)
+        return Response(TenantImportJobSerializer(committed_job).data, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    retrieve=extend_schema(tags=["Compliance"], summary="Retrieve tenant data retention policy"),
+    update=extend_schema(tags=["Compliance"], summary="Update tenant data retention policy"),
+    partial_update=extend_schema(tags=["Compliance"], summary="Partially update data retention policy"),
+)
+class DataRetentionPolicyViewSet(TenantScopedModelViewSet):
+    """ViewSet for tenant data retention schedules."""
+
+    serializer_class = DataRetentionPolicySerializer
+    lookup_field = "public_id"
+
+    def get_queryset(self) -> Any:
+        org = self.get_tenant()
+        policy = selectors.get_or_create_retention_policy(org)
+        return DataRetentionPolicy.all_tenants.filter(id=policy.id)
+
+    @action(detail=False, methods=["post"])
+    def cleanup(self, request: Request) -> Response:
+        """Trigger immediate retention policy cleanup."""
+        org = self.get_tenant()
+        results = services.execute_data_retention_cleanup(organization=org)
+        total_cleaned = sum(v for v in results.values() if isinstance(v, int))
+        return Response(
+            {
+                "status": "completed",
+                "results": results,
+                "total_cleaned": total_cleaned,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema_view(
+    list=extend_schema(tags=["Compliance"], summary="List GDPR data subject requests"),
+    retrieve=extend_schema(tags=["Compliance"], summary="Retrieve data subject request details"),
+    create=extend_schema(tags=["Compliance"], summary="Submit a GDPR access or erasure request"),
+)
+class DataSubjectRequestViewSet(TenantScopedModelViewSet):
+    """ViewSet for GDPR SAR access and Right to Erasure requests."""
+
+    serializer_class = DataSubjectRequestSerializer
+    lookup_field = "public_id"
+    ordering = ["-created_at"]
+
+    def get_queryset(self) -> Any:
+        org = self.get_tenant()
+        return selectors.list_data_subject_requests(org)
+
+    def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+        org = self.get_tenant()
+        serializer = DataSubjectRequestCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        req_obj = services.submit_data_subject_request(
+            organization=org,
+            request_type=data["request_type"],
+            subject_email=data["subject_email"],
+            subject_name=data.get("subject_name", ""),
+            subject_type=data.get("subject_type", "customer"),
+            reason=data.get("reason", ""),
+            verification_notes=data.get("verification_notes", ""),
+            submitted_by=request.user,
+        )
+        return Response(DataSubjectRequestSerializer(req_obj).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def execute(self, request: Request, public_id: str | None = None) -> Response:
+        """Execute processing for a GDPR SAR export or erasure request."""
+        org = self.get_tenant()
+        req_obj = selectors.get_data_subject_request(org, request_id=self.kwargs[self.lookup_field])
+        if not req_obj:
+            return Response({"error": "Request not found"}, status=status.HTTP_404_NOT_FOUND)
+        if req_obj.request_type == "access_export":
+            processed = services.process_data_subject_access_request(req_obj.public_id, processed_by=request.user)
+        else:
+            processed = services.process_data_subject_erasure(req_obj.public_id, processed_by=request.user)
+        return Response(DataSubjectRequestSerializer(processed).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"])
+    def sar_download(self, request: Request, public_id: str | None = None) -> Any:
+        """Download completed SAR data payload as JSON."""
+        org = self.get_tenant()
+        req_obj = selectors.get_data_subject_request(org, request_id=self.kwargs[self.lookup_field])
+        if not req_obj or req_obj.request_type != "access_export" or req_obj.status != "completed" or not req_obj.result_file:
+            return Response({"error": "SAR export not available"}, status=status.HTTP_404_NOT_FOUND)
+        response = FileResponse(req_obj.result_file.open("rb"), content_type="application/json")
+        response["Content-Disposition"] = f'attachment; filename="sar_export_{req_obj.public_id}.json"'
+        return response
+

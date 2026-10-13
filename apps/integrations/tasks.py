@@ -151,3 +151,82 @@ def sync_due_integration_connections_task(batch_size: int = 50) -> int:
             triggered += 1
 
     return triggered
+
+
+@shared_task(bind=True, max_retries=2)
+def export_tenant_data_task(self, job_public_id: str) -> str:
+    """Execute full-tenant data export and package creation in the background."""
+    try:
+        job = services.process_tenant_export_job(job_public_id)
+        return f"TenantExportJob {job.public_id} completed: {job.status}"
+    except Exception as exc:
+        logger.exception("Error executing export_tenant_data_task for %s", job_public_id)
+        raise self.retry(exc=exc, countdown=30) from exc
+
+
+@shared_task(bind=True, max_retries=1)
+def validate_tenant_import_task(self, job_public_id: str) -> str:
+    """Validate archive format and structure for an uploaded tenant import job."""
+    try:
+        job = services.validate_tenant_import_job(job_public_id)
+        return f"TenantImportJob {job.public_id} validated: {job.status}"
+    except Exception as exc:
+        logger.exception("Error executing validate_tenant_import_task for %s", job_public_id)
+        raise self.retry(exc=exc, countdown=15) from exc
+
+
+@shared_task(bind=True, max_retries=1)
+def commit_tenant_import_task(self, job_public_id: str) -> str:
+    """Commit validated tenant import package into target database."""
+    try:
+        job = services.commit_tenant_import_job(job_public_id)
+        return f"TenantImportJob {job.public_id} committed: {job.status}"
+    except Exception as exc:
+        logger.exception("Error executing commit_tenant_import_task for %s", job_public_id)
+        raise self.retry(exc=exc, countdown=15) from exc
+
+
+@shared_task
+def run_data_retention_cleanup_all_task() -> dict[str, Any]:
+    """Execute retention policy cleanups across all active tenant organizations."""
+    from apps.integrations.selectors import list_active_retention_policies
+
+    policies = list(list_active_retention_policies())
+    total_cleaned = 0
+    org_summaries = {}
+
+    for policy in policies:
+        try:
+            with tenant_context(policy.organization):
+                res = services.execute_data_retention_cleanup(policy.organization)
+                org_summaries[policy.organization.slug] = res
+                total_cleaned += sum(res.values())
+        except Exception:
+            logger.exception("Failed data retention cleanup for org %s", policy.organization.slug)
+
+    return {"organizations_processed": len(policies), "total_cleaned": total_cleaned, "details": org_summaries}
+
+
+@shared_task(bind=True, max_retries=1)
+def execute_data_subject_request_task(self, request_public_id: str) -> str:
+    """Execute GDPR Subject Access Request (SAR) export or Erasure in the background."""
+    from apps.integrations.models import DataSubjectRequest, DataSubjectRequestType
+
+    dsr = DataSubjectRequest.all_tenants.filter(public_id=request_public_id).first()
+    if not dsr:
+        return f"DataSubjectRequest {request_public_id} not found."
+
+    try:
+        with tenant_context(dsr.organization):
+            if dsr.request_type == DataSubjectRequestType.ACCESS_EXPORT:
+                res = services.process_data_subject_access_request(request_public_id)
+            elif dsr.request_type == DataSubjectRequestType.ERASURE:
+                res = services.process_data_subject_erasure(request_public_id)
+            else:
+                return f"Unsupported request_type: {dsr.request_type}"
+
+            return f"DataSubjectRequest {res.public_id} completed: {res.status}"
+    except Exception as exc:
+        logger.exception("Error executing GDPR request %s", request_public_id)
+        raise self.retry(exc=exc, countdown=20) from exc
+

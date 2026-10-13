@@ -483,3 +483,193 @@ class InboundWebhookEndpointForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk and self.instance.secret:
             self.fields["custom_secret"].initial = self.instance.secret
+
+
+class TenantExportJobForm(forms.Form):
+    """Form to request a full-tenant data export archive."""
+
+    include_audit_logs = forms.BooleanField(
+        required=False,
+        initial=True,
+        label=_("Include Audit Logs"),
+        help_text=_("Include administrative audit logs (up to 5,000 recent events) in the export archive."),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900",
+            }
+        ),
+    )
+
+
+class TenantImportJobForm(forms.Form):
+    """Form to upload a full-tenant data backup archive."""
+
+    file = forms.FileField(
+        required=True,
+        label=_("Backup Archive (.zip)"),
+        help_text=_("Upload a valid BMS-AV ERP tenant backup ZIP file containing manifest.json."),
+        widget=forms.FileInput(
+            attrs={
+                "class": (
+                    "block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 "
+                    "file:rounded-md file:border-0 file:text-sm file:font-semibold "
+                    "file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 "
+                    "dark:file:bg-indigo-900/40 dark:file:text-indigo-300"
+                ),
+                "accept": ".zip,application/zip",
+            }
+        ),
+    )
+
+    def clean_file(self) -> Any:
+        file = self.cleaned_data.get("file")
+        if file:
+            if not file.name.lower().endswith(".zip"):
+                raise forms.ValidationError(_("The uploaded file must be a .zip archive."))
+            # Max 50MB check
+            if file.size > 50 * 1024 * 1024:
+                raise forms.ValidationError(_("The backup file cannot exceed 50 MB."))
+        return file
+
+
+class DataRetentionPolicyForm(forms.ModelForm):
+    """Form to configure tenant data lifecycle and log retention policies."""
+
+    class Meta:
+        from apps.integrations.models import DataRetentionPolicy
+
+        model = DataRetentionPolicy
+        fields = [
+            "audit_log_retention_days",
+            "webhook_log_retention_days",
+            "sync_log_retention_days",
+            "export_file_retention_days",
+            "is_active",
+        ]
+        widgets = {
+            "audit_log_retention_days": forms.NumberInput(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                    "min": 30,
+                }
+            ),
+            "webhook_log_retention_days": forms.NumberInput(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                    "min": 7,
+                }
+            ),
+            "sync_log_retention_days": forms.NumberInput(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                    "min": 7,
+                }
+            ),
+            "export_file_retention_days": forms.NumberInput(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                    "min": 1,
+                }
+            ),
+            "is_active": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900",
+                }
+            ),
+        }
+
+
+class DataSubjectRequestForm(forms.ModelForm):
+    """Form to submit a GDPR Right to Access or Right to Erasure request."""
+
+    class Meta:
+        from apps.integrations.models import DataSubjectRequest
+
+        model = DataSubjectRequest
+        fields = [
+            "subject_email",
+            "request_type",
+            "subject_name",
+            "subject_type",
+            "reason",
+            "verification_notes",
+        ]
+        widgets = {
+            "subject_email": forms.EmailInput(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                    "placeholder": "user@example.com",
+                }
+            ),
+            "request_type": forms.Select(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                }
+            ),
+            "subject_name": forms.TextInput(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                    "placeholder": "Full name of the data subject",
+                }
+            ),
+            "subject_type": forms.Select(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                }
+            ),
+            "reason": forms.Textarea(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                    "rows": 2,
+                    "placeholder": _("Reason or details of the data subject request..."),
+                }
+            ),
+            "verification_notes": forms.Textarea(
+                attrs={
+                    "class": (
+                        "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
+                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ),
+                    "rows": 2,
+                    "placeholder": _("Identity verification details and proof verified..."),
+                }
+            ),
+        }
+

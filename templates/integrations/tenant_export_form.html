@@ -1,0 +1,61 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Create Full Tenant Export" %} - Business OS{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+  <div>
+    <a href="{% url 'integrations:portability_overview' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+      &larr; {% trans "Back to Portability" %}
+    </a>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+      {% trans "Create Full Tenant Backup Export" %}
+    </h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      {% trans "Generate a complete cryptographic archive of your tenant organization, members, accounts, journals, catalog, customers, invoices, and configuration." %}
+    </p>
+  </div>
+
+  <form method="post" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-xl text-sm text-rose-700 dark:rose-300">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="space-y-4">
+      <div class="flex items-start">
+        <div class="flex items-center h-5">
+          {{ form.include_audit_logs }}
+        </div>
+        <div class="ml-3 text-sm">
+          <label for="{{ form.include_audit_logs.id_for_label }}" class="font-medium text-slate-700 dark:text-slate-300">
+            {{ form.include_audit_logs.label }}
+          </label>
+          <p class="text-slate-500 dark:text-slate-400">
+            {{ form.include_audit_logs.help_text }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end space-x-3">
+      <a
+        href="{% url 'integrations:portability_overview' %}"
+        class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+      >
+        {% trans "Cancel" %}
+      </a>
+      <button
+        type="submit"
+        class="px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
+      >
+        {% trans "Start Export" %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

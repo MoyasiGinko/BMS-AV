@@ -5,6 +5,8 @@ from __future__ import annotations
 from django.contrib import admin
 
 from apps.integrations.models import (
+    DataRetentionPolicy,
+    DataSubjectRequest,
     ExportJob,
     ExternalReference,
     ImportJob,
@@ -13,6 +15,8 @@ from apps.integrations.models import (
     IntegrationConnection,
     IntegrationSyncLog,
     OAuthApplication,
+    TenantExportJob,
+    TenantImportJob,
     WebhookDelivery,
     WebhookEndpoint,
 )
@@ -222,3 +226,68 @@ class InboundWebhookLogAdmin(admin.ModelAdmin):
     list_filter = ("verification_status", "processing_status", "endpoint", "organization")
     search_fields = ("event_id", "event_type", "error_message", "organization__name")
     readonly_fields = ("public_id", "created_at", "updated_at")
+
+
+@admin.register(TenantExportJob)
+class TenantExportJobAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "status",
+        "include_audit_logs",
+        "file_size_bytes",
+        "created_at",
+        "completed_at",
+    )
+    list_filter = ("status", "include_audit_logs", "organization")
+    search_fields = ("public_id", "sha256_hash", "organization__name")
+    readonly_fields = ("public_id", "sha256_hash", "file_size_bytes", "created_at", "updated_at", "completed_at")
+
+
+@admin.register(TenantImportJob)
+class TenantImportJobAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "status",
+        "created_at",
+        "completed_at",
+    )
+    list_filter = ("status", "organization")
+    search_fields = ("public_id", "error_message", "organization__name")
+    readonly_fields = ("public_id", "created_at", "updated_at", "started_at", "completed_at")
+
+
+@admin.register(DataRetentionPolicy)
+class DataRetentionPolicyAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "audit_log_retention_days",
+        "webhook_log_retention_days",
+        "sync_log_retention_days",
+        "export_file_retention_days",
+        "is_active",
+        "last_run_at",
+    )
+    list_filter = ("is_active", "organization")
+    search_fields = ("organization__name",)
+    readonly_fields = ("public_id", "created_at", "updated_at", "last_run_at")
+
+
+@admin.register(DataSubjectRequest)
+class DataSubjectRequestAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "subject_email",
+        "request_type",
+        "subject_type",
+        "status",
+        "created_at",
+        "completed_at",
+    )
+    list_filter = ("request_type", "subject_type", "status", "organization")
+    search_fields = ("subject_email", "subject_name", "organization__name")
+    readonly_fields = ("public_id", "created_at", "updated_at", "completed_at")
+

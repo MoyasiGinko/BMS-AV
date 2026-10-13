@@ -7,7 +7,7 @@ from typing import Any
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -17,9 +17,13 @@ from apps.core.permissions import permission_required
 from apps.integrations import selectors, services
 from apps.integrations.connectors import connector_registry
 from apps.integrations.forms import (
+    DataRetentionPolicyForm,
+    DataSubjectRequestForm,
     InboundWebhookEndpointForm,
     IntegrationConnectionForm,
     OAuthApplicationForm,
+    TenantExportJobForm,
+    TenantImportJobForm,
     WebhookEndpointForm,
 )
 from apps.integrations.importers import get_importer
@@ -1093,3 +1097,303 @@ def inbound_logs_list_view(request: HttpRequest) -> HttpResponse:
         "integrations/inbound_logs_list.html",
         {"logs": logs, "selected_status": v_status},
     )
+
+
+# ---------------------------------------------------------------------------
+# Data Portability (Full Tenant Export / Import)
+# ---------------------------------------------------------------------------
+
+
+@permission_required("integrations.portability_manage")
+def portability_overview_view(request: HttpRequest) -> HttpResponse:
+    """Dashboard showing full-tenant backup export and import jobs."""
+    org = _get_active_org(request)
+    exports = selectors.list_tenant_export_jobs(org)
+    imports = selectors.list_tenant_import_jobs(org)
+
+    return render(
+        request,
+        "integrations/portability_overview.html",
+        {
+            "exports": exports,
+            "imports": imports,
+        },
+    )
+
+
+@permission_required("integrations.portability_manage")
+def tenant_export_create_view(request: HttpRequest) -> HttpResponse:
+    """Initiate a full-tenant data backup export job."""
+    org = _get_active_org(request)
+
+    if request.method == "POST":
+        form = TenantExportJobForm(request.POST)
+        if form.is_valid():
+            include_audit = form.cleaned_data.get("include_audit_logs", True)
+            job = services.create_tenant_export_job(
+                org=org,
+                actor=request.user,
+                include_audit_logs=include_audit,
+            )
+            # Process synchronously in simple environments or dispatch to celery
+            try:
+                from apps.integrations.tasks import export_tenant_data_task
+
+                export_tenant_data_task.delay(str(job.public_id))
+            except Exception:
+                services.process_tenant_export_job(job)
+
+            messages.success(request, _("Tenant export job created and queued for packaging."))
+            return redirect("integrations:portability_overview")
+    else:
+        form = TenantExportJobForm()
+
+    return render(
+        request,
+        "integrations/tenant_export_form.html",
+        {"form": form},
+    )
+
+
+@permission_required("integrations.portability_manage")
+def tenant_export_download_view(request: HttpRequest, job_id: str) -> HttpResponse:
+    """Download the completed tenant backup archive."""
+    org = _get_active_org(request)
+    job = selectors.get_tenant_export_job(org, job_id=job_id)
+    if not job or not job.file:
+        raise Http404(_("Tenant export archive not found or not ready."))
+
+    response = FileResponse(job.file.open("rb"), content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="tenant-export-{org.slug}-{job.public_id}.zip"'
+    return response
+
+
+@permission_required("integrations.portability_manage")
+def tenant_import_create_view(request: HttpRequest) -> HttpResponse:
+    """Upload a full-tenant backup archive to validate and import."""
+    org = _get_active_org(request)
+
+    if request.method == "POST":
+        form = TenantImportJobForm(request.POST, request.FILES)
+        if form.is_valid():
+            uploaded = form.cleaned_data["file"]
+            job = services.create_tenant_import_job(
+                org=org,
+                file=uploaded,
+                actor=request.user,
+            )
+            try:
+                from apps.integrations.tasks import validate_tenant_import_task
+
+                validate_tenant_import_task.delay(str(job.public_id))
+            except Exception:
+                services.validate_tenant_import_job(job)
+
+            messages.success(request, _("Backup uploaded. Validation in progress."))
+            return redirect("integrations:tenant_import_detail", job_id=job.public_id)
+    else:
+        form = TenantImportJobForm()
+
+    return render(
+        request,
+        "integrations/tenant_import_form.html",
+        {"form": form},
+    )
+
+
+@permission_required("integrations.portability_manage")
+def tenant_import_detail_view(request: HttpRequest, job_id: str) -> HttpResponse:
+    """View validation status and details of an uploaded tenant backup."""
+    org = _get_active_org(request)
+    job = selectors.get_tenant_import_job(org, job_id=job_id)
+    if not job:
+        raise Http404(_("Tenant import job not found."))
+
+    return render(
+        request,
+        "integrations/tenant_import_detail.html",
+        {"job": job},
+    )
+
+
+@permission_required("integrations.portability_manage")
+def tenant_import_commit_view(request: HttpRequest, job_id: str) -> HttpResponse:
+    """Commit the validated tenant backup archive."""
+    if request.method != "POST":
+        raise Http404(_("Method not allowed"))
+    org = _get_active_org(request)
+    job = selectors.get_tenant_import_job(org, job_id=job_id)
+    if not job:
+        raise Http404(_("Tenant import job not found."))
+
+    try:
+        from apps.integrations.tasks import commit_tenant_import_task
+
+        commit_tenant_import_task.delay(str(job.public_id))
+    except Exception:
+        services.commit_tenant_import_job(job)
+
+    messages.success(request, _("Import commit initiated."))
+    return redirect("integrations:tenant_import_detail", job_id=job.public_id)
+
+
+# ---------------------------------------------------------------------------
+# Data Retention Policy & Cleanup
+# ---------------------------------------------------------------------------
+
+
+@permission_required("integrations.retention_manage")
+def retention_policy_view(request: HttpRequest) -> HttpResponse:
+    """View and update data retention policies for the tenant."""
+    org = _get_active_org(request)
+    policy = selectors.get_retention_policy(org)
+
+    if request.method == "POST":
+        form = DataRetentionPolicyForm(request.POST, instance=policy)
+        if form.is_valid():
+            services.configure_data_retention_policy(
+                org=org,
+                audit_log_retention_days=form.cleaned_data["audit_log_retention_days"],
+                webhook_log_retention_days=form.cleaned_data["webhook_log_retention_days"],
+                sync_log_retention_days=form.cleaned_data["sync_log_retention_days"],
+                export_file_retention_days=form.cleaned_data["export_file_retention_days"],
+                is_active=form.cleaned_data["is_active"],
+                actor=request.user,
+            )
+            messages.success(request, _("Data retention policy updated successfully."))
+            return redirect("integrations:retention_policy")
+    else:
+        form = DataRetentionPolicyForm(instance=policy)
+
+    return render(
+        request,
+        "integrations/retention_policy.html",
+        {"form": form, "policy": policy},
+    )
+
+
+@permission_required("integrations.retention_manage")
+def retention_cleanup_trigger_view(request: HttpRequest) -> HttpResponse:
+    """Trigger data retention cleanup now."""
+    if request.method != "POST":
+        raise Http404(_("Method not allowed"))
+    org = _get_active_org(request)
+
+    res = services.execute_data_retention_cleanup(org=org)
+    total = sum(res.values())
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "integrations/partials/_retention_cleanup_result.html",
+            {"results": res, "total_cleaned": total},
+        )
+
+    messages.success(
+        request,
+        _("Retention cleanup complete: %(total)s old records purged.") % {"total": total},
+    )
+    return redirect("integrations:retention_policy")
+
+
+# ---------------------------------------------------------------------------
+# GDPR & Privacy (Subject Access Requests & Erasure)
+# ---------------------------------------------------------------------------
+
+
+@permission_required("integrations.privacy_manage")
+def data_subject_requests_list_view(request: HttpRequest) -> HttpResponse:
+    """List GDPR Right to Access and Right to Erasure requests."""
+    org = _get_active_org(request)
+    requests_qs = selectors.list_data_subject_requests(org)
+
+    return render(
+        request,
+        "integrations/privacy_requests_list.html",
+        {"requests": requests_qs},
+    )
+
+
+@permission_required("integrations.privacy_manage")
+def data_subject_request_create_view(request: HttpRequest) -> HttpResponse:
+    """Submit a new GDPR SAR or Erasure request."""
+    org = _get_active_org(request)
+
+    if request.method == "POST":
+        form = DataSubjectRequestForm(request.POST)
+        if form.is_valid():
+            req_obj = services.create_data_subject_request(
+                org=org,
+                subject_email=form.cleaned_data["subject_email"],
+                request_type=form.cleaned_data["request_type"],
+                subject_name=form.cleaned_data.get("subject_name", ""),
+                subject_type=form.cleaned_data.get("subject_type", "customer"),
+                reason=form.cleaned_data.get("reason", ""),
+                verification_notes=form.cleaned_data.get("verification_notes", ""),
+                actor=request.user,
+            )
+            messages.success(request, _("Data subject request registered."))
+            return redirect("integrations:privacy_request_detail", request_id=req_obj.public_id)
+    else:
+        form = DataSubjectRequestForm()
+
+    return render(
+        request,
+        "integrations/privacy_request_form.html",
+        {"form": form},
+    )
+
+
+@permission_required("integrations.privacy_manage")
+def data_subject_request_detail_view(request: HttpRequest, request_id: str) -> HttpResponse:
+    """View details, verification status, and execute GDPR request."""
+    org = _get_active_org(request)
+    req_obj = selectors.get_data_subject_request(org, request_id=request_id)
+    if not req_obj:
+        raise Http404(_("Data subject request not found."))
+
+    return render(
+        request,
+        "integrations/privacy_request_detail.html",
+        {"dsr": req_obj},
+    )
+
+
+@permission_required("integrations.privacy_manage")
+def data_subject_request_execute_view(request: HttpRequest, request_id: str) -> HttpResponse:
+    """Execute processing of GDPR SAR export or Erasure."""
+    if request.method != "POST":
+        raise Http404(_("Method not allowed"))
+    org = _get_active_org(request)
+    req_obj = selectors.get_data_subject_request(org, request_id=request_id)
+    if not req_obj:
+        raise Http404(_("Data subject request not found."))
+
+    try:
+        from apps.integrations.tasks import execute_data_subject_request_task
+
+        execute_data_subject_request_task.delay(str(req_obj.public_id))
+    except Exception:
+        from apps.integrations.models import DataSubjectRequestType
+
+        if req_obj.request_type == DataSubjectRequestType.ACCESS_EXPORT:
+            services.process_data_subject_access_request(req_obj)
+        elif req_obj.request_type == DataSubjectRequestType.ERASURE:
+            services.process_data_subject_erasure(req_obj)
+
+    messages.success(request, _("GDPR request execution initiated."))
+    return redirect("integrations:privacy_request_detail", request_id=req_obj.public_id)
+
+
+@permission_required("integrations.privacy_manage")
+def data_subject_sar_download_view(request: HttpRequest, request_id: str) -> HttpResponse:
+    """Download the exported SAR JSON file."""
+    org = _get_active_org(request)
+    req_obj = selectors.get_data_subject_request(org, request_id=request_id)
+    if not req_obj or not req_obj.export_file:
+        raise Http404(_("SAR export file not found."))
+
+    response = FileResponse(req_obj.export_file.open("rb"), content_type="application/json")
+    response["Content-Disposition"] = f'attachment; filename="sar-{req_obj.public_id}.json"'
+    return response
+

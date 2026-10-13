@@ -395,3 +395,119 @@ class InboundWebhookLogSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+
+class TenantExportJobSerializer(serializers.ModelSerializer):
+    """Serializer for tenant backup export jobs."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+    has_file = serializers.SerializerMethodField()
+
+    class Meta:
+        from apps.integrations.models import TenantExportJob
+
+        model = TenantExportJob
+        fields = [
+            "id",
+            "status",
+            "include_audit_logs",
+            "file_size_bytes",
+            "sha256_hash",
+            "manifest",
+            "error_message",
+            "has_file",
+            "created_at",
+            "completed_at",
+        ]
+        read_only_fields = fields
+
+    def get_has_file(self, obj) -> bool:
+        return bool(obj.file)
+
+
+class TenantExportJobCreateSerializer(serializers.Serializer):
+    """Payload to trigger a tenant backup export."""
+
+    include_audit_logs = serializers.BooleanField(default=False)
+
+
+class TenantImportJobSerializer(serializers.ModelSerializer):
+    """Serializer for tenant backup import/restore jobs."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+
+    class Meta:
+        from apps.integrations.models import TenantImportJob
+
+        model = TenantImportJob
+        fields = [
+            "id",
+            "status",
+            "manifest",
+            "error_message",
+            "started_at",
+            "completed_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class DataRetentionPolicySerializer(serializers.ModelSerializer):
+    """Serializer for tenant data retention policies."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+
+    class Meta:
+        from apps.integrations.models import DataRetentionPolicy
+
+        model = DataRetentionPolicy
+        fields = [
+            "id",
+            "audit_log_retention_days",
+            "webhook_log_retention_days",
+            "sync_log_retention_days",
+            "export_file_retention_days",
+            "is_active",
+            "last_run_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "last_run_at", "created_at", "updated_at"]
+
+
+class DataSubjectRequestSerializer(serializers.ModelSerializer):
+    """Serializer for GDPR data subject requests."""
+
+    id = serializers.UUIDField(source="public_id", read_only=True)
+
+    class Meta:
+        from apps.integrations.models import DataSubjectRequest
+
+        model = DataSubjectRequest
+        fields = [
+            "id",
+            "request_type",
+            "subject_email",
+            "subject_name",
+            "subject_type",
+            "status",
+            "reason",
+            "verification_notes",
+            "result_data",
+            "created_at",
+            "updated_at",
+            "completed_at",
+        ]
+        read_only_fields = ["id", "status", "result_data", "created_at", "updated_at", "completed_at"]
+
+
+class DataSubjectRequestCreateSerializer(serializers.Serializer):
+    """Payload to submit a GDPR access or erasure request."""
+
+    request_type = serializers.ChoiceField(choices=["access_export", "erasure"])
+    subject_email = serializers.EmailField()
+    subject_name = serializers.CharField(required=False, allow_blank=True, default="")
+    subject_type = serializers.ChoiceField(choices=["customer", "contact", "lead", "other"], default="customer")
+    reason = serializers.CharField(required=False, allow_blank=True, default="")
+    verification_notes = serializers.CharField(required=False, allow_blank=True, default="")
+

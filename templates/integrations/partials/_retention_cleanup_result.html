@@ -1,0 +1,15 @@
+{% load i18n %}
+<div class="p-4 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-emerald-800 dark:text-emerald-200 space-y-2">
+  <div class="font-semibold flex items-center">
+    <svg class="h-5 w-5 mr-2 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+    </svg>
+    {% blocktrans with total=total_cleaned %}Cleanup completed successfully: {{ total }} expired records purged.{% endblocktrans %}
+  </div>
+  <ul class="list-disc list-inside text-xs space-y-1 text-emerald-700 dark:text-emerald-300">
+    <li>{% trans "Audit logs purged" %}: {{ results.audit_logs|default:0 }}</li>
+    <li>{% trans "Webhook logs purged" %}: {{ results.webhook_logs|default:0 }}</li>
+    <li>{% trans "Sync logs purged" %}: {{ results.sync_logs|default:0 }}</li>
+    <li>{% trans "Export files cleaned" %}: {{ results.export_files|default:0 }}</li>
+  </ul>
+</div>
