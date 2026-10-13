@@ -6,7 +6,10 @@ from django.contrib import admin
 
 from apps.integrations.models import (
     ExportJob,
+    ExternalReference,
     ImportJob,
+    IntegrationConnection,
+    IntegrationSyncLog,
     WebhookDelivery,
     WebhookEndpoint,
 )
@@ -103,3 +106,61 @@ class WebhookDeliveryAdmin(admin.ModelAdmin):
         "delivered_at",
         "next_retry_at",
     )
+
+
+@admin.register(IntegrationConnection)
+class IntegrationConnectionAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "name",
+        "connector_type",
+        "status",
+        "sync_interval_minutes",
+        "last_synced_at",
+        "created_at",
+    )
+    list_filter = ("status", "connector_type", "organization")
+    search_fields = ("name", "description", "organization__name")
+    readonly_fields = (
+        "public_id",
+        "created_at",
+        "updated_at",
+        "last_synced_at",
+        "last_error",
+    )
+
+
+@admin.register(ExternalReference)
+class ExternalReferenceAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "connection",
+        "entity_type",
+        "internal_id",
+        "external_id",
+        "last_synced_at",
+    )
+    list_filter = ("entity_type", "connection", "organization")
+    search_fields = ("internal_id", "external_id", "organization__name")
+    readonly_fields = ("public_id", "created_at", "updated_at", "last_synced_at")
+
+
+@admin.register(IntegrationSyncLog)
+class IntegrationSyncLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "public_id",
+        "organization",
+        "connection",
+        "direction",
+        "status",
+        "records_processed",
+        "records_succeeded",
+        "records_failed",
+        "duration_ms",
+        "created_at",
+    )
+    list_filter = ("status", "direction", "connection", "organization")
+    search_fields = ("summary", "action", "organization__name")
+    readonly_fields = ("public_id", "created_at", "updated_at")

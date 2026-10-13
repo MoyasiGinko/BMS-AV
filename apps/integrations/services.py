@@ -21,15 +21,22 @@ from django.utils import timezone
 from apps.core.events import publish
 from apps.core.tenant_context import tenant_context
 from apps.integrations import tasks
+from apps.integrations.connectors import ConnectorResult, connector_registry
 from apps.integrations.exporters import get_exporter
 from apps.integrations.importers import get_importer
 from apps.integrations.models import (
+    ConnectionStatus,
     EntityType,
     ExportJob,
     ExportJobStatus,
+    ExternalReference,
     FileFormat,
     ImportJob,
     ImportJobStatus,
+    IntegrationConnection,
+    IntegrationSyncLog,
+    SyncDirection,
+    SyncStatus,
     WebhookDelivery,
     WebhookDeliveryStatus,
     WebhookEndpoint,
@@ -647,3 +654,316 @@ def send_test_ping(
     )
 
     return deliver_webhook(delivery=delivery, http_client=http_client)
+
+
+# =========================================================================
+# Connector Framework Services
+# =========================================================================
+
+
+@transaction.atomic
+def create_integration_connection(
+    *,
+    organization: Organization,
+    name: str,
+    connector_type: str,
+    config: dict[str, Any] | None = None,
+    credentials: dict[str, Any] | None = None,
+    description: str = "",
+    status: str = ConnectionStatus.ACTIVE,
+    sync_interval_minutes: int = 60,
+    actor: Any = None,
+) -> IntegrationConnection:
+    """Register and persist a new integration connection."""
+    # Ensure connector type is supported
+    connector_registry.get(connector_type)
+
+    conn = IntegrationConnection(
+        organization=organization,
+        name=name,
+        connector_type=connector_type,
+        config=config or {},
+        description=description,
+        status=status,
+        sync_interval_minutes=sync_interval_minutes,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+    if credentials:
+        conn.credentials = credentials
+    conn.save()
+
+    publish(
+        "integration.connection.created",
+        organization_id=organization.id,
+        payload={
+            "connection_id": str(conn.public_id),
+            "name": conn.name,
+            "connector_type": conn.connector_type,
+        },
+        actor_id=getattr(actor, "id", None),
+    )
+    return conn
+
+
+@transaction.atomic
+def update_integration_connection(
+    *,
+    connection: IntegrationConnection,
+    name: str | None = None,
+    config: dict[str, Any] | None = None,
+    credentials: dict[str, Any] | None = None,
+    description: str | None = None,
+    status: str | None = None,
+    sync_interval_minutes: int | None = None,
+    actor: Any = None,
+) -> IntegrationConnection:
+    """Update connection settings and optionally rotate credentials."""
+    update_fields = ["updated_at"]
+    if name is not None:
+        connection.name = name
+        update_fields.append("name")
+    if config is not None:
+        connection.config = config
+        update_fields.append("config")
+    if credentials is not None:
+        connection.credentials = credentials
+        update_fields.append("encrypted_credentials")
+    if description is not None:
+        connection.description = description
+        update_fields.append("description")
+    if status is not None:
+        connection.status = status
+        update_fields.append("status")
+    if sync_interval_minutes is not None:
+        connection.sync_interval_minutes = sync_interval_minutes
+        update_fields.append("sync_interval_minutes")
+
+    connection.save(update_fields=update_fields)
+
+    publish(
+        "integration.connection.updated",
+        organization_id=connection.organization_id,
+        payload={
+            "connection_id": str(connection.public_id),
+            "name": connection.name,
+            "status": connection.status,
+        },
+        actor_id=getattr(actor, "id", None),
+    )
+    return connection
+
+
+@transaction.atomic
+def delete_integration_connection(
+    *,
+    connection: IntegrationConnection,
+    actor: Any = None,
+) -> None:
+    """Delete an integration connection and all associated records."""
+    org_id = connection.organization_id
+    pub_id = str(connection.public_id)
+    name = connection.name
+    connection.delete()
+
+    publish(
+        "integration.connection.deleted",
+        organization_id=org_id,
+        payload={"connection_id": pub_id, "name": name},
+        actor_id=getattr(actor, "id", None),
+    )
+
+
+def test_integration_connection(
+    *,
+    connection: IntegrationConnection,
+    actor: Any = None,
+) -> ConnectorResult:
+    """Validate remote connectivity and credentials authorization."""
+    connector = connector_registry.get(connection.connector_type)
+    result = connector.test_connection(connection)
+    if not result.success:
+        connection.last_error = result.message
+        connection.save(update_fields=["last_error", "updated_at"])
+    elif connection.last_error:
+        connection.last_error = ""
+        connection.save(update_fields=["last_error", "updated_at"])
+    return result
+
+
+@transaction.atomic
+def run_integration_sync(
+    *,
+    connection: IntegrationConnection,
+    direction: str = SyncDirection.INBOUND,
+    params: dict[str, Any] | None = None,
+    actor: Any = None,
+) -> tuple[IntegrationSyncLog, ConnectorResult]:
+    """Execute connector synchronization and persist execution audit log."""
+    start_time = time.monotonic()
+    connector = connector_registry.get(connection.connector_type)
+    result = connector.sync(connection, direction=direction, params=params)
+    elapsed_ms = max(int((time.monotonic() - start_time) * 1000), 1)
+
+    sync_status = (
+        SyncStatus.SUCCESS
+        if result.success
+        else (SyncStatus.PARTIAL if result.records_succeeded > 0 else SyncStatus.FAILED)
+    )
+
+    log = IntegrationSyncLog.objects.create(
+        organization=connection.organization,
+        connection=connection,
+        direction=direction,
+        status=sync_status,
+        action=f"sync_{direction}",
+        records_processed=result.records_processed,
+        records_succeeded=result.records_succeeded,
+        records_failed=result.records_failed,
+        error_details={"errors": result.errors} if result.errors else {},
+        summary=result.message,
+        duration_ms=elapsed_ms,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+
+    connection.last_synced_at = timezone.now()
+    connection.last_error = "" if result.success else result.message
+    connection.save(update_fields=["last_synced_at", "last_error", "updated_at"])
+
+    publish(
+        "integration.sync.completed",
+        organization_id=connection.organization_id,
+        payload={
+            "connection_id": str(connection.public_id),
+            "log_id": str(log.public_id),
+            "status": log.status,
+            "direction": direction,
+            "records_processed": log.records_processed,
+        },
+        actor_id=getattr(actor, "id", None),
+    )
+    return log, result
+
+
+def execute_connector_action(
+    *,
+    connection: IntegrationConnection,
+    action: str,
+    payload: dict[str, Any] | None = None,
+    actor: Any = None,
+) -> ConnectorResult:
+    """Execute a discrete named action on an integration connection."""
+    connector = connector_registry.get(connection.connector_type)
+    return connector.execute_action(connection, action=action, payload=payload)
+
+
+@transaction.atomic
+def create_or_update_external_reference(
+    *,
+    organization: Organization,
+    connection: IntegrationConnection,
+    entity_type: str,
+    internal_id: str,
+    external_id: str,
+    metadata: dict[str, Any] | None = None,
+    actor: Any = None,
+) -> ExternalReference:
+    """Create or update bidirectional external reference mapping."""
+    ref, created = ExternalReference.all_tenants.get_or_create(
+        organization=organization,
+        connection=connection,
+        entity_type=entity_type,
+        external_id=external_id,
+        defaults={
+            "internal_id": str(internal_id),
+            "metadata": metadata or {},
+            "created_by": actor if getattr(actor, "is_authenticated", False) else None,
+        },
+    )
+    if not created and (ref.internal_id != str(internal_id) or metadata is not None):
+        ref.internal_id = str(internal_id)
+        if metadata is not None:
+            ref.metadata = metadata
+        ref.save(update_fields=["internal_id", "metadata", "updated_at"])
+
+    return ref
+
+
+@transaction.atomic
+def delete_external_reference(
+    *,
+    reference: ExternalReference,
+    actor: Any = None,
+) -> None:
+    """Delete an external reference."""
+    reference.delete()
+
+
+@transaction.atomic
+def zapier_subscribe_hook(
+    *,
+    organization: Organization,
+    connection: IntegrationConnection,
+    event_type: str,
+    target_url: str,
+    actor: Any = None,
+) -> tuple[WebhookEndpoint, dict[str, Any]]:
+    """Register a Zapier REST hook subscription as a WebhookEndpoint."""
+    connector = connector_registry.get("zapier_compat")
+    res = connector.execute_action(
+        connection,
+        "subscribe",
+        {"event": event_type, "target_url": target_url},
+    )
+    if not res.success:
+        raise ValueError(res.message)
+
+    # Register backing WebhookEndpoint
+    endpoint = WebhookEndpoint.objects.create(
+        organization=organization,
+        url=target_url,
+        description=f"Zapier Hook ({event_type}) - {connection.name}",
+        secret=secrets.token_hex(32),
+        events=[event_type],
+        is_active=True,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+
+    create_or_update_external_reference(
+        organization=organization,
+        connection=connection,
+        entity_type="zapier_hook",
+        internal_id=str(endpoint.public_id),
+        external_id=res.data.get("id", str(endpoint.public_id)),
+        metadata={"target_url": target_url, "event_type": event_type},
+        actor=actor,
+    )
+
+    return endpoint, res.data
+
+
+@transaction.atomic
+def zapier_unsubscribe_hook(
+    *,
+    organization: Organization,
+    connection: IntegrationConnection,
+    hook_id: str,
+    actor: Any = None,
+) -> bool:
+    """Deactivate or remove a Zapier REST hook subscription."""
+    ref = ExternalReference.all_tenants.filter(
+        organization=organization,
+        connection=connection,
+        entity_type="zapier_hook",
+        external_id=hook_id,
+    ).first()
+    if ref:
+        endpoint = WebhookEndpoint.all_tenants.filter(
+            organization=organization,
+            public_id=ref.internal_id,
+        ).first()
+        if endpoint:
+            endpoint.is_active = False
+            endpoint.save(update_fields=["is_active", "updated_at"])
+        ref.delete()
+        return True
+    return False

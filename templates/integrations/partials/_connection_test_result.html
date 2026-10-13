@@ -1,0 +1,35 @@
+{% load i18n %}
+{% if result.success %}
+<div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-200 flex items-start justify-between shadow-xs mb-4">
+    <div class="flex items-start gap-2.5">
+        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+            <div class="font-bold">{% trans "Connection Successful" %}</div>
+            <p class="mt-0.5 text-slate-600 dark:text-slate-300">{{ result.message }}</p>
+        </div>
+    </div>
+    <button type="button" onclick="this.closest('div').remove()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">&times;</button>
+</div>
+{% else %}
+<div class="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-200 flex items-start justify-between shadow-xs mb-4">
+    <div class="flex items-start gap-2.5">
+        <svg class="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+            <div class="font-bold">{% trans "Connection Test Failed" %}</div>
+            <p class="mt-0.5 text-slate-600 dark:text-slate-300">{{ result.message }}</p>
+            {% if result.errors %}
+            <ul class="list-disc list-inside mt-1 space-y-0.5 text-rose-600 dark:text-rose-400">
+                {% for err in result.errors %}
+                <li>{{ err }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+    <button type="button" onclick="this.closest('div').remove()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">&times;</button>
+</div>
+{% endif %}

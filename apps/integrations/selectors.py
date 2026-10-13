@@ -9,7 +9,10 @@ from django.db.models import QuerySet
 
 from apps.integrations.models import (
     ExportJob,
+    ExternalReference,
     ImportJob,
+    IntegrationConnection,
+    IntegrationSyncLog,
     WebhookDelivery,
     WebhookDeliveryStatus,
     WebhookEndpoint,
@@ -181,3 +184,112 @@ def get_webhooks_summary(organization: Organization) -> dict[str, Any]:
         "success_rate": success_rate,
         "recent_deliveries": deliveries_qs.select_related("endpoint").order_by("-created_at")[:10],
     }
+
+
+def list_integration_connections(
+    organization: Organization,
+    *,
+    connector_type: str | None = None,
+    status: str | None = None,
+) -> QuerySet[IntegrationConnection]:
+    """Retrieve integration connections for an organization."""
+    qs = IntegrationConnection.all_tenants.filter(organization=organization).order_by("-created_at")
+    if connector_type:
+        qs = qs.filter(connector_type=connector_type)
+    if status:
+        qs = qs.filter(status=status)
+    return qs
+
+
+def get_integration_connection(
+    organization: Organization,
+    *,
+    connection_id: str | uuid.UUID,
+) -> IntegrationConnection | None:
+    """Retrieve single IntegrationConnection by ID or public_id."""
+    qs = IntegrationConnection.all_tenants.filter(organization=organization)
+    if isinstance(connection_id, uuid.UUID):
+        return qs.filter(public_id=connection_id).first()
+    try:
+        val_uuid = uuid.UUID(str(connection_id))
+        return qs.filter(public_id=val_uuid).first()
+    except ValueError, AttributeError:
+        if str(connection_id).isdigit():
+            return qs.filter(id=int(connection_id)).first()
+        return None
+
+
+def list_external_references(
+    organization: Organization,
+    *,
+    connection: IntegrationConnection | None = None,
+    entity_type: str | None = None,
+    internal_id: str | None = None,
+) -> QuerySet[ExternalReference]:
+    """Retrieve external reference mappings."""
+    qs = (
+        ExternalReference.all_tenants.filter(organization=organization)
+        .select_related("connection")
+        .order_by("-last_synced_at")
+    )
+    if connection:
+        qs = qs.filter(connection=connection)
+    if entity_type:
+        qs = qs.filter(entity_type=entity_type)
+    if internal_id:
+        qs = qs.filter(internal_id=internal_id)
+    return qs
+
+
+def get_external_reference(
+    organization: Organization,
+    *,
+    connection: IntegrationConnection,
+    entity_type: str,
+    external_id: str,
+) -> ExternalReference | None:
+    """Retrieve single external reference mapping by connection, entity type, and external ID."""
+    return ExternalReference.all_tenants.filter(
+        organization=organization,
+        connection=connection,
+        entity_type=entity_type,
+        external_id=external_id,
+    ).first()
+
+
+def find_external_reference_by_internal(
+    organization: Organization,
+    *,
+    entity_type: str,
+    internal_id: str,
+    connection: IntegrationConnection | None = None,
+) -> ExternalReference | None:
+    """Find external reference mapping by internal entity ID."""
+    qs = ExternalReference.all_tenants.filter(
+        organization=organization,
+        entity_type=entity_type,
+        internal_id=internal_id,
+    )
+    if connection:
+        qs = qs.filter(connection=connection)
+    return qs.first()
+
+
+def list_sync_logs(
+    organization: Organization,
+    *,
+    connection: IntegrationConnection | None = None,
+    status: str | None = None,
+    limit: int = 50,
+) -> QuerySet[IntegrationSyncLog]:
+    """Retrieve chronological sync execution audit logs."""
+    qs = (
+        IntegrationSyncLog.all_tenants.filter(organization=organization)
+        .select_related("connection")
+        .order_by("-created_at")
+    )
+    if connection:
+        qs = qs.filter(connection=connection)
+    if status:
+        qs = qs.filter(status=status)
+    return qs[:limit]

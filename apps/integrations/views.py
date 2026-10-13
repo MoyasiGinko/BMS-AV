@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+from typing import Any
+
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
@@ -11,14 +14,18 @@ from django.utils.translation import gettext as _
 from apps.core.event_catalog import list_events_by_module
 from apps.core.permissions import permission_required
 from apps.integrations import selectors, services
-from apps.integrations.forms import WebhookEndpointForm
+from apps.integrations.connectors import connector_registry
+from apps.integrations.forms import IntegrationConnectionForm, WebhookEndpointForm
 from apps.integrations.importers import get_importer
 from apps.integrations.models import (
+    ConnectorType,
     EntityType,
     FileFormat,
     ImportJobStatus,
 )
 from apps.tenancy.models import Organization
+
+logger = logging.getLogger(__name__)
 
 
 def _get_active_org(request: HttpRequest) -> Organization:
@@ -501,3 +508,246 @@ def webhook_delivery_redeliver_view(request: HttpRequest, delivery_id: str) -> H
 
     messages.success(request, _("Webhook redelivery triggered."))
     return redirect("integrations:webhook_endpoint_detail", endpoint_id=delivery.endpoint.public_id)
+
+
+# =========================================================================
+# Connector Framework Views
+# =========================================================================
+
+
+@permission_required("integrations.view")
+def connections_list_view(request: HttpRequest) -> HttpResponse:
+    """Gallery and active integration connections dashboard."""
+    org = _get_active_org(request)
+    connector_type = request.GET.get("type")
+    status_filter = request.GET.get("status")
+
+    connections = selectors.list_integration_connections(
+        org,
+        connector_type=connector_type,
+        status=status_filter,
+    )
+    gallery = connector_registry.get_gallery_metadata()
+    recent_logs = selectors.list_sync_logs(org, limit=10)
+
+    return render(
+        request,
+        "integrations/connections_list.html",
+        {
+            "connections": connections,
+            "gallery": gallery,
+            "recent_logs": recent_logs,
+            "selected_type": connector_type,
+            "selected_status": status_filter,
+            "connector_types": ConnectorType.choices,
+        },
+    )
+
+
+@permission_required("integrations.manage")
+def connection_create_view(
+    request: HttpRequest,
+    connector_type: str | None = None,
+) -> HttpResponse:
+    """Create a new integration connection instance."""
+    org = _get_active_org(request)
+    initial: dict[str, Any] = {}
+    if connector_type:
+        initial["connector_type"] = connector_type
+
+    if request.method == "POST":
+        form = IntegrationConnectionForm(request.POST)
+        if form.is_valid():
+            cleaned = form.cleaned_data
+            conn = services.create_integration_connection(
+                organization=org,
+                name=cleaned["name"],
+                connector_type=cleaned["connector_type"],
+                config=form.clean_config_json(),
+                credentials=form.clean_credentials_json(),
+                description=cleaned.get("description", ""),
+                status=cleaned.get("status"),
+                sync_interval_minutes=cleaned.get("sync_interval_minutes", 60),
+                actor=request.user,
+            )
+            messages.success(request, _("Integration connection '%(name)s' created.") % {"name": conn.name})
+            return redirect("integrations:connection_detail", connection_id=conn.public_id)
+    else:
+        form = IntegrationConnectionForm(initial=initial)
+
+    return render(
+        request,
+        "integrations/connection_form.html",
+        {
+            "form": form,
+            "is_create": True,
+            "connector_type": connector_type,
+            "gallery": connector_registry.get_gallery_metadata(),
+        },
+    )
+
+
+@permission_required("integrations.view")
+def connection_detail_view(request: HttpRequest, connection_id: str) -> HttpResponse:
+    """View details, sync logs, and external reference mappings for a connection."""
+    org = _get_active_org(request)
+    connection = selectors.get_integration_connection(org, connection_id=connection_id)
+    if not connection:
+        raise Http404(_("Integration connection not found."))
+
+    sync_logs = selectors.list_sync_logs(org, connection=connection, limit=20)
+    references = selectors.list_external_references(org, connection=connection)[:20]
+    total_references_count = selectors.list_external_references(org, connection=connection).count()
+
+    connector_meta = None
+    try:
+        connector = connector_registry.get(connection.connector_type)
+        connector_meta = {
+            "name": connector.name,
+            "description": connector.description,
+            "category": connector.category,
+            "supported_actions": connector.supported_actions,
+            "config_schema": connector.config_schema,
+        }
+    except Exception as exc:
+        logger.debug("Connector metadata unavailable: %s", exc)
+
+    return render(
+        request,
+        "integrations/connection_detail.html",
+        {
+            "connection": connection,
+            "sync_logs": sync_logs,
+            "references": references,
+            "total_references_count": total_references_count,
+            "connector_meta": connector_meta,
+        },
+    )
+
+
+@permission_required("integrations.manage")
+def connection_edit_view(request: HttpRequest, connection_id: str) -> HttpResponse:
+    """Edit connection configuration and credentials."""
+    org = _get_active_org(request)
+    connection = selectors.get_integration_connection(org, connection_id=connection_id)
+    if not connection:
+        raise Http404(_("Integration connection not found."))
+
+    if request.method == "POST":
+        form = IntegrationConnectionForm(request.POST, instance=connection)
+        if form.is_valid():
+            cleaned = form.cleaned_data
+            services.update_integration_connection(
+                connection=connection,
+                name=cleaned["name"],
+                config=form.clean_config_json(),
+                credentials=form.clean_credentials_json(),
+                description=cleaned.get("description"),
+                status=cleaned.get("status"),
+                sync_interval_minutes=cleaned.get("sync_interval_minutes"),
+                actor=request.user,
+            )
+            messages.success(request, _("Connection settings updated."))
+            return redirect("integrations:connection_detail", connection_id=connection.public_id)
+    else:
+        form = IntegrationConnectionForm(instance=connection)
+
+    return render(
+        request,
+        "integrations/connection_form.html",
+        {
+            "form": form,
+            "connection": connection,
+            "is_create": False,
+        },
+    )
+
+
+@permission_required("integrations.manage")
+def connection_delete_view(request: HttpRequest, connection_id: str) -> HttpResponse:
+    """Delete an integration connection."""
+    org = _get_active_org(request)
+    connection = selectors.get_integration_connection(org, connection_id=connection_id)
+    if not connection:
+        raise Http404(_("Integration connection not found."))
+
+    if request.method == "POST":
+        services.delete_integration_connection(connection=connection, actor=request.user)
+        messages.success(request, _("Integration connection deleted."))
+        return redirect("integrations:connections_list")
+
+    return render(
+        request,
+        "integrations/connection_confirm_delete.html",
+        {"connection": connection},
+    )
+
+
+@permission_required("integrations.sync")
+def connection_test_view(request: HttpRequest, connection_id: str) -> HttpResponse:
+    """HTMX / POST action to test connection validity."""
+    org = _get_active_org(request)
+    connection = selectors.get_integration_connection(org, connection_id=connection_id)
+    if not connection:
+        raise Http404(_("Integration connection not found."))
+
+    result = services.test_integration_connection(connection=connection, actor=request.user)
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "integrations/partials/_connection_test_result.html",
+            {"result": result, "connection": connection},
+        )
+
+    if result.success:
+        messages.success(request, result.message)
+    else:
+        messages.error(request, result.message)
+    return redirect("integrations:connection_detail", connection_id=connection.public_id)
+
+
+@permission_required("integrations.sync")
+def connection_sync_view(request: HttpRequest, connection_id: str) -> HttpResponse:
+    """HTMX / POST action to trigger manual synchronization."""
+    org = _get_active_org(request)
+    connection = selectors.get_integration_connection(org, connection_id=connection_id)
+    if not connection:
+        raise Http404(_("Integration connection not found."))
+
+    direction = request.POST.get("direction", "inbound")
+    log, result = services.run_integration_sync(
+        connection=connection,
+        direction=direction,
+        actor=request.user,
+    )
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "integrations/partials/_connection_sync_result.html",
+            {"log": log, "result": result, "connection": connection},
+        )
+
+    if result.success:
+        messages.success(request, result.message)
+    else:
+        messages.error(request, result.message)
+    return redirect("integrations:connection_detail", connection_id=connection.public_id)
+
+
+@permission_required("integrations.view")
+def external_references_list_view(request: HttpRequest) -> HttpResponse:
+    """List external entity reference mappings."""
+    org = _get_active_org(request)
+    entity_filter = request.GET.get("entity_type")
+    references = selectors.list_external_references(org, entity_type=entity_filter)[:100]
+
+    return render(
+        request,
+        "integrations/external_references_list.html",
+        {
+            "references": references,
+            "selected_entity": entity_filter,
+        },
+    )

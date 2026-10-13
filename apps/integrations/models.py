@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+import json
+from typing import Any, ClassVar
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.crypto import decrypt_value, encrypt_value
 from apps.core.models import TenantModel
 
 
@@ -309,3 +311,234 @@ class WebhookDelivery(TenantModel):
 
     def __str__(self) -> str:
         return f"Delivery {self.event_type} -> {self.endpoint.url} ({self.status})"
+
+
+class ConnectorType(models.TextChoices):
+    """Supported integration connector types."""
+
+    GENERIC_REST = "generic_rest", _("Generic REST API")
+    CSV_IMPORT = "csv_import", _("CSV Data Feed / Import")
+    FAKE_PAYMENTS = "fake_payments", _("Sandbox Payments Gateway")
+    FAKE_SMS = "fake_sms", _("Sandbox SMS Provider")
+    SMTP_EMAIL = "smtp_email", _("Custom SMTP Mail Server")
+    ZAPIER_COMPAT = "zapier_compat", _("Zapier REST Hooks")
+
+
+class ConnectionStatus(models.TextChoices):
+    """Operational status of an integration connection."""
+
+    ACTIVE = "active", _("Active")
+    INACTIVE = "inactive", _("Inactive")
+    ERROR = "error", _("Error")
+    TESTING = "testing", _("Testing")
+
+
+class SyncDirection(models.TextChoices):
+    """Direction of data synchronization."""
+
+    INBOUND = "inbound", _("Inbound")
+    OUTBOUND = "outbound", _("Outbound")
+
+
+class SyncStatus(models.TextChoices):
+    """Status of a sync execution run."""
+
+    SUCCESS = "success", _("Success")
+    FAILED = "failed", _("Failed")
+    PARTIAL = "partial", _("Partial")
+
+
+class IntegrationConnection(TenantModel):
+    """Configured connection instance for an external connector with encrypted credentials."""
+
+    name = models.CharField(max_length=255, verbose_name=_("connection name"))
+    connector_type = models.CharField(
+        max_length=64,
+        choices=ConnectorType.choices,
+        db_index=True,
+        verbose_name=_("connector type"),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=ConnectionStatus.choices,
+        default=ConnectionStatus.ACTIVE,
+        db_index=True,
+        verbose_name=_("status"),
+    )
+    description = models.TextField(blank=True, default="", verbose_name=_("description"))
+    config = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("configuration parameters"),
+    )
+    encrypted_credentials = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("encrypted credentials"),
+    )
+    sync_interval_minutes = models.PositiveIntegerField(
+        default=60,
+        verbose_name=_("sync interval in minutes"),
+    )
+    last_synced_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("last synced at"),
+    )
+    last_error = models.TextField(blank=True, default="", verbose_name=_("last error"))
+
+    @property
+    def credentials(self) -> dict[str, Any]:
+        """Decrypt credentials from storage into a dictionary."""
+        if not self.encrypted_credentials:
+            return {}
+        raw = decrypt_value(self.encrypted_credentials)
+        if not raw:
+            return {}
+        try:
+            val = json.loads(raw)
+            return val if isinstance(val, dict) else {}
+        except Exception:
+            return {}
+
+    @credentials.setter
+    def credentials(self, value: dict[str, Any] | None) -> None:
+        """Encrypt and store credentials dictionary."""
+        if not value:
+            self.encrypted_credentials = ""
+        else:
+            self.encrypted_credentials = encrypt_value(json.dumps(value))
+
+    class Meta:
+        verbose_name = _("integration connection")
+        verbose_name_plural = _("integration connections")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "-created_at"], name="intconn_org_created_idx"),
+            models.Index(fields=["organization", "connector_type"], name="intconn_org_type_idx"),
+            models.Index(fields=["organization", "status"], name="intconn_org_status_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.get_connector_type_display()})"
+
+
+class ExternalReference(TenantModel):
+    """Bidirectional mapping between internal ERP entities and external remote systems."""
+
+    connection = models.ForeignKey(
+        IntegrationConnection,
+        on_delete=models.CASCADE,
+        related_name="external_references",
+        verbose_name=_("connection"),
+    )
+    entity_type = models.CharField(
+        max_length=64,
+        db_index=True,
+        verbose_name=_("entity type"),
+    )
+    internal_id = models.CharField(
+        max_length=64,
+        db_index=True,
+        verbose_name=_("internal entity ID"),
+    )
+    external_id = models.CharField(
+        max_length=255,
+        db_index=True,
+        verbose_name=_("external system ID"),
+    )
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("metadata"),
+    )
+    last_synced_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_("last synced at"),
+    )
+
+    class Meta:
+        verbose_name = _("external reference")
+        verbose_name_plural = _("external references")
+        ordering = ["-last_synced_at"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "connection", "entity_type", "external_id"],
+                name="uniq_extref_org_conn_entity_ext",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(
+                fields=["organization", "entity_type", "internal_id"],
+                name="extref_org_ent_int_idx",
+            ),
+            models.Index(
+                fields=["organization", "connection", "-last_synced_at"],
+                name="extref_org_conn_sync_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.entity_type} {self.internal_id} <-> {self.external_id} ({self.connection.name})"
+
+
+class IntegrationSyncLog(TenantModel):
+    """Audit log for automated or manual connector synchronization executions."""
+
+    connection = models.ForeignKey(
+        IntegrationConnection,
+        on_delete=models.CASCADE,
+        related_name="sync_logs",
+        verbose_name=_("connection"),
+    )
+    direction = models.CharField(
+        max_length=16,
+        choices=SyncDirection.choices,
+        default=SyncDirection.INBOUND,
+        verbose_name=_("direction"),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=SyncStatus.choices,
+        default=SyncStatus.SUCCESS,
+        db_index=True,
+        verbose_name=_("status"),
+    )
+    action = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+        verbose_name=_("action / operation"),
+    )
+    records_processed = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("records processed"),
+    )
+    records_succeeded = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("records succeeded"),
+    )
+    records_failed = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("records failed"),
+    )
+    error_details = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_("error details"),
+    )
+    summary = models.TextField(blank=True, default="", verbose_name=_("sync summary"))
+    duration_ms = models.PositiveIntegerField(default=0, verbose_name=_("duration in ms"))
+
+    class Meta:
+        verbose_name = _("integration sync log")
+        verbose_name_plural = _("integration sync logs")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "-created_at"], name="synclog_org_created_idx"),
+            models.Index(fields=["connection", "-created_at"], name="synclog_conn_created_idx"),
+            models.Index(fields=["organization", "status"], name="synclog_org_status_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"SyncLog {self.connection.name} [{self.direction}] ({self.status})"

@@ -63,4 +63,42 @@ urlpatterns = [
         views.webhook_delivery_redeliver_view,
         name="webhook_delivery_redeliver",
     ),
+    # Connector Framework
+    path("connections/", views.connections_list_view, name="connections_list"),
+    path("connections/new/", views.connection_create_view, name="connection_create"),
+    path(
+        "connections/new/<str:connector_type>/",
+        views.connection_create_view,
+        name="connection_create_typed",
+    ),
+    path(
+        "connections/<uuid:connection_id>/",
+        views.connection_detail_view,
+        name="connection_detail",
+    ),
+    path(
+        "connections/<uuid:connection_id>/edit/",
+        views.connection_edit_view,
+        name="connection_edit",
+    ),
+    path(
+        "connections/<uuid:connection_id>/delete/",
+        views.connection_delete_view,
+        name="connection_delete",
+    ),
+    path(
+        "connections/<uuid:connection_id>/test/",
+        views.connection_test_view,
+        name="connection_test",
+    ),
+    path(
+        "connections/<uuid:connection_id>/sync/",
+        views.connection_sync_view,
+        name="connection_sync",
+    ),
+    path(
+        "references/",
+        views.external_references_list_view,
+        name="external_references_list",
+    ),
 ]

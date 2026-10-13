@@ -9,8 +9,14 @@ from celery import shared_task
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
+from apps.core.tenant_context import tenant_context
 from apps.integrations import services
-from apps.integrations.models import WebhookDelivery, WebhookDeliveryStatus
+from apps.integrations.models import (
+    ConnectionStatus,
+    IntegrationConnection,
+    WebhookDelivery,
+    WebhookDeliveryStatus,
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -90,3 +96,58 @@ def retry_due_webhooks_task(batch_size: int = 50) -> int:
         count += 1
 
     return count
+
+
+@shared_task(queue="default", bind=True, max_retries=2)
+def sync_integration_connection_task(
+    self: Any,
+    connection_public_id: str,
+    direction: str = "inbound",
+    params: dict[str, Any] | None = None,
+) -> str:
+    conn = (
+        IntegrationConnection.all_tenants.select_related("organization")
+        .filter(public_id=connection_public_id)
+        .first()
+    )
+    if not conn:
+        logger.warning("IntegrationConnection %s not found for sync", connection_public_id)
+        return "Not found"
+
+    if conn.status != ConnectionStatus.ACTIVE:
+        return f"Skipped (status: {conn.status})"
+
+    try:
+        with tenant_context(conn.organization):
+            log, _result = services.run_integration_sync(
+                connection=conn,
+                direction=direction,
+                params=params,
+            )
+            return f"Sync {conn.name} completed: {log.status} ({log.records_processed} processed)"
+    except Exception as exc:
+        logger.exception("Failed executing sync for connection %s", connection_public_id)
+        raise self.retry(exc=exc, countdown=15) from exc
+
+
+@shared_task
+def sync_due_integration_connections_task(batch_size: int = 50) -> int:
+    """Find active integration connections that are due for synchronization."""
+    now = timezone.now()
+    active_conns = list(IntegrationConnection.all_tenants.filter(status=ConnectionStatus.ACTIVE)[:batch_size])
+
+    triggered = 0
+    for conn in active_conns:
+        is_due = False
+        if not conn.last_synced_at:
+            is_due = True
+        else:
+            delta_minutes = (now - conn.last_synced_at).total_seconds() / 60
+            if delta_minutes >= conn.sync_interval_minutes:
+                is_due = True
+
+        if is_due:
+            sync_integration_connection_task.delay(str(conn.public_id))
+            triggered += 1
+
+    return triggered
