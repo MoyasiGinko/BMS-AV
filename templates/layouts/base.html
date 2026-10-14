@@ -28,9 +28,10 @@
   <meta name="apple-mobile-web-app-title" content="Business OS">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
-  <!-- Calm Ledger Tokens & Tailwind 4 -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=1.0.2">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=1.0.2">
+  <!-- Calm Ledger Tokens, Neumorphic System & Tailwind 4 -->
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=1.0.3">
+  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=1.0.3">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=1.0.3">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -68,9 +69,15 @@
   <script>
     window.toggleTheme = function() {
       var current = document.documentElement.getAttribute('data-theme') || 'light';
-      var next = current === 'dark' ? 'light' : 'dark';
+      var order = ['light', 'dark', 'neumorphic'];
+      var idx = order.indexOf(current);
+      var next = order[(idx === -1 ? 0 : idx + 1) % order.length];
       document.documentElement.setAttribute('data-theme', next);
       try { localStorage.setItem('bos_theme', next); } catch(e) {}
+      if (window.toast) {
+        var labels = { light: 'Light Theme', dark: 'Dark Theme', neumorphic: 'BMS-AV Neumorphic Theme' };
+        window.toast('Theme: ' + (labels[next] || next), 'info', 2500);
+      }
       return next;
     };
 

@@ -1,0 +1,421 @@
+/* ==========================================================================
+   BMS-AV Neumorphic Style System
+   Soft tactile shapes pressed from a single continuous surface.
+   Light Source: Top-Left (135deg).
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&display=swap');
+
+:root {
+  /* Surface & Shadow Colors */
+  --neu-surface: #E6E9F2;
+  --neu-shadow-dark: #C5CADB;
+  --neu-shadow-light: #FFFFFF;
+  --neu-text: #262B45;
+  --neu-text-muted: #5A607C;
+  --neu-line: #D3D8E8;
+  --neu-accent-text: #4338CA;
+  --neu-accent-fill: #4F46E5;
+  --neu-success: #0E6B42;
+
+  /* Neumorphic Shadows (135-degree top-left light source) */
+  --neu-raise-lg: 9px 9px 18px var(--neu-shadow-dark), -9px -9px 18px var(--neu-shadow-light);
+  --neu-raise-md: 6px 6px 12px var(--neu-shadow-dark), -6px -6px 12px var(--neu-shadow-light);
+  --neu-raise-sm: 5px 5px 10px var(--neu-shadow-dark), -5px -5px 10px var(--neu-shadow-light);
+  --neu-raise-xs: 4px 4px 8px var(--neu-shadow-dark), -4px -4px 8px var(--neu-shadow-light);
+  --neu-inset-lg: inset 6px 6px 12px var(--neu-shadow-dark), inset -6px -6px 12px var(--neu-shadow-light);
+  --neu-inset-sm: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light);
+  --neu-inset-nav: inset 5px 5px 10px var(--neu-shadow-dark), inset -5px -5px 10px var(--neu-shadow-light);
+
+  /* Geometry & Spacing */
+  --neu-radius-card: 28px;
+  --neu-radius-btn: 16px;
+  --neu-radius-pill-btn: 14px;
+  --neu-radius-well: 22px;
+  --neu-radius-seg: 16px;
+  --neu-radius-seg-inner: 12px;
+  --neu-gap: 30px;
+  --neu-pad-card: 24px;
+  --neu-tap: 44px;
+  --neu-font: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+}
+
+/* ==========================================================================
+   Full Neumorphic Theme Mode ([data-theme="neumorphic"])
+   Maps Calm Ledger root variables directly to Neumorphic tokens.
+   ========================================================================== */
+[data-theme="neumorphic"] {
+  --bg: var(--neu-surface);
+  --surface: var(--neu-surface);
+  --surface-2: var(--neu-surface);
+  --border: transparent;
+  --border-strong: var(--neu-line);
+  --text: var(--neu-text);
+  --text-muted: var(--neu-text-muted);
+  --text-subtle: #79809E;
+  --brand-600: var(--neu-accent-fill);
+  --brand-700: var(--neu-accent-text);
+  --brand-50: var(--neu-surface);
+  --font-sans: var(--neu-font);
+  --shadow-sm: var(--neu-raise-sm);
+  --shadow-lg: var(--neu-raise-lg);
+  --radius-sm: var(--neu-radius-btn);
+  --radius-md: var(--neu-radius-card);
+}
+
+/* ==========================================================================
+   Neumorphic Components & Utility Classes
+   ========================================================================== */
+
+/* 1. Base Neumorphic Surface Container */
+.neu-surface {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  font-family: var(--neu-font) !important;
+}
+
+/* 2. Neumorphic Card */
+.neu-card {
+  background-color: var(--neu-surface);
+  border-radius: var(--neu-radius-card);
+  box-shadow: var(--neu-raise-lg);
+  padding: var(--neu-pad-card);
+  border: none !important;
+  color: var(--neu-text);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.neu-card-stat {
+  background-color: var(--neu-surface);
+  border-radius: var(--neu-radius-card);
+  box-shadow: var(--neu-raise-lg);
+  padding: 20px;
+  border: none !important;
+  color: var(--neu-text);
+}
+
+/* 3. Sunken Well (For Inputs, Charts, Search Beds) */
+.neu-well {
+  background-color: var(--neu-surface);
+  border-radius: var(--neu-radius-well);
+  box-shadow: var(--neu-inset-lg);
+  padding: 20px;
+  border: none !important;
+  color: var(--neu-text);
+}
+
+/* 4. Primary Button */
+.neu-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--neu-accent-fill);
+  color: #FFFFFF !important;
+  border-radius: var(--neu-radius-btn);
+  box-shadow: var(--neu-raise-md);
+  font-family: var(--neu-font);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px 24px;
+  min-height: var(--neu-tap);
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  transition: box-shadow 0.08s ease, transform 0.08s ease;
+}
+
+.neu-btn-primary:active {
+  box-shadow: var(--neu-inset-sm);
+  background-color: var(--neu-accent-text);
+  transform: translateY(1px);
+}
+
+.neu-btn-primary:focus-visible {
+  outline: 2px solid var(--neu-accent-text);
+  outline-offset: 3px;
+}
+
+/* 5. Ghost / Pill Button */
+.neu-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--neu-surface);
+  color: var(--neu-accent-text) !important;
+  border-radius: var(--neu-radius-pill-btn);
+  box-shadow: var(--neu-raise-sm);
+  font-family: var(--neu-font);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 20px;
+  min-height: var(--neu-tap);
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  transition: box-shadow 0.08s ease, transform 0.08s ease;
+}
+
+.neu-btn-ghost:active {
+  box-shadow: var(--neu-inset-sm);
+  transform: translateY(1px);
+}
+
+.neu-btn-ghost:focus-visible {
+  outline: 2px solid var(--neu-accent-text);
+  outline-offset: 3px;
+}
+
+/* 6. Round Icon Button (56px) */
+.neu-btn-round {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--neu-surface);
+  color: var(--neu-text-muted);
+  box-shadow: var(--neu-raise-md);
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow 0.08s ease, color 0.15s ease, transform 0.08s ease;
+}
+
+.neu-btn-round:hover {
+  color: var(--neu-accent-text);
+}
+
+.neu-btn-round:active {
+  box-shadow: var(--neu-inset-sm);
+  color: var(--neu-accent-fill);
+  transform: scale(0.98);
+}
+
+.neu-btn-round:focus-visible {
+  outline: 2px solid var(--neu-accent-text);
+  outline-offset: 3px;
+}
+
+/* 7. Search Field */
+.neu-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background-color: var(--neu-surface);
+  border-radius: var(--neu-radius-btn);
+  box-shadow: var(--neu-inset-lg);
+  padding: 12px 18px;
+  border: none;
+  color: var(--neu-text);
+  font-family: var(--neu-font);
+  font-size: 14px;
+  transition: box-shadow 0.15s ease;
+}
+
+.neu-search input {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  color: var(--neu-text);
+  font-family: var(--neu-font);
+  font-size: 14px;
+}
+
+.neu-search input::placeholder {
+  color: var(--neu-text-muted);
+}
+
+.neu-search:focus-within {
+  box-shadow: var(--neu-inset-lg), 0 0 0 2px var(--neu-accent-text);
+}
+
+/* 8. Segmented Control */
+.neu-segmented {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  background-color: var(--neu-surface);
+  border-radius: var(--neu-radius-seg);
+  box-shadow: var(--neu-inset-lg);
+  gap: 4px;
+}
+
+.neu-segmented-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: var(--neu-radius-seg-inner);
+  font-family: var(--neu-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neu-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.neu-segmented-btn.active {
+  background-color: var(--neu-surface);
+  color: var(--neu-accent-text);
+  font-weight: 700;
+  box-shadow: var(--neu-raise-xs);
+}
+
+/* 9. Toggle Switch (58px x 30px with 24px thumb) */
+.neu-toggle-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+  cursor: pointer;
+}
+
+.neu-toggle {
+  position: relative;
+  display: inline-block;
+  width: 58px;
+  height: 30px;
+  background-color: var(--neu-surface);
+  border-radius: 9999px;
+  box-shadow: var(--neu-inset-lg);
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.neu-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  background-color: var(--neu-accent-fill);
+  border-radius: 50%;
+  box-shadow: var(--neu-raise-sm);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.2s ease;
+}
+
+.neu-toggle.off .neu-toggle-thumb {
+  background-color: var(--neu-text-muted);
+  transform: translateX(0);
+}
+
+.neu-toggle.on .neu-toggle-thumb {
+  transform: translateX(26px);
+  background-color: var(--neu-accent-fill);
+}
+
+/* 10. Slider Track & Thumb (14px track, 24px thumb) */
+.neu-slider-track {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background-color: var(--neu-surface);
+  border-radius: 9999px;
+  box-shadow: var(--neu-inset-lg);
+  display: flex;
+  align-items: center;
+}
+
+.neu-slider-bar {
+  height: 100%;
+  background-color: var(--neu-accent-fill);
+  border-radius: 9999px;
+  transition: width 0.1s ease;
+}
+
+.neu-slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--neu-surface);
+  box-shadow: var(--neu-raise-sm);
+  cursor: pointer;
+}
+
+/* 11. Circular Dial Gauge */
+.neu-dial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background-color: var(--neu-surface);
+  box-shadow: var(--neu-raise-lg);
+}
+
+.neu-dial-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background-color: var(--neu-surface);
+  box-shadow: var(--neu-inset-lg);
+}
+
+/* 12. Neumorphic Avatar (42px) */
+.neu-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: var(--neu-surface);
+  box-shadow: var(--neu-raise-xs);
+  color: var(--neu-accent-text);
+  font-family: var(--neu-font);
+  font-size: 15px;
+  font-weight: 800;
+  user-select: none;
+}
+
+/* 13. Neumorphic Nav Items (Sidebar) */
+.neu-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-radius: 16px;
+  color: var(--neu-text-muted);
+  font-family: var(--neu-font);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.12s ease;
+}
+
+.neu-nav-item:hover {
+  color: var(--neu-text);
+}
+
+.neu-nav-item.active {
+  box-shadow: var(--neu-inset-nav);
+  color: var(--neu-accent-text);
+  font-weight: 700;
+}
+
+/* 14. Neumorphic Soft Divider */
+.neu-divider {
+  border: none;
+  height: 1px;
+  background-color: var(--neu-line);
+  margin: 12px 0;
+}
