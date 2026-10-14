@@ -10,7 +10,11 @@ from django.db import connection
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 
-from apps.core.dashboard import get_visible_widgets, get_widget
+from apps.core.dashboard import (
+    get_visible_widgets,
+    get_widget,
+    invalidate_dashboard_widget_cache,
+)
 from apps.core.tenant_context import get_current_organization
 
 logger = logging.getLogger(__name__)
@@ -124,6 +128,9 @@ def dashboard_widget_partial_view(request: HttpRequest, widget_id: str) -> HttpR
     visible_widgets = get_visible_widgets(request, org)
     if widget not in visible_widgets:
         return HttpResponse(status=403)
+
+    if request.GET.get("force") or request.GET.get("refresh"):
+        invalidate_dashboard_widget_cache(org.pk, widget_id)
 
     return HttpResponse(widget.render(request, org))
 

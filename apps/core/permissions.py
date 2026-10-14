@@ -7,6 +7,7 @@ Layer 3: Object Scope (Branch/Warehouse) -> `scope_queryset(qs, user)`
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
@@ -169,9 +170,13 @@ def get_user_membership(user: Any, organization: Any = None) -> Any:
     if org_id is None:
         return None
 
+    cache_attr = f"_cached_membership_{org_id}"
+    if hasattr(user, cache_attr):
+        return getattr(user, cache_attr)
+
     try:
         membership_model = apps.get_model("tenancy", "Membership")
-        return (
+        membership = (
             membership_model.all_tenants.filter(
                 user=user,
                 organization_id=org_id,
@@ -180,6 +185,9 @@ def get_user_membership(user: Any, organization: Any = None) -> Any:
             .select_related("role", "organization")
             .first()
         )
+        with contextlib.suppress(Exception):
+            setattr(user, cache_attr, membership)
+        return membership
     except LookupError, AttributeError:
         return None
 

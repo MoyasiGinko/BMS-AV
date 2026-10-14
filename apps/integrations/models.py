@@ -332,7 +332,7 @@ class WebhookDelivery(TenantModel):
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["organization", "-created_at"], name="wh_deliv_org_created_idx"),
             models.Index(fields=["organization", "status"], name="wh_deliv_org_status_idx"),
-            models.Index(fields=["endpoint", "-created_at"], name="wh_deliv_endp_created_idx"),
+            models.Index(fields=["organization", "endpoint", "-created_at"], name="wh_deliv_org_endp_c_idx"),
         ]
 
     def __str__(self) -> str:
@@ -562,7 +562,7 @@ class IntegrationSyncLog(TenantModel):
         ordering = ["-created_at"]
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["organization", "-created_at"], name="synclog_org_created_idx"),
-            models.Index(fields=["connection", "-created_at"], name="synclog_conn_created_idx"),
+            models.Index(fields=["organization", "connection", "-created_at"], name="synclog_org_conn_c_idx"),
             models.Index(fields=["organization", "status"], name="synclog_org_status_idx"),
         ]
 
@@ -766,7 +766,7 @@ class InboundWebhookLog(TenantModel):
         ordering = ["-created_at"]
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["organization", "-created_at"], name="inbound_log_org_created_idx"),
-            models.Index(fields=["endpoint", "-created_at"], name="inbound_log_ep_created_idx"),
+            models.Index(fields=["organization", "endpoint", "-created_at"], name="inbound_log_org_ep_c_idx"),
             models.Index(fields=["organization", "verification_status"], name="inbound_log_org_vstatus_idx"),
         ]
 

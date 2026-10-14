@@ -289,6 +289,7 @@ class JournalEntry(TenantModel):
         ]
         indexes = [
             models.Index(fields=["organization", "date", "status"]),
+            models.Index(fields=["organization", "-date", "-id"]),
             models.Index(fields=["organization", "source_type", "source_id"]),
         ]
 
@@ -366,6 +367,7 @@ class JournalLine(TenantModel):
             ),
         ]
         indexes = [
+            models.Index(fields=["organization", "entry"]),
             models.Index(fields=["organization", "account", "created_at"]),
             models.Index(fields=["organization", "party_type", "party_id"]),
         ]

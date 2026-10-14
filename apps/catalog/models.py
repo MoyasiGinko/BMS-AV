@@ -193,6 +193,8 @@ class Product(TenantModel):
         indexes = [
             models.Index(fields=["organization", "barcode"]),
             models.Index(fields=["organization", "is_active", "type"]),
+            models.Index(fields=["organization", "name"]),
+            models.Index(fields=["organization", "category"]),
         ]
 
     def __str__(self) -> str:

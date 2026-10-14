@@ -253,6 +253,7 @@ def create_purchase_order(
     subtotal_acc = Decimal("0.0000")
     tax_acc = Decimal("0.0000")
 
+    po_lines_to_create: list[PurchaseOrderLine] = []
     for item in lines:
         product: Product = item["product"]
         qty = _quantize_money(item["quantity"])
@@ -266,23 +267,27 @@ def create_purchase_order(
         line_tax = _quantize_money(line_subtotal * (tax_rate / Decimal("100.00")))
         line_total = line_subtotal + line_tax
 
-        PurchaseOrderLine.all_tenants.create(
-            organization=organization,
-            purchase_order=po,
-            product=product,
-            quantity=qty,
-            received_quantity=Decimal("0.0000"),
-            unit_price=unit_price,
-            tax_rate=tax_rate,
-            subtotal=line_subtotal,
-            tax_amount=line_tax,
-            total_amount=line_total,
-            notes=item.get("notes", ""),
-            created_by=actor,
+        po_lines_to_create.append(
+            PurchaseOrderLine(
+                organization=organization,
+                purchase_order=po,
+                product=product,
+                quantity=qty,
+                received_quantity=Decimal("0.0000"),
+                unit_price=unit_price,
+                tax_rate=tax_rate,
+                subtotal=line_subtotal,
+                tax_amount=line_tax,
+                total_amount=line_total,
+                notes=item.get("notes", ""),
+                created_by=actor,
+            )
         )
 
         subtotal_acc += line_subtotal
         tax_acc += line_tax
+
+    PurchaseOrderLine.all_tenants.bulk_create(po_lines_to_create)
 
     po.subtotal = subtotal_acc
     po.tax_total = tax_acc
@@ -425,6 +430,7 @@ def create_goods_receipt(
 
     total_cost_acc = Decimal("0.0000")
 
+    receipt_lines_to_create: list[GoodsReceiptLine] = []
     for item in lines:
         product: Product = item["product"]
         qty = _quantize_money(item["quantity"])
@@ -436,17 +442,21 @@ def create_goods_receipt(
 
         line_cost = _quantize_money(qty * unit_cost)
 
-        GoodsReceiptLine.all_tenants.create(
-            organization=organization,
-            goods_receipt=receipt,
-            po_line=po_line,
-            product=product,
-            quantity=qty,
-            unit_cost=unit_cost,
-            total_cost=line_cost,
-            created_by=actor,
+        receipt_lines_to_create.append(
+            GoodsReceiptLine(
+                organization=organization,
+                goods_receipt=receipt,
+                po_line=po_line,
+                product=product,
+                quantity=qty,
+                unit_cost=unit_cost,
+                total_cost=line_cost,
+                created_by=actor,
+            )
         )
         total_cost_acc += line_cost
+
+    GoodsReceiptLine.all_tenants.bulk_create(receipt_lines_to_create)
 
     receipt.total_cost = total_cost_acc
     receipt.save(update_fields=["total_cost", "updated_at"])
@@ -559,6 +569,7 @@ def create_supplier_bill(
     subtotal_acc = Decimal("0.0000")
     tax_acc = Decimal("0.0000")
 
+    bill_lines_to_create: list[SupplierBillLine] = []
     for item in lines:
         product: Product | None = item.get("product")
         desc = item.get("description") or (product.name if product else "Purchased Item")
@@ -573,22 +584,26 @@ def create_supplier_bill(
         line_tax = _quantize_money(line_sub * (tax_rate / Decimal("100.00")))
         line_tot = line_sub + line_tax
 
-        SupplierBillLine.all_tenants.create(
-            organization=organization,
-            bill=bill,
-            product=product,
-            description=desc,
-            quantity=qty,
-            unit_price=unit_price,
-            tax_rate=tax_rate,
-            subtotal=line_sub,
-            tax_amount=line_tax,
-            total_amount=line_tot,
-            created_by=actor,
+        bill_lines_to_create.append(
+            SupplierBillLine(
+                organization=organization,
+                bill=bill,
+                product=product,
+                description=desc,
+                quantity=qty,
+                unit_price=unit_price,
+                tax_rate=tax_rate,
+                subtotal=line_sub,
+                tax_amount=line_tax,
+                total_amount=line_tot,
+                created_by=actor,
+            )
         )
 
         subtotal_acc += line_sub
         tax_acc += line_tax
+
+    SupplierBillLine.all_tenants.bulk_create(bill_lines_to_create)
 
     bill.subtotal = subtotal_acc
     bill.tax_total = tax_acc

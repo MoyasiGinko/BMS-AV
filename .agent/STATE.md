@@ -1,26 +1,27 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery
-- Last completed task: P6-R Phase review
-- Next task: P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations
+- Last completed task: P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations
+- Next task: P7-02 Security pass: tenant isolation suite complete, rate limits, `pip-audit`, `check --deploy` clean, secrets handling, CSP
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (101/101 Phase 6 tests passing, OpenAPI schema clean with 0 warnings/errors, deploy check clean, ruff clean, lint-imports clean, pip check clean)
+- Last `make verify`: PASSED (129 tests across performance, dashboard, sales, purchasing, and inventory passing, query budgets enforced, zero lint/formatting issues, import contracts kept, migrations clean, OpenAPI schema clean with 0 warnings/errors, deploy check clean, pip check clean)
 - Notes:
-  - P6-R Phase Review Complete:
-    - Module Documentation:
-      - `apps/ai_assistant/README.md`: Documented provider abstractions, tool registry, two-phase mutation safety, "What needs attention today" intelligence panel, executive morning briefings, HTMX widgets, and REST APIs.
-      - `apps/reports/README.md`: Documented business analytics engine: customer cohorts retention heatmap, product ABC Pareto classification, gross margin profitability grading, and moving-average demand forecasting with automated draft PO CTA.
-      - `apps/automation/README.md`: Documented declarative AST condition evaluators, event & schedule triggers, action dispatcher, template instantiation, and execution audit logging.
-    - Architecture & Security Validation:
-      - Verified import contracts (`lint-imports` clean, layer contract kept with 0 breaks).
-      - Verified multi-tenant RLS, permissions engine, and plan quota limits across automation, AI, and analytics.
-    - OpenAPI Schema Validation (`python manage.py spectacular --validate --fail-on-warn`):
-      - Cleaned up serializer associations across `AiActionConfirmViewSet`, `AiUsageViewSet`, `AiAttentionViewSet`, and `AutomationTemplateViewSet`.
-      - Resolved duplicate choice set collisions in `ENUM_NAME_OVERRIDES` (`ApprovalStatusEnum`, `IntegrationConnectionStatusEnum`, `SortDirectionEnum`).
-      - Silenced third-party OAuth2 BCP RFC 9700 upgrade notices in `SILENCED_SYSTEM_CHECKS`.
-      - OpenAPI 3.0 schema validated with 0 errors and 0 warnings.
-    - Deploy Check (`python manage.py check --deploy --fail-level WARNING`):
-      - Verified production check settings (`config.settings.prod_check`) with 0 issues identified.
-    - Test Suite:
-      - All 101 unit, service, evaluator, isolation, view, and API tests for Phase 6 modules passed cleanly.
-  - Next task: P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations.
+  - P7-01 Performance Pass Complete:
+    - Author ADR 0038 (`docs/adr/0038-performance-pass-caching-query-budgets-and-bulk-ops.md`): Documented two-tier widget caching, query budget testing, composite indexing, and batch operations.
+    - Two-tier Widget Caching:
+      - Implemented Redis-backed caching in `apps/core/dashboard.py` with tenant-scoped keys and O(1) bulk invalidation via tenant cache version increments (`invalidate_dashboard_widget_cache`).
+      - Added support for user-specific caching and forced refreshes on HTMX requests via `refresh` / `force` query params.
+    - Query Budgets & Anti-N+1:
+      - Memoized `get_user_membership` on `user` (`_cached_membership_{org_id}`) in `apps/core/permissions.py`.
+      - Memoized plan module entitlements on `organization` (`_cached_plan_modules`) in `apps/billing/services.py`.
+      - Enforced dashboard query budget <= 15 queries and document lines constant query counts in `tests/test_performance.py`.
+    - Composite Indexes & Migrations:
+      - Added `['organization', '<parent>']` and `['organization', 'product']` indexes to sales line models (`QuoteLine`, `SalesOrderLine`, `InvoiceLine`, `CreditNoteLine`, `RecurringInvoiceLine`).
+      - Added composite indexes to `JournalEntry` and `JournalLine` in `apps/accounting/`.
+      - Added composite indexes `['organization', 'name']` and `['organization', 'category']` to `Product` in `apps/catalog/`.
+      - Conformed integration log indexes to start with `organization` in `apps/integrations/`.
+    - Bulk Operations:
+      - Optimized line item creation using `bulk_create` across sales services (`create_quote`, `create_sales_order`, `create_invoice`, `create_credit_note`, `create_recurring_profile`).
+      - Optimized line item creation using `bulk_create` across purchasing services (`create_purchase_order`, `create_goods_receipt`, `create_supplier_bill`).
+      - Optimized stock count items using `bulk_create` in `create_stock_count` and tightened type annotations in `apps/inventory/services.py`.
+  - Next task: P7-02 Security pass: tenant isolation suite complete, rate limits, `pip-audit`, `check --deploy` clean, secrets handling, CSP.

@@ -77,7 +77,7 @@ Format: `ID title: Done when ...`
 - [x] P6-R Phase review.
 
 ## P7 Hardening & delivery
-- [ ] P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations.
+- [x] P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations.
 - [ ] P7-02 Security pass: tenant isolation suite complete, rate limits, `pip-audit`, `check --deploy` clean, secrets handling, CSP.
 - [ ] P7-03 Production packaging: Dockerfile, docker-compose.prod.yml (web, worker, beat, db, redis, caddy/nginx), env docs, backup/restore scripts.
 - [ ] P7-04 Documentation: README, per-module READMEs, user help pages in-app, API guide with examples (curl + Python), integration guide (webhooks/API keys/OAuth).

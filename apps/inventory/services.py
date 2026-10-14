@@ -918,6 +918,7 @@ def dispatch_stock_transfer(
     actor: Any = None,
 ) -> StockTransfer:
     """Dispatch a draft stock transfer, issuing stock from source into transit."""
+    target_transfer: StockTransfer
     if isinstance(transfer, int):
         tf = (
             StockTransfer.all_tenants.select_for_update()
@@ -926,58 +927,62 @@ def dispatch_stock_transfer(
         )
         if tf is None:
             raise TransferError(f"StockTransfer {transfer} not found.")
-        transfer = tf
+        target_transfer = tf
     else:
-        transfer = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
-        assert transfer is not None
+        tf_obj = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
+        assert tf_obj is not None
+        target_transfer = tf_obj
 
-    if transfer.status != TransferStatus.DRAFT:
-        raise TransferError(f"Cannot dispatch transfer in status '{transfer.get_status_display()}'.")
+    if target_transfer.status != TransferStatus.DRAFT:
+        raise TransferError(f"Cannot dispatch transfer in status '{target_transfer.get_status_display()}'.")
 
     _check_branch_permission(
         actor=actor,
         organization=organization,
-        branch=transfer.source_branch or transfer.source_warehouse.branch,
+        branch=target_transfer.source_branch or target_transfer.source_warehouse.branch,
         action_label="dispatch transfer from",
     )
 
-    lines = list(transfer.lines.select_related("product", "variant").all())
+    lines = list(target_transfer.lines.select_related("product", "variant").all())
     if not lines:
         raise TransferError("Cannot dispatch a transfer with no lines.")
 
     for line in lines:
         issue_stock(
             organization=organization,
-            warehouse=transfer.source_warehouse,
+            warehouse=target_transfer.source_warehouse,
             product=line.product,
             variant=line.variant,
             quantity=line.quantity,
             movement_type=MovementType.TRANSFER_OUT,
             reference_type="inventory.StockTransfer",
-            reference_id=str(transfer.pk),
-            notes=f"Dispatched transfer {transfer.transfer_number} to {transfer.destination_warehouse.name}",
+            reference_id=str(target_transfer.pk),
+            notes=(
+                f"Dispatched transfer {target_transfer.transfer_number} to "
+                f"{target_transfer.destination_warehouse.name}"
+            ),
             actor=actor,
         )
 
-    transfer.status = TransferStatus.IN_TRANSIT
-    transfer.dispatched_at = timezone.now()
-    transfer.dispatched_by = actor
-    transfer.save(update_fields=["status", "dispatched_at", "dispatched_by", "updated_at"])
+    target_transfer.status = TransferStatus.IN_TRANSIT
+    target_transfer.dispatched_at = timezone.now()
+    target_transfer.dispatched_by = actor
+    target_transfer.save(update_fields=["status", "dispatched_at", "dispatched_by", "updated_at"])
 
     publish(
         StockTransferDispatched(
             organization_id=organization.pk,
-            transfer_id=transfer.pk,
-            transfer_number=transfer.transfer_number,
-            source_warehouse_id=transfer.source_warehouse_id,
-            destination_warehouse_id=transfer.destination_warehouse_id,
-            source_branch_id=transfer.source_branch_id,
-            destination_branch_id=transfer.destination_branch_id,
-            is_inter_branch=transfer.is_inter_branch,
+            transfer_id=target_transfer.pk,
+            transfer_number=target_transfer.transfer_number,
+            source_warehouse_id=target_transfer.source_warehouse_id,
+            destination_warehouse_id=target_transfer.destination_warehouse_id,
+            source_branch_id=target_transfer.source_branch_id,
+            destination_branch_id=target_transfer.destination_branch_id,
+            is_inter_branch=target_transfer.is_inter_branch,
         )
     )
 
-    return transfer
+    return target_transfer
 
 
 @transaction.atomic
@@ -988,6 +993,7 @@ def receive_stock_transfer(
     actor: Any = None,
 ) -> StockTransfer:
     """Receive an in-transit stock transfer at the destination warehouse."""
+    target_transfer: StockTransfer
     if isinstance(transfer, int):
         tf = (
             StockTransfer.all_tenants.select_for_update()
@@ -996,22 +1002,23 @@ def receive_stock_transfer(
         )
         if tf is None:
             raise TransferError(f"StockTransfer {transfer} not found.")
-        transfer = tf
+        target_transfer = tf
     else:
-        transfer = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
-        assert transfer is not None
+        tf_obj = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
+        assert tf_obj is not None
+        target_transfer = tf_obj
 
-    if transfer.status != TransferStatus.IN_TRANSIT:
-        raise TransferError(f"Cannot receive transfer in status '{transfer.get_status_display()}'.")
+    if target_transfer.status != TransferStatus.IN_TRANSIT:
+        raise TransferError(f"Cannot receive transfer in status '{target_transfer.get_status_display()}'.")
 
     _check_branch_permission(
         actor=actor,
         organization=organization,
-        branch=transfer.destination_branch or transfer.destination_warehouse.branch,
+        branch=target_transfer.destination_branch or target_transfer.destination_warehouse.branch,
         action_label="receive transfer into",
     )
 
-    lines = list(transfer.lines.select_related("product", "variant").all())
+    lines = list(target_transfer.lines.select_related("product", "variant").all())
     if not lines:
         raise TransferError("Cannot receive a transfer with no lines.")
 
@@ -1020,8 +1027,8 @@ def receive_stock_transfer(
             StockMovement.all_tenants.filter(
                 organization=organization,
                 reference_type="inventory.StockTransfer",
-                reference_id=str(transfer.pk),
-                warehouse=transfer.source_warehouse,
+                reference_id=str(target_transfer.pk),
+                warehouse=target_transfer.source_warehouse,
                 product=line.product,
                 variant=line.variant,
                 type=MovementType.TRANSFER_OUT,
@@ -1033,51 +1040,54 @@ def receive_stock_transfer(
 
         receive_stock(
             organization=organization,
-            warehouse=transfer.destination_warehouse,
+            warehouse=target_transfer.destination_warehouse,
             product=line.product,
             variant=line.variant,
             quantity=line.quantity,
             unit_cost=unit_cost,
             movement_type=MovementType.TRANSFER_IN,
             reference_type="inventory.StockTransfer",
-            reference_id=str(transfer.pk),
-            notes=f"Received transfer {transfer.transfer_number} from {transfer.source_warehouse.name}",
+            reference_id=str(target_transfer.pk),
+            notes=(
+                f"Received transfer {target_transfer.transfer_number} from "
+                f"{target_transfer.source_warehouse.name}"
+            ),
             actor=actor,
         )
 
     now = timezone.now()
-    transfer.status = TransferStatus.COMPLETED
-    transfer.received_at = now
-    transfer.received_by = actor
-    transfer.completed_at = now
-    transfer.save(update_fields=["status", "received_at", "received_by", "completed_at", "updated_at"])
+    target_transfer.status = TransferStatus.COMPLETED
+    target_transfer.received_at = now
+    target_transfer.received_by = actor
+    target_transfer.completed_at = now
+    target_transfer.save(update_fields=["status", "received_at", "received_by", "completed_at", "updated_at"])
 
     publish(
         StockTransferReceived(
             organization_id=organization.pk,
-            transfer_id=transfer.pk,
-            transfer_number=transfer.transfer_number,
-            source_warehouse_id=transfer.source_warehouse_id,
-            destination_warehouse_id=transfer.destination_warehouse_id,
-            source_branch_id=transfer.source_branch_id,
-            destination_branch_id=transfer.destination_branch_id,
-            is_inter_branch=transfer.is_inter_branch,
+            transfer_id=target_transfer.pk,
+            transfer_number=target_transfer.transfer_number,
+            source_warehouse_id=target_transfer.source_warehouse_id,
+            destination_warehouse_id=target_transfer.destination_warehouse_id,
+            source_branch_id=target_transfer.source_branch_id,
+            destination_branch_id=target_transfer.destination_branch_id,
+            is_inter_branch=target_transfer.is_inter_branch,
         )
     )
     publish(
         StockTransferred(
             organization_id=organization.pk,
-            transfer_id=transfer.pk,
-            transfer_number=transfer.transfer_number,
-            source_warehouse_id=transfer.source_warehouse_id,
-            destination_warehouse_id=transfer.destination_warehouse_id,
-            source_branch_id=transfer.source_branch_id,
-            destination_branch_id=transfer.destination_branch_id,
-            is_inter_branch=transfer.is_inter_branch,
+            transfer_id=target_transfer.pk,
+            transfer_number=target_transfer.transfer_number,
+            source_warehouse_id=target_transfer.source_warehouse_id,
+            destination_warehouse_id=target_transfer.destination_warehouse_id,
+            source_branch_id=target_transfer.source_branch_id,
+            destination_branch_id=target_transfer.destination_branch_id,
+            is_inter_branch=target_transfer.is_inter_branch,
         )
     )
 
-    return transfer
+    return target_transfer
 
 
 @transaction.atomic
@@ -1335,8 +1345,8 @@ def create_stock_count(
     levels = StockLevel.all_tenants.filter(organization=organization, warehouse=warehouse).select_related(
         "product", "variant"
     )
-    for lvl in levels:
-        StockCountLine.objects.create(
+    count_lines: list[StockCountLine] = [
+        StockCountLine(
             organization=organization,
             count=stock_count,
             product=lvl.product,
@@ -1345,6 +1355,10 @@ def create_stock_count(
             counted_qty=lvl.on_hand,
             variance=DECIMAL_ZERO,
         )
+        for lvl in levels
+    ]
+    if count_lines:
+        StockCountLine.objects.bulk_create(count_lines)
 
     return stock_count
 
@@ -1357,21 +1371,23 @@ def start_stock_count(
     actor: Any = None,
 ) -> StockCount:
     """Transition a draft stock count into progress."""
+    target_count: StockCount
     if isinstance(count, int):
         cnt = StockCount.all_tenants.select_for_update().filter(organization=organization, pk=count).first()
         if cnt is None:
             raise InvalidMovement(f"StockCount {count} not found.")
-        count = cnt
+        target_count = cnt
     else:
-        count = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
-        assert count is not None
+        cnt_obj = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
+        assert cnt_obj is not None
+        target_count = cnt_obj
 
-    if count.status != CountStatus.DRAFT:
-        raise InvalidMovement(f"Cannot start stock count in status '{count.get_status_display()}'.")
+    if target_count.status != CountStatus.DRAFT:
+        raise InvalidMovement(f"Cannot start stock count in status '{target_count.get_status_display()}'.")
 
-    count.status = CountStatus.IN_PROGRESS
-    count.save(update_fields=["status", "updated_at"])
-    return count
+    target_count.status = CountStatus.IN_PROGRESS
+    target_count.save(update_fields=["status", "updated_at"])
+    return target_count
 
 
 @transaction.atomic
@@ -1384,16 +1400,18 @@ def record_stock_count_progress(
     actor: Any = None,
 ) -> StockCount:
     """Record verified counts and update line variances without closing the count."""
+    target_count: StockCount
     if isinstance(count, int):
         cnt = StockCount.all_tenants.select_for_update().filter(organization=organization, pk=count).first()
         if cnt is None:
             raise InvalidMovement(f"StockCount {count} not found.")
-        count = cnt
+        target_count = cnt
     else:
-        count = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
-        assert count is not None
+        cnt_obj = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
+        assert cnt_obj is not None
+        target_count = cnt_obj
 
-    if count.status == CountStatus.COMPLETED:
+    if target_count.status == CountStatus.COMPLETED:
         raise InvalidMovement("Cannot record counts on an already completed stock count.")
 
     for item in counted_items:
@@ -1401,22 +1419,24 @@ def record_stock_count_progress(
         counted_qty = Decimal(str(item["counted_qty"]))
 
         if line_id:
-            line = StockCountLine.all_tenants.filter(pk=line_id, count=count).first()
+            line = StockCountLine.all_tenants.filter(pk=line_id, count=target_count).first()
         else:
             product = item["product"]
             variant = item.get("variant")
-            line = StockCountLine.all_tenants.filter(count=count, product=product, variant=variant).first()
+            line = StockCountLine.all_tenants.filter(
+                count=target_count, product=product, variant=variant
+            ).first()
             if not line:
                 lvl = StockLevel.all_tenants.filter(
-                    organization=count.organization,
-                    warehouse=count.warehouse,
+                    organization=target_count.organization,
+                    warehouse=target_count.warehouse,
                     product=product,
                     variant=variant,
                 ).first()
                 exp = lvl.on_hand if lvl else DECIMAL_ZERO
                 line = StockCountLine.objects.create(
-                    organization=count.organization,
-                    count=count,
+                    organization=target_count.organization,
+                    count=target_count,
                     product=product,
                     variant=variant,
                     expected_qty=exp,
@@ -1430,10 +1450,10 @@ def record_stock_count_progress(
             line.save(update_fields=["counted_qty", "variance", "updated_at"])
 
     if notes:
-        count.notes = notes
-        count.save(update_fields=["notes", "updated_at"])
+        target_count.notes = notes
+        target_count.save(update_fields=["notes", "updated_at"])
 
-    return count
+    return target_count
 
 
 @transaction.atomic
@@ -1445,25 +1465,27 @@ def complete_stock_count(
     auto_adjust: bool = True,
 ) -> StockCount:
     """Complete a stock count and optionally apply a compensating StockAdjustment."""
+    target_count: StockCount
     if isinstance(count, int):
         cnt = StockCount.all_tenants.select_for_update().filter(organization=organization, pk=count).first()
         if cnt is None:
             raise InvalidMovement(f"StockCount {count} not found.")
-        count = cnt
+        target_count = cnt
     else:
-        count = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
-        assert count is not None
+        cnt_obj = StockCount.all_tenants.select_for_update().filter(pk=count.pk).first()
+        assert cnt_obj is not None
+        target_count = cnt_obj
 
-    if count.status == CountStatus.COMPLETED:
-        return count
+    if target_count.status == CountStatus.COMPLETED:
+        return target_count
 
     adjustment_lines = []
-    lines = count.lines.select_related("product", "variant").all()
+    lines = target_count.lines.select_related("product", "variant").all()
     for line in lines:
         if line.variance != DECIMAL_ZERO:
             lvl = StockLevel.all_tenants.filter(
-                organization=count.organization,
-                warehouse=count.warehouse,
+                organization=target_count.organization,
+                warehouse=target_count.warehouse,
                 product=line.product,
                 variant=line.variant,
             ).first()
@@ -1480,29 +1502,29 @@ def complete_stock_count(
     adj = None
     if auto_adjust and adjustment_lines:
         adj = adjust_stock(
-            organization=count.organization,
-            warehouse=count.warehouse,
+            organization=target_count.organization,
+            warehouse=target_count.warehouse,
             reason=AdjustmentReason.COUNT_VARIANCE,
             lines=adjustment_lines,
-            notes=f"Reconciled from cycle count {count.count_number}",
+            notes=f"Reconciled from cycle count {target_count.count_number}",
             actor=actor,
         )
 
-    count.adjustment = adj
-    count.status = CountStatus.COMPLETED
-    count.completed_at = timezone.now()
-    count.save(update_fields=["adjustment", "status", "completed_at", "updated_at"])
+    target_count.adjustment = adj
+    target_count.status = CountStatus.COMPLETED
+    target_count.completed_at = timezone.now()
+    target_count.save(update_fields=["adjustment", "status", "completed_at", "updated_at"])
 
     publish(
         StockCountCompleted(
-            organization_id=count.organization_id,
-            count_id=count.pk,
-            count_number=count.count_number,
-            warehouse_id=count.warehouse_id,
+            organization_id=target_count.organization_id,
+            count_id=target_count.pk,
+            count_number=target_count.count_number,
+            warehouse_id=target_count.warehouse_id,
         )
     )
 
-    return count
+    return target_count
 
 
 @transaction.atomic

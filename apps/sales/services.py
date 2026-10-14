@@ -196,6 +196,7 @@ def create_quote(
     discount_total = DECIMAL_ZERO
     tax_total = DECIMAL_ZERO
 
+    quote_lines_to_create: list[QuoteLine] = []
     for idx, item in enumerate(lines):
         calc = calculate_line_values(
             quantity=item.get("quantity", Decimal("1.0000")),
@@ -210,22 +211,25 @@ def create_quote(
         prod = _resolve_line_product(organization, item)
         var = _resolve_line_variant(organization, item)
 
-        QuoteLine.objects.create(
-            organization=organization,
-            quote=quote,
-            product=prod,
-            variant=var,
-            description=item.get("description", prod.name),
-            quantity=calc["quantity"],
-            unit_price=calc["unit_price"],
-            discount_percent=calc["discount_percent"],
-            discount_amount=calc["discount_amount"],
-            tax_rate=calc["tax_rate"],
-            tax_amount=calc["tax_amount"],
-            line_total=calc["line_total"],
-            sort_order=idx,
-            created_by=actor,
+        quote_lines_to_create.append(
+            QuoteLine(
+                organization=organization,
+                quote=quote,
+                product=prod,
+                variant=var,
+                description=item.get("description", prod.name),
+                quantity=calc["quantity"],
+                unit_price=calc["unit_price"],
+                discount_percent=calc["discount_percent"],
+                discount_amount=calc["discount_amount"],
+                tax_rate=calc["tax_rate"],
+                tax_amount=calc["tax_amount"],
+                line_total=calc["line_total"],
+                sort_order=idx,
+                created_by=actor,
+            )
         )
+    QuoteLine.objects.bulk_create(quote_lines_to_create)
 
     quote.subtotal = subtotal
     quote.discount_total = discount_total
@@ -374,6 +378,7 @@ def create_sales_order(
     discount_total = DECIMAL_ZERO
     tax_total = DECIMAL_ZERO
 
+    order_lines_to_create: list[SalesOrderLine] = []
     for idx, item in enumerate(lines):
         calc = calculate_line_values(
             quantity=item.get("quantity", Decimal("1.0000")),
@@ -388,22 +393,25 @@ def create_sales_order(
         prod = _resolve_line_product(organization, item)
         var = _resolve_line_variant(organization, item)
 
-        SalesOrderLine.objects.create(
-            organization=organization,
-            order=order,
-            product=prod,
-            variant=var,
-            description=item.get("description", prod.name),
-            quantity=calc["quantity"],
-            unit_price=calc["unit_price"],
-            discount_percent=calc["discount_percent"],
-            discount_amount=calc["discount_amount"],
-            tax_rate=calc["tax_rate"],
-            tax_amount=calc["tax_amount"],
-            line_total=calc["line_total"],
-            sort_order=idx,
-            created_by=actor,
+        order_lines_to_create.append(
+            SalesOrderLine(
+                organization=organization,
+                order=order,
+                product=prod,
+                variant=var,
+                description=item.get("description", prod.name),
+                quantity=calc["quantity"],
+                unit_price=calc["unit_price"],
+                discount_percent=calc["discount_percent"],
+                discount_amount=calc["discount_amount"],
+                tax_rate=calc["tax_rate"],
+                tax_amount=calc["tax_amount"],
+                line_total=calc["line_total"],
+                sort_order=idx,
+                created_by=actor,
+            )
         )
+    SalesOrderLine.objects.bulk_create(order_lines_to_create)
 
     order.subtotal = subtotal
     order.discount_total = discount_total
@@ -629,6 +637,7 @@ def create_invoice(
     discount_total = DECIMAL_ZERO
     tax_total = DECIMAL_ZERO
 
+    invoice_lines_to_create: list[InvoiceLine] = []
     for idx, item in enumerate(lines):
         calc = calculate_line_values(
             quantity=item.get("quantity", Decimal("1.0000")),
@@ -643,23 +652,26 @@ def create_invoice(
         prod = _resolve_line_product(organization, item)
         var = _resolve_line_variant(organization, item)
 
-        InvoiceLine.objects.create(
-            organization=organization,
-            invoice=invoice,
-            product=prod,
-            variant=var,
-            description=item.get("description", prod.name),
-            quantity=calc["quantity"],
-            unit_price=calc["unit_price"],
-            discount_percent=calc["discount_percent"],
-            discount_amount=calc["discount_amount"],
-            tax_rate=calc["tax_rate"],
-            tax_amount=calc["tax_amount"],
-            line_total=calc["line_total"],
-            unit_cost=DECIMAL_ZERO,
-            sort_order=idx,
-            created_by=actor,
+        invoice_lines_to_create.append(
+            InvoiceLine(
+                organization=organization,
+                invoice=invoice,
+                product=prod,
+                variant=var,
+                description=item.get("description", prod.name),
+                quantity=calc["quantity"],
+                unit_price=calc["unit_price"],
+                discount_percent=calc["discount_percent"],
+                discount_amount=calc["discount_amount"],
+                tax_rate=calc["tax_rate"],
+                tax_amount=calc["tax_amount"],
+                line_total=calc["line_total"],
+                unit_cost=DECIMAL_ZERO,
+                sort_order=idx,
+                created_by=actor,
+            )
         )
+    InvoiceLine.objects.bulk_create(invoice_lines_to_create)
 
     grand_total = subtotal - discount_total + tax_total
     invoice.subtotal = subtotal
@@ -1005,6 +1017,7 @@ def create_credit_note(
     subtotal = DECIMAL_ZERO
     tax_total = DECIMAL_ZERO
 
+    credit_lines_to_create: list[CreditNoteLine] = []
     for idx, item in enumerate(lines):
         calc = calculate_line_values(
             quantity=item.get("quantity", Decimal("1.0000")),
@@ -1015,22 +1028,25 @@ def create_credit_note(
         subtotal += calc["line_total"] - calc["tax_amount"]
         tax_total += calc["tax_amount"]
 
-        CreditNoteLine.objects.create(
-            organization=organization,
-            credit_note=credit_note,
-            product=item["product"],
-            variant=item.get("variant"),
-            description=item.get("description", item["product"].name),
-            quantity=calc["quantity"],
-            unit_price=calc["unit_price"],
-            tax_rate=calc["tax_rate"],
-            tax_amount=calc["tax_amount"],
-            line_total=calc["line_total"],
-            restock=item.get("restock", True),
-            unit_cost=item.get("unit_cost", DECIMAL_ZERO),
-            sort_order=idx,
-            created_by=actor,
+        credit_lines_to_create.append(
+            CreditNoteLine(
+                organization=organization,
+                credit_note=credit_note,
+                product=item["product"],
+                variant=item.get("variant"),
+                description=item.get("description", item["product"].name),
+                quantity=calc["quantity"],
+                unit_price=calc["unit_price"],
+                tax_rate=calc["tax_rate"],
+                tax_amount=calc["tax_amount"],
+                line_total=calc["line_total"],
+                restock=item.get("restock", True),
+                unit_cost=item.get("unit_cost", DECIMAL_ZERO),
+                sort_order=idx,
+                created_by=actor,
+            )
         )
+    CreditNoteLine.objects.bulk_create(credit_lines_to_create)
 
     grand_total = subtotal + tax_total
     credit_note.subtotal = subtotal
@@ -1795,23 +1811,27 @@ def create_recurring_profile(
         created_by=actor,
     )
 
+    recurring_lines_to_create: list[RecurringInvoiceLine] = []
     for idx, item in enumerate(lines):
         prod = _resolve_line_product(organization, item)
         var = _resolve_line_variant(organization, item)
 
-        RecurringInvoiceLine.objects.create(
-            organization=organization,
-            profile=profile,
-            product=prod,
-            variant=var,
-            description=item.get("description", prod.name),
-            quantity=item.get("quantity", Decimal("1.0000")),
-            unit_price=item.get("unit_price", Decimal("0.0000")),
-            discount_percent=item.get("discount_percent", Decimal("0.00")),
-            tax_rate=item.get("tax_rate", Decimal("0.00")),
-            sort_order=idx,
-            created_by=actor,
+        recurring_lines_to_create.append(
+            RecurringInvoiceLine(
+                organization=organization,
+                profile=profile,
+                product=prod,
+                variant=var,
+                description=item.get("description", prod.name),
+                quantity=item.get("quantity", Decimal("1.0000")),
+                unit_price=item.get("unit_price", Decimal("0.0000")),
+                discount_percent=item.get("discount_percent", Decimal("0.00")),
+                tax_rate=item.get("tax_rate", Decimal("0.00")),
+                sort_order=idx,
+                created_by=actor,
+            )
         )
+    RecurringInvoiceLine.objects.bulk_create(recurring_lines_to_create)
 
     publish(
         RecurringProfileCreated(

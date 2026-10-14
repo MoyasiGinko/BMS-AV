@@ -222,6 +222,10 @@ class QuoteLine(TenantModel):
         verbose_name = _("Quote Line")
         verbose_name_plural = _("Quote Lines")
         ordering = ["sort_order", "id"]
+        indexes = [
+            models.Index(fields=["organization", "quote"]),
+            models.Index(fields=["organization", "product"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.quote.quote_number} - {self.product.name} ({self.quantity})"
@@ -408,6 +412,10 @@ class SalesOrderLine(TenantModel):
         verbose_name = _("Sales Order Line")
         verbose_name_plural = _("Sales Order Lines")
         ordering = ["sort_order", "id"]
+        indexes = [
+            models.Index(fields=["organization", "order"]),
+            models.Index(fields=["organization", "product"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.order.order_number} - {self.product.name} ({self.quantity})"
@@ -618,6 +626,10 @@ class InvoiceLine(TenantModel):
         verbose_name = _("Invoice Line")
         verbose_name_plural = _("Invoice Lines")
         ordering = ["sort_order", "id"]
+        indexes = [
+            models.Index(fields=["organization", "invoice"]),
+            models.Index(fields=["organization", "product"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.invoice.invoice_number} - {self.product.name} ({self.quantity})"
@@ -792,6 +804,10 @@ class CreditNoteLine(TenantModel):
         verbose_name = _("Credit Note Line")
         verbose_name_plural = _("Credit Note Lines")
         ordering = ["sort_order", "id"]
+        indexes = [
+            models.Index(fields=["organization", "credit_note"]),
+            models.Index(fields=["organization", "product"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.credit_note.credit_note_number} - {self.product.name} ({self.quantity})"
@@ -1151,6 +1167,10 @@ class RecurringInvoiceLine(TenantModel):
         verbose_name = _("Recurring Invoice Line")
         verbose_name_plural = _("Recurring Invoice Lines")
         ordering = ["sort_order", "id"]
+        indexes = [
+            models.Index(fields=["organization", "profile"]),
+            models.Index(fields=["organization", "product"]),
+        ]
 
     def __str__(self) -> str:
         return f"{self.profile.title} - {self.product.name} ({self.quantity})"

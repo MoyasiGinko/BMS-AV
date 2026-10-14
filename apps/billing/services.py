@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import logging
 import uuid
@@ -624,20 +625,29 @@ def check_organization_feature_entitlement(organization: Any, feature_code: str)
     if mod_def and mod_def.is_core:
         return True
 
-    subscription = Subscription.all_tenants.filter(organization=organization).select_related("plan").first()
+    cached_modules = getattr(organization, "_cached_plan_modules", None)
+    if cached_modules is None:
+        subscription = (
+            Subscription.all_tenants.filter(organization=organization).select_related("plan").first()
+        )
 
-    if subscription is None:
-        return None
+        if subscription is None:
+            return None
 
-    if not subscription.is_active_or_trialing:
-        return False
+        if not subscription.is_active_or_trialing:
+            return False
 
-    # Check PlanModule inclusion
-    return PlanModule.objects.filter(
-        plan=subscription.plan,
-        module__key=module_key,
-        included=True,
-    ).exists()
+        # Fetch all included module keys for this plan in 1 query
+        included_keys = set(
+            PlanModule.objects.filter(plan=subscription.plan, included=True).values_list(
+                "module__key", flat=True
+            )
+        )
+        with contextlib.suppress(Exception):
+            organization._cached_plan_modules = included_keys
+        cached_modules = included_keys
+
+    return module_key in cached_modules
 
 
 def require_task_feature(feature_code: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
