@@ -11,7 +11,7 @@
       localStorage.setItem('bos_sidebar_collapsed', this.sidebarCollapsed);
     }
   }"
-  class="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col"
+  class="h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col overflow-hidden"
 >
   <!-- Mobile Sidebar Backdrop -->
   <div
@@ -32,7 +32,7 @@
         'lg:w-16': sidebarCollapsed,
         'lg:w-60': !sidebarCollapsed
       }"
-      class="fixed inset-y-0 left-0 z-50 w-60 lg:static shrink-0 bg-[var(--surface)] border-r border-[var(--border)] flex flex-col transition-all duration-200 ease-out"
+      class="fixed inset-y-0 left-0 z-50 w-60 lg:sticky lg:top-0 lg:h-full lg:self-start shrink-0 bg-[var(--surface)] border-r border-[var(--border)] flex flex-col transition-all duration-200 ease-out"
     >
       <!-- Brand Header -->
       <div class="h-14 flex items-center justify-between px-4 border-b border-[var(--border)] shrink-0">
