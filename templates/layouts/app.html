@@ -286,6 +286,14 @@
               <span x-show="!sidebarCollapsed" class="truncate">Django Admin</span>
             </a>
             {% endif %}
+            <a
+              href="{% url 'help:index' %}"
+              class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/help/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Help & Documentation"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Help & Docs</span>
+            </a>
           </div>
         </div>
       </nav>

@@ -1,0 +1,46 @@
+{% if topics %}
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for topic in topics %}
+      <a
+        href="{% url 'help:article' topic.slug %}"
+        class="group flex flex-col justify-between p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--brand-400)] hover:shadow-md transition-all duration-200 no-underline text-[var(--text)]"
+      >
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--surface-2)] text-[var(--brand-700)] border border-[var(--border)]">
+              {{ topic.category }}
+            </span>
+            <span class="text-xs text-[var(--text-subtle)] font-medium">
+              {{ topic.read_time }}
+            </span>
+          </div>
+
+          <h3 class="text-base font-semibold text-[var(--text)] group-hover:text-[var(--brand-600)] transition-colors mb-2">
+            {{ topic.title }}
+          </h3>
+
+          <p class="text-xs leading-relaxed text-[var(--text-muted)] line-clamp-3">
+            {{ topic.description }}
+          </p>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs font-medium text-[var(--brand-600)] group-hover:translate-x-0.5 transition-transform">
+          <span>Read guide</span>
+          <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center py-12 px-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]">
+    <svg class="w-10 h-10 mx-auto text-[var(--text-subtle)] mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+    <h4 class="text-sm font-semibold text-[var(--text)] mb-1">No matching help topics found</h4>
+    <p class="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+      Try searching with different terms or browse the categories below.
+    </p>
+  </div>
+{% endif %}

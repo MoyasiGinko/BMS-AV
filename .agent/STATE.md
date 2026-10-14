@@ -1,18 +1,18 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery
-- Last completed task: P7-03 Production packaging: Dockerfile, docker-compose.prod.yml (web, worker, beat, db, redis, caddy/nginx), env docs, backup/restore scripts
-- Next task: P7-04 Documentation: README, per-module READMEs, user help pages in-app, API guide with examples (curl + Python), integration guide (webhooks/API keys/OAuth)
+- Last completed task: P7-04 Documentation: README, per-module READMEs, user help pages in-app, API guide with examples (curl + Python), integration guide (webhooks/API keys/OAuth)
+- Next task: P7-05 E2E business story test (see `.agent/workflows/final-audit.md`) + full UI walkthrough polish pass against the design system
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (Production packaging verified: multi-stage Dockerfile, docker-compose.prod.yml, Caddy/Nginx reverse proxy configs, wait_for_db readiness, disaster recovery backup/restore scripts with SHA256 integrity, 8/8 packaging tests passing, 21/21 packaging+security tests passing, ruff clean, deploy check 0 issues, import contracts kept)
+- Last `make verify`: PASSED (Documentation suite verified: master README.md, 20/20 per-module READMEs in apps/, in-app Help Center at /help/ with live search and articles, docs/API_GUIDE.md with curl/Python examples, docs/INTEGRATION_GUIDE.md with HMAC/OAuth2/webhooks, ADR 0041, 10/10 tests in tests/test_documentation.py passing, ruff clean, import contracts kept, check --deploy 0 issues)
 - Notes:
-  - P7-03 Production Packaging Complete:
-    - Multi-stage production `Dockerfile` (Python 3.14 + uv + Gunicorn + WhiteNoise + Tailwind CLI + unprivileged `appuser` UID 10001, `/healthz` check).
-    - Production orchestration `docker-compose.prod.yml` covering 6 services: `web`, `worker`, `beat`, `db` (Postgres 18), `redis` (Redis 8), `caddy` (Caddy 2 reverse proxy) with network segmentation and persistent volumes.
-    - Reverse proxy configurations: `Caddyfile` (automatic HTTPS, HTTP/3 QUIC, zstd/gzip compression, static asset caching) and alternative `nginx/nginx.conf`.
-    - Operational disaster recovery: `scripts/backup.sh`, `scripts/backup.py`, `scripts/restore.sh`, `scripts/restore.py` supporting gzip database dumps and cryptographic SHA256 integrity checks.
-    - Readiness & orchestration: `scripts/entrypoint.sh` and Django management command `wait_for_db` polling PostgreSQL before migrations.
-    - Environment documentation: `.env.example` and operations manual `docs/05-production-packaging.md`.
-    - Author ADR 0040 (`docs/adr/0040-production-packaging.md`).
-    - Empirical validation: `tests/test_production_packaging.py` (8/8 passing).
-  - Next task: P7-04 Documentation: README, per-module READMEs, user help pages in-app, API guide with examples (curl + Python), integration guide (webhooks/API keys/OAuth).
+  - P7-04 Documentation Complete:
+    - Master repository `README.md` covering architecture, Python 3.14 + Django 6.1 + PostgreSQL 18 stack, 19 functional module overview, local/production quickstart, make commands, and hard architecture invariants.
+    - 100% per-module README coverage across all 20 apps in `apps/` (created missing READMEs for `apps/accounts/`, `apps/billing/`, and `apps/tenancy/`).
+    - In-app searchable Help Center (`apps.core.help_views` & `apps.core.help_urls` at `/help/`): 12 comprehensive operational guides, instant HTMX search filtering (`_topic_cards.html`), sticky table-of-contents navigation, helpfulness feedback rating, and keyboard shortcut reference.
+    - Added Help & Docs navigation links directly to the app layout sidebar (`templates/layouts/app.html`).
+    - REST API Guide (`docs/API_GUIDE.md`): complete guide with curl and Python code snippets for auth, catalog, customers, sales invoices with idempotency, payments, inventory adjustments, and webhooks.
+    - Integration Guide (`docs/INTEGRATION_GUIDE.md`): Webhook delivery payload structure, HMAC SHA-256 signature verification in Python/Node.js, 5-minute replay prevention, retry/DLQ policy, OAuth 2.0 PKCE, and connector framework.
+    - Author ADR 0041 (`docs/adr/0041-documentation-and-developer-guides.md`).
+    - Automated tests: `tests/test_documentation.py` (10/10 passing).
+  - Next task: P7-05 E2E business story test (see `.agent/workflows/final-audit.md`) + full UI walkthrough polish pass against the design system.
