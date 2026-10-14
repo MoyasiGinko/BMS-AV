@@ -41,3 +41,24 @@ html { font-family:var(--font-sans); font-size:var(--fs-base); color:var(--text)
 :focus-visible { outline:none; box-shadow:var(--focus-ring); }
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
 [x-cloak] { display: none !important; }
+
+/* Scrollbar Utility: hides scrollbar while keeping scrollability */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Sidebar App Shell desktop static positioning */
+@media (min-width: 1024px) {
+  aside.bos-sidebar {
+    position: static !important;
+    height: 100% !important;
+    transform: none !important;
+    flex-shrink: 0 !important;
+    z-index: 10 !important;
+  }
+}
+

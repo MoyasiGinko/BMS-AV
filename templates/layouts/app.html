@@ -32,7 +32,7 @@
         'lg:w-16': sidebarCollapsed,
         'lg:w-60': !sidebarCollapsed
       }"
-      class="fixed inset-y-0 left-0 z-50 w-60 lg:sticky lg:top-0 lg:h-full lg:self-start shrink-0 bg-[var(--surface)] border-r border-[var(--border)] flex flex-col transition-all duration-200 ease-out"
+      class="bos-sidebar fixed inset-y-0 left-0 z-50 w-60 lg:static shrink-0 h-full bg-[var(--surface)] border-r border-[var(--border)] flex flex-col transition-all duration-200 ease-out"
     >
       <!-- Brand Header -->
       <div class="h-14 flex items-center justify-between px-4 border-b border-[var(--border)] shrink-0">
@@ -60,7 +60,7 @@
       </div>
 
       <!-- Navigation Links -->
-      <nav class="flex-1 overflow-y-auto px-2 py-4 space-y-5">
+      <nav class="flex-1 overflow-y-auto no-scrollbar px-2 py-4 space-y-5">
         <!-- Main Group -->
         <div>
           <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
