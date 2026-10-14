@@ -1,27 +1,30 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery
-- Last completed task: P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations
-- Next task: P7-02 Security pass: tenant isolation suite complete, rate limits, `pip-audit`, `check --deploy` clean, secrets handling, CSP
+- Last completed task: P7-02 Security pass: tenant isolation suite complete, rate limits, `pip-audit`, `check --deploy` clean, secrets handling, CSP
+- Next task: P7-03 Production packaging: Dockerfile, docker-compose.prod.yml (web, worker, beat, db, redis, caddy/nginx), env docs, backup/restore scripts
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (129 tests across performance, dashboard, sales, purchasing, and inventory passing, query budgets enforced, zero lint/formatting issues, import contracts kept, migrations clean, OpenAPI schema clean with 0 warnings/errors, deploy check clean, pip check clean)
+- Last `make verify`: PASSED (All security pass tests, architecture rules, RLS enforcement, and domain isolation suites passing cleanly; pip-audit 0 vulnerabilities; check --deploy 0 warnings/errors; ruff clean; import contracts kept)
 - Notes:
-  - P7-01 Performance Pass Complete:
-    - Author ADR 0038 (`docs/adr/0038-performance-pass-caching-query-budgets-and-bulk-ops.md`): Documented two-tier widget caching, query budget testing, composite indexing, and batch operations.
-    - Two-tier Widget Caching:
-      - Implemented Redis-backed caching in `apps/core/dashboard.py` with tenant-scoped keys and O(1) bulk invalidation via tenant cache version increments (`invalidate_dashboard_widget_cache`).
-      - Added support for user-specific caching and forced refreshes on HTMX requests via `refresh` / `force` query params.
-    - Query Budgets & Anti-N+1:
-      - Memoized `get_user_membership` on `user` (`_cached_membership_{org_id}`) in `apps/core/permissions.py`.
-      - Memoized plan module entitlements on `organization` (`_cached_plan_modules`) in `apps/billing/services.py`.
-      - Enforced dashboard query budget <= 15 queries and document lines constant query counts in `tests/test_performance.py`.
-    - Composite Indexes & Migrations:
-      - Added `['organization', '<parent>']` and `['organization', 'product']` indexes to sales line models (`QuoteLine`, `SalesOrderLine`, `InvoiceLine`, `CreditNoteLine`, `RecurringInvoiceLine`).
-      - Added composite indexes to `JournalEntry` and `JournalLine` in `apps/accounting/`.
-      - Added composite indexes `['organization', 'name']` and `['organization', 'category']` to `Product` in `apps/catalog/`.
-      - Conformed integration log indexes to start with `organization` in `apps/integrations/`.
-    - Bulk Operations:
-      - Optimized line item creation using `bulk_create` across sales services (`create_quote`, `create_sales_order`, `create_invoice`, `create_credit_note`, `create_recurring_profile`).
-      - Optimized line item creation using `bulk_create` across purchasing services (`create_purchase_order`, `create_goods_receipt`, `create_supplier_bill`).
-      - Optimized stock count items using `bulk_create` in `create_stock_count` and tightened type annotations in `apps/inventory/services.py`.
-  - Next task: P7-02 Security pass: tenant isolation suite complete, rate limits, `pip-audit`, `check --deploy` clean, secrets handling, CSP.
+  - P7-02 Security Pass Complete:
+    - Author ADR 0039 (`docs/adr/0039-security-pass-hardening.md`): Documented tenant isolation audit, Postgres RLS enforcement across all domain apps, dynamic plan rate limiting, allauth brute-force defense, strict CSP directives, Fernet field encryption, and zero-leakage log sanitization.
+    - PostgreSQL Row-Level Security (RLS) Completeness:
+      - Audited all business models against PostgreSQL catalog; created and applied missing RLS migrations across 6 domain apps (`core.0007_enable_rls_notification`, `crm.0002_enable_rls`, `hr.0003_enable_rls`, `integrations.0012_enable_rls_webhooks`, `payroll.0002_enable_rls`, `sales.0007_enable_rls_recurring_reminders`).
+      - All 10 architecture and RLS tests in `tests/architecture/` and `tests/test_rls.py` pass cleanly.
+    - Content Security Policy & Security Headers:
+      - Configured Django 6.1 built-in `django.middleware.csp.ContentSecurityPolicyMiddleware` with hardened directives: `default-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, script/style/font/img sources scoped.
+      - Attached modern HTTP defense headers via `SecurityHeadersMiddleware` (`X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`).
+    - Dynamic Multi-Tier Rate Limiting:
+      - Added `ApiKeyRateThrottle` to `TenantScopedViewSet.throttle_classes` with dynamic plan tier rate resolution (`Starter`: 60/min, `Growth`: 300/min, `Business`: 1000/min, `Enterprise`: 3000/min).
+      - Updated `TenantUserRateThrottle` to defer API key requests to prevent throttle collisions.
+      - Explicitly configured `ACCOUNT_RATE_LIMITS` for `django-allauth` web authentication.
+    - Secrets Handling & Zero-Leakage Observability:
+      - Implemented recursive sensitive key scrubbing in `JSONLogFormatter` (`_sanitize_log_data`) masking passwords, tokens, API keys, credentials, cookies, and sensitive PII to `***REDACTED***`.
+      - Verified Fernet symmetric field encryption round-trip and error handling in `apps/core/crypto.py`.
+      - Added constant-time `verify_key` method to `ApiKey` model.
+    - Vulnerability & Production Posture:
+      - `pip-audit` verified clean with 0 known vulnerabilities.
+      - `python manage.py check --deploy --settings=config.settings.prod_check` verified with 0 issues identified.
+    - Automated Empirical Verification:
+      - Created comprehensive test suite in `tests/test_security_pass.py` (13/13 passing).
+  - Next task: P7-03 Production packaging: Dockerfile, docker-compose.prod.yml (web, worker, beat, db, redis, caddy/nginx), env docs, backup/restore scripts.

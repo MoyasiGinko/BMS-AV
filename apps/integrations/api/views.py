@@ -546,6 +546,7 @@ class PublicInboundWebhookReceiveAPIView(APIView):
 
     authentication_classes: list[Any] = []
     permission_classes = [permissions.AllowAny]
+    public_endpoint = True
 
     @extend_schema(
         tags=["Inbound Webhooks"],

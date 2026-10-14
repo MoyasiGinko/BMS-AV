@@ -21,7 +21,7 @@ from apps.core.api.permissions import (
     HasObjectScope,
     HasRolePermission,
 )
-from apps.core.api.throttling import TenantAnonRateThrottle, TenantUserRateThrottle
+from apps.core.api.throttling import ApiKeyRateThrottle, TenantAnonRateThrottle, TenantUserRateThrottle
 from apps.core.exceptions import TenantAccessError
 from apps.core.permissions import scope_queryset
 from apps.core.tenant_context import set_current_organization
@@ -42,7 +42,7 @@ class TenantScopedViewSet(viewsets.GenericViewSet):
         HasRolePermission,
         HasObjectScope,
     ]
-    throttle_classes = [TenantUserRateThrottle, TenantAnonRateThrottle]
+    throttle_classes = [TenantUserRateThrottle, TenantAnonRateThrottle, ApiKeyRateThrottle]
     pagination_class = StandardCursorPagination
 
     def initial(self, request: Any, *args: Any, **kwargs: Any) -> None:

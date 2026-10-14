@@ -4,6 +4,8 @@ Every business model inherits TenantModel (see tests/architecture).
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import uuid
 from typing import Any, ClassVar, TypeVar
 
@@ -225,6 +227,13 @@ class ApiKey(TenantModel):
     @property
     def is_valid(self) -> bool:
         return self.is_active and self.revoked_at is None and not self.is_expired
+
+    def verify_key(self, raw_key: str) -> bool:
+        """Constant-time verification of a raw key against the stored SHA-256 hash."""
+        if not raw_key:
+            return False
+        computed_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+        return hmac.compare_digest(self.key_hash, computed_hash)
 
 
 class OutboxEvent(models.Model):

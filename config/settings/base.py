@@ -141,11 +141,15 @@ SECURE_CSP = {
     "default-src": ["'self'"],
     "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:"],
-    "font-src": ["'self'"],
+    "img-src": ["'self'", "data:", "blob:", "https:"],
+    "font-src": ["'self'", "data:"],
     "connect-src": ["'self'"],
     "frame-ancestors": ["'none'"],
+    "base-uri": ["'self'"],
+    "form-action": ["'self'"],
+    "object-src": ["'none'"],
 }
+SECURE_CSP_REPORT_ONLY = None
 
 # i18n / l10n
 LANGUAGE_CODE = "en"
@@ -384,6 +388,16 @@ ACCOUNT_LOGOUT_REDIRECT_URL = "/accounts/login/"
 
 MFA_SUPPORTED_TYPES = ["totp", "recovery_codes"]
 MFA_PASSKEY_LOGIN_ENABLED = False
+
+# Web authentication rate limits (brute-force defense)
+ACCOUNT_RATE_LIMITS = {
+    "login": "30/m/ip",
+    "login_failed": "10/m/ip,5/300s/key",
+    "signup": "10/m/ip",
+    "reset_password": "20/m/ip,5/m/key",
+    "change_password": "5/m/user",
+    "manage_email": "10/m/user",
+}
 
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = False

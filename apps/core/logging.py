@@ -49,6 +49,37 @@ STANDARD_LOG_ATTRS = frozenset(
     }
 )
 
+SENSITIVE_KEY_PATTERNS = frozenset(
+    {
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "authorization",
+        "cookie",
+        "credential",
+        "national_id",
+        "ssn",
+        "bank_account",
+    }
+)
+
+
+def _sanitize_log_data(data: Any) -> Any:
+    """Recursively scrub sensitive fields from dictionaries and lists before JSON logging."""
+    if isinstance(data, dict):
+        sanitized = {}
+        for k, v in data.items():
+            k_lower = str(k).lower()
+            if any(pattern in k_lower for pattern in SENSITIVE_KEY_PATTERNS):
+                sanitized[k] = "***REDACTED***"
+            else:
+                sanitized[k] = _sanitize_log_data(v)
+        return sanitized
+    if isinstance(data, list | tuple | set):
+        return [_sanitize_log_data(item) for item in data]
+    return data
+
 
 class JSONLogFormatter(logging.Formatter):
     """Formats log records as structured single-line JSON with tenant/request context."""
@@ -91,7 +122,7 @@ class JSONLogFormatter(logging.Formatter):
             if k not in STANDARD_LOG_ATTRS and k not in ("request_id", "organization_id", "user_id")
         }
         if extras:
-            payload["extra"] = extras
+            payload["extra"] = _sanitize_log_data(extras)
 
         return json.dumps(payload, default=str)
 

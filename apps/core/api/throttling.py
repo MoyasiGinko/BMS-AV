@@ -21,6 +21,11 @@ class TenantUserRateThrottle(SimpleRateThrottle):
         if not user or not getattr(user, "is_authenticated", False):
             return None
 
+        # Defer API key authenticated requests to ApiKeyRateThrottle
+        auth = getattr(request, "auth", None)
+        if auth and hasattr(auth, "prefix"):
+            return None
+
         org = getattr(request, "organization", None)
         org_id = getattr(org, "pk", "no_org")
         ident = f"{org_id}:{user.pk}"

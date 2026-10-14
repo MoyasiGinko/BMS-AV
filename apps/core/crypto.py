@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet
 from django.conf import settings
 
 
@@ -33,7 +33,7 @@ def decrypt_value(token: str | None) -> str:
         fernet = Fernet(_get_fernet_key())
         plaintext = fernet.decrypt(token.encode("utf-8"))
         return plaintext.decode("utf-8")
-    except InvalidToken, Exception:
+    except Exception:
         return ""
 
 
