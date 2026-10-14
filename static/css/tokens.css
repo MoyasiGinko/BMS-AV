@@ -51,6 +51,14 @@ html { font-family:var(--font-sans); font-size:var(--fs-base); color:var(--text)
   scrollbar-width: none !important;
 }
 
+/* App Shell: Lock window scrolling so only dynamic page content scrolls */
+html.overflow-hidden,
+body.overflow-hidden {
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
 /* Sidebar App Shell desktop static positioning */
 @media (min-width: 1024px) {
   aside.bos-sidebar {

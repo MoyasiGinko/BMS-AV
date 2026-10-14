@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" class="h-full">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" class="h-full {% block html_class %}{% endblock %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -29,8 +29,8 @@
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
   <!-- Calm Ledger Tokens & Tailwind 4 -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=1.0.2">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=1.0.2">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -102,7 +102,7 @@
 
   {% block extra_head %}{% endblock %}
 </head>
-<body class="h-full bg-[var(--bg)] text-[var(--text)] font-sans antialiased selection:bg-[var(--brand-100)] selection:text-[var(--brand-900)]" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="h-full bg-[var(--bg)] text-[var(--text)] font-sans antialiased selection:bg-[var(--brand-100)] selection:text-[var(--brand-900)] {% block body_class %}{% endblock %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <!-- Global HTMX Loading Bar -->
   <div id="global-indicator" class="htmx-indicator fixed top-0 left-0 right-0 h-0.5 bg-[var(--brand-600)] z-50"></div>
 
