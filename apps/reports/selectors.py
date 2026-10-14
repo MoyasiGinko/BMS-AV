@@ -3122,7 +3122,7 @@ def execute_custom_report(
     sort_by = query_spec.get("sort_by")
     sort_dir = str(query_spec.get("sort_direction", "desc")).lower()
     if sort_by in available_fields:
-        order_field = f"-{sort_by}" if sort_dir == "desc" else sort_by
+        order_field = f"-{sort_by}" if sort_dir == "desc" else str(sort_by)
         qs = qs.order_by(order_field)
     else:
         qs = qs.order_by("-id")

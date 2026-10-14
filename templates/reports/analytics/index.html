@@ -1,0 +1,227 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Business Analytics Hub" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600 transition-colors">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Analytics Hub" %}</span>
+            </div>
+            <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Business Analytics & Intelligence" %}
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Data-driven operational intelligence across customer retention, catalog Pareto efficiency, margins, and replenishment velocity." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'reports:analytics_forecasting' %}" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {% trans "Forecast Replenishment" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Executive KPI Summary Grid (4 Pillars) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- 1. Customer Retention -->
+        <a href="{% url 'reports:analytics_cohort' %}" class="group block p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs hover:border-indigo-400 dark:hover:border-indigo-500 transition-all hover:shadow-md">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Retention Health" %}</span>
+                <span class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </span>
+            </div>
+            <div class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                {{ cohort_result.avg_m1_retention }}%
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+                <span>{% trans "Month 1 Retention" %}</span>
+                <span class="text-indigo-600 dark:text-indigo-400 font-medium">{{ cohort_result.total_customers }} {% trans "customers" %}</span>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                {% trans "View Cohort Matrix" %} &rarr;
+            </div>
+        </a>
+
+        <!-- 2. Product ABC Pareto -->
+        <a href="{% url 'reports:analytics_abc' %}" class="group block p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500 transition-all hover:shadow-md">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Class A Products" %}</span>
+                <span class="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </span>
+            </div>
+            <div class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                {{ abc_result.tier_summaries.0.product_count|default:"0" }}
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+                <span>{% trans "Top 80% Revenue Drivers" %}</span>
+                <span class="text-emerald-600 dark:text-emerald-400 font-medium">${{ abc_result.tier_summaries.0.total_revenue|floatformat:0 }}</span>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                {% trans "Analyze ABC Pareto" %} &rarr;
+            </div>
+        </a>
+
+        <!-- 3. Profit Margins -->
+        <a href="{% url 'reports:analytics_margins' %}" class="group block p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs hover:border-violet-400 dark:hover:border-violet-500 transition-all hover:shadow-md">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Blended Margin" %}</span>
+                <span class="p-2 rounded-xl bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </span>
+            </div>
+            <div class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                {{ margin_result.blended_margin_percentage }}%
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+                <span>{% trans "Gross Profit" %}</span>
+                <span class="text-violet-600 dark:text-violet-400 font-medium">${{ margin_result.total_gross_profit|floatformat:2 }}</span>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center text-xs font-medium text-violet-600 dark:text-violet-400">
+                {% trans "Inspect Margins" %} &rarr;
+            </div>
+        </a>
+
+        <!-- 4. Demand Forecasting -->
+        <a href="{% url 'reports:analytics_forecasting' %}" class="group block p-6 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs hover:border-amber-400 dark:hover:border-amber-500 transition-all hover:shadow-md">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">{% trans "Reorder Alerts" %}</span>
+                <span class="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </span>
+            </div>
+            <div class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                {{ forecast_result.critical_reorders_count }}
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+                <span>{% trans "Stockout / Critical" %}</span>
+                <span class="text-amber-600 dark:text-amber-400 font-medium">{{ forecast_result.soon_reorders_count }} {% trans "soon" %}</span>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center text-xs font-medium text-amber-600 dark:text-amber-400">
+                {% trans "Review Replenishment" %} &rarr;
+            </div>
+        </a>
+    </div>
+
+    <!-- Analytics Navigation Cards (Deep Dive Sections) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Cohort Card -->
+        <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                        1
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Customer Cohort & Retention Matrix" %}</h3>
+                        <p class="text-xs text-slate-500">{% trans "Analyze repeat buyer behavior and monthly retention drop-off" %}</p>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                    {% trans "Groups customers by their first purchase month and evaluates retention across consecutive 30-day periods. Helps understand recurring customer lifetime value and churn." %}
+                </p>
+                <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-4">
+                    <span>• {{ cohort_result.total_cohorts }} {% trans "Cohorts tracked" %}</span>
+                    <span>• ${{ cohort_result.total_lifetime_revenue|floatformat:2 }} {% trans "Lifetime Revenue" %}</span>
+                </div>
+            </div>
+            <a href="{% url 'reports:analytics_cohort' %}" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors">
+                {% trans "Open Retention Heatmap" %} &rarr;
+            </a>
+        </div>
+
+        <!-- ABC Analysis Card -->
+        <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                        2
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Product ABC Pareto Classification" %}</h3>
+                        <p class="text-xs text-slate-500">{% trans "Rationalize catalog revenue contribution (80/15/5 rule)" %}</p>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                    {% trans "Segments products into Class A (crucial 80% revenue drivers), Class B (moderate 15%), and Class C (low 5% or stagnant). Identifies core revenue generators and candidates for clearance." %}
+                </p>
+                <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-4">
+                    <span>• {{ abc_result.active_revenue_products_count }} {% trans "Active Revenue SKUs" %}</span>
+                    <span>• ${{ abc_result.total_revenue|floatformat:2 }} {% trans "Total Period Sales" %}</span>
+                </div>
+            </div>
+            <a href="{% url 'reports:analytics_abc' %}" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors">
+                {% trans "Open ABC Pareto Analysis" %} &rarr;
+            </a>
+        </div>
+
+        <!-- Margin Analysis Card -->
+        <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/70 text-violet-600 dark:text-violet-400 flex items-center justify-center font-bold">
+                        3
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Profit & Margin Analysis" %}</h3>
+                        <p class="text-xs text-slate-500">{% trans "Unit economics, gross margins, and category profitability" %}</p>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                    {% trans "Evaluates revenue against true Cost of Goods Sold (COGS). Classifies margin health into High, Healthy, Moderate, and Negative tiers to catch margin erosion early." %}
+                </p>
+                <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-4">
+                    <span>• {{ margin_result.categories|length }} {% trans "Product Categories" %}</span>
+                    <span>• {{ margin_result.blended_margin_percentage }}% {% trans "Blended Margin" %}</span>
+                </div>
+            </div>
+            <a href="{% url 'reports:analytics_margins' %}" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/60 hover:bg-violet-100 dark:hover:bg-violet-900/60 transition-colors">
+                {% trans "Open Margin Breakdown" %} &rarr;
+            </a>
+        </div>
+
+        <!-- Demand Forecasting Card -->
+        <div class="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                        4
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% trans "Reorder Demand Forecasting" %}</h3>
+                        <p class="text-xs text-slate-500">{% trans "Moving average depletion countdown and replenishment sizing" %}</p>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                    {% trans "Calculates daily sales velocity (run rate) over lookback windows. Projects days of inventory remaining, stockout risk dates, and recommended purchase order order quantities." %}
+                </p>
+                <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-4">
+                    <span>• {{ forecast_result.critical_reorders_count }} {% trans "Urgent Reorders" %}</span>
+                    <span>• {{ forecast_result.total_monitored_products }} {% trans "SKUs Monitored" %}</span>
+                </div>
+            </div>
+            <a href="{% url 'reports:analytics_forecasting' %}" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-colors">
+                {% trans "Open Replenishment Planner" %} &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

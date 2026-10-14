@@ -1,0 +1,205 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Gross Margin & Profitability Analysis" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb / Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <a href="{% url 'reports:analytics_hub' %}" class="hover:text-indigo-600">{% trans "Analytics" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Margin Analysis" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Gross Margin & Profitability Analysis" %}
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Analyze unit economics, product gross margins, category profitability, and margin erosion." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'reports:analytics_hub' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                &larr; {% trans "Back to Analytics" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "From Date" %}</label>
+                <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "To Date" %}</label>
+                <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            {% if branches %}
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Branch" %}</label>
+                <select name="branch_id" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "All Branches" %}</option>
+                    {% for br in branches %}
+                    <option value="{{ br.pk }}" {% if selected_branch_id == br.pk %}selected{% endif %}>{{ br.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if categories %}
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Category" %}</label>
+                <select name="category_id" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "All Categories" %}</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.pk }}" {% if selected_category_id == cat.pk %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-xs transition-colors">
+                {% trans "Apply Filter" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Profitability KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Total Sales Revenue" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">${{ result.total_revenue|floatformat:2 }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Invoiced revenue" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Cost of Goods Sold" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">${{ result.total_cost|floatformat:2 }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Total purchase / unit costs" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Total Gross Profit" %}</span>
+            <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">${{ result.total_gross_profit|floatformat:2 }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Net revenue contribution" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Blended Gross Margin" %}</span>
+            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{{ result.blended_margin_percentage }}%</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Overall profit margin" %}</p>
+        </div>
+    </div>
+
+    <!-- Category Margins Breakdown Card -->
+    {% if result.categories %}
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                {% trans "Margin Breakdown by Product Category" %}
+            </h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-semibold uppercase">
+                        <th class="py-3 px-4 text-left">{% trans "Category" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Products" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Revenue" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "COGS" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Gross Profit" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Margin %" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for cat in result.categories %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">{{ cat.category_name }}</td>
+                        <td class="py-3 px-4 text-right text-slate-600 dark:text-slate-400">{{ cat.product_count }}</td>
+                        <td class="py-3 px-4 text-right font-medium text-slate-900 dark:text-white">${{ cat.revenue|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right text-slate-500">${{ cat.cost|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">${{ cat.gross_profit|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right font-bold {% if cat.margin_percentage >= 30 %}text-emerald-600 dark:text-emerald-400{% else %}text-amber-600 dark:text-amber-400{% endif %}">
+                            {{ cat.margin_percentage }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Product Margins Detail Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                {% trans "Product Unit Margin Performance" %}
+            </h3>
+            <span class="text-xs text-slate-500">{{ result.products|length }} {% trans "products analyzed" %}</span>
+        </div>
+
+        {% if result.products %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-semibold uppercase">
+                        <th class="py-3 px-4 text-left">{% trans "Product" %}</th>
+                        <th class="py-3 px-4 text-left">{% trans "Category" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Units Sold" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Revenue" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "COGS" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Gross Profit" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Margin %" %}</th>
+                        <th class="py-3 px-4 text-center">{% trans "Health" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for p in result.products %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-slate-900 dark:text-white">{{ p.name }}</div>
+                            <div class="text-xs text-slate-500 font-mono">{{ p.sku }}</div>
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{{ p.category_name }}</td>
+                        <td class="py-3 px-4 text-right font-medium text-slate-700 dark:text-slate-300">{{ p.units_sold|floatformat:0 }}</td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">${{ p.revenue|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right text-xs text-slate-500">${{ p.cost|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">${{ p.gross_profit|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right font-bold
+                            {% if p.margin_percentage >= 50 %}text-emerald-600 dark:text-emerald-400
+                            {% elif p.margin_percentage >= 30 %}text-indigo-600 dark:text-indigo-400
+                            {% elif p.margin_percentage >= 15 %}text-amber-600 dark:text-amber-400
+                            {% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                            {{ p.margin_percentage }}%
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold uppercase
+                                {% if p.margin_health == 'high' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300
+                                {% elif p.margin_health == 'healthy' %}bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300
+                                {% elif p.margin_health == 'moderate' %}bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300
+                                {% elif p.margin_health == 'low' %}bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300
+                                {% else %}bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300{% endif %}">
+                                {{ p.margin_health }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{% trans "No margin records found" %}</h3>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {% trans "No completed sales invoices match your filter criteria." %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -55,7 +55,7 @@ def _resolve_report_branch_id(request: HttpRequest, org: Organization) -> int | 
     return branch_id
 
 
-def _get_scoped_branches(request: HttpRequest, org: Organization):
+def _get_scoped_branches(request: HttpRequest, org: Organization) -> Any:
     branches = Branch.all_tenants.filter(organization=org).order_by("name")
     return scope_queryset(branches, request.user, organization=org)
 
@@ -1083,7 +1083,7 @@ def report_schedule_create_view(request: HttpRequest) -> HttpResponse:
                 frequency=form.cleaned_data["frequency"],
                 recipients=form.cleaned_data["recipient_emails"],
                 saved_report=form.cleaned_data.get("saved_report"),
-                format=form.cleaned_data.get("format"),
+                format=str(form.cleaned_data.get("format") or "pdf"),
                 day_of_week=dow,
                 day_of_month=form.cleaned_data.get("day_of_month"),
                 time_of_day=form.cleaned_data["time_of_day"],

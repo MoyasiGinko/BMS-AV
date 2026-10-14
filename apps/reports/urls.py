@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from apps.reports import views
+from apps.reports import analytics_views, views
 
 app_name = "reports"
 
@@ -52,4 +52,10 @@ urlpatterns = [
     path("exports/", views.export_jobs_list_view, name="exports_list"),
     path("exports/<str:job_id>/status/", views.export_job_status_view, name="export_status"),
     path("exports/<str:job_id>/download/", views.export_job_download_view, name="export_download"),
+    # Business Analytics (P6-04)
+    path("analytics/", analytics_views.analytics_hub_view, name="analytics_hub"),
+    path("analytics/cohort/", analytics_views.analytics_cohort_view, name="analytics_cohort"),
+    path("analytics/abc/", analytics_views.analytics_abc_view, name="analytics_abc"),
+    path("analytics/margins/", analytics_views.analytics_margins_view, name="analytics_margins"),
+    path("analytics/forecasting/", analytics_views.analytics_forecasting_view, name="analytics_forecasting"),
 ]

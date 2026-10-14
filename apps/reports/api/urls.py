@@ -15,4 +15,13 @@ urlpatterns = [
     path("", include(router.urls)),
     path("builder/", views.CustomReportBuilderAPIView.as_view(), name="report-builder"),
     path("summaries/", views.DailySummaryAPIView.as_view(), name="daily-summaries"),
+    # Business Analytics (P6-04)
+    path("analytics/cohort/", views.CustomerCohortAnalyticsAPIView.as_view(), name="analytics-cohort"),
+    path("analytics/abc/", views.ProductAbcAnalyticsAPIView.as_view(), name="analytics-abc"),
+    path("analytics/margins/", views.MarginAnalyticsAPIView.as_view(), name="analytics-margins"),
+    path(
+        "analytics/forecasting/",
+        views.DemandForecastAnalyticsAPIView.as_view(),
+        name="analytics-forecasting",
+    ),
 ]

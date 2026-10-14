@@ -1,0 +1,187 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Demand & Reorder Forecasting" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb / Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <a href="{% url 'reports:analytics_hub' %}" class="hover:text-indigo-600">{% trans "Analytics" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Demand Forecasting" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Demand & Reorder Forecasting (Moving Average)" %}
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Simple moving average daily run rate, stockout countdown projections, and automated replenishment sizing." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'reports:analytics_hub' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                &larr; {% trans "Back to Analytics" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Consumption Window" %}</label>
+                <select name="window_days" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="30" {% if window_days == 30 %}selected{% endif %}>{% trans "Last 30 Days (Fast Pace)" %}</option>
+                    <option value="60" {% if window_days == 60 %}selected{% endif %}>{% trans "Last 60 Days (Balanced)" %}</option>
+                    <option value="90" {% if window_days == 90 %}selected{% endif %}>{% trans "Last 90 Days (Quarterly)" %}</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Supplier Lead Time" %}</label>
+                <select name="lead_time_days" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="7" {% if lead_time_days == 7 %}selected{% endif %}>7 {% trans "Days" %}</option>
+                    <option value="14" {% if lead_time_days == 14 %}selected{% endif %}>14 {% trans "Days (Standard)" %}</option>
+                    <option value="21" {% if lead_time_days == 21 %}selected{% endif %}>21 {% trans "Days" %}</option>
+                    <option value="30" {% if lead_time_days == 30 %}selected{% endif %}>30 {% trans "Days" %}</option>
+                </select>
+            </div>
+            {% if warehouses %}
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Warehouse" %}</label>
+                <select name="warehouse_id" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "Consolidated (All Warehouses)" %}</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.pk }}" {% if selected_warehouse_id == wh.pk %}selected{% endif %}>{{ wh.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-xs transition-colors">
+                {% trans "Recalculate Run Rates" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Alert / Forecast Status KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Critical Stockouts / Urgent" %}</span>
+            <div class="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">{{ result.critical_reorders_count }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">&le; {{ lead_time_days }} {% trans "days supply remaining" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Reorder Needed Soon" %}</span>
+            <div class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{ result.soon_reorders_count }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">&le; {{ lead_time_days|add:7 }} {% trans "days buffer window" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Catalog SKUs Monitored" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ result.total_monitored_products }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Physical stock items tracked" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Lookback Velocity Window" %}</span>
+            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{{ result.window_days }} {% trans "Days" %}</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Moving average consumption" %}</p>
+        </div>
+    </div>
+
+    <!-- Forecasting & Replenishment Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                {% trans "Inventory Depletion & Replenishment Schedule" %}
+            </h3>
+            <span class="text-xs text-slate-500">{{ result.items|length }} {% trans "items prioritized by urgency" %}</span>
+        </div>
+
+        {% if result.items %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-semibold uppercase">
+                        <th class="py-3 px-4 text-left">{% trans "Product" %}</th>
+                        <th class="py-3 px-4 text-left">{% trans "Category" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "On Hand" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Reorder Pt" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Run Rate" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Supply Days" %}</th>
+                        <th class="py-3 px-4 text-center">{% trans "Status" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Suggested PO" %}</th>
+                        <th class="py-3 px-4 text-center">{% trans "Action" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for item in result.items %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-slate-900 dark:text-white">{{ item.name }}</div>
+                            <div class="text-xs text-slate-500 font-mono">{{ item.sku }}</div>
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{{ item.category_name }}</td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">{{ item.on_hand|floatformat:0 }}</td>
+                        <td class="py-3 px-4 text-right text-xs text-slate-500">{{ item.reorder_point|floatformat:0 }}</td>
+                        <td class="py-3 px-4 text-right text-xs font-mono font-medium text-slate-700 dark:text-slate-300">
+                            {{ item.daily_run_rate }} <span class="text-slate-400">/day</span>
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold
+                            {% if item.days_of_inventory <= 0 %}text-rose-600 dark:text-rose-400
+                            {% elif item.days_of_inventory <= 14 %}text-rose-600 dark:text-rose-400
+                            {% elif item.days_of_inventory <= 21 %}text-amber-600 dark:text-amber-400
+                            {% elif item.days_of_inventory < 90 %}text-emerald-600 dark:text-emerald-400
+                            {% else %}text-slate-400{% endif %}">
+                            {% if item.days_of_inventory >= 999 %}
+                                &infin;
+                            {% else %}
+                                {{ item.days_of_inventory }}d
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase
+                                {% if item.urgency == 'stockout' %}bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300
+                                {% elif item.urgency == 'urgent' %}bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300
+                                {% elif item.urgency == 'soon' %}bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300
+                                {% elif item.urgency == 'adequate' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300
+                                {% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+                                {{ item.urgency }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">
+                            {% if item.suggested_reorder_qty > 0 %}
+                                <span class="text-indigo-600 dark:text-indigo-400">+{{ item.suggested_reorder_qty|floatformat:0 }}</span>
+                            {% else %}
+                                <span class="text-slate-400 font-normal">&mdash;</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if item.suggested_reorder_qty > 0 %}
+                            <a href="/purchasing/orders/create/?product_id={{ item.product_id }}&quantity={{ item.suggested_reorder_qty|floatformat:0 }}" class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors">
+                                {% trans "Draft PO" %}
+                            </a>
+                            {% else %}
+                            <span class="text-xs text-slate-400">{% trans "OK" %}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{% trans "No stock catalog products" %}</h3>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {% trans "No physical inventory products found to calculate moving average demand." %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

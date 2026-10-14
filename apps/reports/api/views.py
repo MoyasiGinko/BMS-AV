@@ -19,11 +19,15 @@ from rest_framework.views import APIView
 
 from apps.core.api.permissions import HasFeatureEntitlement, HasRolePermission
 from apps.core.api.viewsets import TenantScopedModelViewSet
-from apps.reports import selectors, services
+from apps.reports import analytics, selectors, services
 from apps.reports.api.serializers import (
+    CohortAnalysisResultSerializer,
     CustomReportQuerySerializer,
     DailyExpenseSummarySerializer,
     DailySalesSummarySerializer,
+    DemandForecastResultSerializer,
+    MarginAnalysisResultSerializer,
+    ProductAbcResultSerializer,
     RebuildSummariesSerializer,
     ReportScheduleCreateUpdateSerializer,
     ReportScheduleSerializer,
@@ -390,3 +394,149 @@ class DailySummaryAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+# =============================================================================
+# Analytics API Endpoints (P6-04)
+# =============================================================================
+
+
+class CustomerCohortAnalyticsAPIView(APIView):
+    """Retrieve customer acquisition cohorts, retention rates, and recurring spend."""
+
+    permission_classes = [IsAuthenticated, HasFeatureEntitlement, HasRolePermission]
+    feature_code = "reports"
+    required_permission = "reports.view"
+
+    @extend_schema(
+        tags=["Business Analytics"],
+        summary="Customer cohort and retention analysis",
+        responses={200: CohortAnalysisResultSerializer},
+    )
+    def get(self, request: Request) -> Response:
+        org = getattr(request, "organization", None)
+        if not org:
+            return Response({"detail": "Organization context required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        start_str = request.query_params.get("start_date")
+        end_str = request.query_params.get("end_date")
+        start_date = datetime.date.fromisoformat(start_str) if start_str else None
+        end_date = datetime.date.fromisoformat(end_str) if end_str else None
+        max_periods = int(request.query_params.get("max_periods", 12))
+
+        result = analytics.get_customer_cohort_analysis(
+            org,
+            start_date=start_date,
+            end_date=end_date,
+            max_periods=max_periods,
+        )
+        serializer = CohortAnalysisResultSerializer(result)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProductAbcAnalyticsAPIView(APIView):
+    """Classify products by Pareto ABC revenue contribution."""
+
+    permission_classes = [IsAuthenticated, HasFeatureEntitlement, HasRolePermission]
+    feature_code = "reports"
+    required_permission = "reports.view"
+
+    @extend_schema(
+        tags=["Business Analytics"],
+        summary="Product ABC Pareto analysis",
+        responses={200: ProductAbcResultSerializer},
+    )
+    def get(self, request: Request) -> Response:
+        org = getattr(request, "organization", None)
+        if not org:
+            return Response({"detail": "Organization context required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        start_str = request.query_params.get("date_from")
+        end_str = request.query_params.get("date_to")
+        date_from = datetime.date.fromisoformat(start_str) if start_str else None
+        date_to = datetime.date.fromisoformat(end_str) if end_str else None
+        warehouse_id = (
+            int(request.query_params["warehouse_id"]) if request.query_params.get("warehouse_id") else None
+        )
+
+        result = analytics.get_product_abc_analysis(
+            org,
+            date_from=date_from,
+            date_to=date_to,
+            warehouse_id=warehouse_id,
+        )
+        serializer = ProductAbcResultSerializer(result)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MarginAnalyticsAPIView(APIView):
+    """Product and category gross profit margins analysis."""
+
+    permission_classes = [IsAuthenticated, HasFeatureEntitlement, HasRolePermission]
+    feature_code = "reports"
+    required_permission = "reports.view"
+
+    @extend_schema(
+        tags=["Business Analytics"],
+        summary="Gross profit margin analysis",
+        responses={200: MarginAnalysisResultSerializer},
+    )
+    def get(self, request: Request) -> Response:
+        org = getattr(request, "organization", None)
+        if not org:
+            return Response({"detail": "Organization context required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        start_str = request.query_params.get("date_from")
+        end_str = request.query_params.get("date_to")
+        date_from = datetime.date.fromisoformat(start_str) if start_str else None
+        date_to = datetime.date.fromisoformat(end_str) if end_str else None
+        branch_id = int(request.query_params["branch_id"]) if request.query_params.get("branch_id") else None
+        warehouse_id = (
+            int(request.query_params["warehouse_id"]) if request.query_params.get("warehouse_id") else None
+        )
+        cat_param = request.query_params.get("category_id")
+        category_id = int(cat_param) if cat_param else None
+
+        result = analytics.get_margin_analysis(
+            org,
+            date_from=date_from,
+            date_to=date_to,
+            branch_id=branch_id,
+            warehouse_id=warehouse_id,
+            category_id=category_id,
+        )
+        serializer = MarginAnalysisResultSerializer(result)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class DemandForecastAnalyticsAPIView(APIView):
+    """Moving average demand replenishment and stockout forecast."""
+
+    permission_classes = [IsAuthenticated, HasFeatureEntitlement, HasRolePermission]
+    feature_code = "reports"
+    required_permission = "reports.view"
+
+    @extend_schema(
+        tags=["Business Analytics"],
+        summary="Inventory demand and replenishment forecast",
+        responses={200: DemandForecastResultSerializer},
+    )
+    def get(self, request: Request) -> Response:
+        org = getattr(request, "organization", None)
+        if not org:
+            return Response({"detail": "Organization context required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        window_days = int(request.query_params.get("window_days", 30))
+        lead_time_days = int(request.query_params.get("lead_time_days", 14))
+        warehouse_id = (
+            int(request.query_params["warehouse_id"]) if request.query_params.get("warehouse_id") else None
+        )
+
+        result = analytics.get_reorder_demand_forecast(
+            org,
+            window_days=window_days,
+            lead_time_days=lead_time_days,
+            warehouse_id=warehouse_id,
+        )
+        serializer = DemandForecastResultSerializer(result)
+        return Response(serializer.data, status=status.HTTP_200_OK)

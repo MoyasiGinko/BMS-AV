@@ -1,29 +1,21 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P6 Operating system layer
-- Last completed task: P6-03 "What needs attention today" intelligence panel
-- Next task: P6-04 Analytics: cohort/retention for customers, product ABC analysis, margin analysis, forecasting basic (moving average) for reorder
+- Last completed task: P6-04 Analytics: cohort/retention for customers, product ABC analysis, margin analysis, forecasting basic (moving average) for reorder
+- Next task: P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish)
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (49/49 ai_assistant tests passing, ruff clean, lint-imports clean, mypy clean)
+- Last `make verify`: PASSED (129/129 reports tests passing, ruff clean, lint-imports clean, mypy clean)
 - Notes:
-  - P6-03 Complete: "What needs attention today" intelligence panel:
-    - ADR 0035 (`docs/adr/0035-what-needs-attention-today-intelligence-panel.md`): Rule-based operational detectors, typed AttentionItem schema, dashboard widget integration, optional AI synthesis, and session-based dismissal.
-    - Operational Detectors (`apps/ai_assistant/attention.py`):
-      - `detect_overdue_receivables`: Finds past-due customer invoices (>14 days = critical, else warning).
-      - `detect_overdue_payables`: Finds past-due supplier bills (>14 days = critical, else warning).
-      - `detect_low_stock`: Flags stockouts (critical) and inventory levels below reorder threshold (warning).
-      - `detect_unfulfilled_orders`: Tracks confirmed sales orders awaiting fulfillment (>7 days = critical).
-      - `detect_pending_approvals`: Highlights pending document approval requests awaiting management review.
-      - `detect_expiring_quotes`: Alerts on sent sales quotes expiring within 72 hours.
-      - `detect_dormant_customers`: Identifies active customers with no purchase activity in 60+ days.
-    - AI Executive Morning Briefing:
-      - `generate_attention_briefing`: Synthesizes active attention items into a 3-bullet briefing via `get_ai_provider()` with deterministic fallback.
-    - Full-width Dashboard Widget (`apps/ai_assistant/dashboard_widgets.py`):
-      - `AttentionTodayWidget(DashboardWidget)` registered at order 5, col_span 12.
-      - Responsive grid cards with severity badges, metrics, CTAs, dismiss buttons, and category filter pills.
-    - Web & HTMX endpoints (`apps/ai_assistant/views.py` & `urls.py`):
-      - `/ai/attention/items/`, `/ai/attention/briefing/`, `/ai/attention/dismiss/<item_id>/`, `/ai/attention/reset/`.
-    - REST API (`apps/ai_assistant/api/views.py`):
-      - `/api/v1/ai/attention/` (list) and `/api/v1/ai/attention/briefing/` (POST).
-    - Tests: 17 comprehensive unit, HTMX view, and REST API tests with cross-tenant isolation and permission checks (49 total passing in ai_assistant).
-  - Next task: P6-04 Analytics: cohort/retention for customers, product ABC analysis, margin analysis, forecasting basic (moving average) for reorder.
+  - P6-04 Complete: Business Analytics (Cohorts, ABC Pareto, Margins, Reorder Forecasting):
+    - ADR 0036 (`docs/adr/0036-business-analytics-cohort-abc-margins-forecasting.md`): Core analytics calculations, dataclass outputs, API endpoints, HTMX/Tailwind screens, and inventory replenishment logic.
+    - Analytics Engine (`apps/reports/analytics.py`):
+      - Customer Cohort / Retention: acquisition month grouping, monthly retention rate heatmap matrix, cumulative cohort spend.
+      - Product ABC Pareto: 80/15/5 revenue concentration classification, running cumulative percentages, active SKU counts, tier summaries.
+      - Gross Margin Analysis: units sold, revenue, COGS, gross profit, margin %, profitability health grading (`high`, `healthy`, `moderate`, `low`, `negative`), category profitability breakdown.
+      - Demand Forecasting: Simple Moving Average (SMA) run rate, days of inventory remaining countdown, projected stockout date, replenishment sizing, and direct CTA to create draft Purchase Orders.
+    - Web & HTMX Screens (`apps/reports/analytics_views.py`, `templates/reports/analytics/`):
+      - Analytics Hub (`/reports/analytics/`), Customer Cohorts (`/reports/analytics/cohort/`), Product ABC (`/reports/analytics/abc/`), Gross Margins (`/reports/analytics/margins/`), Demand Forecasting (`/reports/analytics/forecasting/`).
+    - REST API (`apps/reports/api/`):
+      - `/api/v1/reports/analytics/cohort/`, `/api/v1/reports/analytics/abc/`, `/api/v1/reports/analytics/margins/`, `/api/v1/reports/analytics/forecasting/`.
+    - Tests: 16 unit, web view, and API tests with cross-tenant isolation and permission checks (129 total passing in reports module).
+  - Next task: P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish).

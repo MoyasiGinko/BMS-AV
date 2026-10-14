@@ -1,0 +1,179 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Product ABC Pareto Analysis" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb / Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <a href="{% url 'reports:analytics_hub' %}" class="hover:text-indigo-600">{% trans "Analytics" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Product ABC Analysis" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Product ABC Pareto Analysis" %}
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Classify product revenue contribution into Class A (top 80%), Class B (next 15%), and Class C (bottom 5%)." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'reports:analytics_hub' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                &larr; {% trans "Back to Analytics" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "From Date" %}</label>
+                <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "To Date" %}</label>
+                <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            {% if warehouses %}
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Warehouse" %}</label>
+                <select name="warehouse_id" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="">{% trans "All Warehouses" %}</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.pk }}" {% if selected_warehouse_id == wh.pk %}selected{% endif %}>{{ wh.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-xs transition-colors">
+                {% trans "Apply Filter" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- ABC Tier Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {% for ts in result.tier_summaries %}
+        <div class="p-5 bg-white dark:bg-slate-900 border rounded-2xl shadow-xs
+            {% if ts.tier == 'A' %}
+                border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/20 dark:bg-emerald-950/20
+            {% elif ts.tier == 'B' %}
+                border-amber-200 dark:border-amber-800/80 bg-amber-50/20 dark:bg-amber-950/20
+            {% else %}
+                border-slate-200 dark:border-slate-800
+            {% endif %}">
+            <div class="flex items-center justify-between mb-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
+                    {% if ts.tier == 'A' %}
+                        bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300
+                    {% elif ts.tier == 'B' %}
+                        bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300
+                    {% else %}
+                        bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300
+                    {% endif %}">
+                    {% trans "Class" %} {{ ts.tier }}
+                </span>
+                <span class="text-xs font-medium text-slate-500">{{ ts.revenue_share_pct }}% {% trans "Revenue" %}</span>
+            </div>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white">
+                ${{ ts.total_revenue|floatformat:2 }}
+            </div>
+            <div class="mt-3 space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                <div class="flex justify-between">
+                    <span>{% trans "Product Count" %}:</span>
+                    <span class="font-semibold text-slate-900 dark:text-white">{{ ts.product_count }} ({{ ts.product_share_pct }}%)</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                    <div class="h-1.5 rounded-full {% if ts.tier == 'A' %}bg-emerald-500{% elif ts.tier == 'B' %}bg-amber-500{% else %}bg-slate-400{% endif %}" style="width: {{ ts.revenue_share_pct }}%"></div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ABC Products Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                {% trans "Product Pareto Classification Ranking" %}
+            </h3>
+            <span class="text-xs text-slate-500">{{ result.active_revenue_products_count }} {% trans "revenue SKUs tracked" %}</span>
+        </div>
+
+        {% if result.items %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-semibold uppercase">
+                        <th class="py-3 px-4 text-left">#</th>
+                        <th class="py-3 px-4 text-left">{% trans "Class" %}</th>
+                        <th class="py-3 px-4 text-left">{% trans "Product" %}</th>
+                        <th class="py-3 px-4 text-left">{% trans "Category" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Units Sold" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Total Revenue" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Cumulative Rev" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Cumulative %" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Gross Margin" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for item in result.items %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td class="py-3 px-4 text-xs text-slate-400 font-mono">{{ forloop.counter }}</td>
+                        <td class="py-3 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold
+                                {% if item.tier == 'A' %}
+                                    bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300
+                                {% elif item.tier == 'B' %}
+                                    bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300
+                                {% else %}
+                                    bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300
+                                {% endif %}">
+                                {{ item.tier }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-slate-900 dark:text-white">{{ item.name }}</div>
+                            <div class="text-xs text-slate-500 font-mono">{{ item.sku }}</div>
+                        </td>
+                        <td class="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">{{ item.category_name }}</td>
+                        <td class="py-3 px-4 text-right font-medium text-slate-700 dark:text-slate-300">{{ item.total_quantity|floatformat:0 }}</td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-900 dark:text-white">${{ item.total_revenue|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right text-xs text-slate-500">${{ item.cumulative_revenue|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right">
+                            <div class="inline-flex items-center gap-1.5 font-semibold text-xs text-slate-700 dark:text-slate-300">
+                                <span>{{ item.cumulative_percentage }}%</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-right font-semibold
+                            {% if item.margin_percentage >= 40 %}text-emerald-600 dark:text-emerald-400
+                            {% elif item.margin_percentage >= 20 %}text-indigo-600 dark:text-indigo-400
+                            {% elif item.margin_percentage >= 0 %}text-amber-600 dark:text-amber-400
+                            {% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                            {{ item.margin_percentage }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <h3 class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{% trans "No product sales recorded" %}</h3>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {% trans "No invoice line sales were found for the selected period. Broaden your date filter." %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

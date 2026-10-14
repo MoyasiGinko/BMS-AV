@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any
+from typing import Any, cast
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
@@ -158,10 +158,9 @@ class ReportScheduleForm(forms.ModelForm):
     def __init__(self, *args: Any, organization: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.organization = organization
-        self.fields["saved_report"].queryset = SavedReport.objects.filter(organization=organization).order_by(
-            "name"
-        )
-        self.fields["saved_report"].empty_label = _("Select a Saved Report")
+        saved_report_field = cast(forms.ModelChoiceField, self.fields["saved_report"])
+        saved_report_field.queryset = SavedReport.objects.filter(organization=organization).order_by("name")
+        saved_report_field.empty_label = _("Select a Saved Report")
 
         if self.instance and self.instance.pk and self.instance.recipients:
             self.fields["recipient_emails"].initial = ", ".join(self.instance.recipients)
@@ -193,6 +192,8 @@ class ReportScheduleForm(forms.ModelForm):
 
     def clean(self) -> dict[str, Any]:
         cleaned_data = super().clean()
+        if cleaned_data is None:
+            cleaned_data = {}
         freq = cleaned_data.get("frequency")
         dow = cleaned_data.get("day_of_week")
         dom = cleaned_data.get("day_of_month")

@@ -1,0 +1,151 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Customer Cohort & Retention Analysis" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Breadcrumb / Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
+                <span>&rsaquo;</span>
+                <a href="{% url 'reports:analytics_hub' %}" class="hover:text-indigo-600">{% trans "Analytics" %}</a>
+                <span>&rsaquo;</span>
+                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Customer Cohorts" %}</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {% trans "Customer Cohort & Retention Matrix" %}
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {% trans "Track customer repeat order behavior, retention drop-off rates, and lifetime recurring spend." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'reports:analytics_hub' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                &larr; {% trans "Back to Analytics" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Acquired From" %}</label>
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Acquired To" %}</label>
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{% trans "Max Months" %}</label>
+                <select name="max_periods" class="text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                    <option value="6" {% if max_periods == 6 %}selected{% endif %}>6 {% trans "Months" %}</option>
+                    <option value="12" {% if max_periods == 12 %}selected{% endif %}>12 {% trans "Months" %}</option>
+                    <option value="24" {% if max_periods == 24 %}selected{% endif %}>24 {% trans "Months" %}</option>
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-xs transition-colors">
+                {% trans "Apply Filter" %}
+            </button>
+        </form>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Total Customers Tracked" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ result.total_customers }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Unique buyers in selected range" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Acquisition Cohorts" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ result.total_cohorts }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Monthly acquisition batches" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Avg. Month 1 Retention" %}</span>
+            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">{{ result.avg_m1_retention }}%</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Benchmark for second purchase" %}</p>
+        </div>
+        <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs">
+            <span class="text-xs font-semibold uppercase text-slate-500">{% trans "Total Lifetime Revenue" %}</span>
+            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">${{ result.total_lifetime_revenue|floatformat:2 }}</div>
+            <p class="text-xs text-slate-500 mt-0.5">{% trans "Cumulative cohort spend" %}</p>
+        </div>
+    </div>
+
+    <!-- Cohort Heatmap Table Card -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                {% trans "Cohort Retention Heatmap Matrix" %}
+            </h3>
+            <div class="flex items-center gap-3 text-xs text-slate-500">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-indigo-600"></span> &ge; 50%</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-indigo-500/80"></span> 30-49%</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-indigo-200 dark:bg-indigo-900/60"></span> 15-29%</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-slate-100 dark:bg-slate-800"></span> &lt; 15%</span>
+            </div>
+        </div>
+
+        {% if result.cohorts %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+                <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-semibold uppercase">
+                        <th class="py-3 px-4 text-left">{% trans "Cohort" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Size" %}</th>
+                        <th class="py-3 px-4 text-right">{% trans "Total Revenue" %}</th>
+                        {% for p_idx in result.periods_header %}
+                        <th class="py-3 px-3 text-center min-w-[70px]">M+{{ p_idx }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    {% for c in result.cohorts %}
+                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">{{ c.cohort_month }}</td>
+                        <td class="py-3 px-4 text-right font-medium text-slate-700 dark:text-slate-300">{{ c.cohort_size }}</td>
+                        <td class="py-3 px-4 text-right font-medium text-slate-900 dark:text-white">${{ c.total_cohort_revenue|floatformat:2 }}</td>
+
+                        {% for p in c.periods %}
+                        <td class="py-2 px-2 text-center">
+                            <div class="py-1 px-1.5 rounded-lg text-xs font-semibold
+                                {% if p.retention_rate >= 50 %}
+                                    bg-indigo-600 text-white
+                                {% elif p.retention_rate >= 30 %}
+                                    bg-indigo-500/80 text-white
+                                {% elif p.retention_rate >= 15 %}
+                                    bg-indigo-200 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200
+                                {% elif p.retention_rate > 0 %}
+                                    bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300
+                                {% else %}
+                                    text-slate-400 dark:text-slate-600
+                                {% endif %}">
+                                {{ p.retention_rate }}%
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{% trans "No cohort activity found" %}</h3>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {% trans "No customer invoices were found in the selected date range. Try widening the filter." %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
