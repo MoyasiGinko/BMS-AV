@@ -46,4 +46,6 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("reports/", include("apps.reports.api.urls")),
     # Automation Engine
     path("automation/", include("apps.automation.api.urls")),
+    # AI Assistant
+    path("ai/", include("apps.ai_assistant.api.urls")),
 ]

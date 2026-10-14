@@ -1,0 +1,52 @@
+{% load i18n %}
+
+<!-- User Message -->
+<div class="flex justify-end">
+  <div class="max-w-2xl rounded-2xl rounded-tr-sm bg-indigo-600 px-4 py-3 text-sm text-white shadow-sm">
+    <p class="whitespace-pre-wrap">{{ user_message.content }}</p>
+    <div class="mt-1 text-[10px] text-indigo-200 text-right">
+      {{ user_message.created_at|date:"H:i" }}
+    </div>
+  </div>
+</div>
+
+<!-- Assistant Message -->
+<div class="flex items-start space-x-3 max-w-3xl">
+  <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center shrink-0 shadow-sm ring-2 ring-white dark:ring-slate-900">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  </div>
+  <div class="w-full rounded-2xl rounded-tl-sm bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-4 text-sm text-slate-800 dark:text-slate-100 shadow-sm space-y-3">
+    <!-- Message Content with line breaks -->
+    <div class="prose prose-sm dark:prose-invert max-w-none text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-normal leading-relaxed">
+      {{ assistant_message.content }}
+    </div>
+
+    <!-- Tool execution pills if any -->
+    {% if assistant_message.tool_calls %}
+    <div class="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-1.5">
+      <span class="text-[10px] uppercase font-bold text-slate-400">{% trans "Tools Used" %}:</span>
+      {% for tc in assistant_message.tool_calls %}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+        <svg class="w-3 h-3 mr-1 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        {{ tc.name }}
+      </span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Pending Action Card if any -->
+    {% if assistant_message.pending_action %}
+      {% include "ai_assistant/partials/action_card.html" with pending_action=assistant_message.pending_action is_confirmed=assistant_message.is_action_confirmed message_public_id=assistant_message.public_id %}
+    {% endif %}
+
+    <div class="flex items-center justify-between pt-1 text-[10px] text-slate-400 dark:text-slate-500">
+      <span>AI Copilot</span>
+      <span>{{ assistant_message.created_at|date:"H:i" }}</span>
+    </div>
+  </div>
+</div>

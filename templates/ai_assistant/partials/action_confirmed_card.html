@@ -1,0 +1,38 @@
+{% load i18n %}
+<div class="action-proposal-card mt-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/70 dark:bg-emerald-950/40 p-4 transition-all shadow-sm">
+  <div class="flex items-start justify-between">
+    <div class="flex items-center space-x-2">
+      <span class="p-1 rounded-md bg-emerald-600 text-white">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-200">
+          {% trans "Action Confirmed & Executed" %}
+        </h4>
+        <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+          {{ result.summary|default:"Action completed successfully." }}
+        </p>
+      </div>
+    </div>
+    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800">
+      {% trans "Confirmed" %}
+    </span>
+  </div>
+
+  {% if result.po_number %}
+  <div class="mt-3 text-xs text-slate-600 dark:text-slate-300 space-y-1 bg-white/70 dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-800/50">
+    <div class="flex justify-between">
+      <span class="text-slate-500">{% trans "Purchase Order Number" %}:</span>
+      <span class="font-mono font-bold text-slate-900 dark:text-white">{{ result.po_number }}</span>
+    </div>
+    {% if result.total_amount %}
+    <div class="flex justify-between">
+      <span class="text-slate-500">{% trans "Total Amount" %}:</span>
+      <span class="font-bold text-slate-900 dark:text-white">${{ result.total_amount }}</span>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>

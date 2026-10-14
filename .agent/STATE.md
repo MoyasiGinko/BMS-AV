@@ -1,29 +1,28 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P6 Operating system layer
-- Last completed task: P6-01 Automation engine: rules, templates, run history, plan limits, UI builder
-- Next task: P6-02 AI assistant
+- Last completed task: P6-02 AI assistant: provider abstraction, tool registry, draft/confirm flow, chat UI, audit log, limits
+- Next task: P6-03 "What needs attention today" intelligence panel
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (40/40 automation tests passing, ruff check/format clean, lint-imports clean, makemigrations clean, mypy clean)
+- Last `make verify`: PASSED (32/32 ai_assistant tests passing, ruff check/format clean, lint-imports clean, makemigrations clean, mypy clean)
 - Notes:
-  - P6-01 Complete: Automation engine:
-    - ADR 0033 (`docs/adr/0033-automation-engine-and-rules.md`): Event & scheduled triggers, AST condition evaluator, pluggable actions, template catalog, plan limits & quota tracking.
-    - Data Models: `AutomationRule` and `AutomationRun` in `apps/automation` with PostgreSQL Row-Level Security (`enable_rls`).
+  - P6-02 Complete: AI assistant:
+    - ADR 0034 (`docs/adr/0034-ai-assistant-provider-abstraction-and-tools.md`): Provider abstraction with deterministic `FakeAiProvider`, tool registry over selectors/services, permission-aware execution, two-phase draft/confirm safety flow, AiAuditLog, plan limits.
+    - Data Models: `AiConversation`, `AiMessage`, and `AiAuditLog` in `apps/ai_assistant` with PostgreSQL Row-Level Security (`enable_rls`).
     - Core Engine:
-      - Declarative condition evaluator supporting numeric comparisons, string patterns, collection membership, and emptiness with dot-notation path extraction.
-      - Action executors: `create_draft_po`, `send_notification`, `create_crm_task`, `send_email`, `send_webhook`.
-      - Built-in templates: Low stock auto-reorder, Overdue invoice reminders, Customer win-back, High-value deal alert.
-      - Plan limits & quota enforcement (`apps/automation/limits.py`) for max active rules and monthly runs using `increment_usage`.
-      - Outbox event listener (`apps/automation/handlers.py`) and background Celery tasks (`apps/automation/tasks.py`) for event and scheduled scans.
-    - Web UI & HTMX (`templates/automation/`):
-      - Rule list with KPI metric cards, status toggles, and live search.
-      - Template catalog with one-click instantiation.
-      - Visual rule builder for event triggers, conditions, and actions.
-      - Test bench for dry-run simulation with mock JSON payloads.
-      - Run history audit log with execution detail viewer.
+      - Provider abstraction: `BaseAiProvider`, `FakeAiProvider` (deterministic intent detection, tool call generation, formatting), adapters for Anthropic, OpenAI, and Gemini with graceful fallbacks.
+      - Tool registry: `sales_summary`, `low_stock`, `inactive_customers`, `profit_change_explanation`, and two-phase mutation `draft_po`.
+      - Permission-aware execution: verified via `user_has_ai_permission` before running any tool or confirming mutations.
+      - Draft/Confirm flow: destructive/commercial actions propose a pending confirmation card and only execute upon explicit human confirmation (`confirm_action`).
+      - Quota enforcement: `check_ai_request_quota` and monthly request tracking using `apps.billing` `UsageCounter`.
+    - Web UI & HTMX (`templates/ai_assistant/`):
+      - Two-pane chat view with conversation sidebar, message bubbles, quick prompt chips, and tool execution pills.
+      - Interactive action confirmation cards with HTMX inline resolution.
+      - Filterable AI audit log table with latency, token usage, and status tracking.
     - REST API:
-      - `/api/v1/automation/rules/` (CRUD + toggle + test).
-      - `/api/v1/automation/runs/` (audit log and details).
-      - `/api/v1/automation/templates/` (catalog and instantiation).
-    - Tests: 40 tests covering evaluator, services, limits, cross-tenant isolation, web views, and REST API.
-  - Next task: P6-02 AI assistant.
+      - `/api/v1/ai/conversations/` (CRUD + `/send/` + `/messages/`).
+      - `/api/v1/ai/actions/confirm/` (two-phase action confirmation).
+      - `/api/v1/ai/usage/stats/` (monthly quota and consumption).
+      - `/api/v1/ai/audit-logs/` (tenant audit trail).
+    - Tests: 32 tests covering providers, tools, services, limits, isolation, web/HTMX views, and DRF endpoints.
+  - Next task: P6-03 "What needs attention today" intelligence panel on the dashboard (rule-based insights first; AI summary optional).

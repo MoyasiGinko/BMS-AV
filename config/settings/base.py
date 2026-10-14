@@ -60,6 +60,7 @@ LOCAL_APPS = [
     "apps.payroll",
     "apps.approvals",
     "apps.automation",
+    "apps.ai_assistant",
 ]
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -410,3 +411,10 @@ LOGGING = {
 SENTRY_DSN = env("SENTRY_DSN", default="")
 SENTRY_TRACES_SAMPLE_RATE = env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.1)
 ENVIRONMENT = env("ENVIRONMENT", default="development" if DEBUG else "production")
+
+# AI Assistant settings
+AI_PROVIDER = env("AI_PROVIDER", default="fake")
+AI_DEFAULT_MODEL = env("AI_DEFAULT_MODEL", default="mock-model-v1")
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")

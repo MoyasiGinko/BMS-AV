@@ -457,5 +457,9 @@ registry.register(
     description="Copilot actions, automated document extraction, and insights",
     icon="sparkles",
     sort_order=160,
-    permissions=["settings.manage"],
+    nav_items=[
+        NavItem("Chat Assistant", "ai:chat", icon="sparkles", permission="ai.chat"),
+        NavItem("Audit Trail", "ai:audit_logs", icon="clipboard-document-list", permission="ai.manage"),
+    ],
+    permissions=["ai.chat", "ai.manage", "ai.actions"],
 )

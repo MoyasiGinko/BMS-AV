@@ -1,0 +1,229 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "AI Copilot" %} | Business OS{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-4.25rem)] flex flex-col md:flex-row overflow-hidden bg-slate-50/50 dark:bg-slate-950/50">
+
+  <!-- Left Sidebar: Conversations -->
+  <aside class="w-full md:w-80 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full">
+    <!-- Sidebar Header -->
+    <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <span class="p-1.5 rounded-lg bg-indigo-600 text-white shadow-sm">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </span>
+        <h2 class="text-sm font-bold text-slate-900 dark:text-white">{% trans "AI Copilot" %}</h2>
+      </div>
+      <form method="post" action="{% url 'ai:conversation_new' %}">
+        {% csrf_token %}
+        <button type="submit" class="inline-flex items-center px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold transition-colors">
+          <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          {% trans "New Chat" %}
+        </button>
+      </form>
+    </div>
+
+    <!-- Usage Metric Badge -->
+    <div class="p-3 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800">
+      <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+        <span>{% trans "Monthly Quota" %}</span>
+        <span class="font-bold text-slate-900 dark:text-slate-200">
+          {{ metrics.current_usage }} / {% if metrics.max_requests == -1 %}Unlimited{% else %}{{ metrics.max_requests }}{% endif %}
+        </span>
+      </div>
+      <div class="mt-1.5 w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+        <div class="bg-indigo-600 h-full rounded-full" style="width: {% if metrics.max_requests == -1 %}20%{% else %}{% widthratio metrics.current_usage metrics.max_requests 100 %}%{% endif %};"></div>
+      </div>
+    </div>
+
+    <!-- Conversation List -->
+    <div class="flex-1 overflow-y-auto p-3 space-y-1">
+      {% for conv in conversations %}
+      <a href="{% url 'ai:chat_conversation' conv.public_id %}" class="block px-3 py-2.5 rounded-xl text-xs font-medium transition-colors {% if conv.pk == active_conversation.pk %}bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-200 font-semibold shadow-xs border border-indigo-200/50 dark:border-indigo-900/50{% else %}text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+        <div class="truncate">{{ conv.title }}</div>
+        <div class="mt-1 text-[10px] text-slate-400">{{ conv.updated_at|date:"M j, H:i" }}</div>
+      </a>
+      {% empty %}
+      <div class="py-8 text-center text-xs text-slate-400">
+        {% trans "No past conversations." %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Audit logs link footer -->
+    <div class="p-3 border-t border-slate-200 dark:border-slate-800">
+      <a href="{% url 'ai:audit_logs' %}" class="flex items-center text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+        <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        {% trans "View AI Audit Trail" %}
+      </a>
+    </div>
+  </aside>
+
+  <!-- Right Pane: Active Chat Room -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-slate-900">
+    <!-- Chat Header -->
+    <div class="px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
+          AI
+        </div>
+        <div>
+          <h1 class="text-sm font-bold text-slate-900 dark:text-white">
+            {{ active_conversation.title }}
+          </h1>
+          <p class="text-[11px] text-slate-400">
+            {% trans "Autonomous enterprise copilot with permission-aware tools." %}
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+          {% trans "Ready" %}
+        </span>
+      </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-5">
+      {% for msg in messages_history %}
+        {% if msg.role == "user" %}
+        <div class="flex justify-end">
+          <div class="max-w-2xl rounded-2xl rounded-tr-sm bg-indigo-600 px-4 py-3 text-sm text-white shadow-sm">
+            <p class="whitespace-pre-wrap">{{ msg.content }}</p>
+            <div class="mt-1 text-[10px] text-indigo-200 text-right">{{ msg.created_at|date:"H:i" }}</div>
+          </div>
+        </div>
+        {% elif msg.role == "assistant" %}
+        <div class="flex items-start space-x-3 max-w-3xl">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center shrink-0 shadow-sm ring-2 ring-white dark:ring-slate-900">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div class="w-full rounded-2xl rounded-tl-sm bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-4 text-sm text-slate-800 dark:text-slate-100 shadow-sm space-y-3">
+            <div class="prose prose-sm dark:prose-invert max-w-none text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-normal leading-relaxed">
+              {{ msg.content }}
+            </div>
+            {% if msg.tool_calls %}
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-1.5">
+              <span class="text-[10px] uppercase font-bold text-slate-400">{% trans "Tools Used" %}:</span>
+              {% for tc in msg.tool_calls %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                {{ tc.name }}
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if msg.pending_action %}
+              {% include "ai_assistant/partials/action_card.html" with pending_action=msg.pending_action is_confirmed=msg.is_action_confirmed message_public_id=msg.public_id %}
+            {% endif %}
+            <div class="flex items-center justify-between pt-1 text-[10px] text-slate-400">
+              <span>AI Copilot</span>
+              <span>{{ msg.created_at|date:"H:i" }}</span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      {% empty %}
+      <div class="py-12 text-center">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 mb-3 shadow-xs">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "How can I assist you today?" %}</h3>
+        <p class="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
+          {% trans "Query operational metrics, inspect inventory, discover dormant customers, or prepare stock reorder drafts." %}
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Suggested Quick Prompts -->
+    <div class="px-6 py-2 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-850/50 flex flex-wrap gap-2">
+      <button type="button" onclick="setPrompt('Show sales summary for this month')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+        📊 {% trans "Sales summary this month" %}
+      </button>
+      <button type="button" onclick="setPrompt('What products have low stock?')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+        ⚠️ {% trans "Low stock products" %}
+      </button>
+      <button type="button" onclick="setPrompt('Find inactive customers for 60 days')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+        👥 {% trans "Inactive customers" %}
+      </button>
+      <button type="button" onclick="setPrompt('Explain profit and margin changes')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+        📈 {% trans "Profit margin shift" %}
+      </button>
+      <button type="button" onclick="setPrompt('Create draft PO for low stock items')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+        📝 {% trans "Draft reorder PO" %}
+      </button>
+    </div>
+
+    <!-- Input Form -->
+    <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <form id="chat-form" hx-post="{% url 'ai:send_message' active_conversation.public_id %}" hx-target="#chat-messages" hx-swap="beforeend" hx-indicator="#send-spinner" class="flex items-center space-x-3" onsubmit="setTimeout(clearAndScroll, 50)">
+        {% csrf_token %}
+        <div class="relative flex-1">
+          {{ form.content }}
+        </div>
+        <button type="submit" class="inline-flex items-center px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm shadow-sm transition-colors shrink-0">
+          <span id="send-spinner" class="htmx-indicator mr-2">
+            <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+          </span>
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+  function setPrompt(text) {
+    const input = document.getElementById('id_content');
+    if (input) {
+      input.value = text;
+      input.focus();
+    }
+  }
+
+  function clearAndScroll() {
+    const container = document.getElementById('chat-messages');
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+    const input = document.getElementById('id_content');
+    if (input) {
+      input.value = '';
+    }
+  }
+
+  document.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'chat-messages') {
+      const container = document.getElementById('chat-messages');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  });
+
+  window.addEventListener('load', function() {
+    const container = document.getElementById('chat-messages');
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  });
+</script>
+{% endblock %}

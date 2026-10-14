@@ -59,6 +59,7 @@ urlpatterns = [
     path("payroll/", include("apps.payroll.urls", namespace="payroll")),
     path("approvals/", include("apps.approvals.urls", namespace="approvals")),
     path("automation/", include("apps.automation.urls", namespace="automation")),
+    path("ai/", include("apps.ai_assistant.urls", namespace="ai")),
     path("notifications/", include("apps.core.notification_urls", namespace="notifications")),
     path("api/v1/", include("config.api_urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),
