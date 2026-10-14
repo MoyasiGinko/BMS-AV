@@ -17,9 +17,62 @@ from apps.tenancy.forms import (
     OnboardingStep2Form,
     OnboardingStep3Form,
 )
-from apps.tenancy.models import Organization
-from apps.tenancy.selectors import get_invitation_by_token, list_user_organizations
+from apps.tenancy.models import Branch, Membership, Organization
+from apps.tenancy.selectors import (
+    get_invitation_by_token,
+    get_user_membership,
+    list_user_organizations,
+)
 from apps.tenancy.services import accept_invitation, provision_organization, switch_organization
+
+
+@login_required
+def organization_list_view(request: HttpRequest) -> HttpResponse:
+    """Displays the list of organizations the user belongs to inside the application shell."""
+    user = request.user
+    assert isinstance(user, AbstractBaseUser)
+
+    current_org = getattr(request, "organization", None)
+    if getattr(user, "is_superuser", False):
+        orgs = Organization.objects.filter(is_active=True).order_by("name")
+    else:
+        orgs = list_user_organizations(user=user)
+
+    org_cards = []
+    for org in orgs:
+        membership = get_user_membership(user=user, organization_id=org.pk)
+        role_name = (
+            membership.role.name
+            if membership and membership.role
+            else ("Superuser" if getattr(user, "is_superuser", False) else _("Member"))
+        )
+        member_count = Membership.all_tenants.filter(
+            organization_id=org.pk, status=Membership.STATUS_ACTIVE
+        ).count()
+        branch_count = Branch.all_tenants.filter(organization_id=org.pk, is_active=True).count()
+        plan_name = org.settings.get("plan", "growth").capitalize()
+
+        org_cards.append(
+            {
+                "org": org,
+                "is_current": current_org is not None and current_org.pk == org.pk,
+                "role_name": role_name,
+                "member_count": member_count,
+                "branch_count": branch_count,
+                "plan_name": plan_name,
+            }
+        )
+
+    return render(
+        request,
+        "tenancy/organization_list.html",
+        {
+            "org_cards": org_cards,
+            "current_org": current_org,
+            "total_count": len(org_cards),
+        },
+    )
+
 
 
 @login_required

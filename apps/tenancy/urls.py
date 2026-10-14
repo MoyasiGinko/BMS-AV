@@ -6,6 +6,7 @@ from apps.tenancy.views import (
     accept_invitation_view,
     check_slug_view,
     onboarding_wizard_view,
+    organization_list_view,
     select_organization_view,
     switch_organization_view,
 )
@@ -13,6 +14,8 @@ from apps.tenancy.views import (
 app_name = "tenancy"
 
 urlpatterns = [
+    path("", organization_list_view, name="index"),
+    path("list/", organization_list_view, name="organization_list"),
     path("onboarding/", onboarding_wizard_view, name="onboarding"),
     path("onboarding/check-slug/", check_slug_view, name="check_slug"),
     path("select/", select_organization_view, name="select"),
