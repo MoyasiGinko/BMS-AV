@@ -1,30 +1,18 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery
-- Last completed task: P7-02 Security pass: tenant isolation suite complete, rate limits, `pip-audit`, `check --deploy` clean, secrets handling, CSP
-- Next task: P7-03 Production packaging: Dockerfile, docker-compose.prod.yml (web, worker, beat, db, redis, caddy/nginx), env docs, backup/restore scripts
+- Last completed task: P7-03 Production packaging: Dockerfile, docker-compose.prod.yml (web, worker, beat, db, redis, caddy/nginx), env docs, backup/restore scripts
+- Next task: P7-04 Documentation: README, per-module READMEs, user help pages in-app, API guide with examples (curl + Python), integration guide (webhooks/API keys/OAuth)
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (All security pass tests, architecture rules, RLS enforcement, and domain isolation suites passing cleanly; pip-audit 0 vulnerabilities; check --deploy 0 warnings/errors; ruff clean; import contracts kept)
+- Last `make verify`: PASSED (Production packaging verified: multi-stage Dockerfile, docker-compose.prod.yml, Caddy/Nginx reverse proxy configs, wait_for_db readiness, disaster recovery backup/restore scripts with SHA256 integrity, 8/8 packaging tests passing, 21/21 packaging+security tests passing, ruff clean, deploy check 0 issues, import contracts kept)
 - Notes:
-  - P7-02 Security Pass Complete:
-    - Author ADR 0039 (`docs/adr/0039-security-pass-hardening.md`): Documented tenant isolation audit, Postgres RLS enforcement across all domain apps, dynamic plan rate limiting, allauth brute-force defense, strict CSP directives, Fernet field encryption, and zero-leakage log sanitization.
-    - PostgreSQL Row-Level Security (RLS) Completeness:
-      - Audited all business models against PostgreSQL catalog; created and applied missing RLS migrations across 6 domain apps (`core.0007_enable_rls_notification`, `crm.0002_enable_rls`, `hr.0003_enable_rls`, `integrations.0012_enable_rls_webhooks`, `payroll.0002_enable_rls`, `sales.0007_enable_rls_recurring_reminders`).
-      - All 10 architecture and RLS tests in `tests/architecture/` and `tests/test_rls.py` pass cleanly.
-    - Content Security Policy & Security Headers:
-      - Configured Django 6.1 built-in `django.middleware.csp.ContentSecurityPolicyMiddleware` with hardened directives: `default-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, script/style/font/img sources scoped.
-      - Attached modern HTTP defense headers via `SecurityHeadersMiddleware` (`X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`).
-    - Dynamic Multi-Tier Rate Limiting:
-      - Added `ApiKeyRateThrottle` to `TenantScopedViewSet.throttle_classes` with dynamic plan tier rate resolution (`Starter`: 60/min, `Growth`: 300/min, `Business`: 1000/min, `Enterprise`: 3000/min).
-      - Updated `TenantUserRateThrottle` to defer API key requests to prevent throttle collisions.
-      - Explicitly configured `ACCOUNT_RATE_LIMITS` for `django-allauth` web authentication.
-    - Secrets Handling & Zero-Leakage Observability:
-      - Implemented recursive sensitive key scrubbing in `JSONLogFormatter` (`_sanitize_log_data`) masking passwords, tokens, API keys, credentials, cookies, and sensitive PII to `***REDACTED***`.
-      - Verified Fernet symmetric field encryption round-trip and error handling in `apps/core/crypto.py`.
-      - Added constant-time `verify_key` method to `ApiKey` model.
-    - Vulnerability & Production Posture:
-      - `pip-audit` verified clean with 0 known vulnerabilities.
-      - `python manage.py check --deploy --settings=config.settings.prod_check` verified with 0 issues identified.
-    - Automated Empirical Verification:
-      - Created comprehensive test suite in `tests/test_security_pass.py` (13/13 passing).
-  - Next task: P7-03 Production packaging: Dockerfile, docker-compose.prod.yml (web, worker, beat, db, redis, caddy/nginx), env docs, backup/restore scripts.
+  - P7-03 Production Packaging Complete:
+    - Multi-stage production `Dockerfile` (Python 3.14 + uv + Gunicorn + WhiteNoise + Tailwind CLI + unprivileged `appuser` UID 10001, `/healthz` check).
+    - Production orchestration `docker-compose.prod.yml` covering 6 services: `web`, `worker`, `beat`, `db` (Postgres 18), `redis` (Redis 8), `caddy` (Caddy 2 reverse proxy) with network segmentation and persistent volumes.
+    - Reverse proxy configurations: `Caddyfile` (automatic HTTPS, HTTP/3 QUIC, zstd/gzip compression, static asset caching) and alternative `nginx/nginx.conf`.
+    - Operational disaster recovery: `scripts/backup.sh`, `scripts/backup.py`, `scripts/restore.sh`, `scripts/restore.py` supporting gzip database dumps and cryptographic SHA256 integrity checks.
+    - Readiness & orchestration: `scripts/entrypoint.sh` and Django management command `wait_for_db` polling PostgreSQL before migrations.
+    - Environment documentation: `.env.example` and operations manual `docs/05-production-packaging.md`.
+    - Author ADR 0040 (`docs/adr/0040-production-packaging.md`).
+    - Empirical validation: `tests/test_production_packaging.py` (8/8 passing).
+  - Next task: P7-04 Documentation: README, per-module READMEs, user help pages in-app, API guide with examples (curl + Python), integration guide (webhooks/API keys/OAuth).

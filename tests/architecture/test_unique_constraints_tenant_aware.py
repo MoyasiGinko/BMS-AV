@@ -15,11 +15,7 @@ def test_unique_constraints_include_organization() -> None:
             if fields and "organization" not in fields and getattr(c, "condition", None) is None:
                 offenders.append(f"{model._meta.label}: {c.name}")
         for f in model._meta.get_fields():
-            if (
-                getattr(f, "unique", False)
-                and not f.primary_key
-                and f.name not in {"public_id", "client_id"}
-            ):
+            if getattr(f, "unique", False) and not f.primary_key and f.name not in {"public_id", "client_id"}:
                 offenders.append(
                     f"{model._meta.label}.{f.name}: field-level unique (needs org-scoped constraint)"
                 )

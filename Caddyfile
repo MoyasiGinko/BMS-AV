@@ -1,0 +1,39 @@
+# ==============================================================================
+# Caddy 2 Reverse Proxy Configuration for Business OS
+# Automatic HTTPS, HTTP/3 (QUIC), Zstandard/Gzip compression, static file caching
+# ==============================================================================
+
+{$DOMAIN:localhost} {
+    # Encode responses using modern zstandard and gzip algorithms
+    encode zstd gzip
+
+    # Serve static assets directly from disk with long-term immutable caching
+    handle /static/* {
+        root * /var/www
+        file_server
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    # Serve user media uploads directly
+    handle /media/* {
+        root * /var/www
+        file_server
+    }
+
+    # Upstream proxy to Django / Gunicorn WSGI container
+    handle {
+        reverse_proxy web:8000 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Request-ID {http.request.uuid}
+        }
+    }
+
+    # Logging
+    log {
+        output stdout
+        format json
+    }
+}
