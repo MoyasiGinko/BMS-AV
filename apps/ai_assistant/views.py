@@ -12,6 +12,11 @@ from django.shortcuts import redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
+from apps.ai_assistant.attention import (
+    generate_attention_briefing,
+    get_attention_items,
+    get_attention_summary,
+)
 from apps.ai_assistant.forms import ChatMessageForm
 from apps.ai_assistant.permissions import user_has_ai_permission
 from apps.ai_assistant.selectors import (
@@ -199,3 +204,100 @@ class AuditLogsView(BaseAiView):
             "selected_status": status_filter or "",
         }
         return render(request, "ai_assistant/audit_logs.html", context)
+
+
+# =============================================================================
+# Attention Today Panel HTMX Views
+# =============================================================================
+
+
+class AttentionPanelItemsView(BaseAiView):
+    """HTMX endpoint to render the attention items list, filtered by category."""
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        org_id = self.get_organization_id()
+        if not org_id:
+            return HttpResponse("", status=400)
+
+        category = request.GET.get("category", "all")
+        dismissed = request.session.get(f"dismissed_attention_{org_id}", [])
+
+        items = get_attention_items(
+            org_id,
+            request.user,
+            category=category,
+            dismissed_ids=dismissed,
+        )
+        return render(
+            request,
+            "ai_assistant/widgets/partials/attention_items_list.html",
+            {
+                "items": items,
+                "selected_category": category,
+            },
+        )
+
+
+class AttentionBriefingView(BaseAiView):
+    """HTMX endpoint to generate and render an executive AI briefing."""
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        org_id = self.get_organization_id()
+        if not org_id:
+            return HttpResponse("", status=400)
+
+        dismissed = request.session.get(f"dismissed_attention_{org_id}", [])
+        items = get_attention_items(org_id, request.user, category=None, dismissed_ids=dismissed)
+
+        result = generate_attention_briefing(org_id, request.user, items=items)
+        briefing_text = result.get("briefing", "")
+        request.session[f"ai_briefing_{org_id}"] = briefing_text
+
+        return render(
+            request,
+            "ai_assistant/widgets/partials/briefing_banner.html",
+            {
+                "briefing": briefing_text,
+                "generated_at": result.get("generated_at"),
+                "provider": result.get("provider"),
+            },
+        )
+
+
+class AttentionDismissView(BaseAiView):
+    """HTMX endpoint to dismiss a specific attention card for the user's active session."""
+
+    def post(self, request: HttpRequest, item_id: str) -> HttpResponse:
+        org_id = self.get_organization_id()
+        if not org_id:
+            return HttpResponse("", status=400)
+
+        session_key = f"dismissed_attention_{org_id}"
+        dismissed = set(request.session.get(session_key, []))
+        dismissed.add(item_id)
+        request.session[session_key] = list(dismissed)
+
+        # Return empty HTTP response with HTMX outerHTML swap to remove the card from the DOM
+        return HttpResponse("")
+
+
+class AttentionResetDismissedView(BaseAiView):
+    """HTMX endpoint to clear all dismissed items and refresh the panel."""
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        org_id = self.get_organization_id()
+        if not org_id:
+            return HttpResponse("", status=400)
+
+        session_key = f"dismissed_attention_{org_id}"
+        request.session[session_key] = []
+
+        summary = get_attention_summary(org_id, request.user, dismissed_ids=[])
+        return render(
+            request,
+            "ai_assistant/widgets/partials/attention_items_list.html",
+            {
+                "items": summary["items"],
+                "selected_category": "all",
+            },
+        )

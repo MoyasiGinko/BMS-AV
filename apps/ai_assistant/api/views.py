@@ -17,7 +17,10 @@ from apps.ai_assistant.api.serializers import (
     AiConversationSerializer,
     AiMessageSerializer,
     AiPromptRequestSerializer,
+    AttentionBriefingSerializer,
+    AttentionItemSerializer,
 )
+from apps.ai_assistant.attention import generate_attention_briefing, get_attention_items
 from apps.ai_assistant.models import AiAuditLog, AiConversation
 from apps.ai_assistant.selectors import get_ai_dashboard_metrics, get_conversation_messages
 from apps.ai_assistant.services import (
@@ -186,3 +189,32 @@ class AiAuditLogViewSet(TenantScopedReadOnlyModelViewSet):
         if not org:
             return AiAuditLog.objects.none()
         return AiAuditLog.all_tenants.filter(organization=org).order_by("-created_at")
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="List What Needs Attention Today operational items",
+        responses={200: AttentionItemSerializer(many=True)},
+        tags=["AI Assistant & Intelligence"],
+    ),
+    briefing=extend_schema(
+        summary="Generate or retrieve AI synthesized morning briefing",
+        responses={200: AttentionBriefingSerializer},
+        tags=["AI Assistant & Intelligence"],
+    ),
+)
+class AiAttentionViewSet(TenantScopedViewSet):
+    """Viewset for inspecting What Needs Attention Today intelligence items and briefings."""
+
+    def list(self, request: Request) -> Response:
+        org = self.get_tenant()
+        category = request.query_params.get("category")
+        items = get_attention_items(org, request.user, category=category)
+        data = [it.to_dict() for it in items]
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get", "post"], url_path="briefing")
+    def briefing(self, request: Request) -> Response:
+        org = self.get_tenant()
+        briefing_data = generate_attention_briefing(org, request.user)
+        return Response(briefing_data, status=status.HTTP_200_OK)

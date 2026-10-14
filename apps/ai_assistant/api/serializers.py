@@ -104,3 +104,29 @@ class AiAuditLogSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+
+class AttentionItemSerializer(serializers.Serializer):
+    """Serializer for What Needs Attention Today operational items."""
+
+    id = serializers.CharField()
+    title = serializers.CharField()
+    description = serializers.CharField()
+    category = serializers.CharField()
+    severity = serializers.CharField()
+    count = serializers.IntegerField()
+    metric = serializers.CharField()
+    action_url = serializers.CharField()
+    action_label = serializers.CharField()
+    details = serializers.DictField(required=False)
+    icon = serializers.CharField(required=False)
+
+
+class AttentionBriefingSerializer(serializers.Serializer):
+    """Serializer for AI synthesized operational morning briefing."""
+
+    status = serializers.CharField()
+    briefing = serializers.CharField()
+    generated_at = serializers.CharField()
+    provider = serializers.CharField()
+    item_count = serializers.IntegerField()

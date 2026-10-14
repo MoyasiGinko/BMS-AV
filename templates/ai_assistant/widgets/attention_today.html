@@ -1,0 +1,142 @@
+{% load i18n %}
+
+<div class="rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/95 backdrop-blur-sm transition-all"
+     id="widget-what-needs-attention-today">
+
+  <!-- Header Bar -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center shadow-sm ring-2 ring-amber-100 dark:ring-amber-950/40">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+            {% trans "What Needs Attention Today" %}
+          </h3>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            {{ total_count }} {% trans "Items" %}
+          </span>
+        </div>
+        <div class="flex items-center space-x-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+          {% if critical_count > 0 %}
+            <span class="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+              {{ critical_count }} {% trans "Critical" %}
+            </span>
+          {% endif %}
+          {% if warning_count > 0 %}
+            <span class="text-amber-600 dark:text-amber-400 font-medium">
+              • {{ warning_count }} {% trans "Urgent" %}
+            </span>
+          {% endif %}
+          {% if info_count > 0 %}
+            <span class="text-slate-500 dark:text-slate-400">
+              • {{ info_count }} {% trans "Notice" %}
+            </span>
+          {% endif %}
+          {% if total_count == 0 %}
+            <span class="text-emerald-600 dark:text-emerald-400 font-medium">
+              {% trans "All operational indicators healthy" %}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions: AI Morning Briefing & Refresh -->
+    <div class="flex items-center space-x-2 self-start sm:self-auto">
+      {% if can_use_ai %}
+        <button type="button"
+                hx-post="{% url 'ai:attention_briefing' %}"
+                hx-target="#attention-briefing-container"
+                hx-indicator="#briefing-spinner"
+                class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-sm transition-all focus:ring-2 focus:ring-indigo-500/20 active:scale-95">
+          <svg id="briefing-spinner" class="htmx-indicator w-3.5 h-3.5 mr-1.5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span>{% trans "Executive Briefing" %}</span>
+        </button>
+      {% endif %}
+
+      <button type="button"
+              hx-get="{% url 'ai:attention_items' %}?category=all"
+              hx-target="#attention-items-container"
+              title="{% trans 'Refresh Operational Insights' %}"
+              class="inline-flex items-center p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="flex items-center space-x-1.5 py-3 overflow-x-auto scrollbar-none border-b border-slate-100 dark:border-slate-800/80 mb-3 text-xs">
+    <button type="button"
+            hx-get="{% url 'ai:attention_items' %}?category=all"
+            hx-target="#attention-items-container"
+            class="px-2.5 py-1 rounded-lg font-medium transition-colors bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+      {% trans "All" %} ({{ total_count }})
+    </button>
+    {% if categories.finance %}
+      <button type="button"
+              hx-get="{% url 'ai:attention_items' %}?category=finance"
+              hx-target="#attention-items-container"
+              class="px-2.5 py-1 rounded-lg font-medium transition-colors text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+        {% trans "Finance" %} ({{ categories.finance }})
+      </button>
+    {% endif %}
+    {% if categories.inventory %}
+      <button type="button"
+              hx-get="{% url 'ai:attention_items' %}?category=inventory"
+              hx-target="#attention-items-container"
+              class="px-2.5 py-1 rounded-lg font-medium transition-colors text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+        {% trans "Inventory" %} ({{ categories.inventory }})
+      </button>
+    {% endif %}
+    {% if categories.sales %}
+      <button type="button"
+              hx-get="{% url 'ai:attention_items' %}?category=sales"
+              hx-target="#attention-items-container"
+              class="px-2.5 py-1 rounded-lg font-medium transition-colors text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+        {% trans "Orders" %} ({{ categories.sales }})
+      </button>
+    {% endif %}
+    {% if categories.approvals %}
+      <button type="button"
+              hx-get="{% url 'ai:attention_items' %}?category=approvals"
+              hx-target="#attention-items-container"
+              class="px-2.5 py-1 rounded-lg font-medium transition-colors text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+        {% trans "Approvals" %} ({{ categories.approvals }})
+      </button>
+    {% endif %}
+    {% if categories.customers %}
+      <button type="button"
+              hx-get="{% url 'ai:attention_items' %}?category=customers"
+              hx-target="#attention-items-container"
+              class="px-2.5 py-1 rounded-lg font-medium transition-colors text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800">
+        {% trans "Accounts" %} ({{ categories.customers }})
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- AI Morning Briefing Container -->
+  <div id="attention-briefing-container">
+    {% if cached_briefing %}
+      {% include "ai_assistant/widgets/partials/briefing_banner.html" with briefing=cached_briefing provider="AI Copilot" generated_at="Today" %}
+    {% endif %}
+  </div>
+
+  <!-- Attention Items Grid/List Container -->
+  <div id="attention-items-container">
+    {% include "ai_assistant/widgets/partials/attention_items_list.html" with items=items %}
+  </div>
+
+</div>
