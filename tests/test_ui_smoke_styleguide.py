@@ -1,11 +1,37 @@
 import pytest
+from django.contrib.auth import get_user_model
 from playwright.sync_api import Page, expect
+
+from apps.tenancy.models import Membership, Organization, Role
+
+User = get_user_model()
 
 
 @pytest.mark.ui
+@pytest.mark.django_db(transaction=True)
 def test_ui_smoke_styleguide(live_server: pytest.FixtureRequest, page: Page) -> None:
     """Verify that the Calm Ledger styleguide renders all components and passes UI smoke checks."""
+    org = Organization.objects.create(name="Styleguide Corp", slug="styleguide-corp")
+    role = Role.objects.create(organization=org, name="Admin", permissions=["*"])
+    user = User.objects.create_user(
+        email="styleguide_user@example.com",
+        password="StyleguidePassword123!",
+        name="Style Tester",
+    )
+    Membership.objects.create(
+        organization=org,
+        user=user,
+        role=role,
+        status=Membership.STATUS_ACTIVE,
+    )
+
     server_url = getattr(live_server, "url", str(live_server))
+    page.goto(f"{server_url}/accounts/login/")
+    page.fill("#id_login", "styleguide_user@example.com")
+    page.fill("#id_password", "StyleguidePassword123!")
+    page.click("#submit-login-btn")
+    page.wait_for_load_state("networkidle")
+
     page.goto(f"{server_url}/_styleguide/")
 
     # 1. Assert Title & Header

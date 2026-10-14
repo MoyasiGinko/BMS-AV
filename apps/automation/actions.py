@@ -209,7 +209,9 @@ def handle_send_notification(
             target_user = actor
         else:
             mem = (
-                Membership.all_tenants.filter(organization_id=organization_id, is_active=True)
+                Membership.all_tenants.filter(
+                    organization_id=organization_id, status=Membership.STATUS_ACTIVE
+                )
                 .select_related("user")
                 .first()
             )
