@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from django.core.exceptions import ValidationError
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -167,10 +168,24 @@ class AutomationRunViewSet(TenantScopedReadOnlyModelViewSet):
 
 @extend_schema_view(
     list=extend_schema(summary="List catalog automation templates", tags=["Automation"]),
-    retrieve=extend_schema(summary="Retrieve an automation template", tags=["Automation"]),
+    retrieve=extend_schema(
+        summary="Retrieve an automation template",
+        parameters=[
+            OpenApiParameter(
+                "id",
+                OpenApiTypes.STR,
+                OpenApiParameter.PATH,
+                description="Template key identifier",
+            )
+        ],
+        tags=["Automation"],
+    ),
 )
 class AutomationTemplateViewSet(TenantScopedViewSet):
     """Catalog of pre-configured automation templates."""
+
+    serializer_class = AutomationTemplateSerializer
+    queryset = AutomationRule.objects.none()
 
     def list(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         templates = [t.to_dict() for t in list_templates()]
@@ -184,7 +199,18 @@ class AutomationTemplateViewSet(TenantScopedViewSet):
         serializer = AutomationTemplateSerializer(tmpl.to_dict())
         return Response(serializer.data)
 
-    @extend_schema(summary="Instantiate a template into an active rule", tags=["Automation"])
+    @extend_schema(
+        summary="Instantiate a template into an active rule",
+        parameters=[
+            OpenApiParameter(
+                "id",
+                OpenApiTypes.STR,
+                OpenApiParameter.PATH,
+                description="Template key identifier",
+            )
+        ],
+        tags=["Automation"],
+    )
     @action(detail=True, methods=["post"])
     def instantiate(self, request: Request, pk: Any = None) -> Response:
         org = self.get_tenant()

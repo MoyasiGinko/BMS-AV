@@ -276,6 +276,9 @@ class NotificationViewSet(TenantScopedReadOnlyModelViewSet):
 class UserNotificationPreferenceViewSet(TenantScopedViewSet):
     """Retrieve and update personal notification preferences for the authenticated user."""
 
+    serializer_class = UserNotificationPreferenceItemSerializer
+    queryset = Notification.objects.none()
+
     @extend_schema(
         summary="List user personal notification preferences",
         responses={200: UserNotificationPreferenceItemSerializer(many=True)},

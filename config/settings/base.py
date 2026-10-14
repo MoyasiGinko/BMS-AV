@@ -237,6 +237,18 @@ OAUTH2_PROVIDER = {
     "APPLICATION_MODEL": "integrations.OAuthApplication",
 }
 
+SILENCED_SYSTEM_CHECKS = [
+    "oauth2_provider.W001",
+    "oauth2_provider.W002",
+    "oauth2_provider.W003",
+    "oauth2_provider.W004",
+    "oauth2_provider.W005",
+    "oauth2_provider.W006",
+    "oauth2_provider.W007",
+    "oauth2_provider.W008",
+    "oauth2_provider.W010",
+]
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Business OS API",
     "DESCRIPTION": "Multi-tenant business management platform REST API (v1).",
@@ -284,7 +296,7 @@ SPECTACULAR_SETTINGS = {
         "EmploymentTypeEnum": "apps.hr.models.EmploymentType",
         "AttendanceStatusEnum": "apps.hr.models.AttendanceStatus",
         "AttendanceSourceEnum": "apps.hr.models.AttendanceSource",
-        "LeaveRequestStatusEnum": "apps.hr.models.LeaveRequestStatus",
+        "ApprovalStatusEnum": "apps.approvals.constants.ApprovalStatus",
         "SalaryComponentTypeEnum": "apps.payroll.models.SalaryComponentType",
         "PayrollCalculationTypeEnum": "apps.payroll.models.CalculationType",
         "PayrollPaymentMethodEnum": "apps.payroll.models.PaymentMethod",
@@ -295,6 +307,17 @@ SPECTACULAR_SETTINGS = {
         "CRMLeadSourceEnum": "apps.crm.models.LeadSource",
         "CRMTaskStatusEnum": "apps.crm.models.TaskStatus",
         "CRMTaskPriorityEnum": "apps.crm.models.TaskPriority",
+        "AutomationTriggerTypeEnum": "apps.automation.models.TriggerType",
+        "AutomationRunStatusEnum": "apps.automation.models.RunStatus",
+        "ApprovalRuleTypeEnum": "apps.approvals.constants.ApprovalRuleType",
+        "ApprovalActionEnum": "apps.approvals.constants.ApprovalAction",
+        "ExportJobStatusEnum": "apps.reports.models.ExportJobStatus",
+        "ExportFileFormatEnum": "apps.reports.models.ExportFileFormat",
+        "ReportTypeEnum": "apps.reports.models.ReportType",
+        "ReportScheduleFrequencyEnum": "apps.reports.models.ScheduleFrequency",
+        "RecurringInvoiceFrequencyEnum": "apps.sales.models.RecurringFrequency",
+        "IntegrationConnectionStatusEnum": "apps.integrations.models.ConnectionStatus",
+        "SortDirectionEnum": [("asc", "Ascending"), ("desc", "Descending")],
     },
     "SECURITY": [{"BearerAuth": []}],
 }

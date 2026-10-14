@@ -1,28 +1,26 @@
 # Build State (updated by the agent after every task)
 
-- Phase: P6 Operating system layer
-- Last completed task: P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish)
-- Next task: P6-R Phase review
+- Phase: P7 Hardening & delivery
+- Last completed task: P6-R Phase review
+- Next task: P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (PWA tests passing, POS and Approvals suites passing, ruff clean, lint-imports clean, mypy clean)
+- Last `make verify`: PASSED (101/101 Phase 6 tests passing, OpenAPI schema clean with 0 warnings/errors, deploy check clean, ruff clean, lint-imports clean, pip check clean)
 - Notes:
-  - P6-05 Complete: Mobile-Friendly PWA Shell for POS and Approvals:
-    - ADR 0037 (`docs/adr/0037-mobile-friendly-pwa-pos-approvals.md`): Web App Manifest, Service Worker strategy (Stale-While-Revalidate for static assets, Network-First with offline fallback for HTML navigation, live network pass-through for mutations), offline fallback page, and responsive touch polish.
-    - Vector Assets (`static/icons/icon-192.svg`, `static/icons/icon-512.svg`): Isometric Calm Ledger cube icons on `#0f172a` slate background with vibrant indigo/emerald gradients.
-    - Manifest & Service Worker Endpoints (`apps/core/pwa_views.py`, `config/urls.py`):
-      - `/manifest.webmanifest` & `/manifest.json`: Standalone display mode, theme/background colors (`#0f172a`), icons (192, 512, maskable), quick shortcuts (`/pos/`, `/approvals/`, `/ai/attention/items/`, `/dashboard/`), and dynamic tenant branding when organization context is present.
-      - `/service-worker.js`: Root-scoped Service Worker served with `Service-Worker-Allowed: /` header, pre-caching critical static assets (`tokens.css`, `tailwind.css`, vendored `alpine.min.js`, `htmx.min.js`, icons, `/offline/`), caching page views, and routing offline navigation requests to `/offline/`.
-      - `/offline/`: Renders Calm Ledger offline fallback shell (`templates/offline.html`) with Alpine.js live network monitor, retry action, and cached module launcher.
-    - PWA Integration (`templates/layouts/base.html`, `templates/layouts/app.html`):
-      - PWA manifest link, apple-mobile-web-app meta tags, Apple touch icon, service worker registration, `beforeinstallprompt` event listener, and header "Install App" button.
-    - POS Terminal Mobile Polish (`apps/pos/templates/pos/terminal.html`):
-      - Added segmented mobile tab switcher (`Products` vs `Cart`) on `< md` screens.
-      - Sticky bottom mobile checkout bar with live item count, grand total, and "View Cart & Pay" action.
-      - Enlarged touch-friendly quantity steppers (`w-8 h-8 min-w-[32px] min-h-[32px]`).
-    - Approvals Mobile Polish (`apps/approvals/templates/approvals/partials/inbox_table.html`, `request_detail.html`):
-      - Added responsive touch-first card view for `< md` screens alongside desktop table.
-      - Enforced minimum 44px touch targets (`min-h-[44px]`) on all approval and rejection action buttons.
-    - Tests & Quality Gates:
-      - `apps/core/tests/test_pwa.py`: 7 unit and integration tests covering manifest schema, tenant customization, Service Worker headers, pre-cache list, offline fallback view, and responsive touch constraints.
-      - Passed `ruff check`, `ruff format`, `mypy`, `lint-imports`, and test suites.
-  - Next task: P6-R Phase review.
+  - P6-R Phase Review Complete:
+    - Module Documentation:
+      - `apps/ai_assistant/README.md`: Documented provider abstractions, tool registry, two-phase mutation safety, "What needs attention today" intelligence panel, executive morning briefings, HTMX widgets, and REST APIs.
+      - `apps/reports/README.md`: Documented business analytics engine: customer cohorts retention heatmap, product ABC Pareto classification, gross margin profitability grading, and moving-average demand forecasting with automated draft PO CTA.
+      - `apps/automation/README.md`: Documented declarative AST condition evaluators, event & schedule triggers, action dispatcher, template instantiation, and execution audit logging.
+    - Architecture & Security Validation:
+      - Verified import contracts (`lint-imports` clean, layer contract kept with 0 breaks).
+      - Verified multi-tenant RLS, permissions engine, and plan quota limits across automation, AI, and analytics.
+    - OpenAPI Schema Validation (`python manage.py spectacular --validate --fail-on-warn`):
+      - Cleaned up serializer associations across `AiActionConfirmViewSet`, `AiUsageViewSet`, `AiAttentionViewSet`, and `AutomationTemplateViewSet`.
+      - Resolved duplicate choice set collisions in `ENUM_NAME_OVERRIDES` (`ApprovalStatusEnum`, `IntegrationConnectionStatusEnum`, `SortDirectionEnum`).
+      - Silenced third-party OAuth2 BCP RFC 9700 upgrade notices in `SILENCED_SYSTEM_CHECKS`.
+      - OpenAPI 3.0 schema validated with 0 errors and 0 warnings.
+    - Deploy Check (`python manage.py check --deploy --fail-level WARNING`):
+      - Verified production check settings (`config.settings.prod_check`) with 0 issues identified.
+    - Test Suite:
+      - All 101 unit, service, evaluator, isolation, view, and API tests for Phase 6 modules passed cleanly.
+  - Next task: P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations.

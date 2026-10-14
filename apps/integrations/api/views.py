@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.http import FileResponse
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -550,6 +550,7 @@ class PublicInboundWebhookReceiveAPIView(APIView):
     @extend_schema(
         tags=["Inbound Webhooks"],
         summary="Public webhook listener (signature-verified)",
+        request=inline_serializer(name="InboundWebhookPayload", fields={}),
         responses={200: dict, 401: dict, 404: dict},
     )
     def post(self, request: Request, public_id: str) -> Response:
@@ -678,7 +679,11 @@ class DataRetentionPolicyViewSet(TenantScopedModelViewSet):
     lookup_field = "public_id"
 
     def get_queryset(self) -> Any:
+        if getattr(self, "swagger_fake_view", False):
+            return DataRetentionPolicy.objects.none()
         org = self.get_tenant()
+        if not org:
+            return DataRetentionPolicy.objects.none()
         policy = selectors.get_or_create_retention_policy(org)
         return DataRetentionPolicy.all_tenants.filter(id=policy.id)
 

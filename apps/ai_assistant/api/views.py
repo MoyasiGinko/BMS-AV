@@ -136,6 +136,8 @@ class AiConversationViewSet(TenantScopedModelViewSet):
 class AiActionConfirmViewSet(TenantScopedViewSet):
     """Viewset for confirming and executing proposed draft AI actions."""
 
+    serializer_class = AiActionConfirmSerializer
+
     @action(detail=False, methods=["post"], url_path="confirm")
     def confirm(self, request: Request) -> Response:
         org = self.get_tenant()
@@ -166,6 +168,8 @@ class AiActionConfirmViewSet(TenantScopedViewSet):
 )
 class AiUsageViewSet(TenantScopedViewSet):
     """Viewset for inspecting monthly AI quota and usage."""
+
+    serializer_class = AiAuditLogSerializer
 
     @action(detail=False, methods=["get"], url_path="stats")
     def stats(self, request: Request) -> Response:
@@ -205,6 +209,9 @@ class AiAuditLogViewSet(TenantScopedReadOnlyModelViewSet):
 )
 class AiAttentionViewSet(TenantScopedViewSet):
     """Viewset for inspecting What Needs Attention Today intelligence items and briefings."""
+
+    serializer_class = AttentionItemSerializer
+    queryset = AiAuditLog.objects.none()
 
     def list(self, request: Request) -> Response:
         org = self.get_tenant()

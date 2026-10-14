@@ -150,7 +150,9 @@ class CustomReportQuerySerializer(serializers.Serializer):
     fields: Any = serializers.ListField(child=serializers.CharField(), required=False)
     filters = CustomReportFilterItemSerializer(many=True, required=False, default=list)
     sort_by = serializers.CharField(required=False, allow_blank=True, default="")
-    sort_direction = serializers.ChoiceField(choices=["asc", "desc"], default="desc")
+    sort_direction = serializers.ChoiceField(
+        choices=[("asc", "Ascending"), ("desc", "Descending")], default="desc"
+    )
     limit = serializers.IntegerField(required=False, default=100, min_value=1, max_value=1000)
 
 

@@ -74,7 +74,7 @@ Format: `ID title: Done when ...`
 - [x] P6-03 "What needs attention today" intelligence panel on the dashboard (rule-based insights first; AI summary optional).
 - [x] P6-04 Analytics: cohort/retention for customers, product ABC analysis, margin analysis, forecasting basic (moving average) for reorder.
 - [x] P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish).
-- [ ] P6-R Phase review.
+- [x] P6-R Phase review.
 
 ## P7 Hardening & delivery
 - [ ] P7-01 Performance pass: indexes review, query-count tests, caching of dashboard widgets, bulk operations.
