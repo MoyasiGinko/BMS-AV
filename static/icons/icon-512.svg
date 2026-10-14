@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="cubeTop512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="cubeLeft512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="cubeRight512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+    <filter id="shadow512" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Background container -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad512)" />
+  <rect width="508" height="508" x="2" y="2" rx="110" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+
+  <!-- Isometric Calm Ledger Block -->
+  <g transform="translate(256, 256)" filter="url(#shadow512)">
+    <!-- Top Face -->
+    <path d="M0 -112 L108 -48 L0 16 L-108 -48 Z" fill="url(#cubeTop512)" />
+    
+    <!-- Left Face -->
+    <path d="M-108 -48 L0 16 L0 128 L-108 64 Z" fill="url(#cubeLeft512)" />
+    
+    <!-- Right Face -->
+    <path d="M0 16 L108 -48 L108 64 L0 128 Z" fill="url(#cubeRight512)" />
+
+    <!-- Ledger Lines / Details on Top Face -->
+    <path d="M-54 -26 L0 6 L54 -26" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="6" stroke-linecap="round" />
+    <path d="M-36 -42 L0 -20 L36 -42" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="4" stroke-linecap="round" />
+    
+    <!-- Accent Dots / Activity -->
+    <circle cx="0" cy="70" r="9" fill="#ffffff" opacity="0.9" />
+    <circle cx="54" cy="38" r="8" fill="#ffffff" opacity="0.75" />
+    <circle cx="-54" cy="38" r="8" fill="#ffffff" opacity="0.75" />
+  </g>
+</svg>

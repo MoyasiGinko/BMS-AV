@@ -73,7 +73,7 @@ Format: `ID title: Done when ...`
 - [x] P6-02 AI assistant: provider abstraction (fake default + real adapters via env), tool registry over selectors/services (sales summary, low stock, inactive customers, profit change explanation, draft PO), permission-aware execution, draft/confirm action flow, chat UI (HTMX), AiAuditLog, usage limits, evaluation test set with the fake provider.
 - [x] P6-03 "What needs attention today" intelligence panel on the dashboard (rule-based insights first; AI summary optional).
 - [x] P6-04 Analytics: cohort/retention for customers, product ABC analysis, margin analysis, forecasting basic (moving average) for reorder.
-- [ ] P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish).
+- [x] P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish).
 - [ ] P6-R Phase review.
 
 ## P7 Hardening & delivery

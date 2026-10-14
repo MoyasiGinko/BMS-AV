@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from apps.core import pwa_views
 from apps.core.views import (
     dashboard_view,
     dashboard_widget_partial_view,
@@ -15,6 +16,10 @@ from apps.core.views import (
 )
 
 urlpatterns = [
+    path("manifest.webmanifest", pwa_views.manifest_view, name="pwa_manifest"),
+    path("manifest.json", pwa_views.manifest_view, name="pwa_manifest_json"),
+    path("service-worker.js", pwa_views.service_worker_view, name="pwa_service_worker"),
+    path("offline/", pwa_views.offline_view, name="pwa_offline"),
     path("", dashboard_view, name="dashboard"),
     path("dashboard/", dashboard_view, name="dashboard_alias"),
     path(

@@ -1,21 +1,28 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P6 Operating system layer
-- Last completed task: P6-04 Analytics: cohort/retention for customers, product ABC analysis, margin analysis, forecasting basic (moving average) for reorder
-- Next task: P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish)
+- Last completed task: P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish)
+- Next task: P6-R Phase review
 - Open `[!]` tasks: none
-- Last `make verify`: PASSED (129/129 reports tests passing, ruff clean, lint-imports clean, mypy clean)
+- Last `make verify`: PASSED (PWA tests passing, POS and Approvals suites passing, ruff clean, lint-imports clean, mypy clean)
 - Notes:
-  - P6-04 Complete: Business Analytics (Cohorts, ABC Pareto, Margins, Reorder Forecasting):
-    - ADR 0036 (`docs/adr/0036-business-analytics-cohort-abc-margins-forecasting.md`): Core analytics calculations, dataclass outputs, API endpoints, HTMX/Tailwind screens, and inventory replenishment logic.
-    - Analytics Engine (`apps/reports/analytics.py`):
-      - Customer Cohort / Retention: acquisition month grouping, monthly retention rate heatmap matrix, cumulative cohort spend.
-      - Product ABC Pareto: 80/15/5 revenue concentration classification, running cumulative percentages, active SKU counts, tier summaries.
-      - Gross Margin Analysis: units sold, revenue, COGS, gross profit, margin %, profitability health grading (`high`, `healthy`, `moderate`, `low`, `negative`), category profitability breakdown.
-      - Demand Forecasting: Simple Moving Average (SMA) run rate, days of inventory remaining countdown, projected stockout date, replenishment sizing, and direct CTA to create draft Purchase Orders.
-    - Web & HTMX Screens (`apps/reports/analytics_views.py`, `templates/reports/analytics/`):
-      - Analytics Hub (`/reports/analytics/`), Customer Cohorts (`/reports/analytics/cohort/`), Product ABC (`/reports/analytics/abc/`), Gross Margins (`/reports/analytics/margins/`), Demand Forecasting (`/reports/analytics/forecasting/`).
-    - REST API (`apps/reports/api/`):
-      - `/api/v1/reports/analytics/cohort/`, `/api/v1/reports/analytics/abc/`, `/api/v1/reports/analytics/margins/`, `/api/v1/reports/analytics/forecasting/`.
-    - Tests: 16 unit, web view, and API tests with cross-tenant isolation and permission checks (129 total passing in reports module).
-  - Next task: P6-05 Mobile-friendly PWA shell for POS and approvals (manifest, service worker for static assets, responsive polish).
+  - P6-05 Complete: Mobile-Friendly PWA Shell for POS and Approvals:
+    - ADR 0037 (`docs/adr/0037-mobile-friendly-pwa-pos-approvals.md`): Web App Manifest, Service Worker strategy (Stale-While-Revalidate for static assets, Network-First with offline fallback for HTML navigation, live network pass-through for mutations), offline fallback page, and responsive touch polish.
+    - Vector Assets (`static/icons/icon-192.svg`, `static/icons/icon-512.svg`): Isometric Calm Ledger cube icons on `#0f172a` slate background with vibrant indigo/emerald gradients.
+    - Manifest & Service Worker Endpoints (`apps/core/pwa_views.py`, `config/urls.py`):
+      - `/manifest.webmanifest` & `/manifest.json`: Standalone display mode, theme/background colors (`#0f172a`), icons (192, 512, maskable), quick shortcuts (`/pos/`, `/approvals/`, `/ai/attention/items/`, `/dashboard/`), and dynamic tenant branding when organization context is present.
+      - `/service-worker.js`: Root-scoped Service Worker served with `Service-Worker-Allowed: /` header, pre-caching critical static assets (`tokens.css`, `tailwind.css`, vendored `alpine.min.js`, `htmx.min.js`, icons, `/offline/`), caching page views, and routing offline navigation requests to `/offline/`.
+      - `/offline/`: Renders Calm Ledger offline fallback shell (`templates/offline.html`) with Alpine.js live network monitor, retry action, and cached module launcher.
+    - PWA Integration (`templates/layouts/base.html`, `templates/layouts/app.html`):
+      - PWA manifest link, apple-mobile-web-app meta tags, Apple touch icon, service worker registration, `beforeinstallprompt` event listener, and header "Install App" button.
+    - POS Terminal Mobile Polish (`apps/pos/templates/pos/terminal.html`):
+      - Added segmented mobile tab switcher (`Products` vs `Cart`) on `< md` screens.
+      - Sticky bottom mobile checkout bar with live item count, grand total, and "View Cart & Pay" action.
+      - Enlarged touch-friendly quantity steppers (`w-8 h-8 min-w-[32px] min-h-[32px]`).
+    - Approvals Mobile Polish (`apps/approvals/templates/approvals/partials/inbox_table.html`, `request_detail.html`):
+      - Added responsive touch-first card view for `< md` screens alongside desktop table.
+      - Enforced minimum 44px touch targets (`min-h-[44px]`) on all approval and rejection action buttons.
+    - Tests & Quality Gates:
+      - `apps/core/tests/test_pwa.py`: 7 unit and integration tests covering manifest schema, tenant customization, Service Worker headers, pre-cache list, offline fallback view, and responsive touch constraints.
+      - Passed `ruff check`, `ruff format`, `mypy`, `lint-imports`, and test suites.
+  - Next task: P6-R Phase review.

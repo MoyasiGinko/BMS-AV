@@ -19,6 +19,15 @@
     })();
   </script>
 
+  <!-- Progressive Web App (PWA) Manifest & Mobile Meta -->
+  <link rel="manifest" href="{% url 'pwa_manifest' %}">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Business OS">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
+
   <!-- Calm Ledger Tokens & Tailwind 4 -->
   <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
@@ -28,6 +37,32 @@
   <script defer src="{% static 'vendor/alpine-collapse.min.js' %}"></script>
   <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
   <script defer src="{% static 'vendor/htmx.min.js' %}"></script>
+
+  <!-- Service Worker & PWA Lifecycle Handlers -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+          .catch(function(err) {
+            console.debug('Service Worker registration skipped or failed:', err);
+          });
+      });
+    }
+
+    // PWA Install prompt capture
+    window.deferredPwaPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window.deferredPwaPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa-installable'));
+    });
+    window.addEventListener('appinstalled', function() {
+      window.deferredPwaPrompt = null;
+      if (window.toast) {
+        window.toast('Business OS installed successfully!', 'success');
+      }
+    });
+  </script>
 
   <!-- Global Handlers & Listeners -->
   <script>

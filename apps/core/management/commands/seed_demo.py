@@ -1485,11 +1485,14 @@ def _seed_people_crm(org: Organization, owner: User, alex_rep: User) -> None:
 
     cust = Customer.all_tenants.filter(organization=org).first()
     default_stage = pipeline.stages.first()
+    assert default_stage is not None
+    opp_stage_1 = stage_proposal or default_stage
+    opp_stage_2 = stage_negotiation or default_stage
     opp_fleet = crm_services.create_opportunity(
         organization=org,
         title="Fleet Tooling Modernization 2026",
         pipeline=pipeline,
-        stage=stage_proposal or default_stage,
+        stage=opp_stage_1,
         customer=cust,
         expected_value=Decimal("85000.00"),
         currency="USD",
@@ -1504,7 +1507,7 @@ def _seed_people_crm(org: Organization, owner: User, alex_rep: User) -> None:
         organization=org,
         title="Warehouse Safety Bulk Contract",
         pipeline=pipeline,
-        stage=stage_negotiation or default_stage,
+        stage=opp_stage_2,
         customer=cust,
         expected_value=Decimal("48000.00"),
         currency="USD",

@@ -67,11 +67,35 @@
         </div>
     </header>
 
+    <!-- Mobile View Switcher (Tabs for < md viewports) -->
+    <div class="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 py-2 flex items-center justify-between shrink-0">
+        <div class="grid grid-cols-2 gap-1 w-full p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold">
+            <button type="button"
+                    @click="mobileTab = 'catalog'"
+                    :class="mobileTab === 'catalog' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400'"
+                    class="py-2.5 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                {% trans "Products" %}
+            </button>
+            <button type="button"
+                    @click="mobileTab = 'cart'"
+                    :class="mobileTab === 'cart' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-xs' : 'text-slate-600 dark:text-slate-400'"
+                    class="py-2.5 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <span>{% trans "Cart" %}</span>
+                <span x-show="cart.length > 0"
+                      class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white"
+                      x-text="cart.reduce((sum, item) => sum + item.quantity, 0)"></span>
+            </button>
+        </div>
+    </div>
+
     <!-- Main 2-Pane Work Area -->
-    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
 
         <!-- LEFT PANE: Catalog & Search (60%) -->
-        <div class="flex-1 md:w-3/5 lg:w-2/3 flex flex-col border-r border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-900/50">
+        <div :class="{ 'hidden md:flex': mobileTab !== 'catalog', 'flex': mobileTab === 'catalog' }"
+             class="flex-1 md:w-3/5 lg:w-2/3 flex-col border-r border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-900/50">
 
             <!-- Search & Filter bar -->
             <div class="p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-2 shrink-0">
@@ -90,7 +114,7 @@
                            hx-target="#product-grid"
                            hx-swap="outerHTML"
                            @keydown.enter.prevent="handleBarcodeInput($event)"
-                           class="block w-full pl-9 pr-4 py-2 rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm shadow-xs focus:ring-2 focus:ring-indigo-500">
+                           class="block w-full pl-9 pr-4 py-2.5 rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm shadow-xs focus:ring-2 focus:ring-indigo-500">
                 </div>
 
                 <!-- Category Pills (Horizontal scroll) -->
@@ -118,10 +142,31 @@
             <div class="flex-1 p-3 overflow-y-auto">
                 {% include "pos/partials/product_grid.html" %}
             </div>
+
+            <!-- Mobile Sticky Quick Checkout Bar (shown when viewing catalog on mobile with items in cart) -->
+            <div x-show="cart.length > 0"
+                 x-cloak
+                 class="md:hidden p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 shadow-lg">
+                <div>
+                    <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <span x-text="cart.reduce((sum, item) => sum + item.quantity, 0)"></span> {% trans "items" %}
+                    </div>
+                    <div class="text-base font-bold font-mono text-slate-900 dark:text-white">
+                        $<span x-text="formatDec(grandTotal)"></span>
+                    </div>
+                </div>
+                <button type="button"
+                        @click="mobileTab = 'cart'"
+                        class="px-4 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md flex items-center gap-1.5 cursor-pointer">
+                    <span>{% trans "View Cart & Pay" %}</span>
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+            </div>
         </div>
 
         <!-- RIGHT PANE: Cart & Checkout (40%) -->
-        <div class="w-full md:w-2/5 lg:w-1/3 flex flex-col bg-white dark:bg-slate-900 border-t md:border-t-0 shrink-0">
+        <div :class="{ 'hidden md:flex': mobileTab !== 'cart', 'flex': mobileTab === 'cart' }"
+             class="w-full md:w-2/5 lg:w-1/3 flex-col bg-white dark:bg-slate-900 border-t md:border-t-0 shrink-0">
 
             <!-- Customer Selector Bar -->
             <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between shrink-0">
@@ -166,16 +211,16 @@
                         </div>
 
                         <!-- Quantity Stepper -->
-                        <div class="flex items-center space-x-1">
+                        <div class="flex items-center space-x-1.5">
                             <button type="button"
                                     @click="changeQty(index, -1)"
-                                    class="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                                    class="w-8 h-8 sm:w-7 sm:h-7 min-w-[32px] min-h-[32px] rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 flex items-center justify-center text-sm transition cursor-pointer">
                                 -
                             </button>
-                            <span class="w-8 text-center font-mono font-bold text-slate-800 dark:text-slate-200" x-text="item.quantity"></span>
+                            <span class="w-8 text-center font-mono font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm" x-text="item.quantity"></span>
                             <button type="button"
                                     @click="changeQty(index, 1)"
-                                    class="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center">
+                                    class="w-8 h-8 sm:w-7 sm:h-7 min-w-[32px] min-h-[32px] rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 flex items-center justify-center text-sm transition cursor-pointer">
                                 +
                             </button>
                         </div>
@@ -437,6 +482,7 @@ function posTerminal(config) {
         shiftId: config.shiftId,
         shiftPublicId: config.shiftPublicId,
         currency: config.currency || '$',
+        mobileTab: 'catalog',
         cart: [],
         selectedCustomerId: '',
         heldCartsCount: {{ held_carts.count }},
