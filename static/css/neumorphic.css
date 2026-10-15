@@ -47,9 +47,10 @@
 [data-theme="neumorphic"] {
   --bg: var(--neu-surface);
   --surface: var(--neu-surface);
-  --surface-2: var(--neu-surface);
-  --border: transparent;
-  --border-strong: var(--neu-line);
+  --surface-1: var(--neu-surface);
+  --surface-2: #DDE2EE;
+  --border: var(--neu-line);
+  --border-strong: #BDC3D8;
   --text: var(--neu-text);
   --text-muted: var(--neu-text-muted);
   --text-subtle: #79809E;
@@ -61,6 +62,249 @@
   --shadow-lg: var(--neu-raise-lg);
   --radius-sm: var(--neu-radius-btn);
   --radius-md: var(--neu-radius-card);
+}
+
+html[data-theme="neumorphic"],
+[data-theme="neumorphic"] body {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  font-family: var(--neu-font) !important;
+}
+
+/* App Shell: Sidebar & Header */
+[data-theme="neumorphic"] aside.bos-sidebar {
+  background-color: var(--neu-surface) !important;
+  border-right: 1px solid var(--neu-line) !important;
+  box-shadow: 4px 0 16px rgba(197, 202, 219, 0.45) !important;
+}
+
+[data-theme="neumorphic"] header {
+  background-color: var(--neu-surface) !important;
+  border-bottom: 1px solid var(--neu-line) !important;
+  box-shadow: 0 4px 16px rgba(197, 202, 219, 0.35) !important;
+}
+
+/* Neumorphic Global Cards & Dashboard Widgets (Automatic Dual Shadows) */
+[data-theme="neumorphic"] .card,
+[data-theme="neumorphic"] [class*="card"],
+[data-theme="neumorphic"] #dashboard-widgets-container > div > div,
+[data-theme="neumorphic"] .rounded-2xl.border,
+[data-theme="neumorphic"] .rounded-xl.border {
+  background-color: var(--neu-surface) !important;
+  border-radius: var(--neu-radius-card) !important;
+  box-shadow: var(--neu-raise-lg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  color: var(--neu-text) !important;
+}
+
+/* Secondary / Sub-elements inside cards */
+[data-theme="neumorphic"] .card .rounded-xl,
+[data-theme="neumorphic"] .card .rounded-lg,
+[data-theme="neumorphic"] #dashboard-widgets-container .rounded-xl,
+[data-theme="neumorphic"] #dashboard-widgets-container .rounded-lg {
+  background-color: var(--neu-surface) !important;
+  box-shadow: var(--neu-raise-xs) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Sunken Wells: Search, Text Inputs, Textarea, Select */
+[data-theme="neumorphic"] input[type="text"],
+[data-theme="neumorphic"] input[type="search"],
+[data-theme="neumorphic"] input[type="email"],
+[data-theme="neumorphic"] input[type="number"],
+[data-theme="neumorphic"] input[type="password"],
+[data-theme="neumorphic"] select,
+[data-theme="neumorphic"] textarea {
+  background-color: var(--neu-surface) !important;
+  box-shadow: var(--neu-inset-sm) !important;
+  border: 1px solid var(--neu-line) !important;
+  border-radius: 16px !important;
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] input:focus,
+[data-theme="neumorphic"] select:focus,
+[data-theme="neumorphic"] textarea:focus {
+  box-shadow: var(--neu-inset-lg) !important;
+  border-color: var(--neu-accent-fill) !important;
+  outline: none !important;
+}
+
+/* Sidebar Active Nav Item */
+[data-theme="neumorphic"] aside.bos-sidebar a.border-l-\[3px\],
+[data-theme="neumorphic"] aside.bos-sidebar a[class*="bg-\[var\(--brand-50\)\]"] {
+  background-color: var(--neu-surface) !important;
+  box-shadow: var(--neu-inset-nav) !important;
+  border-left: none !important;
+  border-radius: 14px !important;
+  color: var(--neu-accent-text) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="neumorphic"] aside.bos-sidebar a:hover:not([class*="bg-\[var\(--brand-50\)\]"]):not(.border-l-\[3px\]) {
+  border-radius: 14px !important;
+  box-shadow: var(--neu-raise-xs) !important;
+  color: var(--neu-text) !important;
+}
+
+/* Buttons */
+[data-theme="neumorphic"] .btn-secondary,
+[data-theme="neumorphic"] button.border,
+[data-theme="neumorphic"] .btn:not(.btn-primary) {
+  background-color: var(--neu-surface) !important;
+  box-shadow: var(--neu-raise-xs) !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  border-radius: 14px !important;
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .btn-secondary:hover,
+[data-theme="neumorphic"] button.border:hover {
+  box-shadow: var(--neu-raise-sm) !important;
+}
+
+[data-theme="neumorphic"] .btn-secondary:active,
+[data-theme="neumorphic"] button.border:active {
+  box-shadow: var(--neu-inset-sm) !important;
+}
+
+[data-theme="neumorphic"] .btn-primary,
+[data-theme="neumorphic"] button[class*="bg-\[var\(--brand-600\)\]"] {
+  background-color: var(--neu-accent-fill) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 14px !important;
+  box-shadow: 4px 4px 10px rgba(79, 70, 229, 0.4), -2px -2px 6px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* ==========================================================================
+   Minimal Spatial Theme Mode ([data-theme="spatial"])
+   Subtle floating elevation, glassmorphism, borderless cards, deep typography.
+   ========================================================================== */
+[data-theme="spatial"] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f1f5f9;
+  --border: rgba(226, 232, 240, 0.85);
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --brand-600: #4f46e5;
+  --brand-700: #4338ca;
+  --brand-50: #eef2ff;
+  --radius-sm: 10px;
+  --radius-md: 18px;
+}
+
+html[data-theme="spatial"],
+[data-theme="spatial"] body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+/* Spatial Topbar: Frosted glass */
+[data-theme="spatial"] header {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Spatial Sidebar */
+[data-theme="spatial"] aside.bos-sidebar {
+  background-color: #ffffff !important;
+  border-right: 1px solid rgba(226, 232, 240, 0.85) !important;
+  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Spatial Floating Cards */
+[data-theme="spatial"] .card,
+[data-theme="spatial"] [class*="card"],
+[data-theme="spatial"] #dashboard-widgets-container > div > div,
+[data-theme="spatial"] .rounded-2xl.border,
+[data-theme="spatial"] .rounded-xl.border {
+  background-color: #ffffff !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.04) !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+[data-theme="spatial"] .card:hover,
+[data-theme="spatial"] #dashboard-widgets-container > div > div:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.08), 0 10px 15px -8px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Spatial Form Inputs */
+[data-theme="spatial"] input[type="text"],
+[data-theme="spatial"] input[type="search"],
+[data-theme="spatial"] input[type="email"],
+[data-theme="spatial"] input[type="number"],
+[data-theme="spatial"] input[type="password"],
+[data-theme="spatial"] select,
+[data-theme="spatial"] textarea {
+  border-radius: 12px !important;
+  border: 1px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+}
+
+/* Spatial Buttons */
+[data-theme="spatial"] button,
+[data-theme="spatial"] .btn {
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+/* ==========================================================================
+   Flat Protection: POS Terminal & Data Tables across ALL Themes
+   Keeps tabular data readable and POS fast & responsive.
+   ========================================================================== */
+[data-theme="neumorphic"] table,
+[data-theme="neumorphic"] thead,
+[data-theme="neumorphic"] tbody,
+[data-theme="neumorphic"] tr,
+[data-theme="neumorphic"] td,
+[data-theme="neumorphic"] th,
+[data-theme="spatial"] table,
+[data-theme="spatial"] thead,
+[data-theme="spatial"] tbody,
+[data-theme="spatial"] tr,
+[data-theme="spatial"] td,
+[data-theme="spatial"] th,
+[data-theme="neumorphic"] #pos-app,
+[data-theme="neumorphic"] [data-pos-root],
+[data-theme="neumorphic"] .pos-grid,
+[data-theme="neumorphic"] .pos-keypad button,
+[data-theme="spatial"] #pos-app,
+[data-theme="spatial"] [data-pos-root],
+[data-theme="spatial"] .pos-grid,
+[data-theme="spatial"] .pos-keypad button {
+  box-shadow: none !important;
+}
+
+/* ==========================================================================
+   Automatic Performance Fallback
+   Disables heavy dual shadows and blur when reduced motion or transparency is requested
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  [data-theme="neumorphic"] .card,
+  [data-theme="neumorphic"] [class*="card"],
+  [data-theme="neumorphic"] #dashboard-widgets-container > div > div,
+  [data-theme="neumorphic"] aside.bos-sidebar,
+  [data-theme="neumorphic"] header {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid var(--neu-line) !important;
+  }
+
+  [data-theme="spatial"] header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: #ffffff !important;
+  }
 }
 
 /* ==========================================================================

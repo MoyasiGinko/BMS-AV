@@ -12,6 +12,7 @@ from apps.core.views import (
     healthz_view,
     readyz_view,
     reset_onboarding_checklist_view,
+    set_theme_view,
     styleguide_view,
 )
 
@@ -22,6 +23,7 @@ urlpatterns = [
     path("offline/", pwa_views.offline_view, name="pwa_offline"),
     path("", dashboard_view, name="dashboard"),
     path("dashboard/", dashboard_view, name="dashboard_alias"),
+    path("settings/theme/", set_theme_view, name="set_theme"),
     path(
         "dashboard/widget/<str:widget_id>/",
         dashboard_widget_partial_view,

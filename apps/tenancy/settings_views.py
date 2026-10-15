@@ -94,6 +94,13 @@ def general_settings_view(request: HttpRequest) -> HttpResponse:
                 tax_inclusive_pricing=settings_form.cleaned_data["tax_inclusive_pricing"],
                 actor=request.user,
             )
+            default_theme = request.POST.get("default_theme", "fast")
+            if default_theme in ("fast", "dark", "spatial", "neumorphic"):
+                if not isinstance(org.settings, dict):
+                    org.settings = {}
+                org.settings["default_theme"] = default_theme
+                org.save(update_fields=["settings", "updated_at"])
+
             messages.success(request, _("Organization settings successfully saved."))
             return redirect("settings:general")
     else:
@@ -114,7 +121,9 @@ def general_settings_view(request: HttpRequest) -> HttpResponse:
                 "tax_inclusive_pricing": getattr(settings_obj, "tax_inclusive_pricing", False),
             }
         )
-
+    org_default_theme = "fast"
+    if isinstance(org.settings, dict):
+        org_default_theme = org.settings.get("default_theme", "fast")
     return render(
         request,
         "settings/general.html",
@@ -124,6 +133,7 @@ def general_settings_view(request: HttpRequest) -> HttpResponse:
             "settings_form": settings_form,
             "can_manage": can_manage,
             "active_tab": "general",
+            "org_default_theme": org_default_theme,
         },
     )
 

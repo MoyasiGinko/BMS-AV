@@ -1,20 +1,36 @@
 <!DOCTYPE html>
 {% load static %}
-<html lang="{{ LANGUAGE_CODE|default:'en' }}" class="h-full {% block html_class %}{% endblock %}">
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" data-theme="{{ current_theme|default:'fast' }}" class="h-full {% if current_theme == 'dark' %}dark{% endif %} {% block html_class %}{% endblock %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <meta name="description" content="Business OS - Multi-tenant SaaS Business Management Platform">
   <title>{% block title %}Business OS{% endblock %}</title>
 
-  <!-- Prevent theme flicker -->
+  <!-- Prevent theme flicker and sync authoritative server theme -->
   <script>
     (function() {
       try {
-        var saved = localStorage.getItem('bos_theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var theme = saved || (prefersDark ? 'dark' : 'light');
+        var valid = ['fast', 'dark', 'spatial', 'neumorphic'];
+        var serverTheme = '{{ current_theme|default:"fast" }}';
+        var saved = null;
+        try { saved = localStorage.getItem('bos_theme'); } catch(e) {}
+        if (saved && valid.indexOf(saved) === -1) {
+          try { localStorage.removeItem('bos_theme'); } catch(e) {}
+          saved = null;
+        }
+        var theme = (valid.indexOf(serverTheme) !== -1) ? serverTheme : (saved || 'fast');
+        if (valid.indexOf(theme) === -1) {
+          theme = 'fast';
+        }
         document.documentElement.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        try { localStorage.setItem('bos_theme', theme); } catch(e) {}
       } catch (e) {}
     })();
   </script>
@@ -29,9 +45,9 @@
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
   <!-- Calm Ledger Tokens, Neumorphic System & Tailwind 4 -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=1.0.3">
-  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=1.0.3">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=1.0.3">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=1.0.5">
+  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=1.0.5">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=1.0.5">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -67,18 +83,57 @@
 
   <!-- Global Handlers & Listeners -->
   <script>
+    window.setTheme = function(theme) {
+      if (!theme || ['fast', 'dark', 'spatial', 'neumorphic'].indexOf(theme) === -1) {
+        theme = 'fast';
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      try {
+        localStorage.setItem('bos_theme', theme);
+        document.cookie = "bos_theme=" + encodeURIComponent(theme) + ";path=/;max-age=31536000;SameSite=Lax";
+      } catch (e) {}
+
+      window.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme: theme } }));
+
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      var csrfToken = csrfMeta ? csrfMeta.content : '';
+      if (!csrfToken) {
+        var match = document.cookie.match(/csrftoken=([^;]+)/);
+        if (match) csrfToken = match[1];
+      }
+
+      fetch('/settings/theme/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ theme: theme })
+      }).catch(function() {});
+
+      if (window.toast) {
+        var labels = {
+          fast: 'Modern & Fast',
+          dark: 'Modern Dark',
+          spatial: 'Minimal Spatial',
+          neumorphic: 'Neumorphic'
+        };
+        window.toast('Theme applied: ' + (labels[theme] || theme), 'info', 2000);
+      }
+      return theme;
+    };
+
     window.toggleTheme = function() {
-      var current = document.documentElement.getAttribute('data-theme') || 'light';
-      var order = ['light', 'dark', 'neumorphic'];
+      var current = document.documentElement.getAttribute('data-theme') || 'fast';
+      var order = ['fast', 'dark', 'spatial', 'neumorphic'];
       var idx = order.indexOf(current);
       var next = order[(idx === -1 ? 0 : idx + 1) % order.length];
-      document.documentElement.setAttribute('data-theme', next);
-      try { localStorage.setItem('bos_theme', next); } catch(e) {}
-      if (window.toast) {
-        var labels = { light: 'Light Theme', dark: 'Dark Theme', neumorphic: 'BMS-AV Neumorphic Theme' };
-        window.toast('Theme: ' + (labels[next] || next), 'info', 2500);
-      }
-      return next;
+      return window.setTheme(next);
     };
 
     window.toast = function(message, type, duration) {

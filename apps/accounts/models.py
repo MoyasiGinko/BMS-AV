@@ -38,8 +38,25 @@ class User(AbstractBaseUser, PermissionsMixin):
     public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     email = models.EmailField(_("email address"), unique=True)
     name = models.CharField(_("name"), max_length=150, blank=True)
+    THEME_FAST = "fast"
+    THEME_DARK = "dark"
+    THEME_SPATIAL = "spatial"
+    THEME_NEUMORPHIC = "neumorphic"
+    THEME_CHOICES = [
+        (THEME_FAST, _("Modern & Fast")),
+        (THEME_DARK, _("Modern Dark")),
+        (THEME_SPATIAL, _("Minimal Spatial")),
+        (THEME_NEUMORPHIC, _("Neumorphic")),
+    ]
+
     locale = models.CharField(_("language"), max_length=10, default="en")
     timezone = models.CharField(_("time zone"), max_length=64, default="UTC")
+    theme = models.CharField(
+        _("theme"),
+        max_length=20,
+        choices=THEME_CHOICES,
+        default=THEME_FAST,
+    )
     is_active = models.BooleanField(_("active"), default=True)
     is_staff = models.BooleanField(_("staff status"), default=False)
     date_joined = models.DateTimeField(_("date joined"), default=dj_timezone.now)

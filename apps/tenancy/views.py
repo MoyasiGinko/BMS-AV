@@ -74,7 +74,6 @@ def organization_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-
 @login_required
 def select_organization_view(request: HttpRequest) -> HttpResponse:
     """Displays the list of organizations the authenticated user belongs to."""

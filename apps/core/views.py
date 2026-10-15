@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -159,3 +160,37 @@ def reset_onboarding_checklist_view(request: HttpRequest) -> HttpResponse:
         request.session.pop(f"dismiss_checklist_{org.pk}", None)
 
     return redirect("dashboard")
+
+
+def set_theme_view(request: HttpRequest) -> JsonResponse:
+    """Update active theme preference.
+
+    Accepts JSON or POST data with 'theme': 'fast' | 'spatial' | 'neumorphic'.
+    Saves to user profile if authenticated.
+    Sets 'bos_theme' cookie on response.
+    """
+    if request.method not in ("POST", "PUT"):
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    theme = ""
+    if request.content_type == "application/json" and request.body:
+        try:
+            payload = json.loads(request.body.decode("utf-8"))
+            theme = payload.get("theme", "")
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            logger.debug("Failed to decode JSON theme payload: %s", exc)
+    if not theme:
+        theme = request.POST.get("theme", "")
+
+    if theme not in ("fast", "dark", "spatial", "neumorphic"):
+        return JsonResponse({"error": f"Invalid theme: {theme}"}, status=400)
+
+    persisted = False
+    if request.user.is_authenticated:
+        request.user.theme = theme
+        request.user.save(update_fields=["theme"])
+        persisted = True
+
+    response = JsonResponse({"status": "ok", "theme": theme, "persisted_user": persisted})
+    response.set_cookie("bos_theme", theme, max_age=365 * 24 * 3600, samesite="Lax")
+    return response

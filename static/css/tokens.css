@@ -21,20 +21,56 @@
   --sidebar-w:240px; --sidebar-w-collapsed:64px; --topbar-h:56px; --content-max:1400px;
   --ease:cubic-bezier(.2,.8,.2,1); --dur:140ms;
 }
-[data-theme="dark"], :root:not([data-theme="light"]) { }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg:#0b1220; --surface:#111a2e; --surface-2:#18233b; --border:#223152; --border-strong:#2f4168;
-    --text:#e6edf7; --text-muted:#93a4c0; --text-subtle:#6b7c99; --link:#2dd4bf;
-    --success-bg:#06281a; --warning-bg:#2b1d05; --danger-bg:#2c0e0e; --info-bg:#0b1d3d;
-    --success-border:#14532d; --warning-border:#78350f; --danger-border:#7f1d1d; --info-border:#1e3a8a;
-  }
+/* Modern & Fast Theme Token Mapping */
+[data-theme="fast"] {
+  --bg:var(--n-50); --surface:var(--n-0); --surface-2:var(--n-100); --border:var(--n-200); --border-strong:var(--n-300);
+  --text:var(--n-900); --text-muted:var(--n-500); --text-subtle:var(--n-400); --link:var(--brand-600);
 }
+
+/* ==========================================================================
+   Modern Dark Theme Mode ([data-theme="dark"])
+   Separate, distinct dark theme item that does NOT collide with fast/spatial/neumorphic.
+   ========================================================================== */
 [data-theme="dark"] {
   --bg:#0b1220; --surface:#111a2e; --surface-2:#18233b; --border:#223152; --border-strong:#2f4168;
   --text:#e6edf7; --text-muted:#93a4c0; --text-subtle:#6b7c99; --link:#2dd4bf;
   --success-bg:#06281a; --warning-bg:#2b1d05; --danger-bg:#2c0e0e; --info-bg:#0b1d3d;
   --success-border:#14532d; --warning-border:#78350f; --danger-border:#7f1d1d; --info-border:#1e3a8a;
+}
+
+html[data-theme="dark"],
+[data-theme="dark"] body {
+  background-color: #0b1220 !important;
+  color: #e6edf7 !important;
+}
+
+[data-theme="dark"] aside.bos-sidebar {
+  background-color: #111a2e !important;
+  border-right-color: #223152 !important;
+}
+
+[data-theme="dark"] header {
+  background-color: #111a2e !important;
+  border-bottom-color: #223152 !important;
+}
+
+[data-theme="dark"] .card,
+[data-theme="dark"] [class*="card"],
+[data-theme="dark"] #dashboard-widgets-container > div > div {
+  background-color: #111a2e !important;
+  border-color: #223152 !important;
+}
+
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="search"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: #18233b !important;
+  border-color: #223152 !important;
+  color: #e6edf7 !important;
 }
 html { font-family:var(--font-sans); font-size:var(--fs-base); color:var(--text); background:var(--bg); }
 .num, td.num, th.num { font-variant-numeric:tabular-nums; text-align:right; }

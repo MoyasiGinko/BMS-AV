@@ -41,6 +41,7 @@ EXEMPT_PREFIXES = (
     "/static/",
     "/media/",
     "/favicon.ico",
+    "/settings/theme/",
 )
 
 
