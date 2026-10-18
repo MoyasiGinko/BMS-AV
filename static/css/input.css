@@ -6,7 +6,7 @@
 @source "../../templates";
 @source "../../apps";
 
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant dark (&:where(.dark, [data-theme="dark"], [data-theme="dark"] *));
 
 /* Map design tokens (tokens.css) to Tailwind utilities: bg-brand-600, text-muted, border-line, shadow-card ... */
 @theme inline {

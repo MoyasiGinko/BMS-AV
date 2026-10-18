@@ -82,7 +82,7 @@
     <button type="button"
             hx-get="{% url 'ai:attention_items' %}?category=all"
             hx-target="#attention-items-container"
-            class="px-2.5 py-1 rounded-lg font-medium transition-colors bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+            class="px-2.5 py-1 rounded-lg font-medium transition-colors bg-[var(--brand-600)] text-white shadow-xs">
       {% trans "All" %} ({{ total_count }})
     </button>
     {% if categories.finance %}
