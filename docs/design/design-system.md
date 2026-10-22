@@ -14,7 +14,7 @@ Anti-patterns: gradients as decoration, rainbow dashboards, giant rounded cards 
 
 ## App shell
 Left sidebar (240px, collapsible to 64px icons; groups = modules from registry; active state = brand tint + left bar), top bar (org + branch switcher, global search `Cmd/Ctrl+K`, quick-create "+", notifications, user menu),
-content max-width 1400px with 24px gutters, sticky page header (title, breadcrumb, primary action right-aligned). Mobile: sidebar becomes a drawer; POS/approvals optimized at 360px.
+content fluid full-width (`--content-max: 100%`) with 16-32px responsive gutters, sticky page header (title, breadcrumb, primary action right-aligned). Mobile: sidebar becomes a drawer; POS/approvals optimized at 360px; wide/ultrawide displays seamlessly utilize full viewport without artificial capping.
 
 ## Components (live in `templates/components/`, demonstrated at `/_styleguide/`)
 button (primary/secondary/ghost/danger, sizes, loading), input/select/textarea/checkbox/radio/switch/date/money input (currency prefix, tabular), form_field (label, hint, error, required),
