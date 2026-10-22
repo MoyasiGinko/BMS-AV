@@ -85,7 +85,12 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
     category_id = request.GET.get("category")
     cat_id = int(category_id) if category_id and category_id.isdigit() else None
 
-    products = selectors.get_pos_catalog_products(organization=org, search=search, category_id=cat_id)
+    products = selectors.get_pos_catalog_products(
+        organization=org,
+        search=search,
+        category_id=cat_id,
+        warehouse=active_shift.register.warehouse,
+    )
     categories = selectors.get_pos_categories(organization=org)
     held_carts = selectors.list_held_carts(organization=org, shift_id=active_shift.pk)
     customers = Customer.all_tenants.filter(organization=org, status="active").order_by("name")[:50]
@@ -101,7 +106,7 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
         "close_form": POSCloseShiftForm(),
     }
 
-    if request.headers.get("HX-Request") == "true" and "search" in request.GET:
+    if request.headers.get("HX-Request") == "true":
         return render(request, "pos/partials/product_grid.html", context)
 
     return render(request, "pos/terminal.html", context)
@@ -155,12 +160,28 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
     if request.method != "POST":
         return redirect("pos:terminal")
 
+    is_json = (
+        request.content_type == "application/json"
+        or request.headers.get("Accept") == "application/json"
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+
     data = request.POST
     if request.content_type == "application/json":
         with contextlib.suppress(Exception):
             data = json.loads(request.body.decode("utf-8"))
 
     shift_id = data.get("shift_id")
+    if not shift_id:
+        err_msg = str(_("Missing shift_id in request."))
+        if not is_json:
+            messages.error(request, err_msg)
+        return (
+            JsonResponse({"success": False, "error": err_msg}, status=400)
+            if is_json
+            else redirect("pos:terminal")
+        )
+
     shift = get_object_or_404(POSShift.all_tenants, pk=shift_id, organization=org)
 
     cart_lines = _parse_cart_lines(org, data.get("lines", []))
@@ -187,7 +208,7 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
             notes=data.get("notes", ""),
             actor=request.user,
         )
-        if request.content_type == "application/json":
+        if is_json:
             return JsonResponse(
                 {
                     "success": True,
@@ -198,11 +219,14 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
             )
         messages.success(request, _("Sale completed: Receipt %s") % sale.receipt_number)
         return redirect("pos:receipt", public_id=sale.public_id)
-    except POSError as err:
-        if request.content_type == "application/json":
-            return JsonResponse({"success": False, "error": str(err)}, status=400)
-        messages.error(request, str(err))
-        return redirect("pos:terminal")
+    except Exception as err:
+        if not is_json:
+            messages.error(request, str(err))
+        return (
+            JsonResponse({"success": False, "error": str(err)}, status=400)
+            if is_json
+            else redirect("pos:terminal")
+        )
 
 
 @permission_required("pos.access")

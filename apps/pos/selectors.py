@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any
 
-from django.db.models import Q, QuerySet
+from django.db.models import DecimalField, F, OuterRef, Q, QuerySet, Subquery, Value
+from django.db.models.functions import Coalesce
 
 from apps.catalog.models import Category, Product
+from apps.inventory.models import StockLevel
 from apps.pos.models import (
     POSHeldCart,
     POSRegister,
@@ -14,7 +17,7 @@ from apps.pos.models import (
     POSShift,
     POSShiftStatus,
 )
-from apps.tenancy.models import Organization
+from apps.tenancy.models import Organization, Warehouse
 
 
 def list_registers(
@@ -178,12 +181,31 @@ def get_pos_catalog_products(
     organization: Organization,
     search: str | None = None,
     category_id: int | None = None,
+    warehouse: Warehouse | None = None,
 ) -> QuerySet[Product]:
-    """Fetch active products for the POS touch grid and barcode lookup."""
+    """Fetch active products for the POS touch grid and barcode lookup, with warehouse stock levels."""
     qs = Product.all_tenants.filter(
         organization=organization,
         is_active=True,
     ).select_related("category", "unit", "tax_code")
+
+    if warehouse:
+        stock_subquery = (
+            StockLevel.all_tenants.filter(
+                organization=organization,
+                product=OuterRef("pk"),
+                warehouse=warehouse,
+            )
+            .annotate(avail=F("on_hand") - F("reserved"))
+            .values("avail")[:1]
+        )
+        qs = qs.annotate(
+            stock_qty=Coalesce(
+                Subquery(stock_subquery),
+                Value(Decimal("0.0000")),
+                output_field=DecimalField(max_digits=18, decimal_places=4),
+            )
+        )
 
     if category_id:
         qs = qs.filter(category_id=category_id)

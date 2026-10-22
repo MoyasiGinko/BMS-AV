@@ -245,3 +245,66 @@ def test_hold_and_resume_cart_views(pos_view_setup: dict[str, object]) -> None:
     resume_res = client.get(f"/pos/cart/{held_id}/resume/")
     assert resume_res.status_code == 200
     assert resume_res.json()["cart"]["cart_data"]["items"][0]["id"] == 1
+
+
+def test_terminal_htmx_category_filter_returns_partial(pos_view_setup: dict[str, object]) -> None:
+    client: Client = pos_view_setup["client"]  # type: ignore
+    org = pos_view_setup["org"]  # type: ignore
+    user = pos_view_setup["user"]  # type: ignore
+    register = pos_view_setup["register"]  # type: ignore
+
+    services.open_shift(
+        organization=org,
+        register=register,
+        cashier=user,
+        opening_cash=Decimal("50.00"),
+    )
+
+    # HTMX request with category filter must return partial product grid, NOT full terminal.html
+    res = client.get("/pos/?category=999", HTTP_HX_REQUEST="true")
+    assert res.status_code == 200
+    template_names = [t.name for t in res.templates]
+    assert "pos/partials/product_grid.html" in template_names
+    assert "pos/terminal.html" not in template_names
+
+
+def test_checkout_insufficient_stock_returns_json_error(pos_view_setup: dict[str, object]) -> None:
+    client: Client = pos_view_setup["client"]  # type: ignore
+    org = pos_view_setup["org"]  # type: ignore
+    user = pos_view_setup["user"]  # type: ignore
+    prod = pos_view_setup["prod"]  # type: ignore
+    register = pos_view_setup["register"]  # type: ignore
+
+    shift = services.open_shift(
+        organization=org,
+        register=register,
+        cashier=user,
+        opening_cash=Decimal("50.00"),
+    )
+
+    # Attempt to purchase 999 units when only 50 are in stock
+    payload = {
+        "shift_id": shift.pk,
+        "amount_tendered": "5000.0000",
+        "lines": [
+            {
+                "product_id": prod.pk,
+                "quantity": "999.0000",
+                "unit_price": "4.0000",
+                "discount_percent": "0.00",
+                "tax_rate": "10.00",
+            }
+        ],
+        "payments": [{"payment_method": "cash", "amount": "4395.6000"}],
+    }
+
+    res = client.post(
+        "/pos/checkout/",
+        data=json.dumps(payload),
+        content_type="application/json",
+        HTTP_ACCEPT="application/json",
+    )
+    assert res.status_code == 400
+    data = res.json()
+    assert data["success"] is False
+    assert "Cannot issue" in data["error"] or "stock" in data["error"].lower()

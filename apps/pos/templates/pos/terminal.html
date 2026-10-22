@@ -3,13 +3,16 @@
 
 {% block title %}{% trans "POS Terminal" %} | {{ register.code }} | {{ request.organization.name }}{% endblock %}
 
+{% block container_class %}p-0! sm:p-0! lg:p-0! max-w-none! w-full h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden{% endblock %}
+
 {% block content %}
 <div x-data="posTerminal({
         shiftId: {{ shift.pk }},
         shiftPublicId: '{{ shift.public_id }}',
-        currency: '$'
+        currency: '$',
+        selectedCategory: {% if selected_category_id %}{{ selected_category_id }}{% else %}null{% endif %}
      })"
-     class="flex flex-col h-[calc(100vh-5rem)] -m-4 sm:-m-6 lg:-m-8 bg-slate-100 dark:bg-slate-950 overflow-hidden">
+     class="flex-1 flex flex-col h-full max-h-full bg-slate-100 dark:bg-slate-950 overflow-hidden min-h-0">
 
     <!-- Top POS Toolbar -->
     <header class="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between shrink-0">
@@ -91,11 +94,11 @@
     </div>
 
     <!-- Main 2-Pane Work Area -->
-    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+    <div class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
 
         <!-- LEFT PANE: Catalog & Search (60%) -->
         <div :class="{ 'hidden md:flex': mobileTab !== 'catalog', 'flex': mobileTab === 'catalog' }"
-             class="flex-1 md:w-3/5 lg:w-2/3 flex-col border-r border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-900/50">
+             class="flex-1 min-h-0 md:w-3/5 lg:w-2/3 flex flex-col border-r border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-slate-900/50">
 
             <!-- Search & Filter bar -->
             <div class="p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-2 shrink-0">
@@ -118,20 +121,24 @@
                 </div>
 
                 <!-- Category Pills (Horizontal scroll) -->
-                <div class="flex items-center space-x-1.5 overflow-x-auto py-0.5 no-scrollbar">
+                <div class="flex items-center space-x-1.5 overflow-x-auto py-0.5 no-scrollbar shrink-0">
                     <button type="button"
+                            @click="selectedCategory = null"
                             hx-get="{% url 'pos:terminal' %}"
                             hx-target="#product-grid"
                             hx-swap="outerHTML"
-                            class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap bg-indigo-600 text-white shadow-xs">
+                            :class="selectedCategory === null ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80'"
+                            class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition cursor-pointer">
                         {% trans "All" %}
                     </button>
                     {% for cat in categories %}
                     <button type="button"
+                            @click="selectedCategory = {{ cat.pk }}"
                             hx-get="{% url 'pos:terminal' %}?category={{ cat.pk }}"
                             hx-target="#product-grid"
                             hx-swap="outerHTML"
-                            class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80 transition">
+                            :class="selectedCategory === {{ cat.pk }} ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/80'"
+                            class="px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition cursor-pointer">
                         {{ cat.name }}
                     </button>
                     {% endfor %}
@@ -139,7 +146,7 @@
             </div>
 
             <!-- Products Grid Container -->
-            <div class="flex-1 p-3 overflow-y-auto">
+            <div class="flex-1 min-h-0 p-3 overflow-y-auto">
                 {% include "pos/partials/product_grid.html" %}
             </div>
 
@@ -166,7 +173,7 @@
 
         <!-- RIGHT PANE: Cart & Checkout (40%) -->
         <div :class="{ 'hidden md:flex': mobileTab !== 'cart', 'flex': mobileTab === 'cart' }"
-             class="w-full md:w-2/5 lg:w-1/3 flex-col bg-white dark:bg-slate-900 border-t md:border-t-0 shrink-0">
+             class="w-full md:w-2/5 lg:w-1/3 flex flex-col bg-white dark:bg-slate-900 border-t md:border-t-0 shrink-0 overflow-hidden min-h-0">
 
             <!-- Customer Selector Bar -->
             <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between shrink-0">
@@ -184,13 +191,13 @@
                 <button type="button"
                         @click="holdCurrentCart()"
                         :disabled="cart.length === 0"
-                        class="px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 rounded-md border border-amber-200 dark:border-amber-900/50 disabled:opacity-50 transition">
+                        class="px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 rounded-md border border-amber-200 dark:border-amber-900/50 disabled:opacity-50 transition cursor-pointer">
                     {% trans "Hold" %}
                 </button>
             </div>
 
             <!-- Cart Items List (Scrollable) -->
-            <div class="flex-1 overflow-y-auto p-3 space-y-2 divide-y divide-slate-100 dark:divide-slate-800/60">
+            <div class="flex-1 min-h-0 overflow-y-auto p-3 space-y-2 divide-y divide-slate-100 dark:divide-slate-800/60">
                 <template x-if="cart.length === 0">
                     <div class="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-12">
                         <svg class="w-12 h-12 mb-2 stroke-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -482,6 +489,7 @@ function posTerminal(config) {
         shiftId: config.shiftId,
         shiftPublicId: config.shiftPublicId,
         currency: config.currency || '$',
+        selectedCategory: config.selectedCategory !== undefined ? config.selectedCategory : null,
         mobileTab: 'catalog',
         cart: [],
         selectedCustomerId: '',
@@ -504,9 +512,27 @@ function posTerminal(config) {
             });
         },
 
+        handleBarcodeInput(event) {
+            const firstProductBtn = document.querySelector('#product-grid button');
+            if (firstProductBtn) {
+                firstProductBtn.click();
+                if (this.$refs.barcodeInput) {
+                    this.$refs.barcodeInput.value = '';
+                }
+            }
+        },
+
         addToCart(item) {
+            if (item.is_stock && item.stock_qty <= 0) {
+                alert('Item "' + item.name + '" is currently out of stock in this register warehouse.');
+                return;
+            }
             const existing = this.cart.find(i => i.id === item.id);
             if (existing) {
+                if (item.is_stock && (existing.quantity + 1) > item.stock_qty) {
+                    alert('Cannot add more: only ' + item.stock_qty + ' units available in stock.');
+                    return;
+                }
                 existing.quantity += 1;
             } else {
                 this.cart.push({
@@ -515,6 +541,8 @@ function posTerminal(config) {
                     name: item.name,
                     price: parseFloat(item.price),
                     tax_rate: parseFloat(item.tax_rate || 0),
+                    stock_qty: item.stock_qty,
+                    is_stock: item.is_stock,
                     quantity: 1,
                     discount_percent: 0
                 });
@@ -523,8 +551,13 @@ function posTerminal(config) {
 
         changeQty(index, delta) {
             if (this.cart[index]) {
-                this.cart[index].quantity += delta;
-                if (this.cart[index].quantity <= 0) {
+                const item = this.cart[index];
+                if (delta > 0 && item.is_stock && (item.quantity + delta) > item.stock_qty) {
+                    alert('Cannot add more: only ' + item.stock_qty + ' units available in stock.');
+                    return;
+                }
+                item.quantity += delta;
+                if (item.quantity <= 0) {
                     this.cart.splice(index, 1);
                 }
             }
@@ -678,11 +711,20 @@ function posTerminal(config) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRFToken': '{{ csrf_token }}'
                     },
                     body: JSON.stringify(payload)
                 });
-                const result = await res.json();
+                let result;
+                try {
+                    result = await res.json();
+                } catch {
+                    const text = await res.text();
+                    alert('Checkout failed (' + res.status + '): ' + (text.slice(0, 300) || 'Unexpected server response'));
+                    this.isSubmitting = false;
+                    return;
+                }
                 if (result.success) {
                     window.location.href = result.receipt_url;
                 } else {

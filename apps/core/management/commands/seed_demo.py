@@ -968,6 +968,25 @@ def _seed_growing_company_purchasing(
         actor=accountant,
     )
 
+    inventory_services.receive_stock(
+        organization=org,
+        warehouse=wh_hub,
+        product=p_helm,
+        quantity=Decimal("25.0000"),
+        unit_cost=p_helm.cost_price,
+        notes="Counter terminal floor stock",
+        actor=buyer,
+    )
+    inventory_services.receive_stock(
+        organization=org,
+        warehouse=wh_hub,
+        product=p_vest,
+        quantity=Decimal("25.0000"),
+        unit_cost=p_vest.cost_price,
+        notes="Counter terminal floor stock",
+        actor=buyer,
+    )
+
     # PO 3: Global Pack -> WH Hub (Unpaid bill)
     po3 = purchasing_services.create_purchase_order(
         organization=org,
