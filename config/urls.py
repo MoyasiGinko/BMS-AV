@@ -14,6 +14,7 @@ from apps.core.views import (
     reset_onboarding_checklist_view,
     set_theme_view,
     styleguide_view,
+    theme_manager_view,
 )
 
 urlpatterns = [
@@ -24,6 +25,7 @@ urlpatterns = [
     path("", dashboard_view, name="dashboard"),
     path("dashboard/", dashboard_view, name="dashboard_alias"),
     path("settings/theme/", set_theme_view, name="set_theme"),
+    path("theme-manager/", theme_manager_view, name="theme_manager"),
     path(
         "dashboard/widget/<str:widget_id>/",
         dashboard_widget_partial_view,

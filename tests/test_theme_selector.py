@@ -144,3 +144,120 @@ def test_dashboard_default_theme_is_checked(theme_test_env: dict[str, object]) -
     # Ensure value="fast" input has checked attribute
     assert 'value="fast"' in content
     assert "checked" in content
+
+
+@pytest.mark.django_db
+def test_theme_manager_view_renders_tabs_and_controls(theme_test_env: dict[str, object]) -> None:
+    user: User = theme_test_env["user"]  # type: ignore[assignment]
+    client = Client()
+    client.force_login(user)
+
+    resp = client.get("/settings/theme/")
+    assert resp.status_code == 200
+    content = resp.content.decode("utf-8")
+
+    # Assert tabs exist
+    assert "Theme Presets" in content
+    assert "Sidebar Customizer" in content
+    assert "Styleguide &amp; Components" in content or "Styleguide & Components" in content
+
+    # Assert all 4 theme preset options are present
+    assert "Modern &amp; Fast" in content or "Modern & Fast" in content
+    assert "Modern Dark" in content
+    assert "Minimal Spatial" in content
+    assert "Neumorphic" in content
+
+    # Assert sidebar customization controls exist
+    assert "Sidebar Background Color" in content
+    assert "Sidebar Text &amp; Icon Color" in content or "Sidebar Text & Icon Color" in content
+    assert "Hover Background Color" in content
+    assert "Hover Text Color" in content
+    assert "Active Background Color" in content
+    assert "Active Text &amp; Border Color" in content or "Active Text & Border Color" in content
+    assert "Live Sidebar Preview" in content
+
+
+@pytest.mark.django_db
+def test_set_theme_view_sidebar_customization(theme_test_env: dict[str, object]) -> None:
+    user: User = theme_test_env["user"]  # type: ignore[assignment]
+    client = Client()
+    client.force_login(user)
+
+    payload = {
+        "sidebar": {
+            "bg": "#0f172a",
+            "text": "#94a3b8",
+            "hover_bg": "#1e293b",
+            "hover_text": "#f8fafc",
+            "active_bg": "#14b8a6",
+            "active_text": "#ffffff",
+        }
+    }
+
+    resp = client.post(
+        "/settings/theme/",
+        data=payload,
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["sidebar"]["bg"] == "#0f172a"
+    assert data["sidebar"]["active_bg"] == "#14b8a6"
+
+    # User profile updated
+    user.refresh_from_db()
+    assert user.theme_config["sidebar"]["bg"] == "#0f172a"
+    assert user.theme_config["sidebar"]["text"] == "#94a3b8"
+
+    # Cookie set
+    assert "bos_sidebar_theme" in resp.cookies
+
+
+@pytest.mark.django_db
+def test_set_theme_view_reset_sidebar(theme_test_env: dict[str, object]) -> None:
+    user: User = theme_test_env["user"]  # type: ignore[assignment]
+    user.theme_config = {"sidebar": {"bg": "#0f172a"}}
+    user.save()
+
+    client = Client()
+    client.force_login(user)
+
+    resp = client.post(
+        "/settings/theme/",
+        data={"reset_sidebar": True},
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data.get("sidebar_reset") is True
+
+    # User profile updated: sidebar removed from theme_config
+    user.refresh_from_db()
+    assert "sidebar" not in user.theme_config
+
+
+@pytest.mark.django_db
+def test_theme_context_processor_with_custom_sidebar(theme_test_env: dict[str, object]) -> None:
+    user: User = theme_test_env["user"]  # type: ignore[assignment]
+    user.theme_config = {
+        "sidebar": {
+            "bg": "#1e1b4b",
+            "text": "#c7d2fe",
+            "hover_bg": "#312e81",
+            "hover_text": "#ffffff",
+            "active_bg": "#6366f1",
+            "active_text": "#ffffff",
+        }
+    }
+    user.save()
+
+    rf = RequestFactory()
+    req = rf.get("/")
+    req.user = user
+
+    ctx = theme_context(req)
+    assert ctx["custom_sidebar"]["bg"] == "#1e1b4b"
+    assert ctx["active_sidebar_colors"]["bg"] == "#1e1b4b"
+    assert ctx["active_sidebar_colors"]["active_bg"] == "#6366f1"

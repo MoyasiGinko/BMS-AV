@@ -1,0 +1,639 @@
+<div class="space-y-12 pb-16">
+  <!-- 1. Color Tokens Palette -->
+  <section id="section-colors" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">1. Color Tokens</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">static/css/tokens.css</span>
+    </div>
+
+    <!-- Brand Colors -->
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Brand (Ink-Teal)</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-50)] border border-[var(--brand-100)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-50</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#f0fdfa</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-100)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-100</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#ccfbf1</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-500)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-500</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#14b8a6</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-600)] mb-2"></div>
+          <span class="text-xs font-semibold text-[var(--text)]">--brand-600</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#0f766e</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-700)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-700</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#115e59</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] flex flex-col items-center text-center">
+          <div class="w-full h-12 rounded bg-[var(--brand-900)] mb-2"></div>
+          <span class="text-xs font-medium text-[var(--text)]">--brand-900</span>
+          <span class="text-[11px] font-mono text-[var(--text-subtle)]">#134e4a</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Semantic Status Colors -->
+    <div>
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Semantic Colors</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="p-3 rounded-lg border border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success)] flex flex-col items-center text-center">
+          <div class="w-full h-10 rounded bg-[var(--success)] mb-2"></div>
+          <span class="text-xs font-semibold">Success</span>
+          <span class="text-[11px] font-mono">#15803d</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--warning-border)] bg-[var(--warning-bg)] text-[var(--warning)] flex flex-col items-center text-center">
+          <div class="w-full h-10 rounded bg-[var(--warning)] mb-2"></div>
+          <span class="text-xs font-semibold">Warning</span>
+          <span class="text-[11px] font-mono">#b45309</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger)] flex flex-col items-center text-center">
+          <div class="w-full h-10 rounded bg-[var(--danger)] mb-2"></div>
+          <span class="text-xs font-semibold">Danger</span>
+          <span class="text-[11px] font-mono">#b91c1c</span>
+        </div>
+        <div class="p-3 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] text-[var(--info)] flex flex-col items-center text-center">
+          <div class="w-full h-10 rounded bg-[var(--info)] mb-2"></div>
+          <span class="text-xs font-semibold">Info</span>
+          <span class="text-[11px] font-mono">#1d4ed8</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Typography & Numerics -->
+  <section id="section-typography" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">2. Typography & Numerics</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">Inter + JetBrains Mono (Tabular)</span>
+    </div>
+
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-baseline">
+        <div class="space-y-3">
+          <div>
+            <div class="text-xs text-[var(--text-subtle)] font-mono">Display 2XL (30px / 600)</div>
+            <div class="text-[30px] font-semibold tracking-tight text-[var(--text)] leading-tight">Financial Overview</div>
+          </div>
+          <div>
+            <div class="text-xs text-[var(--text-subtle)] font-mono">Heading XL (24px / 600)</div>
+            <div class="text-2xl font-semibold tracking-tight text-[var(--text)]">Good morning, Acme Trading</div>
+          </div>
+          <div>
+            <div class="text-xs text-[var(--text-subtle)] font-mono">Heading LG (20px / 600)</div>
+            <div class="text-xl font-semibold text-[var(--text)]">Invoices & Receivables</div>
+          </div>
+          <div>
+            <div class="text-xs text-[var(--text-subtle)] font-mono">Body Base (14px / 400)</div>
+            <div class="text-sm text-[var(--text)]">Calm Ledger balances density with breathing room for financial operators.</div>
+          </div>
+        </div>
+
+        <div class="space-y-3 bg-[var(--surface-2)] p-4 rounded-lg border border-[var(--border)]">
+          <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)]">First-Class Numerics (Tabular)</div>
+          <div class="space-y-1 font-mono text-base tabular-nums">
+            <div class="flex justify-between py-1 border-b border-[var(--border)]">
+              <span class="text-[var(--text-muted)]">INV-00231 Balance:</span>
+              <span class="font-semibold text-[var(--text)]">$1,240.00</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-[var(--border)]">
+              <span class="text-[var(--text-muted)]">INV-00230 Partially Paid:</span>
+              <span class="font-semibold text-[var(--warning)]">$3,980.50</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-[var(--border)]">
+              <span class="text-[var(--text-muted)]">INV-00229 Overdue:</span>
+              <span class="font-semibold text-[var(--danger)]">($860.00)</span>
+            </div>
+            <div class="flex justify-between py-1 pt-2 font-bold text-lg">
+              <span class="text-[var(--text)]">Net Position:</span>
+              <span class="text-[var(--brand-600)]">$4,360.50</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Buttons Showcase -->
+  <section id="section-buttons" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">3. Buttons</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/button.html</span>
+    </div>
+
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 space-y-6">
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Variants</div>
+        <div class="flex flex-wrap items-center gap-3">
+          {% include "components/button.html" with label="Primary Action" variant="primary" %}
+          {% include "components/button.html" with label="Secondary" variant="secondary" %}
+          {% include "components/button.html" with label="Ghost Button" variant="ghost" %}
+          {% include "components/button.html" with label="Destructive" variant="danger" %}
+          {% include "components/button.html" with label="Success" variant="success" %}
+          {% include "components/button.html" with label="Disabled" disabled=True %}
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Sizes & Icons</div>
+        <div class="flex flex-wrap items-center gap-3">
+          {% include "components/button.html" with label="Small" size="sm" icon="plus" %}
+          {% include "components/button.html" with label="Medium (Default)" size="md" icon="plus" %}
+          {% include "components/button.html" with label="Large" size="lg" icon="plus" %}
+          {% include "components/button.html" with label="With Chevron" variant="secondary" icon_after="chevron-down" %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Badges & Status Pills -->
+  <section id="section-badges" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">4. Status Pills & Badges</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/status_pill.html</span>
+    </div>
+
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 space-y-4">
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Document & Workflow Statuses</div>
+        <div class="flex flex-wrap items-center gap-3">
+          {% include "components/status_pill.html" with status="paid" label="Paid" %}
+          {% include "components/status_pill.html" with status="partially_paid" label="Partially Paid" %}
+          {% include "components/status_pill.html" with status="overdue" label="Overdue" %}
+          {% include "components/status_pill.html" with status="draft" label="Draft" %}
+          {% include "components/status_pill.html" with status="posted" label="Posted" %}
+          {% include "components/status_pill.html" with status="void" label="Void" %}
+          {% include "components/status_pill.html" with status="processing" label="Processing" %}
+        </div>
+      </div>
+
+      <div>
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">System Badges</div>
+        <div class="flex flex-wrap items-center gap-3">
+          {% include "components/badge.html" with variant="success" label="Active Org" %}
+          {% include "components/badge.html" with variant="warning" label="Trial Expires in 3d" %}
+          {% include "components/badge.html" with variant="danger" label="MFA Required" %}
+          {% include "components/badge.html" with variant="info" label="SaaS Enterprise" %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. KPI Metric Cards -->
+  <section id="section-kpis" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">5. KPI Metric Cards</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/kpi.html</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {% include "components/kpi.html" with label="Sales Today" value="$12,480.00" delta="8.2%" delta_dir="up" delta_text="vs yesterday" %}
+      {% include "components/kpi.html" with label="Receivables" value="$41,920.50" delta="$3,200" delta_dir="down" delta_text="overdue" %}
+      {% include "components/kpi.html" with label="Payables" value="$18,305.00" delta="5 bills" delta_dir="neutral" delta_text="due this week" %}
+      {% include "components/kpi.html" with label="Low Stock" value="14 items" delta="3 items" delta_dir="down" delta_text="out of stock" %}
+    </div>
+  </section>
+
+  <!-- 6. Form Controls & Validation -->
+  <section id="section-forms" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">6. Form Controls & Validation</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/form_field.html</span>
+    </div>
+
+    <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6">
+      <form class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl" onsubmit="event.preventDefault(); window.toast('Form submitted!', 'success');">
+        <!-- Text Input with Prefix -->
+        {% include "components/form_field.html" with label="Customer Name" required=True hint="Legal company or person name." content='<div class="relative flex items-center w-full"><input type="text" name="customer_name" value="Acme Corporation" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"></div>' %}
+
+        <!-- Tabular Price Input -->
+        {% include "components/form_field.html" with label="Unit Price" required=True hint="Standard selling price per unit." content='<div class="relative flex items-center w-full"><span class="absolute left-3 text-[var(--text-subtle)] text-sm font-medium select-none">$</span><input type="text" name="price" value="120.00" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-md text-sm pl-8 pr-3 py-2 font-mono tabular-nums text-right focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"></div>' %}
+
+        <!-- Select Dropdown -->
+        {% include "components/form_field.html" with label="Payment Terms" required=True content='<div class="relative w-full"><select name="terms" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-md text-sm pl-3 pr-8 py-2 appearance-none focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"><option value="net30">Net 30 Days</option><option value="due_receipt">Due on Receipt</option><option value="net60">Net 60 Days</option></select><div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--text-muted)]"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div></div>' %}
+
+        <!-- Input with Validation Error -->
+        {% include "components/form_field.html" with label="Tax ID / VAT" required=True error="Invalid VAT identification format." content='<div class="relative flex items-center w-full"><input type="text" name="tax_id" value="INVALID-123" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--danger)] rounded-md text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--danger)]"></div>' %}
+
+        <!-- Textarea -->
+        <div class="md:col-span-2">
+          {% include "components/form_field.html" with label="Invoice Notes" hint="Optional remarks shown on invoice PDF." content='<textarea rows="3" class="w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-md text-sm p-3 focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]" placeholder="Thank you for your business."></textarea>' %}
+        </div>
+
+        <!-- Toggles & Checkboxes -->
+        <div class="md:col-span-2 flex flex-wrap items-center gap-6 pt-2">
+          {% include "components/checkbox.html" with name="email_receipt" label="Email copy to customer" checked=True %}
+          {% include "components/switch.html" with name="auto_post" label="Post automatically to General Ledger" checked=True %}
+        </div>
+
+        <!-- Form Actions -->
+        <div class="md:col-span-2 flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
+          {% include "components/button.html" with label="Discard" variant="ghost" %}
+          {% include "components/button.html" with label="Save Record" variant="primary" type="submit" %}
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- 7. Data Table & Pagination -->
+  <section id="section-table" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">7. List Pattern: Invoices Table</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/data_table.html</span>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="p-3 bg-[var(--surface)] border border-[var(--border)] rounded-t-[var(--radius-md)] flex flex-wrap items-center justify-between gap-3">
+      <div class="relative flex-1 min-w-[200px] max-w-xs">
+        <svg class="w-4 h-4 absolute left-3 top-2.5 text-[var(--text-subtle)] pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input
+          type="search"
+          placeholder="Search invoices…"
+          class="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-[var(--text)] placeholder-[var(--text-subtle)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-600)]"
+        >
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="px-2.5 py-1 text-xs rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]">Status: All</span>
+        <span class="px-2.5 py-1 text-xs rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]">This Month</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        {% include "components/button.html" with label="Export" variant="secondary" size="sm" %}
+        {% include "components/button.html" with label="Create invoice" variant="primary" size="sm" icon="plus" %}
+      </div>
+    </div>
+
+    <!-- Data Table Container -->
+    <div class="overflow-x-auto border-x border-b border-[var(--border)] rounded-b-[var(--radius-md)] bg-[var(--surface)]">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-[var(--surface-2)] border-b border-[var(--border)] text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">
+            <th class="py-2.5 px-4">Number</th>
+            <th class="py-2.5 px-4">Customer</th>
+            <th class="py-2.5 px-4">Date</th>
+            <th class="py-2.5 px-4">Status</th>
+            <th class="py-2.5 px-4 text-right tabular-nums font-mono">Total</th>
+            <th class="py-2.5 px-4 text-right tabular-nums font-mono">Balance</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+            <td class="py-3 px-4 font-mono font-medium text-[var(--text)]">INV-00231</td>
+            <td class="py-3 px-4 text-[var(--text)] font-medium">Northwind Ltd</td>
+            <td class="py-3 px-4 text-[var(--text-muted)]">12 Mar 2026</td>
+            <td class="py-3 px-4">{% include "components/status_pill.html" with status="paid" label="Paid" %}</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--text)]">1,240.00</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--text-subtle)]">—</td>
+          </tr>
+          <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+            <td class="py-3 px-4 font-mono font-medium text-[var(--text)]">INV-00230</td>
+            <td class="py-3 px-4 text-[var(--text)] font-medium">Contoso Retail</td>
+            <td class="py-3 px-4 text-[var(--text-muted)]">11 Mar 2026</td>
+            <td class="py-3 px-4">{% include "components/status_pill.html" with status="partially_paid" label="Partially paid" %}</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--text)]">3,980.50</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--warning)] font-semibold">1,500.00</td>
+          </tr>
+          <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+            <td class="py-3 px-4 font-mono font-medium text-[var(--text)]">INV-00229</td>
+            <td class="py-3 px-4 text-[var(--text)] font-medium">Fabrikam</td>
+            <td class="py-3 px-4 text-[var(--text-muted)]">02 Mar 2026</td>
+            <td class="py-3 px-4">{% include "components/status_pill.html" with status="overdue" label="Overdue" %}</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--text)]">860.00</td>
+            <td class="py-3 px-4 text-right font-mono tabular-nums text-[var(--danger)] font-semibold">860.00</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination Component -->
+      {% include "components/pagination.html" %}
+    </div>
+  </section>
+
+  <!-- 8. Interactive Toasts & Alerts -->
+  <section id="section-toasts-alerts" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">8. Alerts & Feedback</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/alert.html</span>
+    </div>
+
+    <div class="space-y-4">
+      <!-- Toast Triggers -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-5">
+        <div class="text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-3">Live Toast Emitters</div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onclick="window.toast('Payment of $1,240.00 posted successfully.', 'success')"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--success-bg)] text-[var(--success)] border border-[var(--success-border)] hover:opacity-90"
+          >
+            Emit Success Toast
+          </button>
+          <button
+            type="button"
+            onclick="window.toast('Low stock warning: 3 items below reorder level.', 'warning')"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--warning-bg)] text-[var(--warning)] border border-[var(--warning-border)] hover:opacity-90"
+          >
+            Emit Warning Toast
+          </button>
+          <button
+            type="button"
+            onclick="window.toast('Server transaction failed: Database deadlock rollback.', 'danger')"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--danger-border)] hover:opacity-90"
+          >
+            Emit Danger Toast
+          </button>
+          <button
+            type="button"
+            onclick="window.toast('Report export scheduled in background.', 'info')"
+            class="px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--info-bg)] text-[var(--info)] border border-[var(--info-border)] hover:opacity-90"
+          >
+            Emit Info Toast
+          </button>
+        </div>
+      </div>
+
+      <!-- Banner Alerts -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% include "components/alert.html" with variant="success" title="Reconciliation Complete" message="All 14 bank statements matched with general ledger." dismissible=True %}
+        {% include "components/alert.html" with variant="warning" title="Action Required" message="Fiscal year end closing period starts in 5 business days." dismissible=True %}
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Empty State -->
+  <section id="section-empty-state" class="space-y-4">
+    <div class="border-b border-[var(--border)] pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-[var(--text)]">9. Empty State</h2>
+      <span class="text-xs font-mono text-[var(--text-muted)]">templates/components/empty_state.html</span>
+    </div>
+
+    {% include "components/empty_state.html" with title="No purchase orders created yet" description="Track incoming vendor shipments, receipts, and accounts payable." action_label="Create Purchase Order" action_href="#" %}
+  </section>
+
+  <!-- 10. BMS-AV Neumorphic Style Showcase -->
+  <section id="section-neumorphic" class="space-y-6 pt-4 border-t-2 border-[var(--border)]" x-data="{
+    activeTab: 'month',
+    autoReorder: true,
+    sliderVal: 68,
+    themeMode: document.documentElement.getAttribute('data-theme') || 'light',
+    toggleNeumorphicTheme() {
+      if (document.documentElement.getAttribute('data-theme') === 'neumorphic') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('bos_theme', 'light');
+        this.themeMode = 'light';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'neumorphic');
+        localStorage.setItem('bos_theme', 'neumorphic');
+        this.themeMode = 'neumorphic';
+      }
+    }
+  }">
+    <div class="border-b border-[var(--border)] pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+          BMS-AV Neumorphic Style
+        </div>
+        <h2 class="text-xl font-extrabold text-[var(--text)]">10. BMS-AV Neumorphic System</h2>
+        <p class="text-xs text-[var(--text-muted)] mt-0.5">Tactile soft shapes sculpted from one continuous surface. Light source: Top-Left (135°).</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          @click="toggleNeumorphicTheme()"
+          class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+          :class="themeMode === 'neumorphic' ? 'bg-[#4F46E5] text-white shadow-md' : 'border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)]'"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+          <span x-text="themeMode === 'neumorphic' ? 'Active: Neumorphic Theme' : 'Preview Neumorphic Theme'"></span>
+        </button>
+        <span class="text-xs font-mono text-[var(--text-muted)]">static/css/neumorphic.css</span>
+      </div>
+    </div>
+
+    <!-- Live Neumorphic Surface Sandbox Canvas -->
+    <div class="neu-surface p-6 sm:p-8 rounded-[32px] space-y-8" style="background-color: #E6E9F2; color: #262B45; font-family: 'Hanken Grotesk', system-ui, sans-serif;">
+      
+      <!-- Top Row: Revenue Tile (2/3) & Target Dial (1/3) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-[30px]">
+        <!-- Revenue Hero Tile (2/3) -->
+        <div class="lg:col-span-2 neu-card flex flex-col justify-between">
+          <div>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-[#5A607C]">Total Operating Revenue</span>
+                <div class="text-[34px] sm:text-[44px] font-extrabold tracking-tight text-[#262B45] leading-none mt-1">
+                  $1,284,950<span class="text-lg font-bold text-[#5A607C]">.00</span>
+                </div>
+                <div class="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#0E6B42]">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                  <span>+18.4% vs last period</span>
+                </div>
+              </div>
+              
+              <!-- Segmented Control Period Picker -->
+              <div class="neu-segmented self-start">
+                <button type="button" @click="activeTab = 'week'" :class="{ 'active': activeTab === 'week' }" class="neu-segmented-btn">Week</button>
+                <button type="button" @click="activeTab = 'month'" :class="{ 'active': activeTab === 'month' }" class="neu-segmented-btn">Month</button>
+                <button type="button" @click="activeTab = 'quarter'" :class="{ 'active': activeTab === 'quarter' }" class="neu-segmented-btn">Quarter</button>
+              </div>
+            </div>
+
+            <!-- Sunken Chart Well -->
+            <div class="neu-well h-48 flex flex-col justify-end relative overflow-hidden" role="img" aria-label="Operating revenue trend graph">
+              <!-- Gridlines -->
+              <div class="absolute inset-x-6 top-8 border-b border-[#D3D8E8] opacity-70"></div>
+              <div class="absolute inset-x-6 top-20 border-b border-[#D3D8E8] opacity-70"></div>
+              <div class="absolute inset-x-6 top-32 border-b border-[#D3D8E8] opacity-70"></div>
+              
+              <!-- SVG Curve with Accent Fill and Line -->
+              <svg class="w-full h-36" viewBox="0 0 500 120" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="neuChartGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#4F46E5" stop-opacity="0.25" />
+                    <stop offset="100%" stop-color="#4F46E5" stop-opacity="0.0" />
+                  </linearGradient>
+                </defs>
+                <path d="M 0,100 Q 80,85 140,55 T 280,45 T 400,20 T 500,10 L 500,120 L 0,120 Z" fill="url(#neuChartGrad)" />
+                <path d="M 0,100 Q 80,85 140,55 T 280,45 T 400,20 T 500,10" fill="none" stroke="#4F46E5" stroke-width="3.5" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-[#D3D8E8] flex items-center justify-between text-xs text-[#5A607C]">
+            <span>Audit interval: 30-day continuous</span>
+            <span class="font-bold text-[#4338CA]">General Ledger Balanced</span>
+          </div>
+        </div>
+
+        <!-- Target Dial Tile (1/3) -->
+        <div class="neu-card flex flex-col items-center justify-between text-center p-6">
+          <div class="w-full text-left">
+            <span class="text-xs font-semibold uppercase tracking-wider text-[#5A607C]">Quarterly Target</span>
+            <h3 class="text-lg font-extrabold text-[#262B45] mt-0.5">Growth Quota</h3>
+          </div>
+
+          <!-- Circular Neumorphic Dial -->
+          <div class="my-4 neu-dial">
+            <svg class="absolute inset-0 w-full h-full -rotate-90 p-3" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#D3D8E8" stroke-width="8" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#4F46E5" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="65" stroke-linecap="round" />
+            </svg>
+            <div class="neu-dial-inner">
+              <span class="text-[28px] font-extrabold text-[#262B45] leading-none">74%</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-[#5A607C] mt-1">Attained</span>
+            </div>
+          </div>
+
+          <div class="w-full">
+            <p class="text-xs text-[#5A607C] mb-3">$950k of $1.28M target achieved</p>
+            <button type="button" class="neu-btn-ghost w-full">View Breakdown</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Second Row: 4 Stat Tiles (auto-fit minmax(190px, 1fr)) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[24px]">
+        <div class="neu-card-stat">
+          <span class="text-xs font-semibold text-[#5A607C] uppercase tracking-wider">Aged Receivables</span>
+          <div class="text-[26px] font-extrabold text-[#262B45] mt-1.5">$48,210</div>
+          <div class="mt-2 text-xs font-bold text-[#0E6B42]">+4.2% healthy</div>
+        </div>
+        <div class="neu-card-stat">
+          <span class="text-xs font-semibold text-[#5A607C] uppercase tracking-wider">Vendor Bills Due</span>
+          <div class="text-[26px] font-extrabold text-[#262B45] mt-1.5">$19,400</div>
+          <div class="mt-2 text-xs font-semibold text-[#5A607C]">3 due this week</div>
+        </div>
+        <div class="neu-card-stat">
+          <span class="text-xs font-semibold text-[#5A607C] uppercase tracking-wider">Stock Valuation</span>
+          <div class="text-[26px] font-extrabold text-[#262B45] mt-1.5">$312,850</div>
+          <div class="mt-2 text-xs font-bold text-[#0E6B42]">+12.1% reordered</div>
+        </div>
+        <div class="neu-card-stat">
+          <span class="text-xs font-semibold text-[#5A607C] uppercase tracking-wider">POS Registers</span>
+          <div class="text-[26px] font-extrabold text-[#262B45] mt-1.5">4 Active</div>
+          <div class="mt-2 text-xs font-bold text-[#4338CA]">All shifts balanced</div>
+        </div>
+      </div>
+
+      <!-- Third Row: Controls Card & Attention List -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-[30px]">
+        <!-- Interactive Controls Card -->
+        <div class="neu-card space-y-6">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-extrabold text-[#262B45]">Operational Controls</h3>
+            <span class="text-xs font-bold text-[#4338CA]">Real-time Dispatch</span>
+          </div>
+
+          <!-- Sunken Search Input -->
+          <div class="neu-search">
+            <svg class="w-4 h-4 text-[#5A607C] shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" placeholder="Search orders, invoices, SKUs, or customer records..." />
+          </div>
+
+          <!-- Neumorphic Toggle Switch -->
+          <div class="flex items-center justify-between pt-2">
+            <div>
+              <span class="text-sm font-bold text-[#262B45] block">Inventory Automation</span>
+              <span class="text-xs text-[#5A607C]" x-text="'Auto-reorder: ' + (autoReorder ? 'On' : 'Off')"></span>
+            </div>
+            <div class="neu-toggle-wrap" @click="autoReorder = !autoReorder">
+              <div class="neu-toggle" :class="autoReorder ? 'on' : 'off'">
+                <div class="neu-toggle-thumb"></div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="neu-divider" />
+
+          <!-- Neumorphic Slider Track -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-[#262B45]">Safety Stock Threshold</span>
+              <span class="text-xs font-mono font-bold text-[#4338CA]" x-text="sliderVal + ' units'"></span>
+            </div>
+            <div class="neu-slider-track" @click="sliderVal = Math.min(100, Math.max(10, Math.round(($event.offsetX / $el.clientWidth) * 100)))">
+              <div class="neu-slider-bar" :style="'width: ' + sliderVal + '%'"></div>
+              <div class="neu-slider-thumb" :style="'left: ' + sliderVal + '%'"></div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="pt-2 flex flex-wrap items-center gap-3">
+            <button type="button" class="neu-btn-primary">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              <span>Execute Batch Post</span>
+            </button>
+            <button type="button" class="neu-btn-ghost">Export Statement</button>
+            <button type="button" class="neu-btn-round" title="Quick Refresh">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Attention List Card -->
+        <div class="neu-card flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-base font-extrabold text-[#262B45]">What Needs Attention</h3>
+              <span class="text-xs font-semibold text-[#5A607C]">3 Items Active</span>
+            </div>
+
+            <!-- List rows with 1px #D3D8E8 divider -->
+            <div class="divide-y divide-[#D3D8E8]">
+              <div class="py-3 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="neu-avatar shrink-0">H</div>
+                  <div>
+                    <div class="text-sm font-bold text-[#262B45]">Hi-Vis Work Vest Class 2</div>
+                    <div class="text-xs text-[#5A607C]">SKU SAFE-02 &bull; 0 in stock (below safety 15)</div>
+                  </div>
+                </div>
+                <button type="button" class="neu-btn-ghost text-xs py-1.5 px-3">Restock</button>
+              </div>
+
+              <div class="py-3 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="neu-avatar shrink-0">P</div>
+                  <div>
+                    <div class="text-sm font-bold text-[#262B45]">Pro Safety Helmet & Visor</div>
+                    <div class="text-xs text-[#5A607C]">Reorder suggestion generated &bull; 25 units</div>
+                  </div>
+                </div>
+                <button type="button" class="neu-btn-ghost text-xs py-1.5 px-3">Create PO</button>
+              </div>
+
+              <div class="py-3 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="neu-avatar shrink-0">M</div>
+                  <div>
+                    <div class="text-sm font-bold text-[#262B45]">March Payroll Run Due</div>
+                    <div class="text-xs text-[#5A607C]">10 employees pending gross-to-net review</div>
+                  </div>
+                </div>
+                <button type="button" class="neu-btn-ghost text-xs py-1.5 px-3">Review</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-[#D3D8E8] flex items-center justify-between text-xs text-[#5A607C]">
+            <span>All anomalies routed to operational outbox</span>
+            <span class="font-bold text-[#4338CA]">Sync: Online</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>

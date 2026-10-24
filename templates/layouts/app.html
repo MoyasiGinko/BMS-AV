@@ -107,12 +107,12 @@
               <span x-show="!sidebarCollapsed" class="truncate">Dashboard</span>
             </a>
             <a
-              href="/_styleguide/"
-              class="flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/_styleguide/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
-              title="Styleguide"
+              href="{% url 'set_theme' %}"
+              class="sidebar-nav-item flex items-center gap-3 px-2.5 py-2 text-sm rounded-md transition-colors {% if '/settings/theme/' in request.path or '/theme-manager/' in request.path or '/_styleguide/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Theme Manager & Styleguide"
             >
-              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-              <span x-show="!sidebarCollapsed" class="truncate">Styleguide</span>
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Theme Manager</span>
             </a>
           </div>
         </div>
@@ -576,6 +576,20 @@
                   <div class="text-[10px] text-[var(--text-muted)]">Heavy • Tactile dual-shadow continuous surface</div>
                 </div>
               </label>
+
+              <!-- Link to full Theme Manager Studio -->
+              <div class="pt-2 border-t border-[var(--border)] mt-2">
+                <a
+                  href="{% url 'set_theme' %}"
+                  class="flex items-center justify-between px-2 py-1.5 rounded-lg text-xs font-semibold text-[var(--brand-600)] hover:bg-[var(--surface-2)] transition-colors no-underline"
+                >
+                  <span class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                    <span>Customize Sidebar & Styles</span>
+                  </span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </a>
+              </div>
             </div>
           </div>
           <!-- PWA Install Button -->

@@ -57,6 +57,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=THEME_CHOICES,
         default=THEME_FAST,
     )
+    theme_config = models.JSONField(
+        _("theme configuration"),
+        default=dict,
+        blank=True,
+    )
     is_active = models.BooleanField(_("active"), default=True)
     is_staff = models.BooleanField(_("staff status"), default=False)
     date_joined = models.DateTimeField(_("date joined"), default=dj_timezone.now)

@@ -162,35 +162,127 @@ def reset_onboarding_checklist_view(request: HttpRequest) -> HttpResponse:
     return redirect("dashboard")
 
 
-def set_theme_view(request: HttpRequest) -> JsonResponse:
-    """Update active theme preference.
+def theme_manager_view(request: HttpRequest) -> HttpResponse:
+    """Render the unified Theme Manager interface with presets, sidebar customizer, and styleguide."""
+    return render(
+        request,
+        "core/theme_manager.html",
+        {"active_tab": request.GET.get("tab", "presets")},
+    )
 
-    Accepts JSON or POST data with 'theme': 'fast' | 'spatial' | 'neumorphic'.
-    Saves to user profile if authenticated.
-    Sets 'bos_theme' cookie on response.
-    """
-    if request.method not in ("POST", "PUT"):
-        return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    theme = ""
+def _extract_theme_payload(request: HttpRequest) -> tuple[str, dict[str, str], bool]:
+    """Parse JSON or form payload for theme preferences."""
+    payload: dict[str, Any] = {}
     if request.content_type == "application/json" and request.body:
         try:
             payload = json.loads(request.body.decode("utf-8"))
-            theme = payload.get("theme", "")
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             logger.debug("Failed to decode JSON theme payload: %s", exc)
-    if not theme:
-        theme = request.POST.get("theme", "")
+    if not payload:
+        payload = request.POST.dict()
 
-    if theme not in ("fast", "dark", "spatial", "neumorphic"):
+    raw_theme = payload.get("theme", "")
+    theme = raw_theme.strip() if isinstance(raw_theme, str) else ""
+
+    sidebar_raw = payload.get("sidebar")
+    reset_sidebar = bool(payload.get("reset_sidebar"))
+
+    sidebar_data: dict[str, str] = {}
+    if isinstance(sidebar_raw, str) and sidebar_raw.strip():
+        try:
+            parsed = json.loads(sidebar_raw)
+            if isinstance(parsed, dict):
+                sidebar_raw = parsed
+        except json.JSONDecodeError, UnicodeDecodeError:
+            pass
+
+    if isinstance(sidebar_raw, dict):
+        for k in ("bg", "text", "hover_bg", "hover_text", "active_bg", "active_text"):
+            val = sidebar_raw.get(k)
+            if isinstance(val, str) and val.strip():
+                sidebar_data[k] = val.strip()[:40]
+
+    return theme, sidebar_data, reset_sidebar
+
+
+def _persist_user_theme(
+    user: Any,
+    theme: str,
+    sidebar_data: dict[str, str],
+    reset_sidebar: bool,
+) -> bool:
+    """Save updated theme and sidebar preferences to authenticated user model."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+
+    update_fields: list[str] = []
+    if theme:
+        user.theme = theme
+        update_fields.append("theme")
+
+    if sidebar_data or reset_sidebar:
+        cfg = dict(getattr(user, "theme_config", None) or {})
+        if reset_sidebar:
+            cfg.pop("sidebar", None)
+        else:
+            existing_sb = dict(cfg.get("sidebar") or {})
+            existing_sb.update(sidebar_data)
+            cfg["sidebar"] = existing_sb
+        user.theme_config = cfg
+        update_fields.append("theme_config")
+
+    if update_fields:
+        user.save(update_fields=update_fields)
+        return True
+    return False
+
+
+def set_theme_view(request: HttpRequest) -> HttpResponse:
+    """Update active theme and sidebar preferences; renders Theme Manager on GET."""
+    if request.method == "GET":
+        return theme_manager_view(request)
+
+    if request.method not in ("POST", "PUT"):
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    theme, sidebar_data, reset_sidebar = _extract_theme_payload(request)
+
+    if theme and theme not in ("fast", "dark", "spatial", "neumorphic"):
         return JsonResponse({"error": f"Invalid theme: {theme}"}, status=400)
 
-    persisted = False
-    if request.user.is_authenticated:
-        request.user.theme = theme
-        request.user.save(update_fields=["theme"])
-        persisted = True
+    if not theme and not sidebar_data and not reset_sidebar:
+        return JsonResponse({"error": "No theme or sidebar configuration provided"}, status=400)
 
-    response = JsonResponse({"status": "ok", "theme": theme, "persisted_user": persisted})
-    response.set_cookie("bos_theme", theme, max_age=365 * 24 * 3600, samesite="Lax")
+    persisted = _persist_user_theme(request.user, theme, sidebar_data, reset_sidebar)
+
+    is_ajax = (
+        request.headers.get("x-requested-with") == "XMLHttpRequest"
+        or request.content_type == "application/json"
+        or "application/json" in request.headers.get("accept", "")
+    )
+    if not is_ajax:
+        return redirect("set_theme")
+
+    response_data: dict[str, Any] = {"status": "ok", "persisted_user": persisted}
+    if theme:
+        response_data["theme"] = theme
+    if sidebar_data:
+        response_data["sidebar"] = sidebar_data
+    if reset_sidebar:
+        response_data["sidebar_reset"] = True
+
+    response = JsonResponse(response_data)
+    if theme:
+        response.set_cookie("bos_theme", theme, max_age=365 * 24 * 3600, samesite="Lax")
+    if sidebar_data:
+        response.set_cookie(
+            "bos_sidebar_theme",
+            json.dumps(sidebar_data),
+            max_age=365 * 24 * 3600,
+            samesite="Lax",
+        )
+    elif reset_sidebar:
+        response.delete_cookie("bos_sidebar_theme")
+
     return response

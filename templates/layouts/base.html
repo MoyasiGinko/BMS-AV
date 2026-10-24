@@ -31,6 +31,31 @@
           document.documentElement.classList.remove('dark');
         }
         try { localStorage.setItem('bos_theme', theme); } catch(e) {}
+
+        // Apply custom sidebar colors if present
+        var customSidebar = null;
+        {% if custom_sidebar_json and custom_sidebar_json != '{}' %}
+        try {
+          customSidebar = {{ custom_sidebar_json|safe }};
+        } catch(e) {}
+        {% endif %}
+        if (!customSidebar) {
+          try {
+            var rawSaved = localStorage.getItem('bos_sidebar_theme');
+            if (rawSaved) customSidebar = JSON.parse(rawSaved);
+          } catch(e) {}
+        }
+        if (customSidebar && typeof customSidebar === 'object') {
+          if (customSidebar.bg) document.documentElement.style.setProperty('--sidebar-bg', customSidebar.bg);
+          if (customSidebar.text) document.documentElement.style.setProperty('--sidebar-text', customSidebar.text);
+          if (customSidebar.hover_bg) document.documentElement.style.setProperty('--sidebar-hover-bg', customSidebar.hover_bg);
+          if (customSidebar.hover_text) document.documentElement.style.setProperty('--sidebar-hover-text', customSidebar.hover_text);
+          if (customSidebar.active_bg) document.documentElement.style.setProperty('--sidebar-active-bg', customSidebar.active_bg);
+          if (customSidebar.active_text) {
+            document.documentElement.style.setProperty('--sidebar-active-text', customSidebar.active_text);
+            document.documentElement.style.setProperty('--sidebar-active-border', customSidebar.active_text);
+          }
+        }
       } catch (e) {}
     })();
   </script>
@@ -130,10 +155,89 @@
 
     window.toggleTheme = function() {
       var current = document.documentElement.getAttribute('data-theme') || 'fast';
-      var order = ['fast', 'dark', 'spatial', 'neumorphic'];
-      var idx = order.indexOf(current);
-      var next = order[(idx === -1 ? 0 : idx + 1) % order.length];
+      var next = (current === 'dark') ? (window._prevTheme || 'fast') : 'dark';
+      window._prevTheme = current;
       return window.setTheme(next);
+    };
+
+    window.setSidebarTheme = function(sidebarConfig) {
+      if (!sidebarConfig || typeof sidebarConfig !== 'object') return;
+      var doc = document.documentElement;
+      if (sidebarConfig.bg) doc.style.setProperty('--sidebar-bg', sidebarConfig.bg);
+      if (sidebarConfig.text) doc.style.setProperty('--sidebar-text', sidebarConfig.text);
+      if (sidebarConfig.hover_bg) doc.style.setProperty('--sidebar-hover-bg', sidebarConfig.hover_bg);
+      if (sidebarConfig.hover_text) doc.style.setProperty('--sidebar-hover-text', sidebarConfig.hover_text);
+      if (sidebarConfig.active_bg) doc.style.setProperty('--sidebar-active-bg', sidebarConfig.active_bg);
+      if (sidebarConfig.active_text) {
+        doc.style.setProperty('--sidebar-active-text', sidebarConfig.active_text);
+        doc.style.setProperty('--sidebar-active-border', sidebarConfig.active_text);
+      }
+
+      try {
+        var str = JSON.stringify(sidebarConfig);
+        localStorage.setItem('bos_sidebar_theme', str);
+        document.cookie = 'bos_sidebar_theme=' + encodeURIComponent(str) + ';path=/;max-age=31536000;SameSite=Lax';
+      } catch (e) {}
+
+      window.dispatchEvent(new CustomEvent('sidebar-theme-changed', { detail: { sidebar: sidebarConfig } }));
+
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      var csrfToken = csrfMeta ? csrfMeta.content : '';
+      if (!csrfToken) {
+        var match = document.cookie.match(/csrftoken=([^;]+)/);
+        if (match) csrfToken = match[1];
+      }
+
+      fetch('/settings/theme/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ sidebar: sidebarConfig })
+      }).catch(function() {});
+
+      if (window.toast) {
+        window.toast('Sidebar appearance saved', 'success', 2500);
+      }
+    };
+
+    window.resetSidebarTheme = function() {
+      var doc = document.documentElement;
+      doc.style.removeProperty('--sidebar-bg');
+      doc.style.removeProperty('--sidebar-text');
+      doc.style.removeProperty('--sidebar-hover-bg');
+      doc.style.removeProperty('--sidebar-hover-text');
+      doc.style.removeProperty('--sidebar-active-bg');
+      doc.style.removeProperty('--sidebar-active-text');
+      doc.style.removeProperty('--sidebar-active-border');
+
+      try {
+        localStorage.removeItem('bos_sidebar_theme');
+        document.cookie = 'bos_sidebar_theme=;path=/;max-age=0;SameSite=Lax';
+      } catch (e) {}
+
+      window.dispatchEvent(new CustomEvent('sidebar-theme-changed', { detail: { sidebar: null } }));
+
+      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      var csrfToken = csrfMeta ? csrfMeta.content : '';
+      if (!csrfToken) {
+        var match = document.cookie.match(/csrftoken=([^;]+)/);
+        if (match) csrfToken = match[1];
+      }
+
+      fetch('/settings/theme/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ reset_sidebar: true })
+      }).catch(function() {});
+
+      if (window.toast) {
+        window.toast('Sidebar reset to theme default', 'info', 2500);
+      }
     };
 
     window.toast = function(message, type, duration) {
