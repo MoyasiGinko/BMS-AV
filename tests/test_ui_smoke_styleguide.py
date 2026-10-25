@@ -32,7 +32,8 @@ def test_ui_smoke_styleguide(live_server: pytest.FixtureRequest, page: Page) -> 
     page.click("#submit-login-btn")
     page.wait_for_load_state("networkidle")
 
-    page.goto(f"{server_url}/_styleguide/")
+    page.goto(f"{server_url}/settings/theme/?tab=styleguide")
+    page.wait_for_load_state("networkidle")
 
     # 1. Assert Title & Header
     expect(page).to_have_title("Styleguide & Component Library | Business OS")

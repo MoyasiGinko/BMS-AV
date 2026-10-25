@@ -21,11 +21,6 @@ from apps.core.tenant_context import get_current_organization
 logger = logging.getLogger(__name__)
 
 
-def styleguide_view(request: HttpRequest) -> HttpResponse:
-    """Render Calm Ledger design system styleguide and component showcase."""
-    return render(request, "core/styleguide.html")
-
-
 def healthz_view(request: HttpRequest) -> JsonResponse:
     """Liveness probe: verifies web server process is responsive."""
     return JsonResponse({"status": "ok"})

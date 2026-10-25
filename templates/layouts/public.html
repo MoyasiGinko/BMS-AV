@@ -55,7 +55,7 @@
     <div class="max-w-[var(--content-max)] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div>&copy; {% now "Y" %} Business OS. All rights reserved.</div>
       <div class="flex items-center gap-6">
-        <a href="/_styleguide/" class="hover:text-[var(--text)] transition-colors">Design System</a>
+        <a href="{% url 'set_theme' %}?tab=styleguide" class="hover:text-[var(--text)] transition-colors">Design System</a>
         <a href="/api/docs/" class="hover:text-[var(--text)] transition-colors">API Docs</a>
       </div>
     </div>

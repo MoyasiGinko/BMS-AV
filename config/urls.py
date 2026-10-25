@@ -13,7 +13,6 @@ from apps.core.views import (
     readyz_view,
     reset_onboarding_checklist_view,
     set_theme_view,
-    styleguide_view,
     theme_manager_view,
 )
 
@@ -41,7 +40,6 @@ urlpatterns = [
         reset_onboarding_checklist_view,
         name="dashboard_reset_checklist",
     ),
-    path("_styleguide/", styleguide_view, name="styleguide"),
     path("healthz", healthz_view, name="healthz"),
     path("healthz/", healthz_view),
     path("readyz", readyz_view, name="readyz"),

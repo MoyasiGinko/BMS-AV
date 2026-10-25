@@ -23,7 +23,7 @@ Shared infrastructure and base runtime primitives for the Business OS multi-tena
 - **UI Components & Styleguide**:
   - 24 reusable Tailwind 4 + Alpine.js components in `templates/components/`.
   - App shell layout, auth card layout, and public layout.
-  - Interactive living styleguide at `/_styleguide/`.
+  - Interactive living styleguide and Theme Manager at `/settings/theme/?tab=styleguide`.
 - **Observability**:
   - `JSONLogFormatter`: Structured JSON output with `timestamp`, `level`, `logger`, `message`, `request_id`, `organization_id`, `user_id`.
   - `SecurityHeadersMiddleware`: Permissions-Policy, nosniff, strict-origin-when-cross-origin.

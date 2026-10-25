@@ -16,7 +16,7 @@ Anti-patterns: gradients as decoration, rainbow dashboards, giant rounded cards 
 Left sidebar (240px, collapsible to 64px icons; groups = modules from registry; active state = brand tint + left bar), top bar (org + branch switcher, global search `Cmd/Ctrl+K`, quick-create "+", notifications, user menu),
 content fluid full-width (`--content-max: 100%`) with 16-32px responsive gutters, sticky page header (title, breadcrumb, primary action right-aligned). Mobile: sidebar becomes a drawer; POS/approvals optimized at 360px; wide/ultrawide displays seamlessly utilize full viewport without artificial capping.
 
-## Components (live in `templates/components/`, demonstrated at `/_styleguide/`)
+## Components (live in `templates/components/`, demonstrated in Theme Manager at `/settings/theme/?tab=styleguide`)
 button (primary/secondary/ghost/danger, sizes, loading), input/select/textarea/checkbox/radio/switch/date/money input (currency prefix, tabular), form_field (label, hint, error, required),
 badge/status_pill (draft, posted, paid, overdue, void...), card, kpi (value, delta with arrow + sign, sparkline slot), data_table (sticky header, sortable, row selection, bulk bar, density toggle, numeric right-aligned, row actions menu, empty state),
 pagination, filter_bar (search + chips + saved filters), tabs, modal & drawer, dropdown/menu, toast, alert/banner, empty_state (icon, headline, one-line help, primary CTA), skeleton, breadcrumb, stepper (onboarding), timeline (audit/activity), avatar,
