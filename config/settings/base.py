@@ -122,7 +122,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-REDIS_URL = env("REDIS_URL", default="redis://127.0.0.1:6379/0")
+REDIS_URL = env(
+    "REDIS_URL",
+    default=env("REDISPRIVATEURL", default=env("REDIS_PUBLIC_URL", default="redis://127.0.0.1:6379/0")),
+)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",

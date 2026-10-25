@@ -5,8 +5,31 @@ from .base import env
 
 DEBUG = False
 SECRET_KEY = env("SECRET_KEY")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
-CSRF_TRUSTED_ORIGINS: list[str] = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+
+railway_domain = env("RAILWAY_PUBLIC_DOMAIN", default=None)
+railway_static_url = env("RAILWAY_STATIC_URL", default=None)
+
+default_allowed = ["localhost", "127.0.0.1", ".railway.app", ".up.railway.app"]
+if railway_domain:
+    default_allowed.append(railway_domain)
+if railway_static_url:
+    default_allowed.append(railway_static_url)
+
+ALLOWED_HOSTS: list[str] = env.list("ALLOWED_HOSTS", default=default_allowed)
+if railway_domain and railway_domain not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(railway_domain)
+if ".railway.app" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".railway.app")
+
+default_csrf = ["https://*.railway.app", "https://*.up.railway.app"]
+if railway_domain:
+    default_csrf.append(f"https://{railway_domain}")
+if railway_static_url:
+    default_csrf.append(f"https://{railway_static_url}")
+
+CSRF_TRUSTED_ORIGINS: list[str] = env.list("CSRF_TRUSTED_ORIGINS", default=default_csrf)
+if railway_domain and f"https://{railway_domain}" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{railway_domain}")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)

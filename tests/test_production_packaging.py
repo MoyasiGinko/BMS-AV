@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import gzip
+import importlib
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 from django.core.management import call_command
+
+import config.settings.prod as prod_settings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -174,3 +177,58 @@ def test_backup_and_restore_shell_scripts_exist() -> None:
     assert "gunzip -c" in content_restore
     assert "psql" in content_restore
     assert "sha256sum" in content_restore or "shasum" in content_restore
+
+
+def test_railway_deployment_configuration_and_scripts() -> None:
+    """Verify railway.json, railway.toml, Procfile, deploy scripts, and GitHub action workflow."""
+    railway_json = BASE_DIR / "railway.json"
+    assert railway_json.exists(), "railway.json must exist at repository root"
+    json_content = railway_json.read_text(encoding="utf-8")
+    assert "DOCKERFILE" in json_content
+    assert "/healthz" in json_content
+
+    railway_toml = BASE_DIR / "railway.toml"
+    assert railway_toml.exists(), "railway.toml must exist at repository root"
+    toml_content = railway_toml.read_text(encoding="utf-8")
+    assert "DOCKERFILE" in toml_content
+    assert "/healthz" in toml_content
+
+    procfile = BASE_DIR / "Procfile"
+    assert procfile.exists(), "Procfile must exist at repository root"
+    proc_content = procfile.read_text(encoding="utf-8")
+    assert "release: python manage.py migrate --noinput" in proc_content
+    assert "web: gunicorn" in proc_content
+    assert "worker: celery" in proc_content
+
+    deploy_sh = BASE_DIR / "scripts" / "deploy_railway.sh"
+    assert deploy_sh.exists(), "scripts/deploy_railway.sh must exist"
+    sh_content = deploy_sh.read_text(encoding="utf-8")
+    assert "railway add -d postgres" in sh_content
+    assert "railway add -d redis" in sh_content
+    assert "railway up" in sh_content
+
+    deploy_ps1 = BASE_DIR / "scripts" / "deploy_railway.ps1"
+    assert deploy_ps1.exists(), "scripts/deploy_railway.ps1 must exist"
+    ps1_content = deploy_ps1.read_text(encoding="utf-8")
+    assert "railway add -d postgres" in ps1_content
+    assert "railway add -d redis" in ps1_content
+    assert "railway up" in ps1_content
+
+    workflow = BASE_DIR / ".github" / "workflows" / "railway-deploy.yml"
+    assert workflow.exists(), "GitHub workflow railway-deploy.yml must exist"
+    wf_content = workflow.read_text(encoding="utf-8")
+    assert "on:" in wf_content
+    assert "push:" in wf_content
+    assert "deploy_railway.sh" in wf_content
+
+
+def test_railway_prod_settings_detection(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify config.settings.prod automatically integrates Railway public domain into ALLOWED_HOSTS."""
+    monkeypatch.setenv("SECRET_KEY", "test-secret-key-for-railway-prod-testing-at-least-50-characters")
+    monkeypatch.setenv("RAILWAY_PUBLIC_DOMAIN", "bms-test.up.railway.app")
+
+    importlib.reload(prod_settings)
+
+    assert "bms-test.up.railway.app" in prod_settings.ALLOWED_HOSTS
+    assert ".railway.app" in prod_settings.ALLOWED_HOSTS
+    assert "https://bms-test.up.railway.app" in prod_settings.CSRF_TRUSTED_ORIGINS

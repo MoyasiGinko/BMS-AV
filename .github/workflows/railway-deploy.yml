@@ -1,0 +1,40 @@
+name: Railway Automated Deploy
+
+on:
+  push:
+    branches: [main, master, feature-v2]
+  workflow_dispatch:
+
+concurrency:
+  group: railway-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Railway (DB + Redis + App)
+    runs-on: ubuntu-latest
+    if: github.repository != ''
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          npm install -g @railway/cli
+          railway --version
+
+      - name: Provision Infrastructure & Deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          PROJECT_NAME: ${{ vars.RAILWAY_PROJECT_NAME || 'business-os' }}
+          ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT || 'production' }}
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::warning ::RAILWAY_TOKEN secret not configured in repository secrets."
+            echo "Skipping CLI deploy step. If you have connected GitHub to Railway in the dashboard,"
+            echo "Railway will build automatically from the repo commit using railway.json."
+            exit 0
+          fi
+          chmod +x scripts/deploy_railway.sh
+          ./scripts/deploy_railway.sh
