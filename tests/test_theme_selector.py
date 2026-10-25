@@ -261,3 +261,81 @@ def test_theme_context_processor_with_custom_sidebar(theme_test_env: dict[str, o
     assert ctx["custom_sidebar"]["bg"] == "#1e1b4b"
     assert ctx["active_sidebar_colors"]["bg"] == "#1e1b4b"
     assert ctx["active_sidebar_colors"]["active_bg"] == "#6366f1"
+
+
+@pytest.mark.django_db
+def test_per_theme_sidebar_preset_persistence(theme_test_env: dict[str, object]) -> None:
+    user: User = theme_test_env["user"]  # type: ignore[assignment]
+    client = Client()
+    client.force_login(user)
+
+    # 1. Set sidebar preset for 'spatial' to 'light'
+    resp = client.post(
+        "/settings/theme/",
+        data={
+            "theme": "spatial",
+            "target_theme": "spatial",
+            "sidebar_mode": "light",
+        },
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.json()["sidebar_mode"] == "light"
+    assert resp.json()["sidebar"]["bg"] == "rgba(255, 255, 255, 0.90)"
+
+    # 2. Switch back to 'fast' without specifying mode: defaults to 'dark_contrast'
+    resp = client.post(
+        "/settings/theme/",
+        data={"theme": "fast"},
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.json()["sidebar_mode"] == "dark_contrast"
+    assert resp.json()["sidebar"]["bg"] == "#0f172a"
+
+    # 3. Switch back to 'spatial': should recall previously selected 'light' mode!
+    resp = client.post(
+        "/settings/theme/",
+        data={"theme": "spatial"},
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.json()["sidebar_mode"] == "light"
+    assert resp.json()["sidebar"]["bg"] == "rgba(255, 255, 255, 0.90)"
+
+
+@pytest.mark.django_db
+def test_custom_sidebar_per_theme_isolation(theme_test_env: dict[str, object]) -> None:
+    user: User = theme_test_env["user"]  # type: ignore[assignment]
+    client = Client()
+    client.force_login(user)
+
+    # Set custom colors for 'fast'
+    resp = client.post(
+        "/settings/theme/",
+        data={
+            "target_theme": "fast",
+            "sidebar_mode": "custom",
+            "sidebar": {"bg": "#111111", "text": "#aaaaaa"},
+        },
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.json()["sidebar"]["bg"] == "#111111"
+
+    # Set custom colors for 'dark'
+    resp = client.post(
+        "/settings/theme/",
+        data={
+            "target_theme": "dark",
+            "sidebar_mode": "custom",
+            "sidebar": {"bg": "#222222", "text": "#bbbbbb"},
+        },
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    assert resp.json()["sidebar"]["bg"] == "#222222"
+
+    user.refresh_from_db()
+    assert user.theme_config["sidebar_custom"]["fast"]["bg"] == "#111111"
+    assert user.theme_config["sidebar_custom"]["dark"]["bg"] == "#222222"

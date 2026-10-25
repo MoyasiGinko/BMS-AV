@@ -21,66 +21,71 @@
   --sidebar-w:240px; --sidebar-w-collapsed:64px; --topbar-h:56px; --content-max:100%;
   --ease:cubic-bezier(.2,.8,.2,1); --dur:140ms;
 
-  /* Sidebar Appearance Tokens (Default Fast / Light) */
-  --sidebar-bg: var(--surface);
-  --sidebar-text: var(--text-muted);
-  --sidebar-hover-bg: var(--surface-2);
-  --sidebar-hover-text: var(--text);
-  --sidebar-active-bg: var(--brand-50);
-  --sidebar-active-text: var(--brand-700);
-  --sidebar-active-border: var(--brand-600);
+  /* Sidebar Appearance Tokens (Default Dark Contrast across all themes) */
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-hover-bg: #1e293b;
+  --sidebar-hover-text: #ffffff;
+  --sidebar-active-bg: #134e4a;
+  --sidebar-active-text: #2dd4bf;
+  --sidebar-active-border: #14b8a6;
+  --sidebar-border: #1e293b;
 }
-/* Modern & Fast Theme Token Mapping */
+/* Modern & Fast Theme Token Mapping (Default Sidebar: Dark Contrast) */
 [data-theme="fast"] {
   --bg:var(--n-50); --surface:var(--n-0); --surface-2:var(--n-100); --border:var(--n-200); --border-strong:var(--n-300);
   --text:var(--n-900); --text-muted:var(--n-500); --text-subtle:var(--n-400); --link:var(--brand-600);
-  --sidebar-bg: var(--surface);
-  --sidebar-text: var(--text-muted);
-  --sidebar-hover-bg: var(--surface-2);
-  --sidebar-hover-text: var(--text);
-  --sidebar-active-bg: var(--brand-50);
-  --sidebar-active-text: var(--brand-700);
-  --sidebar-active-border: var(--brand-600);
+  --sidebar-bg: #0f172a;
+  --sidebar-text: #94a3b8;
+  --sidebar-hover-bg: #1e293b;
+  --sidebar-hover-text: #ffffff;
+  --sidebar-active-bg: #134e4a;
+  --sidebar-active-text: #2dd4bf;
+  --sidebar-active-border: #14b8a6;
+  --sidebar-border: #1e293b;
 }
 
 /* ==========================================================================
    Modern Dark Theme Mode ([data-theme="dark"])
-   Separate, distinct dark theme item that does NOT collide with fast/spatial/neumorphic.
+   (Default Sidebar: Dark Contrast)
    ========================================================================== */
 [data-theme="dark"] {
   --bg:#0b1220; --surface:#111a2e; --surface-2:#18233b; --border:#223152; --border-strong:#2f4168;
   --text:#e6edf7; --text-muted:#93a4c0; --text-subtle:#6b7c99; --link:#2dd4bf;
   --success-bg:#06281a; --warning-bg:#2b1d05; --danger-bg:#2c0e0e; --info-bg:#0b1d3d;
   --success-border:#14532d; --warning-border:#78350f; --danger-border:#7f1d1d; --info-border:#1e3a8a;
-  --sidebar-bg:#111a2e;
-  --sidebar-text:#93a4c0;
-  --sidebar-hover-bg:#18233b;
+  --sidebar-bg:#090d16;
+  --sidebar-text:#818cf8;
+  --sidebar-hover-bg:#161f30;
   --sidebar-hover-text:#ffffff;
   --sidebar-active-bg:#1e293b;
   --sidebar-active-text:#2dd4bf;
   --sidebar-active-border:#14b8a6;
+  --sidebar-border:#18233b;
 }
 
-/* Minimal Spatial Theme Sidebar Tokens */
+/* Minimal Spatial Theme Sidebar Tokens (Default Sidebar: Dark Contrast) */
 [data-theme="spatial"] {
-  --sidebar-bg:rgba(255, 255, 255, 0.90);
-  --sidebar-text:#475569;
-  --sidebar-hover-bg:rgba(241, 245, 249, 0.85);
-  --sidebar-hover-text:#0f172a;
-  --sidebar-active-bg:var(--brand-50);
-  --sidebar-active-text:var(--brand-700);
-  --sidebar-active-border:var(--brand-600);
+  --sidebar-bg:rgba(15, 23, 42, 0.95);
+  --sidebar-text:#94a3b8;
+  --sidebar-hover-bg:rgba(30, 41, 59, 0.90);
+  --sidebar-hover-text:#ffffff;
+  --sidebar-active-bg:#1e3a5f;
+  --sidebar-active-text:#38bdf8;
+  --sidebar-active-border:#0284c7;
+  --sidebar-border:rgba(255, 255, 255, 0.08);
 }
 
-/* Neumorphic Theme Sidebar Tokens */
+/* Neumorphic Theme Sidebar Tokens (Default Sidebar: Dark Contrast) */
 [data-theme="neumorphic"] {
-  --sidebar-bg:#e2e8f0;
-  --sidebar-text:#475569;
-  --sidebar-hover-bg:#cbd5e1;
-  --sidebar-hover-text:#0f172a;
-  --sidebar-active-bg:#dbeafe;
-  --sidebar-active-text:#1d4ed8;
-  --sidebar-active-border:#2563eb;
+  --sidebar-bg:#1e293b;
+  --sidebar-text:#94a3b8;
+  --sidebar-hover-bg:#334155;
+  --sidebar-hover-text:#ffffff;
+  --sidebar-active-bg:#0f172a;
+  --sidebar-active-text:#60a5fa;
+  --sidebar-active-border:#3b82f6;
+  --sidebar-border:#334155;
 }
 
 html[data-theme="dark"],
@@ -91,10 +96,7 @@ html[data-theme="dark"],
 
 aside.bos-sidebar {
   background-color: var(--sidebar-bg) !important;
-}
-
-[data-theme="dark"] aside.bos-sidebar {
-  border-right-color: #223152 !important;
+  border-right-color: var(--sidebar-border, var(--border)) !important;
 }
 
 /* Sidebar Navigation Items: Custom and Default Styling */

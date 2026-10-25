@@ -6,99 +6,224 @@ from django.http import HttpRequest
 
 ALLOWED_THEMES = {"fast", "dark", "spatial", "neumorphic"}
 
-DEFAULT_SIDEBAR_COLORS: dict[str, dict[str, str]] = {
+THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
     "fast": {
-        "bg": "#ffffff",
-        "text": "#64748b",
-        "hover_bg": "#f1f5f9",
-        "hover_text": "#0f172a",
-        "active_bg": "#f0fdfa",
-        "active_text": "#0f766e",
+        "dark_contrast": {
+            "name": "Dark Contrast (Default)",
+            "bg": "#0f172a",
+            "text": "#94a3b8",
+            "hover_bg": "#1e293b",
+            "hover_text": "#ffffff",
+            "active_bg": "#134e4a",
+            "active_text": "#2dd4bf",
+            "active_border": "#14b8a6",
+        },
+        "light": {
+            "name": "Clean White",
+            "bg": "#ffffff",
+            "text": "#64748b",
+            "hover_bg": "#f1f5f9",
+            "hover_text": "#0f172a",
+            "active_bg": "#f0fdfa",
+            "active_text": "#0f766e",
+            "active_border": "#0f766e",
+        },
     },
     "dark": {
-        "bg": "#111a2e",
-        "text": "#93a4c0",
-        "hover_bg": "#18233b",
-        "hover_text": "#ffffff",
-        "active_bg": "#1e293b",
-        "active_text": "#2dd4bf",
+        "dark_contrast": {
+            "name": "Dark Contrast (Default)",
+            "bg": "#090d16",
+            "text": "#818cf8",
+            "hover_bg": "#161f30",
+            "hover_text": "#ffffff",
+            "active_bg": "#1e293b",
+            "active_text": "#2dd4bf",
+            "active_border": "#14b8a6",
+        },
+        "light": {
+            "name": "Elevated Surface",
+            "bg": "#18233b",
+            "text": "#cbd5e1",
+            "hover_bg": "#223152",
+            "hover_text": "#ffffff",
+            "active_bg": "#111a2e",
+            "active_text": "#2dd4bf",
+            "active_border": "#2dd4bf",
+        },
     },
     "spatial": {
-        "bg": "rgba(255, 255, 255, 0.90)",
-        "text": "#475569",
-        "hover_bg": "rgba(241, 245, 249, 0.85)",
-        "hover_text": "#0f172a",
-        "active_bg": "#f0fdfa",
-        "active_text": "#0f766e",
+        "dark_contrast": {
+            "name": "Dark Contrast (Default)",
+            "bg": "rgba(15, 23, 42, 0.95)",
+            "text": "#94a3b8",
+            "hover_bg": "rgba(30, 41, 59, 0.90)",
+            "hover_text": "#ffffff",
+            "active_bg": "#1e3a5f",
+            "active_text": "#38bdf8",
+            "active_border": "#0284c7",
+        },
+        "light": {
+            "name": "Frosted Light Glass",
+            "bg": "rgba(255, 255, 255, 0.90)",
+            "text": "#475569",
+            "hover_bg": "rgba(241, 245, 249, 0.85)",
+            "hover_text": "#0f172a",
+            "active_bg": "#e0f2fe",
+            "active_text": "#0284c7",
+            "active_border": "#0284c7",
+        },
     },
     "neumorphic": {
-        "bg": "#e2e8f0",
-        "text": "#475569",
-        "hover_bg": "#cbd5e1",
-        "hover_text": "#0f172a",
-        "active_bg": "#dbeafe",
-        "active_text": "#1d4ed8",
+        "dark_contrast": {
+            "name": "Dark Contrast (Default)",
+            "bg": "#1e293b",
+            "text": "#94a3b8",
+            "hover_bg": "#334155",
+            "hover_text": "#ffffff",
+            "active_bg": "#0f172a",
+            "active_text": "#60a5fa",
+            "active_border": "#3b82f6",
+        },
+        "light": {
+            "name": "Soft Light Neumorphic",
+            "bg": "#e2e8f0",
+            "text": "#475569",
+            "hover_bg": "#cbd5e1",
+            "hover_text": "#0f172a",
+            "active_bg": "#dbeafe",
+            "active_text": "#1d4ed8",
+            "active_border": "#2563eb",
+        },
     },
 }
 
+DEFAULT_SIDEBAR_COLORS: dict[str, dict[str, str]] = {
+    theme: presets["dark_contrast"] for theme, presets in THEME_SIDEBAR_PRESETS.items()
+}
 
-def theme_context(request: HttpRequest) -> dict[str, Any]:
-    """Provide current active theme for server-rendered <html data-theme="..."> tag.
 
-    Priority:
-    1. Authenticated user's profile theme (request.user.theme) - primary ground truth
-    2. Cookie 'bos_theme' (guest sessions and pre-login preferences)
-    3. Tenant organization default theme (request.tenant.settings['default_theme'])
-    4. Fallback to 'fast'
-    """
-    theme = "fast"
+def _resolve_active_theme(request: HttpRequest) -> str:
+    """Resolve the active ground truth platform theme."""
     if request.user.is_authenticated and getattr(request.user, "theme", None) in ALLOWED_THEMES:
-        theme = request.user.theme
-    elif request.COOKIES.get("bos_theme") in ALLOWED_THEMES:
-        theme = request.COOKIES.get("bos_theme")
-    else:
-        org = getattr(request, "organization", None) or getattr(request, "tenant", None)
-        if org and isinstance(getattr(org, "settings", None), dict):
-            theme = org.settings.get("default_theme", "fast")
+        return request.user.theme
+    cookie_theme = request.COOKIES.get("bos_theme")
+    if cookie_theme in ALLOWED_THEMES:
+        return cookie_theme
+    org = getattr(request, "organization", None) or getattr(request, "tenant", None)
+    if org and isinstance(getattr(org, "settings", None), dict):
+        val = org.settings.get("default_theme", "fast")
+        if val in ALLOWED_THEMES:
+            return val
+    return "fast"
 
-    if theme not in ALLOWED_THEMES:
-        theme = "fast"
 
-    # Sidebar customization extraction
-    custom_sidebar: dict[str, str] = {}
+def _extract_user_sidebar_modes(request: HttpRequest) -> dict[str, str]:
+    """Extract per-theme sidebar modes from user model or cookies."""
     if request.user.is_authenticated:
-        theme_cfg = getattr(request.user, "theme_config", None)
-        if isinstance(theme_cfg, dict) and isinstance(theme_cfg.get("sidebar"), dict):
-            custom_sidebar = {
+        cfg = getattr(request.user, "theme_config", None)
+        if isinstance(cfg, dict) and isinstance(cfg.get("sidebar_modes"), dict):
+            return {
                 k: str(v)
-                for k, v in theme_cfg["sidebar"].items()
-                if k in ("bg", "text", "hover_bg", "hover_text", "active_bg", "active_text")
+                for k, v in cfg["sidebar_modes"].items()
+                if k in ALLOWED_THEMES and v in ("dark_contrast", "light", "custom")
             }
+    cookie_raw = request.COOKIES.get("bos_sidebar_modes", "")
+    if cookie_raw:
+        try:
+            parsed = json.loads(urllib.parse.unquote(cookie_raw))
+            if isinstance(parsed, dict):
+                return {
+                    k: str(v)
+                    for k, v in parsed.items()
+                    if k in ALLOWED_THEMES and v in ("dark_contrast", "light", "custom")
+                }
+        except json.JSONDecodeError, UnicodeDecodeError, ValueError:
+            pass
+    return {}
 
-    if not custom_sidebar:
+
+def _extract_user_sidebar_custom(
+    request: HttpRequest,
+) -> tuple[dict[str, dict[str, str]], dict[str, str]]:
+    """Extract custom sidebar color dictionaries."""
+    sidebar_custom: dict[str, dict[str, str]] = {}
+    custom_single: dict[str, str] = {}
+    valid_keys = ("bg", "text", "hover_bg", "hover_text", "active_bg", "active_text")
+
+    if request.user.is_authenticated:
+        cfg = getattr(request.user, "theme_config", None)
+        if isinstance(cfg, dict):
+            if isinstance(cfg.get("sidebar_custom"), dict):
+                sidebar_custom = {
+                    k: {ck: str(cv) for ck, cv in v.items() if ck in valid_keys}
+                    for k, v in cfg["sidebar_custom"].items()
+                    if k in ALLOWED_THEMES and isinstance(v, dict)
+                }
+            if isinstance(cfg.get("sidebar"), dict):
+                custom_single = {k: str(v) for k, v in cfg["sidebar"].items() if k in valid_keys}
+
+    if not custom_single:
         cookie_val = request.COOKIES.get("bos_sidebar_theme", "")
         if cookie_val:
             try:
-                unquoted = urllib.parse.unquote(cookie_val)
-                parsed = json.loads(unquoted)
+                parsed = json.loads(urllib.parse.unquote(cookie_val))
                 if isinstance(parsed, dict):
-                    custom_sidebar = {
-                        k: str(v)
-                        for k, v in parsed.items()
-                        if k in ("bg", "text", "hover_bg", "hover_text", "active_bg", "active_text")
-                    }
+                    custom_single = {k: str(v) for k, v in parsed.items() if k in valid_keys}
             except json.JSONDecodeError, UnicodeDecodeError, ValueError:
                 pass
 
-    active_sidebar_colors = dict(DEFAULT_SIDEBAR_COLORS.get(theme, DEFAULT_SIDEBAR_COLORS["fast"]))
-    active_sidebar_colors.update(custom_sidebar)
+    return sidebar_custom, custom_single
+
+
+def _resolve_sidebar_for_theme(
+    theme: str,
+    modes: dict[str, str],
+    customs: dict[str, dict[str, str]],
+    custom_single: dict[str, str],
+) -> tuple[str, dict[str, str]]:
+    """Determine final mode and color map for the given theme."""
+    presets = THEME_SIDEBAR_PRESETS.get(theme, THEME_SIDEBAR_PRESETS["fast"])
+
+    if theme in modes:
+        mode = modes[theme]
+    elif customs.get(theme) or custom_single:
+        mode = "custom"
+    else:
+        mode = "dark_contrast"
+
+    if mode == "light":
+        return "light", dict(presets["light"])
+    if mode == "custom":
+        res = dict(presets["dark_contrast"])
+        override = customs.get(theme, custom_single)
+        res.update(override)
+        return "custom", res
+    return "dark_contrast", dict(presets["dark_contrast"])
+
+
+def theme_context(request: HttpRequest) -> dict[str, Any]:
+    """Provide current active theme for server-rendered <html data-theme="..."> tag."""
+    theme = _resolve_active_theme(request)
+    user_sidebar_modes = _extract_user_sidebar_modes(request)
+    user_sidebar_custom, custom_sidebar = _extract_user_sidebar_custom(request)
+
+    active_mode, active_sidebar_colors = _resolve_sidebar_for_theme(
+        theme, user_sidebar_modes, user_sidebar_custom, custom_sidebar
+    )
 
     return {
         "current_theme": theme,
         "default_theme": "fast",
-        "custom_sidebar": custom_sidebar,
+        "active_sidebar_mode": active_mode,
         "active_sidebar_colors": active_sidebar_colors,
-        "custom_sidebar_json": json.dumps(custom_sidebar),
+        "user_sidebar_modes": user_sidebar_modes,
+        "user_sidebar_modes_json": json.dumps(user_sidebar_modes),
+        "user_sidebar_custom": user_sidebar_custom,
+        "user_sidebar_custom_json": json.dumps(user_sidebar_custom),
+        "theme_sidebar_presets": THEME_SIDEBAR_PRESETS,
+        "theme_sidebar_presets_json": json.dumps(THEME_SIDEBAR_PRESETS),
+        "custom_sidebar": custom_sidebar,
+        "custom_sidebar_json": json.dumps(active_sidebar_colors if active_mode == "custom" else {}),
         "available_themes": [
             {
                 "id": "fast",

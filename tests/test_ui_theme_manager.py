@@ -74,3 +74,64 @@ def test_ui_theme_manager_and_sidebar_customizer(live_server: pytest.FixtureRequ
     expect(page.locator("#section-kpis")).to_be_visible()
     expect(page.locator("#section-forms")).to_be_visible()
     expect(page.locator("#section-table")).to_be_visible()
+
+
+@pytest.mark.ui
+@pytest.mark.django_db(transaction=True)
+def test_ui_per_theme_sidebar_preset_persistence(live_server: pytest.FixtureRequest, page: Page) -> None:
+    """Verify that each theme preset has 3 sidebar presets (Dark Contrast default, Light, Custom)
+    and that switching themes restores the previously chosen sidebar preset for that theme.
+    """
+    org = Organization.objects.create(name="Theme Sticky Corp", slug="theme-sticky-corp")
+    role = Role.objects.create(organization=org, name="Admin", permissions=["*"])
+    user = User.objects.create_user(
+        email="themesticky_user@example.com",
+        password="ThemeManagerPassword123!",
+        name="Theme Sticky Tester",
+    )
+    Membership.objects.create(
+        organization=org,
+        user=user,
+        role=role,
+        status=Membership.STATUS_ACTIVE,
+    )
+
+    server_url = getattr(live_server, "url", str(live_server))
+    page.goto(f"{server_url}/accounts/login/")
+    page.fill("#id_login", "themesticky_user@example.com")
+    page.fill("#id_password", "ThemeManagerPassword123!")
+    page.click("#submit-login-btn")
+    page.wait_for_load_state("networkidle")
+
+    page.goto(f"{server_url}/settings/theme/#sidebar")
+
+    # 1. On 'fast' (default), verify 3 sidebar presets are visible
+    expect(page.locator("#sidebar-preset-dark-contrast")).to_be_visible()
+    expect(page.locator("#sidebar-preset-light")).to_be_visible()
+    expect(page.locator("#sidebar-preset-custom")).to_be_visible()
+
+    # 2. Switch active theme to 'spatial' using the quick switcher
+    page.click("button:has-text('Spatial Mode')")
+    expect(page.locator("html")).to_have_attribute("data-theme", "spatial")
+
+    # 3. For 'spatial', select 'Light Mode' sidebar preset
+    page.click("#sidebar-preset-light")
+    # Verify the light background for spatial is applied
+    bg_spatial_light = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
+    assert "255, 255, 255" in bg_spatial_light
+
+    # 4. Switch theme to 'Fast Mode'
+    page.click("button:has-text('Fast Mode')")
+    expect(page.locator("html")).to_have_attribute("data-theme", "fast")
+    # Fast should still have its default 'dark_contrast' preset
+    bg_fast = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
+    assert bg_fast == "#0f172a"
+
+    # 5. Switch back to 'Spatial Mode'
+    page.click("button:has-text('Spatial Mode')")
+    expect(page.locator("html")).to_have_attribute("data-theme", "spatial")
+    # Spatial should have automatically restored its previously selected 'Light Mode' preset!
+    bg_spatial_restored = page.evaluate(
+        "() => document.documentElement.style.getPropertyValue('--sidebar-bg')"
+    )
+    assert "255, 255, 255" in bg_spatial_restored

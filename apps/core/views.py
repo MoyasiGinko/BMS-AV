@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import dataclass, field
 from typing import Any
 
 from django.core.cache import caches
@@ -11,6 +12,7 @@ from django.db import connection
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 
+from apps.core.context_processors import THEME_SIDEBAR_PRESETS
 from apps.core.dashboard import (
     get_visible_widgets,
     get_widget,
@@ -166,7 +168,16 @@ def theme_manager_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-def _extract_theme_payload(request: HttpRequest) -> tuple[str, dict[str, str], bool]:
+@dataclass
+class ThemePayload:
+    theme: str = ""
+    target_theme: str = ""
+    sidebar_mode: str = ""
+    sidebar_data: dict[str, str] = field(default_factory=dict)
+    reset_sidebar: bool = False
+
+
+def _extract_theme_payload(request: HttpRequest) -> ThemePayload:
     """Parse JSON or form payload for theme preferences."""
     payload: dict[str, Any] = {}
     if request.content_type == "application/json" and request.body:
@@ -179,6 +190,16 @@ def _extract_theme_payload(request: HttpRequest) -> tuple[str, dict[str, str], b
 
     raw_theme = payload.get("theme", "")
     theme = raw_theme.strip() if isinstance(raw_theme, str) else ""
+
+    raw_target = payload.get("target_theme", "")
+    target_theme = raw_target.strip() if isinstance(raw_target, str) else ""
+    if not target_theme:
+        target_theme = theme or getattr(request.user, "theme", None) or "fast"
+
+    raw_mode = payload.get("sidebar_mode", "")
+    sidebar_mode = raw_mode.strip() if isinstance(raw_mode, str) else ""
+    if sidebar_mode not in ("dark_contrast", "light", "custom"):
+        sidebar_mode = ""
 
     sidebar_raw = payload.get("sidebar")
     reset_sidebar = bool(payload.get("reset_sidebar"))
@@ -198,39 +219,83 @@ def _extract_theme_payload(request: HttpRequest) -> tuple[str, dict[str, str], b
             if isinstance(val, str) and val.strip():
                 sidebar_data[k] = val.strip()[:40]
 
-    return theme, sidebar_data, reset_sidebar
+    return ThemePayload(
+        theme=theme,
+        target_theme=target_theme,
+        sidebar_mode=sidebar_mode,
+        sidebar_data=sidebar_data,
+        reset_sidebar=reset_sidebar,
+    )
 
 
-def _persist_user_theme(
-    user: Any,
-    theme: str,
-    sidebar_data: dict[str, str],
-    reset_sidebar: bool,
-) -> bool:
-    """Save updated theme and sidebar preferences to authenticated user model."""
+def _resolve_active_sidebar_colors(
+    theme: str, modes: dict[str, str], customs: dict[str, Any]
+) -> dict[str, str]:
+    """Helper to compute final active sidebar colors for the active theme."""
+    mode = modes.get(theme, "dark_contrast")
+    presets = THEME_SIDEBAR_PRESETS.get(theme, THEME_SIDEBAR_PRESETS["fast"])
+    if mode == "light":
+        return dict(presets["light"])
+    if mode == "custom":
+        res = dict(presets["dark_contrast"])
+        custom_colors = customs.get(theme, {})
+        if isinstance(custom_colors, dict):
+            res.update(custom_colors)
+        return res
+    return dict(presets["dark_contrast"])
+
+
+def _persist_user_theme(user: Any, payload: ThemePayload) -> tuple[bool, dict[str, str], str]:
+    """Save updated theme and per-theme sidebar preferences to authenticated user model."""
+    target_theme = payload.target_theme or payload.theme or getattr(user, "theme", "fast")
     if not getattr(user, "is_authenticated", False):
-        return False
+        default_presets = THEME_SIDEBAR_PRESETS.get(target_theme, THEME_SIDEBAR_PRESETS["fast"])
+        colors = default_presets.get(
+            payload.sidebar_mode or "dark_contrast", default_presets["dark_contrast"]
+        )
+        return False, dict(colors), payload.sidebar_mode or "dark_contrast"
 
     update_fields: list[str] = []
-    if theme:
-        user.theme = theme
+    if payload.theme:
+        user.theme = payload.theme
         update_fields.append("theme")
 
-    if sidebar_data or reset_sidebar:
-        cfg = dict(getattr(user, "theme_config", None) or {})
-        if reset_sidebar:
-            cfg.pop("sidebar", None)
-        else:
-            existing_sb = dict(cfg.get("sidebar") or {})
-            existing_sb.update(sidebar_data)
-            cfg["sidebar"] = existing_sb
-        user.theme_config = cfg
-        update_fields.append("theme_config")
+    cfg = dict(getattr(user, "theme_config", None) or {})
+    modes = dict(cfg.get("sidebar_modes") or {})
+    customs = dict(cfg.get("sidebar_custom") or {})
 
-    if update_fields:
-        user.save(update_fields=update_fields)
-        return True
-    return False
+    if payload.reset_sidebar:
+        modes[target_theme] = "dark_contrast"
+        customs.pop(target_theme, None)
+        cfg.pop("sidebar", None)
+    elif payload.sidebar_mode:
+        modes[target_theme] = payload.sidebar_mode
+        if payload.sidebar_mode == "custom" and payload.sidebar_data:
+            existing = dict(customs.get(target_theme) or {})
+            existing.update(payload.sidebar_data)
+            customs[target_theme] = existing
+    elif payload.sidebar_data:
+        modes[target_theme] = "custom"
+        existing = dict(customs.get(target_theme) or {})
+        existing.update(payload.sidebar_data)
+        customs[target_theme] = existing
+
+    cfg["sidebar_modes"] = modes
+    cfg["sidebar_custom"] = customs
+
+    active_theme = getattr(user, "theme", payload.theme or "fast")
+    active_colors = _resolve_active_sidebar_colors(active_theme, modes, customs)
+    if not payload.reset_sidebar:
+        cfg["sidebar"] = active_colors
+
+    user.theme_config = cfg
+    update_fields.append("theme_config")
+
+    user.save(update_fields=update_fields)
+    effective_theme = payload.target_theme or payload.theme or active_theme
+    effective_colors = _resolve_active_sidebar_colors(effective_theme, modes, customs)
+    effective_mode = modes.get(effective_theme, "dark_contrast")
+    return True, effective_colors, effective_mode
 
 
 def set_theme_view(request: HttpRequest) -> HttpResponse:
@@ -241,15 +306,20 @@ def set_theme_view(request: HttpRequest) -> HttpResponse:
     if request.method not in ("POST", "PUT"):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    theme, sidebar_data, reset_sidebar = _extract_theme_payload(request)
+    payload = _extract_theme_payload(request)
 
-    if theme and theme not in ("fast", "dark", "spatial", "neumorphic"):
-        return JsonResponse({"error": f"Invalid theme: {theme}"}, status=400)
+    if payload.theme and payload.theme not in ("fast", "dark", "spatial", "neumorphic"):
+        return JsonResponse({"error": f"Invalid theme: {payload.theme}"}, status=400)
 
-    if not theme and not sidebar_data and not reset_sidebar:
+    if (
+        not payload.theme
+        and not payload.sidebar_mode
+        and not payload.sidebar_data
+        and not payload.reset_sidebar
+    ):
         return JsonResponse({"error": "No theme or sidebar configuration provided"}, status=400)
 
-    persisted = _persist_user_theme(request.user, theme, sidebar_data, reset_sidebar)
+    persisted, active_colors, active_mode = _persist_user_theme(request.user, payload)
 
     is_ajax = (
         request.headers.get("x-requested-with") == "XMLHttpRequest"
@@ -259,25 +329,35 @@ def set_theme_view(request: HttpRequest) -> HttpResponse:
     if not is_ajax:
         return redirect("set_theme")
 
-    response_data: dict[str, Any] = {"status": "ok", "persisted_user": persisted}
-    if theme:
-        response_data["theme"] = theme
-    if sidebar_data:
-        response_data["sidebar"] = sidebar_data
-    if reset_sidebar:
+    response_data: dict[str, Any] = {
+        "status": "ok",
+        "persisted_user": persisted,
+        "theme": payload.theme or getattr(request.user, "theme", "fast"),
+        "target_theme": payload.target_theme or payload.theme or getattr(request.user, "theme", "fast"),
+        "sidebar_mode": active_mode,
+        "sidebar": active_colors,
+    }
+    if payload.reset_sidebar:
         response_data["sidebar_reset"] = True
 
     response = JsonResponse(response_data)
-    if theme:
-        response.set_cookie("bos_theme", theme, max_age=365 * 24 * 3600, samesite="Lax")
-    if sidebar_data:
+    if payload.theme:
+        response.set_cookie("bos_theme", payload.theme, max_age=365 * 24 * 3600, samesite="Lax")
+
+    response.set_cookie(
+        "bos_sidebar_theme",
+        json.dumps(active_colors),
+        max_age=365 * 24 * 3600,
+        samesite="Lax",
+    )
+
+    theme_cfg = getattr(request.user, "theme_config", None)
+    if isinstance(theme_cfg, dict) and isinstance(theme_cfg.get("sidebar_modes"), dict):
         response.set_cookie(
-            "bos_sidebar_theme",
-            json.dumps(sidebar_data),
+            "bos_sidebar_modes",
+            json.dumps(theme_cfg["sidebar_modes"]),
             max_age=365 * 24 * 3600,
             samesite="Lax",
         )
-    elif reset_sidebar:
-        response.delete_cookie("bos_sidebar_theme")
 
     return response
