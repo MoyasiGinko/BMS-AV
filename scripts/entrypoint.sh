@@ -31,14 +31,19 @@ if [ "${START_CELERY_WORKER:-false}" = "true" ] || [ "${ENABLE_CELERY_WORKER:-fa
     trap "kill -TERM $CELERY_PID 2>/dev/null || true" EXIT
 fi
 
-# If command starts with gunicorn, ensure it binds to dynamic $PORT
+# If command starts with gunicorn, ensure it binds to dynamic $PORT and respects $WEB_CONCURRENCY
 if [ "$1" = "gunicorn" ]; then
+    WORKERS="${WEB_CONCURRENCY:-2}"
     NEW_ARGS=()
     while [[ $# -gt 0 ]]; do
         case "$1" in
             0.0.0.0:8000)
                 NEW_ARGS+=("0.0.0.0:${PORT}")
                 shift
+                ;;
+            --workers)
+                NEW_ARGS+=("--workers" "$WORKERS")
+                shift 2
                 ;;
             *)
                 NEW_ARGS+=("$1")
