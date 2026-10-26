@@ -69,6 +69,12 @@ class Command(BaseCommand):
             action="store_true",
             help="Delete existing demo organization before seeding if it already exists.",
         )
+        parser.add_argument(
+            "--noinput",
+            "--no-input",
+            action="store_true",
+            help="Do not prompt for input or confirmation.",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         target = options.get("target", "all").lower()

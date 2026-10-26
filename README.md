@@ -55,6 +55,36 @@ An enterprise-grade, multi-tenant SaaS Business Management Platform (ERP) built 
 
 ---
 
+## 🔑 Demo Login Credentials
+
+The platform includes pre-seeded, multi-role demo accounts with realistic historical ledgers, stock, POS registers, and employee workflows. All demo accounts use the standard password **`demo12345`**.
+
+- **Live Railway Deployment**: [https://bms-av-production.up.railway.app/accounts/login/](https://bms-av-production.up.railway.app/accounts/login/)
+- **Local Development**: [http://localhost:8000/accounts/login/](http://localhost:8000/accounts/login/)
+
+### 1. Small Shop: **Artisan Bakery & Cafe** (`slug: small-shop`)
+*Plan: **Starter** | Focus: High-velocity POS counter checkouts, retail inventory, cash/card split tenders, and customer invoicing.*
+
+| Role | Email Address | Password | Capabilities & Access |
+|---|---|---|---|
+| **Owner** | `owner@artisanbakery.com` | `demo12345` | Full administrative control, billing, team management, and executive reports. |
+| **Store Manager** | `manager@artisanbakery.com` | `demo12345` | Product catalog, pricing adjustments, inventory restocks, and daily sales auditing. |
+| **Cashier** | `cashier@artisanbakery.com` | `demo12345` | POS register sessions ("Front Counter 1"), barcode scanning, order lookup, and receipts. |
+| **Accountant** | `accountant@artisanbakery.com` | `demo12345` | General ledger, journal entries, tax reporting, and customer payment allocations. |
+
+### 2. Growing Company: **Apex Industrial Wholesale** (`slug: growing-company`)
+*Plan: **Growth** | Focus: Multi-warehouse logistics, B2B purchasing & 3-way matching, quotes & recurring billing, CRM pipeline, and HR/Payroll.*
+
+| Role | Email Address | Password | Capabilities & Access |
+|---|---|---|---|
+| **Owner / CEO** | `owner@apexwholesale.com` | `demo12345` | Complete company-wide visibility across all branches, warehouses, and financial books. |
+| **Sales Manager** | `sales@apexwholesale.com` | `demo12345` | CRM leads, drag-and-drop deal pipeline, sales quotes, and customer accounts. |
+| **Procurement / Buyer**| `buyer@apexwholesale.com` | `demo12345` | Vendor management, purchase orders, goods receipts, and accounts payable bills. |
+| **Senior Accountant** | `accountant@apexwholesale.com` | `demo12345` | Balance sheet, P&L, trial balance, bank reconciliation, and recurring billing rules. |
+| **Warehouse Manager** | `warehouse@apexwholesale.com` | `demo12345` | Multi-warehouse stock transfers, lot/batch tracking, adjustments, and reorder levels. |
+
+---
+
 ## 🚀 Quickstart Guide
 
 ### Prerequisites
@@ -77,8 +107,8 @@ uv sync
 # Run database migrations
 uv run python manage.py migrate
 
-# Seed demo data (demo organization, sample chart of accounts, users)
-uv run python manage.py seed_demo_data
+# Seed demo data (both demo organizations, products, stock, invoices, employees)
+uv run python manage.py seed_demo
 
 # Start local development server
 uv run python manage.py runserver
