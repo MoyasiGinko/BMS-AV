@@ -14,5 +14,11 @@
     - Hardened `config/settings/prod.py` and `base.py` to auto-detect Railway domains (`.railway.app`, `RAILWAY_PUBLIC_DOMAIN`) and Redis environment variables.
     - Authored `docs/06-railway-deployment.md` and ADR 0044 (`docs/adr/0044-automated-railway-deployment.md`).
     - Added automated unit tests in `tests/test_production_packaging.py` validating configurations and settings detection (10/10 passed).
+  - Live Railway Deployment Status:
+    - Target Project: `humorous-consideration` (Workspace: `Moyasi Ginko's Projects`).
+    - Provisioned Infrastructure: PostgreSQL (`postgres.railway.internal:5432`) + volume-less Alpine Redis (`redis.railway.internal:6379`).
+    - Live URL: `https://bms-av-production.up.railway.app`.
+    - Health Checks: `/healthz` -> 200 OK (`{"status":"ok"}`), `/readyz` -> 200 OK (`{"status":"ready","checks":{"database":"ok","cache":"ok"}}`).
+    - Gunicorn (4 gthread workers) + background Celery worker verified running cleanly.
 
 
