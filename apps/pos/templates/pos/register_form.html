@@ -11,7 +11,7 @@
         </a>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+    <div class="bg-surface border border-line rounded-2xl shadow-xl overflow-hidden">
         <div class="p-6 bg-indigo-600 text-white">
             <h1 class="text-xl font-bold">{% trans "Create POS Terminal" %}</h1>
             <p class="text-xs text-indigo-100 mt-1">{% trans "Configure register code, location, warehouse, and receipt header/footer." %}</p>
@@ -22,7 +22,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="id_name" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label for="id_name" class="block text-xs font-semibold text-muted">
                         {% trans "Register Name" %} *
                     </label>
                     <div class="mt-1">
@@ -34,7 +34,7 @@
                 </div>
 
                 <div>
-                    <label for="id_code" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label for="id_code" class="block text-xs font-semibold text-muted">
                         {% trans "Register Code (e.g. POS-01)" %}
                     </label>
                     <div class="mt-1">
@@ -48,7 +48,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="id_branch" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label for="id_branch" class="block text-xs font-semibold text-muted">
                         {% trans "Branch" %} *
                     </label>
                     <div class="mt-1">
@@ -60,7 +60,7 @@
                 </div>
 
                 <div>
-                    <label for="id_warehouse" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <label for="id_warehouse" class="block text-xs font-semibold text-muted">
                         {% trans "Stock Deduction Warehouse" %} *
                     </label>
                     <div class="mt-1">
@@ -73,7 +73,7 @@
             </div>
 
             <div>
-                <label for="id_receipt_header" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label for="id_receipt_header" class="block text-xs font-semibold text-muted">
                     {% trans "Receipt Header Text" %}
                 </label>
                 <div class="mt-1">
@@ -82,7 +82,7 @@
             </div>
 
             <div>
-                <label for="id_receipt_footer" class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label for="id_receipt_footer" class="block text-xs font-semibold text-muted">
                     {% trans "Receipt Footer Text" %}
                 </label>
                 <div class="mt-1">
@@ -92,7 +92,7 @@
 
             <div class="flex items-center space-x-2">
                 {{ form.is_active }}
-                <label for="id_is_active" class="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label for="id_is_active" class="text-xs font-medium text-muted">
                     {% trans "Register is active and available for shifts" %}
                 </label>
             </div>

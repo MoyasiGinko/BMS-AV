@@ -1,4 +1,4 @@
-<tr id="rule-row-{{ rule.public_id }}" class="hover:bg-slate-50/75 dark:hover:bg-slate-800/50 transition-colors">
+<tr id="rule-row-{{ rule.public_id }}" class="hover:bg-surface-2 transition-colors">
   <td class="px-6 py-4 whitespace-nowrap">
     <div class="flex items-center space-x-3">
       <div class="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
@@ -7,11 +7,11 @@
         </svg>
       </div>
       <div>
-        <a href="{% url 'automation:rule_edit' rule.public_id %}" class="text-sm font-semibold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400">
+        <a href="{% url 'automation:rule_edit' rule.public_id %}" class="text-sm font-semibold text-ink hover:text-indigo-600 dark:hover:text-indigo-400">
           {{ rule.name }}
         </a>
         {% if rule.description %}
-          <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm truncate">{{ rule.description }}</p>
+          <p class="text-xs text-muted max-w-sm truncate">{{ rule.description }}</p>
         {% endif %}
       </div>
     </div>
@@ -21,13 +21,13 @@
       {% if rule.trigger_type == 'event' %}Event: {{ rule.trigger_event|default:"Any" }}{% else %}Scheduled Scan{% endif %}
     </span>
   </td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-    <span class="inline-flex items-center text-xs font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
+    <span class="inline-flex items-center text-xs font-mono bg-surface-2 px-2 py-0.5 rounded text-muted">
       {{ rule.conditions|length }} condition{{ rule.conditions|length|pluralize }}
     </span>
   </td>
-  <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-    <span class="inline-flex items-center text-xs font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300">
+  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
+    <span class="inline-flex items-center text-xs font-mono bg-surface-2 px-2 py-0.5 rounded text-muted">
       {{ rule.actions|length }} action{{ rule.actions|length|pluralize }}
     </span>
   </td>
@@ -40,12 +40,12 @@
       </button>
     </form>
   </td>
-  <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">
+  <td class="px-6 py-4 whitespace-nowrap text-xs text-muted">
     <div>{{ rule.execution_count }} runs</div>
     {% if rule.last_run_at %}
-      <div class="text-[10px] text-slate-400 dark:text-slate-500">{{ rule.last_run_at|date:"M d, H:i" }}</div>
+      <div class="text-[10px] text-muted">{{ rule.last_run_at|date:"M d, H:i" }}</div>
     {% else %}
-      <div class="text-[10px] text-slate-400 dark:text-slate-500">Never run</div>
+      <div class="text-[10px] text-muted">Never run</div>
     {% endif %}
   </td>
   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">

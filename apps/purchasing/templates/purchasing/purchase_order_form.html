@@ -7,7 +7,7 @@
 <div class="max-w-4xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ title }}</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{{ title }}</h1>
             <p class="text-sm text-slate-500 mt-1">{% trans "Create a vendor purchase order with item lines and delivery terms." %}</p>
         </div>
         <a href="{% url 'purchasing:purchase_order_list' %}" class="text-sm text-slate-500 hover:text-slate-800">
@@ -18,44 +18,44 @@
     <form method="post" class="space-y-6">
         {% csrf_token %}
 
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
-            <h2 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2">
+        <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-4">
+            <h2 class="text-base font-semibold text-ink border-b border-line pb-2">
                 {% trans "Order Details" %}
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Supplier" %} *</label>
+                    <label class="block text-xs font-semibold uppercase text-muted mb-1">{% trans "Supplier" %} *</label>
                     {{ form.supplier }}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Warehouse" %}</label>
+                    <label class="block text-xs font-semibold uppercase text-muted mb-1">{% trans "Warehouse" %}</label>
                     {{ form.warehouse }}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Branch" %}</label>
+                    <label class="block text-xs font-semibold uppercase text-muted mb-1">{% trans "Branch" %}</label>
                     {{ form.branch }}
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Order Date" %}</label>
+                    <label class="block text-xs font-semibold uppercase text-muted mb-1">{% trans "Order Date" %}</label>
                     {{ form.order_date }}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 mb-1">{% trans "Expected Delivery Date" %}</label>
+                    <label class="block text-xs font-semibold uppercase text-muted mb-1">{% trans "Expected Delivery Date" %}</label>
                     {{ form.expected_date }}
                 </div>
             </div>
         </div>
 
         <!-- Product Line Items -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
-            <h2 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2 flex justify-between items-center">
+        <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-4">
+            <h2 class="text-base font-semibold text-ink border-b border-line pb-2 flex justify-between items-center">
                 <span>{% trans "Products & Quantities" %}</span>
             </h2>
 
             <div class="space-y-3" id="po-lines-container">
-                <div class="grid grid-cols-12 gap-3 items-end p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div class="grid grid-cols-12 gap-3 items-end p-3 bg-app rounded-lg">
                     <div class="col-span-5">
                         <label class="block text-2xs font-semibold uppercase text-slate-500 mb-1">{% trans "Product" %}</label>
                         <select name="product_id[]" class="form-select w-full text-sm rounded-lg" required>
@@ -80,7 +80,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-line">
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">{% trans "Notes" %}</label>
                     {{ form.notes }}

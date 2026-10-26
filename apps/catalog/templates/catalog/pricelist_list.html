@@ -9,12 +9,12 @@
     <div class="flex items-center justify-between">
         <div>
             <div class="flex items-center gap-2">
-                <a href="{% url 'catalog:product_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                <a href="{% url 'catalog:product_list' %}" class="text-sm font-medium text-slate-500 hover:text-muted dark:hover:text-slate-200">
                     &larr; {% trans "Back to Products" %}
                 </a>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">{% trans "Price Lists" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            <h1 class="text-2xl font-bold tracking-tight text-ink mt-1">{% trans "Price Lists" %}</h1>
+            <p class="text-sm text-muted mt-0.5">
                 {% trans "Manage customer tiers, wholesale pricing schedules, and currency-specific rate cards." %}
             </p>
         </div>
@@ -22,15 +22,15 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Price Lists Table -->
-        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+        <div class="lg:col-span-2 bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
             <div class="p-4 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Configured Price Lists" %}</h3>
+                <h3 class="text-base font-semibold text-ink">{% trans "Configured Price Lists" %}</h3>
             </div>
 
             {% if price_lists %}
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-sm">
-                    <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <table class="min-w-full divide-y divide-line text-left text-sm">
+                    <thead class="bg-app text-xs font-semibold text-muted">
                         <tr>
                             <th class="px-6 py-3">{% trans "Price List Name" %}</th>
                             <th class="px-6 py-3">{% trans "Currency" %}</th>
@@ -38,15 +38,15 @@
                             <th class="px-6 py-3 text-right">{% trans "Actions" %}</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                    <tbody class="divide-y divide-line text-muted">
                         {% for pl in price_lists %}
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <tr class="hover:bg-surface-2">
                             <td class="px-6 py-3.5">
                                 <a href="{% url 'catalog:pricelist_detail' pk=pl.pk %}" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                                     {{ pl.name }}
                                 </a>
                                 {% if pl.description %}
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-xs">{{ pl.description }}</p>
+                                <p class="text-xs text-muted mt-0.5 truncate max-w-xs">{{ pl.description }}</p>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-3.5 font-mono text-xs font-semibold">{{ pl.currency }}</td>
@@ -68,38 +68,38 @@
                 </table>
             </div>
             {% else %}
-            <div class="p-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+            <div class="p-8 text-center text-muted text-sm">
                 {% trans "No custom price lists configured. Default catalog pricing is currently active." %}
             </div>
             {% endif %}
         </div>
 
         <!-- Add Price List Form -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
-            <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-4">{% trans "New Price List" %}</h3>
+        <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
+            <h3 class="text-base font-semibold text-ink mb-4">{% trans "New Price List" %}</h3>
 
             <form method="post" class="space-y-4">
                 {% csrf_token %}
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Name" %} *</label>
+                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Name" %} *</label>
                     {{ form.name }}
                     {% if form.name.errors %}<p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Currency (ISO 3-Letter)" %} *</label>
+                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Currency (ISO 3-Letter)" %} *</label>
                     {{ form.currency }}
                     {% if form.currency.errors %}<p class="text-xs text-red-500 mt-1">{{ form.currency.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{% trans "Description" %}</label>
+                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Description" %}</label>
                     {{ form.description }}
                 </div>
 
                 <div class="flex items-center gap-2 pt-1">
                     {{ form.is_default }}
-                    <label class="text-sm text-slate-700 dark:text-slate-300">{% trans "Make Default for Organization" %}</label>
+                    <label class="text-sm text-muted">{% trans "Make Default for Organization" %}</label>
                 </div>
 
                 <div class="pt-2">

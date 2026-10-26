@@ -6,8 +6,8 @@
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
     <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Employee Self-Service Profile" %}</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Employee Self-Service Profile" %}</h1>
+        <p class="text-sm text-muted mt-1">
             {% trans "Review your employment record and maintain up-to-date contact & emergency details." %}
         </p>
     </div>
@@ -25,19 +25,19 @@
     {% else %}
 
     <!-- Employee Overview Banner -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
         <div class="flex items-center space-x-4">
             <div class="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-xl border border-indigo-200 dark:border-indigo-800 shadow-xs">
                 {{ employee.first_name|slice:":1" }}{{ employee.last_name|slice:":1" }}
             </div>
             <div>
                 <div class="flex items-center space-x-3">
-                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ employee.full_name }}</h2>
+                    <h2 class="text-xl font-bold text-ink">{{ employee.full_name }}</h2>
                     <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                         {{ employee.get_status_display }}
                     </span>
                 </div>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                <p class="text-sm text-muted mt-1">
                     <span class="font-mono">{{ employee.code }}</span>
                     {% if employee.position %} • {{ employee.position.title }}{% endif %}
                     {% if employee.department %} • {{ employee.department.name }}{% endif %}
@@ -47,10 +47,10 @@
     </div>
 
     <!-- Attendance & Time Clock Widget -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Workday Time Clock" %}</h3>
+                <h3 class="text-base font-semibold text-ink">{% trans "Workday Time Clock" %}</h3>
                 <p class="text-xs text-slate-500 mt-0.5">
                     {% if active_check_in %}
                     <span class="inline-flex items-center gap-1.5 text-emerald-600 font-medium">
@@ -66,7 +66,7 @@
                 {% if active_check_in %}
                 <form method="post" action="{% url 'hr:attendance_check_out' %}" class="flex items-center gap-2">
                     {% csrf_token %}
-                    <input type="text" name="notes" placeholder="{% trans 'Optional sign-out note' %}" class="text-xs rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 px-3 py-1.5">
+                    <input type="text" name="notes" placeholder="{% trans 'Optional sign-out note' %}" class="text-xs rounded-lg border-line dark:bg-slate-800 px-3 py-1.5">
                     <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition-colors">
                         {% trans "Clock Out" %}
                     </button>
@@ -74,7 +74,7 @@
                 {% else %}
                 <form method="post" action="{% url 'hr:attendance_check_in' %}" class="flex items-center gap-2">
                     {% csrf_token %}
-                    <input type="text" name="notes" placeholder="{% trans 'Optional note or location' %}" class="text-xs rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 px-3 py-1.5">
+                    <input type="text" name="notes" placeholder="{% trans 'Optional note or location' %}" class="text-xs rounded-lg border-line dark:bg-slate-800 px-3 py-1.5">
                     <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors">
                         {% trans "Clock In" %}
                     </button>
@@ -85,10 +85,10 @@
     </div>
 
     <!-- Leave Quotas & Balances -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-4">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Leave Allowances" %}</h3>
+                <h3 class="text-base font-semibold text-ink">{% trans "Leave Allowances" %}</h3>
                 <span class="text-xs text-slate-400">{% trans "Your current remaining quotas for this year" %}</span>
             </div>
             <a href="{% url 'hr:leave_request_create' %}" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs">
@@ -113,49 +113,49 @@
     </div>
 
     <!-- Read-Only Employment Information -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
-        <h3 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
+        <h3 class="text-base font-semibold text-ink border-b border-line pb-3">
             {% trans "Official Employment Data (Read-Only)" %}
         </h3>
         <dl class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4 text-sm">
             <div>
                 <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Hire Date" %}</dt>
-                <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.hire_date|date:"F d, Y" }}</dd>
+                <dd class="mt-1 font-medium text-ink">{{ employee.hire_date|date:"F d, Y" }}</dd>
             </div>
             <div>
                 <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Employment Type" %}</dt>
-                <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.get_employment_type_display }}</dd>
+                <dd class="mt-1 font-medium text-ink">{{ employee.get_employment_type_display }}</dd>
             </div>
             <div>
                 <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Work Email" %}</dt>
-                <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.work_email|default:"—" }}</dd>
+                <dd class="mt-1 font-medium text-ink">{{ employee.work_email|default:"—" }}</dd>
             </div>
             <div>
                 <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Position" %}</dt>
-                <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.position.title|default:"—" }}</dd>
+                <dd class="mt-1 font-medium text-ink">{{ employee.position.title|default:"—" }}</dd>
             </div>
             <div>
                 <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Department" %}</dt>
-                <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.department.name|default:"—" }}</dd>
+                <dd class="mt-1 font-medium text-ink">{{ employee.department.name|default:"—" }}</dd>
             </div>
             <div>
                 <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Reporting Manager" %}</dt>
-                <dd class="mt-1 font-medium text-slate-900 dark:text-white">{{ employee.manager.full_name|default:"—" }}</dd>
+                <dd class="mt-1 font-medium text-ink">{{ employee.manager.full_name|default:"—" }}</dd>
             </div>
             <div>
                 <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "National ID (Masked)" %}</dt>
-                <dd class="mt-1 font-mono text-slate-700 dark:text-slate-300">{{ employee.masked_national_id|default:"—" }}</dd>
+                <dd class="mt-1 font-mono text-muted">{{ employee.masked_national_id|default:"—" }}</dd>
             </div>
             <div>
                 <dt class="text-xs font-semibold text-slate-500 uppercase">{% trans "Bank Account (Masked)" %}</dt>
-                <dd class="mt-1 font-mono text-slate-700 dark:text-slate-300">{{ employee.masked_bank_account|default:"—" }}</dd>
+                <dd class="mt-1 font-mono text-muted">{{ employee.masked_bank_account|default:"—" }}</dd>
             </div>
         </dl>
     </div>
 
     <!-- Self-Service Editable Contact Form -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
-        <h3 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
+        <h3 class="text-base font-semibold text-ink border-b border-line pb-3">
             {% trans "Update Contact & Emergency Details" %}
         </h3>
         <p class="text-xs text-slate-500 mt-2">
@@ -166,28 +166,28 @@
             {% csrf_token %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Personal Email" %}</label>
+                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Personal Email" %}</label>
                     {{ form.personal_email }}
                     {% if form.personal_email.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.personal_email.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Phone Number" %}</label>
+                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Phone Number" %}</label>
                     {{ form.phone }}
                     {% if form.phone.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.phone.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Emergency Contact Name" %}</label>
+                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Emergency Contact Name" %}</label>
                     {{ form.emergency_contact_name }}
                     {% if form.emergency_contact_name.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.emergency_contact_name.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">{% trans "Emergency Contact Phone" %}</label>
+                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Emergency Contact Phone" %}</label>
                     {{ form.emergency_contact_phone }}
                     {% if form.emergency_contact_phone.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.emergency_contact_phone.errors.0 }}</p>{% endif %}
                 </div>
             </div>
 
-            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+            <div class="pt-4 border-t border-line flex justify-end">
                 <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
                     {% trans "Update My Profile" %}
                 </button>

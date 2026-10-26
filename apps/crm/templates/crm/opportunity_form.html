@@ -8,18 +8,18 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ title }}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{{ title }}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Track a sales opportunity deal, assigned stage, and expected value." %}
             </p>
         </div>
-        <a href="{% url 'crm:pipeline_kanban' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50">
+        <a href="{% url 'crm:pipeline_kanban' %}" class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50">
             {% trans "Back to Pipeline" %}
         </a>
     </div>
 
     <!-- Form -->
-    <form method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+    <form method="post" class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-6">
         {% csrf_token %}
 
         {% if form.errors %}
@@ -30,49 +30,49 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Deal Title" %} *</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Deal Title" %} *</label>
                 {{ form.title }}
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Pipeline" %} *</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Pipeline" %} *</label>
                 {{ form.pipeline }}
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Initial Stage" %} *</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Initial Stage" %} *</label>
                 {{ form.stage }}
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Customer Account" %}</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Customer Account" %}</label>
                 {{ form.customer }}
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Expected Value ($)" %} *</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Expected Value ($)" %} *</label>
                 {{ form.expected_value }}
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Win Probability (%)" %}</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Win Probability (%)" %}</label>
                 {{ form.probability_percent }}
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Expected Close Date" %}</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Expected Close Date" %}</label>
                 {{ form.expected_close_date }}
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Assigned Agent" %}</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Assigned Agent" %}</label>
                 {{ form.assigned_to }}
             </div>
             <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Tags (comma separated)" %}</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Tags (comma separated)" %}</label>
                 {{ form.tags_csv }}
             </div>
             <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Notes" %}</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Notes" %}</label>
                 {{ form.notes }}
             </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <a href="{% url 'crm:pipeline_kanban' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-line">
+            <a href="{% url 'crm:pipeline_kanban' %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50">
                 {% trans "Cancel" %}
             </a>
             <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">

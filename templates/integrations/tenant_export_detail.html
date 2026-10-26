@@ -11,10 +11,10 @@
     </a>
     <div class="mt-2 sm:flex sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">
           {% trans "Backup Export" %}: {{ job.public_id|stringformat:".8s" }}...
         </h1>
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <p class="mt-1 text-sm text-muted">
           {% trans "Requested on" %} {{ job.created_at|date:"Y-m-d H:i:s" }}
         </p>
       </div>
@@ -50,32 +50,32 @@
   {% endif %}
 
   <!-- Export Archive Details Card -->
-  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
-    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+  <div class="bg-surface rounded-2xl shadow-sm border border-line p-6 space-y-4">
+    <h2 class="text-lg font-semibold text-ink">
       {% trans "Package Metadata & Security" %}
     </h2>
     <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
       <div>
-        <dt class="text-slate-500 dark:text-slate-400">{% trans "Archive File Size" %}</dt>
-        <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">{{ job.file_size_bytes|filesizeformat|default:"-" }}</dd>
+        <dt class="text-muted">{% trans "Archive File Size" %}</dt>
+        <dd class="mt-1 font-medium text-ink">{{ job.file_size_bytes|filesizeformat|default:"-" }}</dd>
       </div>
       <div>
-        <dt class="text-slate-500 dark:text-slate-400">{% trans "Completed At" %}</dt>
-        <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">{{ job.completed_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
+        <dt class="text-muted">{% trans "Completed At" %}</dt>
+        <dd class="mt-1 font-medium text-ink">{{ job.completed_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
       </div>
       <div>
-        <dt class="text-slate-500 dark:text-slate-400">{% trans "Expires At" %}</dt>
-        <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">{{ job.expires_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
+        <dt class="text-muted">{% trans "Expires At" %}</dt>
+        <dd class="mt-1 font-medium text-ink">{{ job.expires_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
       </div>
       <div>
-        <dt class="text-slate-500 dark:text-slate-400">{% trans "Contains Audit Logs" %}</dt>
-        <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">
+        <dt class="text-muted">{% trans "Contains Audit Logs" %}</dt>
+        <dd class="mt-1 font-medium text-ink">
           {% if job.include_audit_logs %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}
         </dd>
       </div>
       <div class="sm:col-span-2">
-        <dt class="text-slate-500 dark:text-slate-400">{% trans "SHA-256 Checksum" %}</dt>
-        <dd class="mt-1 font-mono text-xs text-slate-900 dark:text-slate-100 break-all bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+        <dt class="text-muted">{% trans "SHA-256 Checksum" %}</dt>
+        <dd class="mt-1 font-mono text-xs text-ink break-all bg-app p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
           {{ job.sha256_hash|default:"-" }}
         </dd>
       </div>
@@ -83,15 +83,15 @@
   </div>
 
   <!-- Entities in Archive -->
-  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
-    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+  <div class="bg-surface rounded-2xl shadow-sm border border-line p-6 space-y-4">
+    <h2 class="text-lg font-semibold text-ink">
       {% trans "Exported Entity Counts" %}
     </h2>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       {% for entity, count in job.stats.items %}
-        <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+        <div class="p-3 bg-app rounded-xl border border-slate-200/50 dark:border-slate-700/50">
           <div class="text-xs font-medium text-slate-500 uppercase">{{ entity }}</div>
-          <div class="mt-1 text-xl font-bold text-slate-900 dark:text-slate-100">{{ count }}</div>
+          <div class="mt-1 text-xl font-bold text-ink">{{ count }}</div>
         </div>
       {% empty %}
         <p class="text-sm text-slate-500">{% trans "No entity counts recorded." %}</p>

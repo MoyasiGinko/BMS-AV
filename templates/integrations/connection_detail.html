@@ -11,10 +11,10 @@
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <a href="{% url 'integrations:connections_list' %}" class="hover:text-slate-700">{% trans "Connectors" %}</a>
                 <span>&rsaquo;</span>
-                <span class="text-slate-700 dark:text-slate-300 font-medium">{{ connection.name }}</span>
+                <span class="text-muted font-medium">{{ connection.name }}</span>
             </div>
             <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ connection.name }}</h1>
+                <h1 class="text-2xl font-bold tracking-tight text-ink">{{ connection.name }}</h1>
                 {% if connection.status == 'active' %}
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
                     {% trans "Active" %}
@@ -44,7 +44,7 @@
                 hx-target="#test-result-target"
                 hx-swap="innerHTML"
                 type="button"
-                class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs cursor-pointer"
+                class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-xs font-semibold text-muted bg-surface hover:bg-slate-50 shadow-xs cursor-pointer"
             >
                 <svg class="w-4 h-4 mr-1.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -68,7 +68,7 @@
                 {% trans "Sync Now" %}
             </button>
 
-            <a href="{% url 'integrations:connection_edit' connection_id=connection.public_id %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+            <a href="{% url 'integrations:connection_edit' connection_id=connection.public_id %}" class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-xs font-semibold text-muted bg-surface hover:bg-slate-50 shadow-xs">
                 {% trans "Edit Settings" %}
             </a>
 
@@ -90,16 +90,16 @@
 
     <!-- Connection Metadata & Status Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">{% trans "Connector Metadata" %}</h3>
             <div class="space-y-1.5 text-xs">
                 <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                     <span class="text-slate-500">{% trans "Type" %}</span>
-                    <span class="font-mono font-medium text-slate-900 dark:text-white">{{ connection.connector_type }}</span>
+                    <span class="font-mono font-medium text-ink">{{ connection.connector_type }}</span>
                 </div>
                 <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                     <span class="text-slate-500">{% trans "Sync Interval" %}</span>
-                    <span class="font-medium text-slate-900 dark:text-white">{{ connection.sync_interval_minutes }} {% trans "min" %}</span>
+                    <span class="font-medium text-ink">{{ connection.sync_interval_minutes }} {% trans "min" %}</span>
                 </div>
                 <div class="flex justify-between py-1">
                     <span class="text-slate-500">{% trans "Credentials" %}</span>
@@ -110,27 +110,27 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">{% trans "Execution Status" %}</h3>
             <div class="space-y-1.5 text-xs">
                 <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                     <span class="text-slate-500">{% trans "Last Synced" %}</span>
-                    <span class="font-medium text-slate-900 dark:text-white">
+                    <span class="font-medium text-ink">
                         {{ connection.last_synced_at|date:"Y-m-d H:i:s"|default:_("Never") }}
                     </span>
                 </div>
                 <div class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800">
                     <span class="text-slate-500">{% trans "Total Sync Runs" %}</span>
-                    <span class="font-medium text-slate-900 dark:text-white">{{ sync_logs.count }}</span>
+                    <span class="font-medium text-ink">{{ sync_logs.count }}</span>
                 </div>
                 <div class="flex justify-between py-1">
                     <span class="text-slate-500">{% trans "Mapped Entities" %}</span>
-                    <span class="font-medium text-slate-900 dark:text-white">{{ total_references_count }}</span>
+                    <span class="font-medium text-ink">{{ total_references_count }}</span>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">{% trans "Supported Operations" %}</h3>
             {% if connector_meta and connector_meta.supported_actions %}
             <div class="flex flex-wrap gap-1.5 mt-2">
@@ -147,16 +147,16 @@
     </div>
 
     <!-- Sync Logs Section -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <h2 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Synchronization History" %}</h2>
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-line flex items-center justify-between">
+            <h2 class="text-base font-bold text-ink">{% trans "Synchronization History" %}</h2>
             <span class="text-xs text-slate-500">{{ sync_logs.count }} {% trans "runs recorded" %}</span>
         </div>
 
         {% if sync_logs %}
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-xs">
-                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-semibold uppercase tracking-wider">
+            <table class="min-w-full divide-y divide-line text-left text-xs">
+                <thead class="bg-app text-slate-500 font-semibold uppercase tracking-wider">
                     <tr>
                         <th class="px-6 py-3">{% trans "Timestamp" %}</th>
                         <th class="px-6 py-3">{% trans "Direction" %}</th>
@@ -166,9 +166,9 @@
                         <th class="px-6 py-3">{% trans "Summary" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for log in sync_logs %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <tr class="hover:bg-surface-2">
                         <td class="px-6 py-3 text-slate-500">
                             {{ log.created_at|date:"Y-m-d H:i:s" }}
                         </td>
@@ -192,13 +192,13 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-3 text-slate-700 dark:text-slate-300 font-medium">
+                        <td class="px-6 py-3 text-muted font-medium">
                             {{ log.records_succeeded }} / {{ log.records_processed }}
                         </td>
                         <td class="px-6 py-3 text-slate-500">
                             {{ log.duration_ms }} ms
                         </td>
-                        <td class="px-6 py-3 text-slate-600 dark:text-slate-300 truncate max-w-xs">
+                        <td class="px-6 py-3 text-muted truncate max-w-xs">
                             {{ log.summary }}
                         </td>
                     </tr>
@@ -215,16 +215,16 @@
 
     <!-- External References Sample Table -->
     {% if references %}
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <h2 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Mapped Entity References" %}</h2>
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-line flex items-center justify-between">
+            <h2 class="text-base font-bold text-ink">{% trans "Mapped Entity References" %}</h2>
             <a href="{% url 'integrations:external_references_list' %}?connection={{ connection.public_id }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
                 {% trans "View all" %} &rarr;
             </a>
         </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-xs">
-                <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-semibold uppercase tracking-wider">
+            <table class="min-w-full divide-y divide-line text-left text-xs">
+                <thead class="bg-app text-slate-500 font-semibold uppercase tracking-wider">
                     <tr>
                         <th class="px-6 py-3">{% trans "Entity Type" %}</th>
                         <th class="px-6 py-3">{% trans "Internal ID" %}</th>
@@ -232,13 +232,13 @@
                         <th class="px-6 py-3">{% trans "Last Synced" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for ref in references %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <tr class="hover:bg-surface-2">
                         <td class="px-6 py-3 font-semibold text-slate-800 dark:text-slate-200">
                             {{ ref.entity_type|upper }}
                         </td>
-                        <td class="px-6 py-3 font-mono text-slate-600 dark:text-slate-400">
+                        <td class="px-6 py-3 font-mono text-muted">
                             {{ ref.internal_id }}
                         </td>
                         <td class="px-6 py-3 font-mono text-indigo-600 dark:text-indigo-400">

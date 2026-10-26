@@ -1,9 +1,9 @@
 {% load i18n %}
-<div id="stock-level-table-container" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+<div id="stock-level-table-container" class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-sm">
             <thead>
-                <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
                     <th class="py-3.5 px-4">{% trans "Product / SKU" %}</th>
                     <th class="py-3.5 px-4">{% trans "Warehouse" %}</th>
                     <th class="py-3.5 px-4 text-right">{% trans "On Hand" %}</th>
@@ -14,36 +14,36 @@
                     <th class="py-3.5 px-4 text-center">{% trans "Status" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody class="divide-y divide-line/60">
                 {% for item in page_obj %}
-                <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
+                <tr class="hover:bg-surface-2 transition-colors">
                     <td class="py-3.5 px-4">
-                        <div class="font-medium text-slate-900 dark:text-white">
+                        <div class="font-medium text-ink">
                             {{ item.product.name }}
                             {% if item.variant %}
                             <span class="text-xs text-indigo-600 dark:text-indigo-400 font-normal">({{ item.variant.name }})</span>
                             {% endif %}
                         </div>
-                        <div class="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                        <div class="text-xs text-muted font-mono mt-0.5">
                             {{ item.variant.sku|default:item.product.sku }}
                         </div>
                     </td>
-                    <td class="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                    <td class="py-3.5 px-4 text-muted">
                         {{ item.warehouse.name }}
                     </td>
-                    <td class="py-3.5 px-4 text-right font-medium text-slate-900 dark:text-white">
+                    <td class="py-3.5 px-4 text-right font-medium text-ink">
                         {{ item.on_hand }}
                     </td>
-                    <td class="py-3.5 px-4 text-right text-slate-500 dark:text-slate-400">
+                    <td class="py-3.5 px-4 text-right text-muted">
                         {{ item.reserved }}
                     </td>
                     <td class="py-3.5 px-4 text-right font-semibold {% if item.available <= 0 %}text-rose-600 dark:text-rose-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
                         {{ item.available }}
                     </td>
-                    <td class="py-3.5 px-4 text-right text-slate-600 dark:text-slate-300 font-mono">
+                    <td class="py-3.5 px-4 text-right text-muted font-mono">
                         ${{ item.avg_cost }}
                     </td>
-                    <td class="py-3.5 px-4 text-right font-medium text-slate-900 dark:text-white font-mono">
+                    <td class="py-3.5 px-4 text-right font-medium text-ink font-mono">
                         ${{ item.total_value }}
                     </td>
                     <td class="py-3.5 px-4 text-center">
@@ -64,11 +64,11 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                    <td colspan="8" class="py-12 text-center text-muted">
                         <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
-                        <p class="text-base font-medium text-slate-900 dark:text-white">{% trans "No inventory records found" %}</p>
+                        <p class="text-base font-medium text-ink">{% trans "No inventory records found" %}</p>
                         <p class="text-xs text-slate-400 mt-1">{% trans "Receive items, create transfers, or adjust stock levels." %}</p>
                     </td>
                 </tr>
@@ -79,21 +79,21 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+    <div class="px-4 py-3 border-t border-line flex items-center justify-between text-xs text-muted">
         <div>
             {% trans "Showing" %} {{ page_obj.start_index }} - {{ page_obj.end_index }} {% trans "of" %} {{ page_obj.paginator.count }}
         </div>
         <div class="flex items-center space-x-2">
             {% if page_obj.has_previous %}
             <a href="?page={{ page_obj.previous_page_number }}{% if query %}&query={{ query }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if low_stock_only %}&low_stock_only=1{% endif %}"
-               class="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
+               class="px-2.5 py-1.5 border border-line rounded-md hover:bg-surface-2 text-muted">
                 {% trans "Previous" %}
             </a>
             {% endif %}
-            <span class="font-medium text-slate-700 dark:text-slate-300">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            <span class="font-medium text-muted">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
             <a href="?page={{ page_obj.next_page_number }}{% if query %}&query={{ query }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if low_stock_only %}&low_stock_only=1{% endif %}"
-               class="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
+               class="px-2.5 py-1.5 border border-line rounded-md hover:bg-surface-2 text-muted">
                 {% trans "Next" %}
             </a>
             {% endif %}

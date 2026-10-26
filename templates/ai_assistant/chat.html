@@ -7,16 +7,16 @@
 <div class="h-[calc(100vh-4.25rem)] flex flex-col md:flex-row overflow-hidden bg-slate-50/50 dark:bg-slate-950/50">
 
   <!-- Left Sidebar: Conversations -->
-  <aside class="w-full md:w-80 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full">
+  <aside class="w-full md:w-80 shrink-0 border-r border-line bg-surface flex flex-col h-full">
     <!-- Sidebar Header -->
-    <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+    <div class="p-4 border-b border-line flex items-center justify-between">
       <div class="flex items-center space-x-2">
         <span class="p-1.5 rounded-lg bg-indigo-600 text-white shadow-sm">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </span>
-        <h2 class="text-sm font-bold text-slate-900 dark:text-white">{% trans "AI Copilot" %}</h2>
+        <h2 class="text-sm font-bold text-ink">{% trans "AI Copilot" %}</h2>
       </div>
       <form method="post" action="{% url 'ai:conversation_new' %}">
         {% csrf_token %}
@@ -30,8 +30,8 @@
     </div>
 
     <!-- Usage Metric Badge -->
-    <div class="p-3 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800">
-      <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+    <div class="p-3 bg-slate-50 dark:bg-slate-850 border-b border-line">
+      <div class="flex items-center justify-between text-xs text-muted">
         <span>{% trans "Monthly Quota" %}</span>
         <span class="font-bold text-slate-900 dark:text-slate-200">
           {{ metrics.current_usage }} / {% if metrics.max_requests == -1 %}Unlimited{% else %}{{ metrics.max_requests }}{% endif %}
@@ -45,7 +45,7 @@
     <!-- Conversation List -->
     <div class="flex-1 overflow-y-auto p-3 space-y-1">
       {% for conv in conversations %}
-      <a href="{% url 'ai:chat_conversation' conv.public_id %}" class="block px-3 py-2.5 rounded-xl text-xs font-medium transition-colors {% if conv.pk == active_conversation.pk %}bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-200 font-semibold shadow-xs border border-indigo-200/50 dark:border-indigo-900/50{% else %}text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}">
+      <a href="{% url 'ai:chat_conversation' conv.public_id %}" class="block px-3 py-2.5 rounded-xl text-xs font-medium transition-colors {% if conv.pk == active_conversation.pk %}bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-200 font-semibold shadow-xs border border-indigo-200/50 dark:border-indigo-900/50{% else %}text-muted hover:bg-surface-2{% endif %}">
         <div class="truncate">{{ conv.title }}</div>
         <div class="mt-1 text-[10px] text-slate-400">{{ conv.updated_at|date:"M j, H:i" }}</div>
       </a>
@@ -57,7 +57,7 @@
     </div>
 
     <!-- Audit logs link footer -->
-    <div class="p-3 border-t border-slate-200 dark:border-slate-800">
+    <div class="p-3 border-t border-line">
       <a href="{% url 'ai:audit_logs' %}" class="flex items-center text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
         <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -68,15 +68,15 @@
   </aside>
 
   <!-- Right Pane: Active Chat Room -->
-  <main class="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-slate-900">
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-surface">
     <!-- Chat Header -->
-    <div class="px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur">
+    <div class="px-6 py-3.5 border-b border-line flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur">
       <div class="flex items-center space-x-3">
         <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
           AI
         </div>
         <div>
-          <h1 class="text-sm font-bold text-slate-900 dark:text-white">
+          <h1 class="text-sm font-bold text-ink">
             {{ active_conversation.title }}
           </h1>
           <p class="text-[11px] text-slate-400">
@@ -109,7 +109,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <div class="w-full rounded-2xl rounded-tl-sm bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 p-4 text-sm text-slate-800 dark:text-slate-100 shadow-sm space-y-3">
+          <div class="w-full rounded-2xl rounded-tl-sm bg-surface border border-slate-200/80 dark:border-slate-700/80 p-4 text-sm text-slate-800 dark:text-slate-100 shadow-sm space-y-3">
             <div class="prose prose-sm dark:prose-invert max-w-none text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap font-normal leading-relaxed">
               {{ msg.content }}
             </div>
@@ -117,7 +117,7 @@
             <div class="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center gap-1.5">
               <span class="text-[10px] uppercase font-bold text-slate-400">{% trans "Tools Used" %}:</span>
               {% for tc in msg.tool_calls %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-2 text-muted">
                 {{ tc.name }}
               </span>
               {% endfor %}
@@ -140,7 +140,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
         </div>
-        <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "How can I assist you today?" %}</h3>
+        <h3 class="text-sm font-semibold text-ink">{% trans "How can I assist you today?" %}</h3>
         <p class="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
           {% trans "Query operational metrics, inspect inventory, discover dormant customers, or prepare stock reorder drafts." %}
         </p>
@@ -150,25 +150,25 @@
 
     <!-- Suggested Quick Prompts -->
     <div class="px-6 py-2 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-850/50 flex flex-wrap gap-2">
-      <button type="button" onclick="setPrompt('Show sales summary for this month')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+      <button type="button" onclick="setPrompt('Show sales summary for this month')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface border border-line text-muted hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
         📊 {% trans "Sales summary this month" %}
       </button>
-      <button type="button" onclick="setPrompt('What products have low stock?')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+      <button type="button" onclick="setPrompt('What products have low stock?')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface border border-line text-muted hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
         ⚠️ {% trans "Low stock products" %}
       </button>
-      <button type="button" onclick="setPrompt('Find inactive customers for 60 days')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+      <button type="button" onclick="setPrompt('Find inactive customers for 60 days')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface border border-line text-muted hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
         👥 {% trans "Inactive customers" %}
       </button>
-      <button type="button" onclick="setPrompt('Explain profit and margin changes')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+      <button type="button" onclick="setPrompt('Explain profit and margin changes')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface border border-line text-muted hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
         📈 {% trans "Profit margin shift" %}
       </button>
-      <button type="button" onclick="setPrompt('Create draft PO for low stock items')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
+      <button type="button" onclick="setPrompt('Create draft PO for low stock items')" class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface border border-line text-muted hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors shadow-2xs">
         📝 {% trans "Draft reorder PO" %}
       </button>
     </div>
 
     <!-- Input Form -->
-    <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+    <div class="p-4 border-t border-line bg-surface">
       <form id="chat-form" hx-post="{% url 'ai:send_message' active_conversation.public_id %}" hx-target="#chat-messages" hx-swap="beforeend" hx-indicator="#send-spinner" class="flex items-center space-x-3" onsubmit="setTimeout(clearAndScroll, 50)">
         {% csrf_token %}
         <div class="relative flex-1">

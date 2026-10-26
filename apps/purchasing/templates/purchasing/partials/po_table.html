@@ -1,7 +1,7 @@
 {% load i18n %}
 <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-        <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
+    <table class="min-w-full divide-y divide-line text-sm">
+        <thead class="bg-app text-muted">
             <tr>
                 <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "PO Number" %}</th>
                 <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
@@ -12,9 +12,9 @@
                 <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+        <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
             {% for po in orders %}
-            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+            <tr class="hover:bg-surface-2 transition-colors">
                 <td class="px-6 py-4 whitespace-nowrap font-medium text-indigo-600 dark:text-indigo-400">
                     <a href="{% url 'purchasing:purchase_order_detail' pk=po.pk %}" class="hover:underline">
                         {{ po.order_number }}
@@ -65,7 +65,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7" class="px-6 py-12 text-center text-slate-400 dark:text-slate-500">
+                <td colspan="7" class="px-6 py-12 text-center text-muted">
                     <p class="text-sm font-medium">{% trans "No purchase orders found" %}</p>
                 </td>
             </tr>

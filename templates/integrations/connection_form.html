@@ -12,18 +12,18 @@
         <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
             <a href="{% url 'integrations:connections_list' %}" class="hover:text-slate-700">{% trans "Connectors" %}</a>
             <span>&rsaquo;</span>
-            <span class="text-slate-700 dark:text-slate-300 font-medium">
+            <span class="text-muted font-medium">
                 {% if is_create %}{% trans "New Connection" %}{% else %}{% trans "Edit Connection" %}{% endif %}
             </span>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">
             {% if is_create %}{% trans "Configure New Connection" %}{% else %}{% trans "Edit Connection Settings" %}{% endif %}
         </h1>
         <p class="text-xs text-slate-500 mt-1">{% trans "Set up connection options, sync intervals, and credentials encrypted at rest." %}</p>
     </div>
 
     <!-- Form Container -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
         <form method="post" class="space-y-6">
             {% csrf_token %}
 
@@ -35,12 +35,12 @@
 
             <!-- Section 1: Basic Information -->
             <div>
-                <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-sm font-bold text-ink mb-4 pb-2 border-b border-slate-100 dark:border-slate-800">
                     {% trans "1. Connection Overview" %}
                 </h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" for="{{ form.name.id_for_label }}">
+                        <label class="block text-xs font-semibold text-muted mb-1.5" for="{{ form.name.id_for_label }}">
                             {% trans "Connection Name" %} *
                         </label>
                         {{ form.name }}
@@ -50,7 +50,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" for="{{ form.connector_type.id_for_label }}">
+                        <label class="block text-xs font-semibold text-muted mb-1.5" for="{{ form.connector_type.id_for_label }}">
                             {% trans "Connector Type" %} *
                         </label>
                         {{ form.connector_type }}
@@ -60,7 +60,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" for="{{ form.status.id_for_label }}">
+                        <label class="block text-xs font-semibold text-muted mb-1.5" for="{{ form.status.id_for_label }}">
                             {% trans "Status" %}
                         </label>
                         {{ form.status }}
@@ -70,7 +70,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" for="{{ form.sync_interval_minutes.id_for_label }}">
+                        <label class="block text-xs font-semibold text-muted mb-1.5" for="{{ form.sync_interval_minutes.id_for_label }}">
                             {% trans "Auto-Sync Interval (minutes)" %}
                         </label>
                         {{ form.sync_interval_minutes }}
@@ -80,7 +80,7 @@
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" for="{{ form.description.id_for_label }}">
+                        <label class="block text-xs font-semibold text-muted mb-1.5" for="{{ form.description.id_for_label }}">
                             {% trans "Description (Optional)" %}
                         </label>
                         {{ form.description }}
@@ -93,7 +93,7 @@
 
             <!-- Section 2: Parameters Configuration -->
             <div>
-                <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <h2 class="text-sm font-bold text-ink mb-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                     {% trans "2. Connector Configuration" %}
                 </h2>
                 <p class="text-xs text-slate-500 mb-3">{{ form.config_json.help_text }}</p>
@@ -106,12 +106,12 @@
             </div>
 
             <!-- Section 3: Credentials (Encrypted) -->
-            <div class="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+            <div class="bg-app border border-line rounded-xl p-4">
                 <div class="flex items-center gap-2 mb-2">
                     <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <h2 class="text-sm font-bold text-slate-900 dark:text-white">
+                    <h2 class="text-sm font-bold text-ink">
                         {% trans "3. Secret Credentials (Encrypted at Rest)" %}
                     </h2>
                 </div>
@@ -126,7 +126,7 @@
 
             <!-- Form Actions -->
             <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <a href="{% url 'integrations:connections_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                <a href="{% url 'integrations:connections_list' %}" class="px-4 py-2 border border-line rounded-lg text-xs font-semibold text-muted hover:bg-slate-50">
                     {% trans "Cancel" %}
                 </a>
                 <button type="submit" class="px-5 py-2 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs">

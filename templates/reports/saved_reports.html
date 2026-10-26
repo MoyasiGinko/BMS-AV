@@ -11,10 +11,10 @@
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
                 <span>&rsaquo;</span>
-                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Saved Reports" %}</span>
+                <span class="text-muted font-medium">{% trans "Saved Reports" %}</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Saved Reports" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Saved Reports" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Manage saved standard filter presets and custom-built reports." %}
             </p>
         </div>
@@ -29,11 +29,11 @@
     </div>
 
     <!-- Filters & Search -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
         <form method="get" class="flex flex-col sm:flex-row items-center gap-4">
             <div class="relative flex-1 w-full">
                 <input type="text" name="q" value="{{ search }}" placeholder="{% trans 'Search saved reports by name or description...' %}"
-                       class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                       class="w-full pl-10 pr-4 py-2 text-sm bg-app border border-line rounded-lg text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -42,26 +42,26 @@
             </div>
             <div class="w-full sm:w-64">
                 <select name="report_type" onchange="this.form.submit()"
-                        class="w-full py-2 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        class="w-full py-2 px-3 text-sm bg-app border border-line rounded-lg text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="">{% trans "All Report Types" %}</option>
                     {% for val, label in report_types %}
                     <option value="{{ val }}" {% if selected_report_type == val %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-lg transition-colors">
+            <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-muted text-sm font-medium rounded-lg transition-colors">
                 {% trans "Filter" %}
             </button>
         </form>
     </div>
 
     <!-- Reports Table / Grid -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         {% if reports %}
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    <tr class="bg-app border-b border-line text-xs font-semibold text-muted uppercase tracking-wider">
                         <th class="py-3 px-4">{% trans "Report Name" %}</th>
                         <th class="py-3 px-4">{% trans "Type" %}</th>
                         <th class="py-3 px-4">{% trans "Visibility" %}</th>
@@ -70,15 +70,15 @@
                         <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for report in reports %}
-                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                        <td class="py-3.5 px-4 font-medium text-slate-900 dark:text-white">
+                    <tr class="hover:bg-surface-2 transition-colors">
+                        <td class="py-3.5 px-4 font-medium text-ink">
                             <a href="{% url 'reports:saved_report_detail' report_id=report.public_id %}" class="hover:text-indigo-600 dark:hover:text-indigo-400">
                                 {{ report.name }}
                             </a>
                             {% if report.description %}
-                            <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{{ report.description }}</span>
+                            <span class="block text-xs text-muted mt-0.5 line-clamp-1">{{ report.description }}</span>
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-4">
@@ -92,7 +92,7 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-400">
+                        <td class="py-3.5 px-4 text-xs text-muted">
                             {% if report.is_public %}
                             <span class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -109,14 +109,14 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="py-3.5 px-4 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                        <td class="py-3.5 px-4 text-xs text-muted font-mono">
                             {% if report.last_run_at %}
                             {{ report.last_run_at|date:"Y-m-d H:i" }}
                             {% else %}
                             <span class="text-slate-400 italic">{% trans "Never" %}</span>
                             {% endif %}
                         </td>
-                        <td class="py-3.5 px-4 text-xs text-slate-500 dark:text-slate-400">
+                        <td class="py-3.5 px-4 text-xs text-muted">
                             {{ report.created_by.email|default:"System" }}
                         </td>
                         <td class="py-3.5 px-4 text-right">
@@ -141,11 +141,11 @@
             </table>
         </div>
         {% else %}
-        <div class="py-12 text-center text-slate-500 dark:text-slate-400 space-y-3">
+        <div class="py-12 text-center text-muted space-y-3">
             <svg class="w-12 h-12 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
-            <p class="text-base font-medium text-slate-900 dark:text-white">{% trans "No saved reports found." %}</p>
+            <p class="text-base font-medium text-ink">{% trans "No saved reports found." %}</p>
             <p class="text-sm max-w-sm mx-auto">{% trans "Use the Report Builder or standard operational reports to save frequent queries for easy access." %}</p>
             <div class="pt-2">
                 <a href="{% url 'reports:builder' %}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">

@@ -1,11 +1,11 @@
 {% load i18n %}
-<div id="doc-{{ doc.public_id }}" class="flex items-center justify-between p-3.5 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+<div id="doc-{{ doc.public_id }}" class="flex items-center justify-between p-3.5 bg-surface rounded-lg border border-line">
     <div class="flex items-center space-x-3">
         <div class="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs uppercase">
             {{ doc.document_type|slice:":3" }}
         </div>
         <div>
-            <a href="{{ doc.file.url }}" target="_blank" class="text-sm font-semibold text-slate-900 dark:text-white hover:underline">
+            <a href="{{ doc.file.url }}" target="_blank" class="text-sm font-semibold text-ink hover:underline">
                 {{ doc.title }}
             </a>
             <p class="text-xs text-slate-400">
@@ -15,7 +15,7 @@
         </div>
     </div>
     <div class="flex items-center space-x-2">
-        <a href="{{ doc.file.url }}" download class="px-2.5 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+        <a href="{{ doc.file.url }}" download class="px-2.5 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 text-muted hover:bg-slate-50">
             {% trans "Download" %}
         </a>
         <button hx-delete="{% url 'hr:employee_document_delete' doc_public_id=doc.public_id %}"

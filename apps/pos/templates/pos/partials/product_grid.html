@@ -12,15 +12,15 @@
                 stock_qty: {{ product.stock_qty|default:0 }},
                 is_stock: {% if product.type == 'stock' %}true{% else %}false{% endif %}
             })"
-            class="group relative flex flex-col justify-between p-3.5 bg-white dark:bg-slate-800/80 hover:bg-indigo-50/50 dark:hover:bg-slate-800 border {% if product.type == 'stock' and product.stock_qty <= 0 %}border-rose-200 dark:border-rose-900/50 opacity-80{% else %}border-slate-200 dark:border-slate-700/80 hover:border-indigo-400 dark:hover:border-indigo-500{% endif %} rounded-xl text-left shadow-xs hover:shadow-md transition-all duration-150 active:scale-95 cursor-pointer">
+            class="group relative flex flex-col justify-between p-3.5 bg-surface/80 hover:bg-indigo-50/50 dark:hover:bg-slate-800 border {% if product.type == 'stock' and product.stock_qty <= 0 %}border-rose-200 dark:border-rose-900/50 opacity-80{% else %}border-line/80 hover:border-indigo-400 dark:hover:border-indigo-500{% endif %} rounded-xl text-left shadow-xs hover:shadow-md transition-all duration-150 active:scale-95 cursor-pointer">
         <div>
-            <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 dark:text-slate-500 mb-1 gap-1">
+            <div class="flex items-center justify-between text-[11px] font-mono text-muted mb-1 gap-1">
                 <span class="truncate">{{ product.sku }}</span>
                 {% if product.barcode %}
-                <span class="text-[10px] bg-slate-100 dark:bg-slate-700 px-1 rounded truncate">{{ product.barcode }}</span>
+                <span class="text-[10px] bg-surface-2 px-1 rounded truncate">{{ product.barcode }}</span>
                 {% endif %}
             </div>
-            <h4 class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white line-clamp-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+            <h4 class="text-xs sm:text-sm font-semibold text-ink line-clamp-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                 {{ product.name }}
             </h4>
         </div>
@@ -55,7 +55,7 @@
         </div>
     </button>
     {% empty %}
-    <div class="col-span-full py-16 text-center text-slate-500 dark:text-slate-400">
+    <div class="col-span-full py-16 text-center text-muted">
         <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>

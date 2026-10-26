@@ -8,13 +8,13 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Purchase Orders" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Purchase Orders" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Order stock and supplies from vendors with approval and receipt tracking." %}
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{% url 'purchasing:goods_receipt_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+            <a href="{% url 'purchasing:goods_receipt_list' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
                 {% trans "Goods Receipts" %}
             </a>
             <a href="{% url 'purchasing:purchase_order_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
@@ -27,7 +27,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
         <form method="get" class="flex flex-col sm:flex-row gap-3" hx-get="{% url 'purchasing:purchase_order_list' %}" hx-target="#po-table-container" hx-push-url="true">
             <div class="flex-1">
                 {{ filter_form.search }}
@@ -35,14 +35,14 @@
             <div class="w-full sm:w-48">
                 {{ filter_form.status }}
             </div>
-            <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-colors">
+            <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-surface-2 hover:bg-surface-2 text-muted text-sm font-medium rounded-lg transition-colors">
                 {% trans "Filter" %}
             </button>
         </form>
     </div>
 
     <!-- Table Container -->
-    <div id="po-table-container" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+    <div id="po-table-container" class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         {% include "purchasing/partials/po_table.html" %}
     </div>
 </div>

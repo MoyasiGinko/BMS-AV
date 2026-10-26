@@ -7,13 +7,13 @@
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Employee Salary Assignments" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Employee Salary Assignments" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Manage base salaries and compensation structures linked to active employees." %}
             </p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{% url 'payroll:run_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+            <a href="{% url 'payroll:run_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 transition-colors">
                 {% trans "Payroll Runs" %}
             </a>
             <a href="{% url 'payroll:assignment_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
@@ -23,10 +23,10 @@
     </div>
 
     <!-- Assignments Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <thead class="bg-app border-b border-line text-xs font-semibold uppercase tracking-wider text-muted">
                     <tr>
                         <th class="px-6 py-3.5">{% trans "Employee" %}</th>
                         <th class="px-6 py-3.5">{% trans "Salary Structure" %}</th>
@@ -36,23 +36,23 @@
                         <th class="px-6 py-3.5 text-center">{% trans "Status" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for assign in assignments %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr class="hover:bg-surface-2 transition-colors">
                         <td class="px-6 py-4">
-                            <span class="font-medium text-slate-900 dark:text-white">{{ assign.employee.full_name }}</span>
+                            <span class="font-medium text-ink">{{ assign.employee.full_name }}</span>
                             <div class="text-xs font-mono text-slate-400">{{ assign.employee.code }} &bull; {{ assign.employee.department.name|default:"—" }}</div>
                         </td>
-                        <td class="px-6 py-4 text-slate-700 dark:text-slate-300">
+                        <td class="px-6 py-4 text-muted">
                             {{ assign.salary_structure.name }}
                         </td>
-                        <td class="px-6 py-4 text-right font-mono font-bold text-slate-900 dark:text-white">
+                        <td class="px-6 py-4 text-right font-mono font-bold text-ink">
                             ${{ assign.base_salary|floatformat:2 }}
                         </td>
-                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300 text-xs">
+                        <td class="px-6 py-4 text-muted text-xs">
                             {{ assign.effective_from|date:"M d, Y" }} &rarr; {% if assign.effective_to %}{{ assign.effective_to|date:"M d, Y" }}{% else %}{% trans "Present" %}{% endif %}
                         </td>
-                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300 text-xs">
+                        <td class="px-6 py-4 text-muted text-xs">
                             {{ assign.get_payment_method_display }}
                             {% if assign.bank_account_number %}
                                 <div class="font-mono text-slate-400">{{ assign.bank_name }} ({{ assign.bank_account_number }})</div>

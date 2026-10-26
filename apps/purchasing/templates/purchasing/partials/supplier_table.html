@@ -1,7 +1,7 @@
 {% load i18n %}
 <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-        <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
+    <table class="min-w-full divide-y divide-line text-sm">
+        <thead class="bg-app text-muted">
             <tr>
                 <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
                 <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Contact" %}</th>
@@ -11,25 +11,25 @@
                 <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+        <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
             {% for supplier in suppliers %}
-            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+            <tr class="hover:bg-surface-2 transition-colors">
                 <td class="px-6 py-4 whitespace-nowrap">
                     <a href="{% url 'purchasing:supplier_detail' pk=supplier.pk %}" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                         {{ supplier.name }}
                     </a>
                     <span class="block text-xs text-slate-400 font-mono">{{ supplier.code }}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400">
+                <td class="px-6 py-4 whitespace-nowrap text-muted">
                     {% if supplier.contact_person %}<div class="text-xs font-medium">{{ supplier.contact_person }}</div>{% endif %}
                     {% if supplier.email %}<div class="text-xs text-slate-400">{{ supplier.email }}</div>{% endif %}
                     {% if supplier.phone %}<div class="text-xs text-slate-400">{{ supplier.phone }}</div>{% endif %}
                     {% if not supplier.contact_person and not supplier.email and not supplier.phone %}-{% endif %}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 text-xs">
+                <td class="px-6 py-4 whitespace-nowrap text-muted text-xs">
                     {{ supplier.payment_terms_days }} {% trans "days" %} ({{ supplier.currency }})
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-semibold {% if supplier.current_balance > 0 %}text-rose-600 dark:text-rose-400{% else %}text-slate-600 dark:text-slate-400{% endif %}">
+                <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-semibold {% if supplier.current_balance > 0 %}text-rose-600 dark:text-rose-400{% else %}text-muted{% endif %}">
                     ${{ supplier.current_balance }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -54,7 +54,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="px-6 py-12 text-center text-slate-400 dark:text-slate-500">
+                <td colspan="6" class="px-6 py-12 text-center text-muted">
                     <svg class="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>

@@ -11,13 +11,13 @@
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
                 <span>&rsaquo;</span>
-                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Profit & Loss" %}</span>
+                <span class="text-muted font-medium">{% trans "Profit & Loss" %}</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Profit and Loss Statement" %}</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Profit and Loss Statement" %}</h1>
         </div>
         <div class="flex items-center gap-2" x-data="{ exportOpen: false }">
             <div class="relative inline-block text-left">
-                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
                     <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -26,15 +26,15 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
-                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700 z-50">
+                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-surface border border-line divide-y divide-line z-50">
                     <div class="py-1">
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "CSV Spreadsheet" %}
                         </button>
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "Excel (XLSX)" %}
                         </button>
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "PDF Document" %}
                         </button>
                     </div>
@@ -47,15 +47,15 @@
     <div id="export-container"></div>
 
     <!-- Filter Bar -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
         <form id="filter-form" method="get" class="flex flex-wrap gap-4 items-end">
             <div>
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Start Date" %}</label>
-                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-semibold text-muted mb-1">{% trans "Start Date" %}</label>
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="text-sm rounded-lg border border-line bg-surface text-ink px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "End Date" %}</label>
-                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-semibold text-muted mb-1">{% trans "End Date" %}</label>
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="text-sm rounded-lg border border-line bg-surface text-ink px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
             </div>
             <div>
                 <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">
@@ -67,20 +67,20 @@
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">{% trans "Total Revenue" %}</span>
-            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ data.total_revenue|floatformat:2 }}</div>
+            <div class="text-2xl font-bold text-ink mt-1">{{ data.total_revenue|floatformat:2 }}</div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">{% trans "Gross Profit" %}</span>
-            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ data.gross_profit|floatformat:2 }}</div>
+            <div class="text-2xl font-bold text-ink mt-1">{{ data.gross_profit|floatformat:2 }}</div>
             <div class="text-xs text-slate-500 mt-1">{% trans "Margin:" %} {{ data.gross_margin_pct|floatformat:1 }}%</div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">{% trans "Operating Expenses" %}</span>
-            <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ data.total_expenses|floatformat:2 }}</div>
+            <div class="text-2xl font-bold text-ink mt-1">{{ data.total_expenses|floatformat:2 }}</div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">{% trans "Net Profit" %}</span>
             <div class="text-2xl font-bold {% if data.net_profit >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %} mt-1">
                 {{ data.net_profit|floatformat:2 }}
@@ -90,24 +90,24 @@
     </div>
 
     <!-- P&L Financial Report Layout -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         <div class="p-6 space-y-6">
             <!-- Revenue Section -->
             <div>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <h3 class="text-sm font-bold text-ink uppercase tracking-wider mb-2 border-b border-line pb-2">
                     {% trans "Operating Revenue" %}
                 </h3>
-                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                <div class="divide-y divide-line">
                     {% for row in data.revenue_rows %}
                     <div class="flex justify-between py-2 text-sm">
-                        <span class="text-slate-700 dark:text-slate-300"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
-                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ row.amount|floatformat:2 }}</span>
+                        <span class="text-muted"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
+                        <span class="font-mono font-medium text-ink">{{ row.amount|floatformat:2 }}</span>
                     </div>
                     {% empty %}
                     <div class="py-2 text-sm text-slate-500">{% trans "No revenue recorded for this period." %}</div>
                     {% endfor %}
-                    <div class="flex justify-between py-2.5 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60 px-3 rounded-lg mt-2">
-                        <span class="text-slate-900 dark:text-white">{% trans "Total Revenue" %}</span>
+                    <div class="flex justify-between py-2.5 text-sm font-semibold bg-app px-3 rounded-lg mt-2">
+                        <span class="text-ink">{% trans "Total Revenue" %}</span>
                         <span class="font-mono">{{ data.total_revenue|floatformat:2 }}</span>
                     </div>
                 </div>
@@ -115,20 +115,20 @@
 
             <!-- Cost of Goods Sold Section -->
             <div>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <h3 class="text-sm font-bold text-ink uppercase tracking-wider mb-2 border-b border-line pb-2">
                     {% trans "Cost of Goods Sold (COGS)" %}
                 </h3>
-                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                <div class="divide-y divide-line">
                     {% for row in data.cogs_rows %}
                     <div class="flex justify-between py-2 text-sm">
-                        <span class="text-slate-700 dark:text-slate-300"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
-                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ row.amount|floatformat:2 }}</span>
+                        <span class="text-muted"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
+                        <span class="font-mono font-medium text-ink">{{ row.amount|floatformat:2 }}</span>
                     </div>
                     {% empty %}
                     <div class="py-2 text-sm text-slate-500">{% trans "No COGS recorded for this period." %}</div>
                     {% endfor %}
-                    <div class="flex justify-between py-2.5 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60 px-3 rounded-lg mt-2">
-                        <span class="text-slate-900 dark:text-white">{% trans "Total Cost of Goods Sold" %}</span>
+                    <div class="flex justify-between py-2.5 text-sm font-semibold bg-app px-3 rounded-lg mt-2">
+                        <span class="text-ink">{% trans "Total Cost of Goods Sold" %}</span>
                         <span class="font-mono">{{ data.total_cogs|floatformat:2 }}</span>
                     </div>
                 </div>
@@ -142,20 +142,20 @@
 
             <!-- Operating Expenses Section -->
             <div>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                <h3 class="text-sm font-bold text-ink uppercase tracking-wider mb-2 border-b border-line pb-2">
                     {% trans "Operating Expenses" %}
                 </h3>
-                <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                <div class="divide-y divide-line">
                     {% for row in data.expense_rows %}
                     <div class="flex justify-between py-2 text-sm">
-                        <span class="text-slate-700 dark:text-slate-300"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
-                        <span class="font-mono font-medium text-slate-900 dark:text-white">{{ row.amount|floatformat:2 }}</span>
+                        <span class="text-muted"><span class="font-mono text-xs text-slate-500 mr-2">{{ row.code }}</span>{{ row.name }}</span>
+                        <span class="font-mono font-medium text-ink">{{ row.amount|floatformat:2 }}</span>
                     </div>
                     {% empty %}
                     <div class="py-2 text-sm text-slate-500">{% trans "No expenses recorded for this period." %}</div>
                     {% endfor %}
-                    <div class="flex justify-between py-2.5 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60 px-3 rounded-lg mt-2">
-                        <span class="text-slate-900 dark:text-white">{% trans "Total Operating Expenses" %}</span>
+                    <div class="flex justify-between py-2.5 text-sm font-semibold bg-app px-3 rounded-lg mt-2">
+                        <span class="text-ink">{% trans "Total Operating Expenses" %}</span>
                         <span class="font-mono">{{ data.total_expenses|floatformat:2 }}</span>
                     </div>
                 </div>

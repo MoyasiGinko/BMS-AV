@@ -13,14 +13,14 @@
       </div>
       <div>
         <div class="flex items-center space-x-2">
-          <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+          <h3 class="text-sm font-bold text-ink tracking-tight">
             {% trans "What Needs Attention Today" %}
           </h3>
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
             {{ total_count }} {% trans "Items" %}
           </span>
         </div>
-        <div class="flex items-center space-x-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+        <div class="flex items-center space-x-2 mt-0.5 text-xs text-muted">
           {% if critical_count > 0 %}
             <span class="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
@@ -33,7 +33,7 @@
             </span>
           {% endif %}
           {% if info_count > 0 %}
-            <span class="text-slate-500 dark:text-slate-400">
+            <span class="text-muted">
               • {{ info_count }} {% trans "Notice" %}
             </span>
           {% endif %}
@@ -69,7 +69,7 @@
               hx-get="{% url 'ai:attention_items' %}?category=all"
               hx-target="#attention-items-container"
               title="{% trans 'Refresh Operational Insights' %}"
-              class="inline-flex items-center p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              class="inline-flex items-center p-1.5 rounded-lg border border-line text-slate-500 hover:text-muted dark:hover:text-slate-200 hover:bg-surface-2 transition-colors">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>

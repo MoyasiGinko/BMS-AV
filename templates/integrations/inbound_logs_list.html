@@ -11,10 +11,10 @@
       <a href="{% url 'integrations:inbound_endpoints_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
         &larr; {% trans "Inbound Endpoints" %}
       </a>
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+      <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
         {% trans "Inbound Webhook Audit Logs" %}
       </h1>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      <p class="mt-1 text-sm text-muted">
         {% trans "Real-time delivery transcripts and cryptographic verification audit logs across all endpoints." %}
       </p>
     </div>
@@ -23,19 +23,19 @@
     <div class="mt-4 sm:mt-0 flex items-center space-x-2">
       <a
         href="{% url 'integrations:inbound_logs_list' %}"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium {% if not selected_status %}bg-indigo-600 text-white{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300{% endif %}"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium {% if not selected_status %}bg-indigo-600 text-white{% else %}bg-surface-2 text-muted{% endif %}"
       >
         {% trans "All" %}
       </a>
       <a
         href="{% url 'integrations:inbound_logs_list' %}?status=verified"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium {% if selected_status == 'verified' %}bg-emerald-600 text-white{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300{% endif %}"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium {% if selected_status == 'verified' %}bg-emerald-600 text-white{% else %}bg-surface-2 text-muted{% endif %}"
       >
         {% trans "Verified" %}
       </a>
       <a
         href="{% url 'integrations:inbound_logs_list' %}?status=failed"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium {% if selected_status == 'failed' %}bg-rose-600 text-white{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300{% endif %}"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium {% if selected_status == 'failed' %}bg-rose-600 text-white{% else %}bg-surface-2 text-muted{% endif %}"
       >
         {% trans "Failed" %}
       </a>
@@ -43,10 +43,10 @@
   </div>
 
   <!-- Logs Table -->
-  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+  <div class="bg-surface rounded-2xl shadow-sm border border-line overflow-hidden">
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-        <thead class="bg-slate-50 dark:bg-slate-800/50">
+      <table class="min-w-full divide-y divide-line">
+        <thead class="bg-app">
           <tr>
             <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
               {% trans "Timestamp" %}
@@ -71,14 +71,14 @@
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+        <tbody class="divide-y divide-line text-xs">
           {% for log in logs %}
-          <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+          <tr class="hover:bg-surface-2 transition">
             <td class="px-6 py-4 whitespace-nowrap text-slate-500">
               {{ log.created_at|date:"Y-m-d H:i:s" }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <a href="{% url 'integrations:inbound_endpoint_detail' log.endpoint.public_id %}" class="font-medium text-slate-900 dark:text-slate-100 hover:text-indigo-600">
+              <a href="{% url 'integrations:inbound_endpoint_detail' log.endpoint.public_id %}" class="font-medium text-ink hover:text-indigo-600">
                 {{ log.endpoint.name }}
               </a>
               <div class="text-[11px] text-slate-400 uppercase">{{ log.endpoint.provider }}</div>
@@ -108,7 +108,7 @@
             <td class="px-6 py-4 whitespace-nowrap text-slate-500 font-mono">
               {{ log.ip_address|default:"—" }}
             </td>
-            <td class="px-6 py-4 max-w-sm truncate text-slate-600 dark:text-slate-400">
+            <td class="px-6 py-4 max-w-sm truncate text-muted">
               {{ log.error_message|default:"Success" }}
             </td>
           </tr>

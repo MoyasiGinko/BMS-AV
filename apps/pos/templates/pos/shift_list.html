@@ -8,13 +8,13 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Cashier Shifts & Cash Reconciliations" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Cashier Shifts & Cash Reconciliations" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Audit register cash drawers, shifts, and cash variance journal entries." %}
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{% url 'pos:terminal' %}" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs transition">
+            <a href="{% url 'pos:terminal' %}" class="inline-flex items-center px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs transition">
                 <svg class="w-4 h-4 mr-1.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
@@ -30,7 +30,7 @@
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="border-b border-slate-200 dark:border-slate-800">
+    <div class="border-b border-line">
         <nav class="flex space-x-8" aria-label="Tabs">
             <a href="{% url 'pos:terminal' %}" class="border-transparent text-slate-500 hover:text-slate-700 py-3 px-1 border-b-2 font-medium text-sm">
                 {% trans "Terminal" %}
@@ -47,24 +47,24 @@
     <!-- Status Filters -->
     <div class="flex items-center space-x-2">
         <a href="{% url 'pos:shift_list' %}"
-           class="px-3 py-1.5 rounded-lg text-xs font-medium {% if not status_filter %}bg-indigo-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">
+           class="px-3 py-1.5 rounded-lg text-xs font-medium {% if not status_filter %}bg-indigo-600 text-white{% else %}bg-surface text-muted border border-line{% endif %}">
             {% trans "All Shifts" %}
         </a>
         <a href="{% url 'pos:shift_list' %}?status=OPEN"
-           class="px-3 py-1.5 rounded-lg text-xs font-medium {% if status_filter == 'OPEN' %}bg-indigo-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">
+           class="px-3 py-1.5 rounded-lg text-xs font-medium {% if status_filter == 'OPEN' %}bg-indigo-600 text-white{% else %}bg-surface text-muted border border-line{% endif %}">
             {% trans "Open Only" %}
         </a>
         <a href="{% url 'pos:shift_list' %}?status=CLOSED"
-           class="px-3 py-1.5 rounded-lg text-xs font-medium {% if status_filter == 'CLOSED' %}bg-indigo-600 text-white{% else %}bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">
+           class="px-3 py-1.5 rounded-lg text-xs font-medium {% if status_filter == 'CLOSED' %}bg-indigo-600 text-white{% else %}bg-surface text-muted border border-line{% endif %}">
             {% trans "Closed Only" %}
         </a>
     </div>
 
     <!-- Shifts Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-sm">
-                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase font-semibold text-slate-500">
+            <table class="min-w-full divide-y divide-line text-left text-sm">
+                <thead class="bg-app text-xs uppercase font-semibold text-slate-500">
                     <tr>
                         <th class="px-6 py-3.5">{% trans "Shift #" %}</th>
                         <th class="px-6 py-3.5">{% trans "Register" %}</th>
@@ -77,18 +77,18 @@
                         <th class="px-6 py-3.5 text-right">{% trans "Action" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for shift in shifts %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
-                        <td class="px-6 py-4 font-mono font-bold text-slate-900 dark:text-white">
+                    <tr class="hover:bg-surface-2 transition">
+                        <td class="px-6 py-4 font-mono font-bold text-ink">
                             <a href="{% url 'pos:shift_detail' shift.public_id %}" class="hover:text-indigo-600">
                                 {{ shift.shift_number }}
                             </a>
                         </td>
-                        <td class="px-6 py-4 text-slate-700 dark:text-slate-300">
+                        <td class="px-6 py-4 text-muted">
                             {{ shift.register.code }} &bull; {{ shift.register.name }}
                         </td>
-                        <td class="px-6 py-4 text-slate-700 dark:text-slate-300">
+                        <td class="px-6 py-4 text-muted">
                             {{ shift.cashier.get_full_name|default:shift.cashier.email }}
                         </td>
                         <td class="px-6 py-4">
@@ -106,10 +106,10 @@
                         <td class="px-6 py-4 text-slate-500 text-xs">
                             {{ shift.opened_at|date:"Y-m-d H:i" }}
                         </td>
-                        <td class="px-6 py-4 font-mono text-right text-slate-700 dark:text-slate-300">
+                        <td class="px-6 py-4 font-mono text-right text-muted">
                             ${{ shift.opening_cash }}
                         </td>
-                        <td class="px-6 py-4 font-mono text-right font-semibold text-slate-900 dark:text-white">
+                        <td class="px-6 py-4 font-mono text-right font-semibold text-ink">
                             ${{ shift.total_sales_amount }}
                         </td>
                         <td class="px-6 py-4 font-mono text-right">

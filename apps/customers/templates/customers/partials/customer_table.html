@@ -1,9 +1,9 @@
 {% load i18n %}
 
-<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+<div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-sm">
-            <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
+        <table class="min-w-full divide-y divide-line text-left text-sm">
+            <thead class="bg-app text-muted font-medium">
                 <tr>
                     <th scope="col" class="py-3 px-4">{% trans "Customer" %}</th>
                     <th scope="col" class="py-3 px-4">{% trans "Type" %}</th>
@@ -14,23 +14,23 @@
                     <th scope="col" class="py-3 px-4 text-right">{% trans "Actions" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+            <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
                 {% for customer in page_obj %}
-                <tr class="hover:bg-slate-50/75 dark:hover:bg-slate-800/50 transition-colors">
+                <tr class="hover:bg-surface-2 transition-colors">
                     <td class="py-3.5 px-4">
-                        <div class="font-medium text-slate-900 dark:text-white">
+                        <div class="font-medium text-ink">
                             <a href="{% url 'customers:customer_detail' customer.pk %}" class="hover:text-indigo-600 transition-colors">
                                 {{ customer.name }}
                             </a>
                         </div>
                         <div class="text-xs text-slate-500 font-mono mt-0.5">{{ customer.code }}</div>
                     </td>
-                    <td class="py-3.5 px-4 text-slate-600 dark:text-slate-400">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    <td class="py-3.5 px-4 text-muted">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted">
                             {{ customer.get_type_display }}
                         </span>
                     </td>
-                    <td class="py-3.5 px-4 text-slate-600 dark:text-slate-400">
+                    <td class="py-3.5 px-4 text-muted">
                         {% if customer.phone %}
                         <div class="text-xs font-mono">{{ customer.phone }}</div>
                         {% endif %}
@@ -42,7 +42,7 @@
                         {% endif %}
                     </td>
                     <td class="py-3.5 px-4 text-right font-mono font-medium">
-                        <span class="{% if customer.current_balance > 0 %}text-amber-600 dark:text-amber-400{% else %}text-slate-700 dark:text-slate-300{% endif %}">
+                        <span class="{% if customer.current_balance > 0 %}text-amber-600 dark:text-amber-400{% else %}text-muted{% endif %}">
                             ${{ customer.current_balance }}
                         </span>
                     </td>
@@ -68,7 +68,7 @@
                             {% trans "Suspended" %}
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-muted">
                             {% trans "Inactive" %}
                         </span>
                         {% endif %}
@@ -79,7 +79,7 @@
                                 {% trans "View" %}
                             </a>
                             <span class="text-slate-300 dark:text-slate-700">|</span>
-                            <a href="{% url 'customers:customer_update' customer.pk %}" class="text-xs font-medium text-slate-600 dark:text-slate-400 hover:underline">
+                            <a href="{% url 'customers:customer_update' customer.pk %}" class="text-xs font-medium text-muted hover:underline">
                                 {% trans "Edit" %}
                             </a>
                         </div>
@@ -87,11 +87,11 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="py-12 text-center text-slate-500 dark:text-slate-400">
+                    <td colspan="7" class="py-12 text-center text-muted">
                         <svg class="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
-                        <p class="font-medium text-base text-slate-900 dark:text-white">{% trans "No customers found" %}</p>
+                        <p class="font-medium text-base text-ink">{% trans "No customers found" %}</p>
                         <p class="text-xs text-slate-400 mt-1">{% trans "Try adjusting your search criteria or register a new client account." %}</p>
                     </td>
                 </tr>
@@ -102,7 +102,7 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+    <div class="px-4 py-3 border-t border-line flex items-center justify-between text-xs text-slate-500">
         <div>
             {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
         </div>
@@ -111,7 +111,7 @@
             <a href="?page={{ page_obj.previous_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}"
                hx-get="?page={{ page_obj.previous_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}"
                hx-target="#customer-table-container"
-               class="px-2.5 py-1 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50">
+               class="px-2.5 py-1 border border-line rounded-md hover:bg-slate-50">
                 {% trans "Previous" %}
             </a>
             {% endif %}
@@ -119,7 +119,7 @@
             <a href="?page={{ page_obj.next_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}"
                hx-get="?page={{ page_obj.next_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}"
                hx-target="#customer-table-container"
-               class="px-2.5 py-1 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50">
+               class="px-2.5 py-1 border border-line rounded-md hover:bg-slate-50">
                 {% trans "Next" %}
             </a>
             {% endif %}

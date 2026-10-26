@@ -7,25 +7,25 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Multi-Currency & Exchange Rates" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Multi-Currency & Exchange Rates" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Manage foreign currency exchange rates for conversion across transactions and reports." %}
             </p>
         </div>
-        <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+        <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
             &larr; {% trans "Dashboard" %}
         </a>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Rates Table (2 cols) -->
-        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-            <div class="p-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-white text-sm">
+        <div class="lg:col-span-2 bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+            <div class="p-4 border-b border-line font-semibold text-ink text-sm">
                 {% trans "Recorded Exchange Rates" %}
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-                    <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400">
+                <table class="min-w-full divide-y divide-line text-sm">
+                    <thead class="bg-app text-muted">
                         <tr>
                             <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Pair" %}</th>
                             <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Exchange Rate" %}</th>
@@ -33,10 +33,10 @@
                             <th scope="col" class="px-6 py-3.5 text-center font-semibold">{% trans "Source" %}</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+                    <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
                         {% for rate in rates %}
-                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                            <td class="px-6 py-4 whitespace-nowrap font-mono font-medium text-sm text-slate-900 dark:text-white">
+                        <tr class="hover:bg-surface-2">
+                            <td class="px-6 py-4 whitespace-nowrap font-mono font-medium text-sm text-ink">
                                 {{ rate.from_currency }} / {{ rate.to_currency }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-bold text-sm text-indigo-600 dark:text-indigo-400">
@@ -62,8 +62,8 @@
         </div>
 
         <!-- Add Rate Form (1 col) -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
-            <h3 class="font-semibold text-slate-900 dark:text-white text-sm">{% trans "Record Exchange Rate" %}</h3>
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs space-y-4">
+            <h3 class="font-semibold text-ink text-sm">{% trans "Record Exchange Rate" %}</h3>
             <form method="post" class="space-y-4">
                 {% csrf_token %}
                 {% if form.non_field_errors %}
@@ -74,14 +74,14 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                        <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
                             {% trans "From" %} *
                         </label>
                         {{ form.from_currency }}
                         {% if form.from_currency.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.from_currency.errors.0 }}</p>{% endif %}
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                        <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
                             {% trans "To" %} *
                         </label>
                         {{ form.to_currency }}
@@ -90,7 +90,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                    <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
                         {% trans "Exchange Rate" %} *
                     </label>
                     {{ form.rate }}
@@ -98,7 +98,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                    <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
                         {% trans "Effective Date" %} *
                     </label>
                     {{ form.effective_date }}
@@ -106,7 +106,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                    <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
                         {% trans "Source" %}
                     </label>
                     {{ form.source }}

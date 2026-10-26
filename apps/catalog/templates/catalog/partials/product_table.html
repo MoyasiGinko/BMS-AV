@@ -1,9 +1,9 @@
 {% load i18n %}
 <div id="product-table-container" class="space-y-4">
     {% if products %}
-    <div class="overflow-x-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
-        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-            <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+    <div class="overflow-x-auto bg-surface border border-line rounded-xl shadow-xs">
+        <table class="w-full text-left text-sm text-muted">
+            <thead class="bg-app text-xs uppercase tracking-wider text-muted border-b border-line">
                 <tr>
                     <th class="px-6 py-3.5 font-semibold">{% trans "Product / SKU" %}</th>
                     <th class="px-4 py-3.5 font-semibold">{% trans "Category" %}</th>
@@ -15,26 +15,26 @@
                     <th class="px-6 py-3.5 font-semibold text-right">{% trans "Actions" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody class="divide-y divide-line">
                 {% for p in products %}
-                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                <tr class="hover:bg-surface-2 transition-colors">
                     <td class="px-6 py-4">
                         <div class="flex items-center space-x-3">
                             <div class="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs uppercase">
                                 {{ p.name|slice:":2" }}
                             </div>
                             <div>
-                                <a href="{% url 'catalog:product_detail' p.pk %}" class="font-semibold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                <a href="{% url 'catalog:product_detail' p.pk %}" class="font-semibold text-ink hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                     {{ p.name }}
                                 </a>
-                                <div class="text-xs text-slate-400 dark:text-slate-500 font-mono flex items-center gap-2">
+                                <div class="text-xs text-muted font-mono flex items-center gap-2">
                                     <span>{{ p.sku }}</span>
                                     {% if p.barcode %}
                                     <span class="text-slate-300 dark:text-slate-600">•</span>
                                     <span title="{% trans 'Barcode' %}">{{ p.barcode }}</span>
                                     {% endif %}
                                     {% if p.variants.exists %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-2 text-muted">
                                         {{ p.variants.count }} {% trans "variants" %}
                                     </span>
                                     {% endif %}
@@ -44,7 +44,7 @@
                     </td>
                     <td class="px-4 py-4">
                         {% if p.category %}
-                        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">{{ p.category.name }}</span>
+                        <span class="text-xs font-medium text-muted">{{ p.category.name }}</span>
                         {% else %}
                         <span class="text-xs text-slate-400 dark:text-slate-600">—</span>
                         {% endif %}
@@ -64,10 +64,10 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-4 text-right font-mono text-slate-600 dark:text-slate-400">
+                    <td class="px-4 py-4 text-right font-mono text-muted">
                         ${{ p.cost_price|floatformat:2 }}
                     </td>
-                    <td class="px-4 py-4 text-right font-mono font-medium text-slate-900 dark:text-white">
+                    <td class="px-4 py-4 text-right font-mono font-medium text-ink">
                         ${{ p.selling_price|floatformat:2 }}
                     </td>
                     <td class="px-4 py-4 text-xs text-slate-500 font-mono">
@@ -111,12 +111,12 @@
             <a href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}"
                hx-get="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}"
                hx-target="#product-table-container"
-               class="px-3 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
+               class="px-3 py-1 rounded border border-line hover:bg-surface-2">
                 {% trans "Previous" %}
             </a>
             {% endif %}
 
-            <span class="px-3 py-1 text-slate-700 dark:text-slate-300 font-medium">
+            <span class="px-3 py-1 text-muted font-medium">
                 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
             </span>
 
@@ -124,7 +124,7 @@
             <a href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}"
                hx-get="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}"
                hx-target="#product-table-container"
-               class="px-3 py-1 rounded border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
+               class="px-3 py-1 rounded border border-line hover:bg-surface-2">
                 {% trans "Next" %}
             </a>
             {% endif %}
@@ -133,12 +133,12 @@
     {% endif %}
 
     {% else %}
-    <div class="text-center py-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
+    <div class="text-center py-16 bg-surface border border-line rounded-xl">
         <svg class="mx-auto h-12 w-12 text-slate-400 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
-        <h3 class="mt-4 text-sm font-semibold text-slate-900 dark:text-white">{% trans "No products found" %}</h3>
-        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <h3 class="mt-4 text-sm font-semibold text-ink">{% trans "No products found" %}</h3>
+        <p class="mt-1 text-sm text-muted">
             {% if search or selected_category or selected_type or selected_status %}
             {% trans "No catalog items matched your filter criteria." %}
             {% else %}

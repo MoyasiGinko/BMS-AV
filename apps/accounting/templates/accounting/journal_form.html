@@ -29,15 +29,15 @@
 }">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "New Journal Entry" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{% trans "Record manual debits and credits across general ledger accounts." %}</p>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "New Journal Entry" %}</h1>
+            <p class="text-sm text-muted mt-1">{% trans "Record manual debits and credits across general ledger accounts." %}</p>
         </div>
         <a href="{% url 'accounting:journal_list' %}" class="text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
             &larr; {% trans "Back to Journals" %}
         </a>
     </div>
 
-    <form method="post" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+    <form method="post" class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-6">
         {% csrf_token %}
         {% if form.non_field_errors %}
         <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-sm">
@@ -47,14 +47,14 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
                     {% trans "Posting Date" %} *
                 </label>
                 {{ form.date }}
                 {% if form.date.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.date.errors.0 }}</p>{% endif %}
             </div>
             <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold uppercase text-slate-700 dark:text-slate-300 tracking-wider mb-1">
+                <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
                     {% trans "Description / Memo" %} *
                 </label>
                 {{ form.memo }}
@@ -65,15 +65,15 @@
         <!-- Lines Entry Section -->
         <div>
             <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">{% trans "Journal Lines" %}</h3>
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-muted">{% trans "Journal Lines" %}</h3>
                 <button type="button" @click="addLine()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
                     + {% trans "Add Line" %}
                 </button>
             </div>
 
-            <div class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
-                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-                    <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs">
+            <div class="overflow-x-auto border border-line rounded-lg">
+                <table class="min-w-full divide-y divide-line text-sm">
+                    <thead class="bg-app text-muted text-xs">
                         <tr>
                             <th scope="col" class="px-4 py-3 text-left font-semibold">{% trans "Account" %}</th>
                             <th scope="col" class="px-4 py-3 text-left font-semibold">{% trans "Line Memo" %}</th>
@@ -82,11 +82,11 @@
                             <th scope="col" class="px-4 py-3 text-center w-12"></th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                    <tbody class="divide-y divide-line">
                         <template x-for="(line, index) in lines" :key="index">
                             <tr>
                                 <td class="px-4 py-2">
-                                    <select name="account_id[]" x-model="line.account_id" required class="w-full text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <select name="account_id[]" x-model="line.account_id" required class="w-full text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                         <option value="">{% trans "Select Account..." %}</option>
                                         {% for acct in accounts %}
                                         <option value="{{ acct.pk }}">{{ acct.code }} - {{ acct.name }}</option>
@@ -94,13 +94,13 @@
                                     </select>
                                 </td>
                                 <td class="px-4 py-2">
-                                    <input type="text" name="line_memo[]" x-model="line.memo" placeholder="{% trans 'Optional memo' %}" class="w-full text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <input type="text" name="line_memo[]" x-model="line.memo" placeholder="{% trans 'Optional memo' %}" class="w-full text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 </td>
                                 <td class="px-4 py-2">
-                                    <input type="number" step="0.01" min="0" name="debit[]" x-model="line.debit" class="w-full text-right font-mono text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <input type="number" step="0.01" min="0" name="debit[]" x-model="line.debit" class="w-full text-right font-mono text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 </td>
                                 <td class="px-4 py-2">
-                                    <input type="number" step="0.01" min="0" name="credit[]" x-model="line.credit" class="w-full text-right font-mono text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <input type="number" step="0.01" min="0" name="credit[]" x-model="line.credit" class="w-full text-right font-mono text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 </td>
                                 <td class="px-4 py-2 text-center">
                                     <button type="button" @click="removeLine(index)" class="text-slate-400 hover:text-rose-600 transition-colors" title="{% trans 'Remove' %}">
@@ -110,7 +110,7 @@
                             </tr>
                         </template>
                     </tbody>
-                    <tfoot class="bg-slate-50 dark:bg-slate-800/50 font-mono font-bold text-sm border-t border-slate-200 dark:border-slate-800">
+                    <tfoot class="bg-app font-mono font-bold text-sm border-t border-line">
                         <tr>
                             <td colspan="2" class="px-4 py-3 text-right uppercase text-xs tracking-wider">
                                 <span x-show="isBalanced" class="text-emerald-600 dark:text-emerald-400 font-sans font-medium mr-4">&#10003; {% trans "Balanced" %}</span>
@@ -126,8 +126,8 @@
             </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
-            <a href="{% url 'accounting:journal_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors">
+        <div class="pt-4 border-t border-line flex justify-end gap-3">
+            <a href="{% url 'accounting:journal_list' %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50 transition-colors">
                 {% trans "Cancel" %}
             </a>
             <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">

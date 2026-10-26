@@ -1,5 +1,5 @@
 {% load i18n %}
-<div id="crm-task-{{ task.public_id }}" class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+<div id="crm-task-{{ task.public_id }}" class="flex items-center justify-between p-3 bg-surface rounded-lg border border-line">
     <div class="flex items-center space-x-3">
         {% if task.status != 'completed' %}
         <button hx-post="{% url 'crm:task_toggle_complete' public_id=task.public_id %}"
@@ -11,11 +11,11 @@
         <span class="w-5 h-5 rounded bg-emerald-500 text-white flex items-center justify-center text-xs">✓</span>
         {% endif %}
         <div>
-            <p class="text-sm font-medium {% if task.status == 'completed' %}line-through text-slate-400{% else %}text-slate-900 dark:text-white{% endif %}">
+            <p class="text-sm font-medium {% if task.status == 'completed' %}line-through text-slate-400{% else %}text-ink{% endif %}">
                 {{ task.title }}
             </p>
             {% if task.description %}
-            <p class="text-xs text-slate-500 dark:text-slate-400">{{ task.description }}</p>
+            <p class="text-xs text-muted">{{ task.description }}</p>
             {% endif %}
         </div>
     </div>

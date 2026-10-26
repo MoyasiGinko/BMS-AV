@@ -1,7 +1,7 @@
 {% load i18n %}
 <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-        <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500">
+    <table class="min-w-full divide-y divide-line text-sm">
+        <thead class="bg-app text-slate-500">
             <tr>
                 <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Bill #" %}</th>
                 <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Vendor Invoice #" %}</th>
@@ -14,9 +14,9 @@
                 <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
+        <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
             {% for bill in bills %}
-            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+            <tr class="hover:bg-surface-2">
                 <td class="px-6 py-4 whitespace-nowrap font-medium text-indigo-600">
                     <a href="{% url 'purchasing:supplier_bill_detail' pk=bill.pk %}" class="hover:underline">
                         {{ bill.bill_number }}

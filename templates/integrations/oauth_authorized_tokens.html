@@ -10,20 +10,20 @@
     <a href="{% url 'integrations:oauth_applications_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
       &larr; {% trans "OAuth Applications" %}
     </a>
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+    <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
       {% trans "Authorized Applications" %}
     </h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    <p class="mt-1 text-sm text-muted">
       {% trans "Third-party applications you have granted permission to access your tenant data." %}
     </p>
   </div>
 
   <!-- Tokens List -->
-  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800">
+  <div class="bg-surface rounded-2xl shadow-sm border border-line divide-y divide-line">
     {% for token in tokens %}
     <div class="p-6 flex items-center justify-between">
       <div class="space-y-1">
-        <h3 class="text-base font-semibold text-slate-900 dark:text-slate-100">
+        <h3 class="text-base font-semibold text-ink">
           {{ token.application.name }}
         </h3>
         <div class="flex items-center space-x-3 text-xs text-slate-500">
@@ -38,7 +38,7 @@
           <button
             type="submit"
             onclick="return confirm('{% trans "Revoke access for this application?" %}');"
-            class="px-3.5 py-1.5 border border-rose-300 dark:border-rose-800 text-xs font-medium rounded-lg text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-900 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+            class="px-3.5 py-1.5 border border-rose-300 dark:border-rose-800 text-xs font-medium rounded-lg text-rose-700 dark:text-rose-400 bg-surface hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
           >
             {% trans "Revoke Access" %}
           </button>

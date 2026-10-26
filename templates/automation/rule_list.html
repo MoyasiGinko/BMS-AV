@@ -9,21 +9,21 @@
   <!-- Header -->
   <div class="sm:flex sm:items-center sm:justify-between">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+      <h1 class="text-2xl font-bold tracking-tight text-ink">
         {% trans "Automation Rules" %}
       </h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      <p class="mt-1 text-sm text-muted">
         {% trans "Design event-driven workflows, inventory reorders, and customer engagement triggers." %}
       </p>
     </div>
     <div class="mt-4 sm:mt-0 flex items-center space-x-3">
-      <a href="{% url 'automation:run_list' %}" class="inline-flex items-center px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-sm">
+      <a href="{% url 'automation:run_list' %}" class="inline-flex items-center px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-muted hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-sm">
         <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         {% trans "Run History" %}
       </a>
-      <a href="{% url 'automation:template_list' %}" class="inline-flex items-center px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-sm">
+      <a href="{% url 'automation:template_list' %}" class="inline-flex items-center px-3.5 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-muted hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-sm">
         <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
         </svg>
@@ -42,7 +42,7 @@
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
     <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-5 shadow-sm backdrop-blur">
       <div class="flex items-center justify-between">
-        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div class="text-xs font-semibold uppercase tracking-wider text-muted">
           {% trans "Active Rules" %}
         </div>
         <span class="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
@@ -52,13 +52,13 @@
         </span>
       </div>
       <div class="mt-2 flex items-baseline justify-between">
-        <div class="text-2xl font-bold text-slate-900 dark:text-white">
+        <div class="text-2xl font-bold text-ink">
           {{ metrics.active_rules }}
-          <span class="text-sm font-normal text-slate-500 dark:text-slate-400">
+          <span class="text-sm font-normal text-muted">
             / {% if metrics.max_active_rules == -1 %}Unlimited{% else %}{{ metrics.max_active_rules }}{% endif %}
           </span>
         </div>
-        <span class="text-xs text-slate-500 dark:text-slate-400">
+        <span class="text-xs text-muted">
           {{ metrics.total_rules }} total
         </span>
       </div>
@@ -66,7 +66,7 @@
 
     <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-5 shadow-sm backdrop-blur">
       <div class="flex items-center justify-between">
-        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div class="text-xs font-semibold uppercase tracking-wider text-muted">
           {% trans "Monthly Executions" %}
         </div>
         <span class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
@@ -76,19 +76,19 @@
         </span>
       </div>
       <div class="mt-2 flex items-baseline justify-between">
-        <div class="text-2xl font-bold text-slate-900 dark:text-white">
+        <div class="text-2xl font-bold text-ink">
           {{ metrics.monthly_runs_count }}
-          <span class="text-sm font-normal text-slate-500 dark:text-slate-400">
+          <span class="text-sm font-normal text-muted">
             / {% if metrics.max_monthly_runs == -1 %}Unlimited{% else %}{{ metrics.max_monthly_runs }}{% endif %}
           </span>
         </div>
-        <span class="text-xs text-slate-500 dark:text-slate-400">This month</span>
+        <span class="text-xs text-muted">This month</span>
       </div>
     </div>
 
     <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-5 shadow-sm backdrop-blur">
       <div class="flex items-center justify-between">
-        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <div class="text-xs font-semibold uppercase tracking-wider text-muted">
           {% trans "Execution Health" %}
         </div>
         <span class="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
@@ -98,18 +98,18 @@
         </span>
       </div>
       <div class="mt-2 flex items-baseline justify-between">
-        <div class="text-2xl font-bold text-slate-900 dark:text-white">
+        <div class="text-2xl font-bold text-ink">
           {{ metrics.success_rate }}%
         </div>
-        <span class="text-xs text-slate-500 dark:text-slate-400">Success rate</span>
+        <span class="text-xs text-muted">Success rate</span>
       </div>
     </div>
   </div>
 
   <!-- Filters & Table Card -->
-  <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+  <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-surface shadow-sm overflow-hidden">
     <!-- Filter bar -->
-    <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 sm:flex sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+    <div class="p-4 border-b border-line bg-slate-50/50 dark:bg-slate-900/50 sm:flex sm:items-center sm:justify-between space-y-3 sm:space-y-0">
       <div class="flex-1 max-w-sm">
         <div class="relative">
           <input
@@ -117,7 +117,7 @@
             name="search"
             value="{{ search }}"
             placeholder="Search rules by name, event..."
-            class="block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-1.5 pl-9 pr-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            class="block w-full rounded-lg border border-line bg-surface py-1.5 pl-9 pr-3 text-sm text-ink placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             hx-get="{% url 'automation:rule_list' %}"
             hx-params="*"
             hx-trigger="keyup changed delay:300ms"
@@ -136,7 +136,7 @@
       <div class="flex items-center space-x-3">
         <select
           name="trigger_type"
-          class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-1.5 pl-3 pr-8 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          class="rounded-lg border border-line bg-surface py-1.5 pl-3 pr-8 text-sm text-ink focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           hx-get="{% url 'automation:rule_list' %}"
           hx-trigger="change"
           hx-target="#rules-table-container"
@@ -150,7 +150,7 @@
 
         <select
           name="is_active"
-          class="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 py-1.5 pl-3 pr-8 text-sm text-slate-900 dark:text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          class="rounded-lg border border-line bg-surface py-1.5 pl-3 pr-8 text-sm text-ink focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
           hx-get="{% url 'automation:rule_list' %}"
           hx-trigger="change"
           hx-target="#rules-table-container"

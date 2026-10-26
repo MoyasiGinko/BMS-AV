@@ -1,9 +1,9 @@
 {% load i18n %}
 
 <div class="space-y-4">
-    <div class="flex items-center justify-between text-xs text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-3">
+    <div class="flex items-center justify-between text-xs text-slate-500 border-b border-line pb-3">
         <div>
-            <span class="font-medium text-slate-700 dark:text-slate-300">{{ data.title }}</span>
+            <span class="font-medium text-muted">{{ data.title }}</span>
             <span class="ml-2 font-mono text-slate-400">({{ total_count }} {% trans "records" %})</span>
         </div>
         <div class="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
@@ -15,26 +15,26 @@
     </div>
 
     {% if rows %}
-    <div class="overflow-x-auto max-h-[500px] border border-slate-200 dark:border-slate-800 rounded-lg">
+    <div class="overflow-x-auto max-h-[500px] border border-line rounded-lg">
         <table class="w-full text-left border-collapse text-xs">
-            <thead class="sticky top-0 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-semibold uppercase tracking-wider">
+            <thead class="sticky top-0 bg-app border-b border-line text-muted font-semibold uppercase tracking-wider">
                 <tr>
                     {% for h in headers %}
                     <th class="py-2.5 px-3 whitespace-nowrap">{{ h }}</th>
                     {% endfor %}
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+            <tbody class="divide-y divide-line font-mono">
                 {% for row in rows %}
-                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                <tr class="hover:bg-surface-2 transition-colors">
                     {% for cell in row %}
-                    <td class="py-2 px-3 whitespace-nowrap text-slate-700 dark:text-slate-300">{{ cell }}</td>
+                    <td class="py-2 px-3 whitespace-nowrap text-muted">{{ cell }}</td>
                     {% endfor %}
                 </tr>
                 {% endfor %}
             </tbody>
             {% if totals %}
-            <tfoot class="bg-slate-100/90 dark:bg-slate-800 font-semibold text-slate-900 dark:text-white border-t-2 border-slate-300 dark:border-slate-700 font-mono">
+            <tfoot class="bg-surface-2 font-semibold text-ink border-t-2 border-line font-mono">
                 <tr>
                     {% for t in totals %}
                     <td class="py-2.5 px-3 whitespace-nowrap">{{ t }}</td>
@@ -45,7 +45,7 @@
         </table>
     </div>
     {% else %}
-    <div class="p-8 text-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200 dark:border-slate-800 text-sm">
+    <div class="p-8 text-center text-muted bg-app rounded-lg border border-line text-sm">
         {% trans "No matching records found for the selected query filters." %}
     </div>
     {% endif %}

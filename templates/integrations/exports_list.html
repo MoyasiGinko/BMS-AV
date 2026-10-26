@@ -11,17 +11,17 @@
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <a href="{% url 'integrations:imports_list' %}" class="hover:text-indigo-600">{% trans "Integrations" %}</a>
                 <span>&rsaquo;</span>
-                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Entity Data Exports" %}</span>
+                <span class="text-muted font-medium">{% trans "Entity Data Exports" %}</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Entity Data Exports" %}</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Entity Data Exports" %}</h1>
             <p class="text-xs text-slate-500 mt-1">{% trans "Download your organization's business records in CSV or formatted Excel spreadsheets." %}</p>
         </div>
 
         <div class="flex items-center gap-2" x-data="{ exportModal: false }">
-            <a href="{% url 'integrations:webhook_endpoints_list' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+            <a href="{% url 'integrations:webhook_endpoints_list' %}" class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-xs font-semibold text-muted bg-surface hover:bg-slate-50 shadow-xs">
                 {% trans "Webhooks" %}
             </a>
-            <a href="{% url 'integrations:imports_list' %}" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+            <a href="{% url 'integrations:imports_list' %}" class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-xs font-semibold text-muted bg-surface hover:bg-slate-50 shadow-xs">
                 &larr; {% trans "Back to Imports" %}
             </a>
             <button @click="exportModal = true" type="button" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs">
@@ -33,9 +33,9 @@
 
             <!-- Export Modal -->
             <div x-show="exportModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" x-cloak>
-                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-xl" @click.away="exportModal = false">
+                <div class="bg-surface border border-line rounded-2xl max-w-md w-full p-6 shadow-xl" @click.away="exportModal = false">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                        <h3 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Export Dataset" %}</h3>
+                        <h3 class="text-base font-bold text-ink">{% trans "Export Dataset" %}</h3>
                         <button type="button" @click="exportModal = false" class="text-slate-400 hover:text-slate-600">
                             <span class="sr-only">{% trans "Close" %}</span>
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -45,13 +45,13 @@
                     </div>
 
                     <div class="mt-4 space-y-4">
-                        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
-                            <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{% trans "Products Catalog" %}</h4>
+                        <div class="p-3 bg-app rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Products Catalog" %}</h4>
                             <div class="flex items-center gap-2">
                                 <form method="post" action="{% url 'integrations:export_trigger' entity_type='products' %}" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="file_format" value="csv">
-                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 shadow-xs">
+                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-muted hover:bg-slate-100 shadow-xs">
                                         {% trans "Export CSV" %}
                                     </button>
                                 </form>
@@ -65,13 +65,13 @@
                             </div>
                         </div>
 
-                        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-2">
-                            <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{% trans "Customers Directory" %}</h4>
+                        <div class="p-3 bg-app rounded-xl space-y-2">
+                            <h4 class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Customers Directory" %}</h4>
                             <div class="flex items-center gap-2">
                                 <form method="post" action="{% url 'integrations:export_trigger' entity_type='customers' %}" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="file_format" value="csv">
-                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 shadow-xs">
+                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-muted hover:bg-slate-100 shadow-xs">
                                         {% trans "Export CSV" %}
                                     </button>
                                 </form>
@@ -91,11 +91,11 @@
     </div>
 
     <!-- Exports Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    <tr class="bg-app border-b border-line text-xs font-semibold text-muted uppercase tracking-wider">
                         <th class="py-3 px-4">{% trans "Entity Type" %}</th>
                         <th class="py-3 px-4">{% trans "File Name" %}</th>
                         <th class="py-3 px-4">{% trans "Format" %}</th>
@@ -106,17 +106,17 @@
                         <th class="py-3 px-4 text-right">{% trans "Action" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+                <tbody class="divide-y divide-line text-muted">
                     {% for job in jobs %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                    <tr class="hover:bg-surface-2 transition-colors">
+                        <td class="py-3 px-4 font-medium text-ink">
                             {{ job.get_entity_type_display }}
                         </td>
-                        <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-400">
+                        <td class="py-3 px-4 font-mono text-xs text-muted">
                             {{ job.file_name|default:"Generating..." }}
                         </td>
                         <td class="py-3 px-4">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium uppercase {% if job.file_format == 'xlsx' %}bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium uppercase {% if job.file_format == 'xlsx' %}bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800{% else %}bg-surface-2 text-muted border border-line{% endif %}">
                                 {{ job.file_format }}
                             </span>
                         </td>
@@ -162,7 +162,7 @@
                     {% empty %}
                     <tr>
                         <td colspan="8" class="py-12 text-center text-slate-500">
-                            <p class="text-base font-semibold text-slate-700 dark:text-slate-300">{% trans "No exports generated yet" %}</p>
+                            <p class="text-base font-semibold text-muted">{% trans "No exports generated yet" %}</p>
                             <p class="text-xs text-slate-400 mt-1">{% trans "Click 'Generate Export' to download your products or customers dataset." %}</p>
                         </td>
                     </tr>

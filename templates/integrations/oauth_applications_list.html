@@ -13,17 +13,17 @@
           &larr; {% trans "Integrations" %}
         </a>
       </div>
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+      <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
         {% trans "OAuth2 Applications" %}
       </h1>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      <p class="mt-1 text-sm text-muted">
         {% trans "Register third-party API clients, SPAs, and server integrations using OAuth2 with PKCE or Client Credentials." %}
       </p>
     </div>
     <div class="mt-4 sm:mt-0 flex items-center space-x-3">
       <a
         href="{% url 'integrations:oauth_authorized_tokens' %}"
-        class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+        class="inline-flex items-center px-4 py-2 border border-line rounded-xl text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700 transition"
       >
         {% trans "Authorized Tokens" %}
       </a>
@@ -40,10 +40,10 @@
   </div>
 
   <!-- Applications Table -->
-  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+  <div class="bg-surface rounded-2xl shadow-sm border border-line overflow-hidden">
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-        <thead class="bg-slate-50 dark:bg-slate-800/50">
+      <table class="min-w-full divide-y divide-line">
+        <thead class="bg-app">
           <tr>
             <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
               {% trans "Application Name" %}
@@ -65,16 +65,16 @@
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+        <tbody class="divide-y divide-line">
           {% for app in applications %}
-          <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition">
+          <tr class="hover:bg-surface-2 transition">
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex items-center">
                 <div class="h-9 w-9 flex-shrink-0 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
                   {{ app.name|slice:":2"|upper }}
                 </div>
                 <div class="ml-3">
-                  <a href="{% url 'integrations:oauth_application_detail' app.public_id %}" class="font-medium text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400">
+                  <a href="{% url 'integrations:oauth_application_detail' app.public_id %}" class="font-medium text-ink hover:text-indigo-600 dark:hover:text-indigo-400">
                     {{ app.name }}
                   </a>
                   {% if app.description %}
@@ -84,16 +84,16 @@
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <span class="font-mono text-xs text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+              <span class="font-mono text-xs text-muted bg-surface-2 px-2 py-1 rounded">
                 {{ app.client_id|slice:":12" }}...
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted">
                 {{ app.get_authorization_grant_type_display }}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
               <span class="capitalize text-xs">{{ app.client_type }}</span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
@@ -102,7 +102,7 @@
                 {% trans "Active" %}
               </span>
               {% else %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-muted">
                 {% trans "Inactive" %}
               </span>
               {% endif %}
@@ -111,7 +111,7 @@
               <a href="{% url 'integrations:oauth_application_detail' app.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
                 {% trans "Manage" %}
               </a>
-              <a href="{% url 'integrations:oauth_application_edit' app.public_id %}" class="text-slate-600 dark:text-slate-400 hover:underline">
+              <a href="{% url 'integrations:oauth_application_edit' app.public_id %}" class="text-muted hover:underline">
                 {% trans "Edit" %}
               </a>
               <a href="{% url 'integrations:oauth_application_delete' app.public_id %}" class="text-rose-600 dark:text-rose-400 hover:underline">
@@ -121,12 +121,12 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="6" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+            <td colspan="6" class="px-6 py-12 text-center text-muted">
               <div class="max-w-sm mx-auto space-y-3">
                 <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                <div class="font-medium text-slate-900 dark:text-slate-100">{% trans "No OAuth applications registered" %}</div>
+                <div class="font-medium text-ink">{% trans "No OAuth applications registered" %}</div>
                 <p class="text-xs text-slate-500">{% trans "Register an application to authenticate third-party services and mobile/SPA clients." %}</p>
                 <a
                   href="{% url 'integrations:oauth_application_create' %}"

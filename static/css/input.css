@@ -22,14 +22,28 @@
   --color-line: var(--border);
   --color-ink: var(--text);
   --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
   --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
   --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
   --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
   --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --shadow-card: var(--shadow-sm);
   --shadow-pop: var(--shadow-lg);
+
+  /* Font size scale — maps Tailwind text-xs..text-3xl to design tokens */
+  --text-xs: var(--fs-xs);
+  --text-sm: var(--fs-sm);
+  --text-base: var(--fs-base);
+  --text-lg: var(--fs-md);
+  --text-xl: var(--fs-lg);
+  --text-2xl: var(--fs-xl);
+  --text-3xl: var(--fs-2xl);
 }

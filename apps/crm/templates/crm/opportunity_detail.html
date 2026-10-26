@@ -9,7 +9,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <div class="flex items-center space-x-3">
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{{ opp.title }}</h1>
+                <h1 class="text-2xl font-bold tracking-tight text-ink">{{ opp.title }}</h1>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
                     {% if opp.status == 'won' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300
                     {% elif opp.status == 'lost' %}bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300
@@ -17,12 +17,12 @@
                     {{ opp.status }}
                 </span>
             </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p class="text-sm text-muted mt-1">
                 {{ opp.pipeline.name }} • {{ opp.stage.name }} ({{ opp.probability_percent }}% win)
             </p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{% url 'crm:pipeline_kanban' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50">
+            <a href="{% url 'crm:pipeline_kanban' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50">
                 {% trans "Back to Pipeline" %}
             </a>
             {% if opp.customer %}
@@ -36,12 +36,12 @@
     <!-- Overview Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Deal Metadata -->
-        <div class="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
-            <h3 class="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">{% trans "Deal Metrics" %}</h3>
+        <div class="lg:col-span-1 bg-surface border border-line rounded-xl p-5 shadow-xs space-y-4">
+            <h3 class="text-sm font-semibold text-ink uppercase tracking-wider">{% trans "Deal Metrics" %}</h3>
             <div class="space-y-3 text-sm">
                 <div>
                     <span class="text-xs text-slate-400 block">{% trans "Expected Value" %}</span>
-                    <span class="text-xl font-bold font-mono text-slate-900 dark:text-white">${{ opp.expected_value }}</span>
+                    <span class="text-xl font-bold font-mono text-ink">${{ opp.expected_value }}</span>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400 block">{% trans "Customer Account" %}</span>
@@ -64,7 +64,7 @@
                     <span class="text-xs text-slate-400 block mb-1">{% trans "Tags" %}</span>
                     <div class="flex flex-wrap gap-1">
                         {% for tag in opp.tags.all %}
-                        <span class="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">#{{ tag.name }}</span>
+                        <span class="px-2 py-0.5 rounded text-xs bg-surface-2 text-muted font-medium">#{{ tag.name }}</span>
                         {% endfor %}
                     </div>
                 </div>
@@ -78,7 +78,7 @@
                     {% for st in stages %}
                     <a href="#"
                        hx-post="{% url 'crm:opportunity_stage_move' public_id=opp.public_id stage_id=st.id %}"
-                       class="block px-3 py-2 rounded text-xs font-medium transition-colors {% if st.id == opp.stage.id %}bg-indigo-600 text-white font-bold{% else %}bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100{% endif %}">
+                       class="block px-3 py-2 rounded text-xs font-medium transition-colors {% if st.id == opp.stage.id %}bg-indigo-600 text-white font-bold{% else %}bg-app text-muted hover:bg-slate-100{% endif %}">
                         {{ st.order }}. {{ st.name }} ({{ st.win_probability_percent }}%)
                     </a>
                     {% endfor %}
@@ -88,7 +88,7 @@
             {% if opp.notes %}
             <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
                 <span class="text-xs text-slate-400 block mb-1">{% trans "Notes" %}</span>
-                <p class="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-line">{{ opp.notes }}</p>
+                <p class="text-xs text-muted whitespace-pre-line">{{ opp.notes }}</p>
             </div>
             {% endif %}
         </div>
@@ -96,8 +96,8 @@
         <!-- Activity Feed & Tasks -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Log Interaction Form -->
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
-                <h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-3">{% trans "Log Deal Activity" %}</h3>
+            <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
+                <h3 class="text-sm font-semibold text-ink mb-3">{% trans "Log Deal Activity" %}</h3>
                 <form hx-post="{% url 'crm:log_interaction' %}" hx-target="#interactions-feed" hx-swap="afterbegin" class="space-y-3">
                     {% csrf_token %}
                     <input type="hidden" name="opportunity_id" value="{{ opp.pk }}">
@@ -105,7 +105,7 @@
                     <input type="hidden" name="customer_id" value="{{ opp.customer.pk }}">
                     {% endif %}
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <select name="type" class="text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+                        <select name="type" class="text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2">
                             <option value="call">{% trans "Call" %}</option>
                             <option value="email">{% trans "Email" %}</option>
                             <option value="meeting">{% trans "Meeting" %}</option>
@@ -113,10 +113,10 @@
                             <option value="other">{% trans "Other" %}</option>
                         </select>
                         <div class="sm:col-span-2">
-                            <input type="text" name="summary" required placeholder="{% trans 'Brief summary of touchpoint...' %}" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2">
+                            <input type="text" name="summary" required placeholder="{% trans 'Brief summary of touchpoint...' %}" class="w-full text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2">
                         </div>
                     </div>
-                    <textarea name="details" rows="2" placeholder="{% trans 'Detailed notes or outcomes (optional)...' %}" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2"></textarea>
+                    <textarea name="details" rows="2" placeholder="{% trans 'Detailed notes or outcomes (optional)...' %}" class="w-full text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2"></textarea>
                     <div class="flex justify-end">
                         <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700">
                             {% trans "Record Activity" %}
@@ -126,8 +126,8 @@
             </div>
 
             <!-- Follow-up Tasks -->
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-3">
-                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Tasks & Action Items" %}</h3>
+            <div class="bg-surface border border-line rounded-xl p-5 shadow-xs space-y-3">
+                <h3 class="text-sm font-semibold text-ink">{% trans "Tasks & Action Items" %}</h3>
                 <div class="space-y-2">
                     {% for t in tasks %}
                         {% include "crm/partials/task_item.html" with task=t %}
@@ -138,8 +138,8 @@
             </div>
 
             <!-- Interactions History -->
-            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
-                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{% trans "Activity History" %}</h3>
+            <div class="bg-surface border border-line rounded-xl p-5 shadow-xs space-y-4">
+                <h3 class="text-sm font-semibold text-ink">{% trans "Activity History" %}</h3>
                 <div id="interactions-feed" class="space-y-3">
                     {% for item in interactions %}
                         {% include "crm/partials/interaction_item.html" with item=item %}

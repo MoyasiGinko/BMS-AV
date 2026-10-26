@@ -1,6 +1,6 @@
 {% load i18n %}
-<tr id="request-row-{{ req.pk }}" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-    <td class="px-4 py-3 font-mono font-medium text-slate-900 dark:text-white">
+<tr id="request-row-{{ req.pk }}" class="hover:bg-surface-2 transition-colors">
+    <td class="px-4 py-3 font-mono font-medium text-ink">
         <a href="{% url 'approvals:request_detail' req.pk %}" class="hover:underline text-indigo-600 dark:text-indigo-400">
             {{ req.document_reference }}
         </a>
@@ -15,10 +15,10 @@
             {{ req.get_document_type_display }}
         </span>
     </td>
-    <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 max-w-xs truncate" title="{{ req.document_title }}">
+    <td class="px-4 py-3 text-sm text-muted max-w-xs truncate" title="{{ req.document_title }}">
         {{ req.document_title }}
     </td>
-    <td class="px-4 py-3 text-sm font-mono text-right text-slate-900 dark:text-white">
+    <td class="px-4 py-3 text-sm font-mono text-right text-ink">
         {% if req.amount > 0 %}
             ${{ req.amount|floatformat:2 }}
         {% endif %}
@@ -26,19 +26,19 @@
             <span class="text-xs text-amber-600 dark:text-amber-400 block">{{ req.discount_percent|floatformat:2 }}% {% trans "off" %}</span>
         {% endif %}
     </td>
-    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+    <td class="px-4 py-3 text-sm text-muted">
         {{ req.requester.get_full_name|default:req.requester.email }}
     </td>
-    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+    <td class="px-4 py-3 text-sm text-muted">
         {% if req.assigned_user %}
             <span class="font-medium text-slate-800 dark:text-slate-200">{{ req.assigned_user.get_full_name|default:req.assigned_user.email }}</span>
         {% elif req.assigned_role %}
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">{{ req.assigned_role.name }}</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-surface-2 text-muted">{{ req.assigned_role.name }}</span>
         {% else %}
             <span class="text-xs text-slate-400">{% trans "Any Approver" %}</span>
         {% endif %}
     </td>
-    <td class="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
+    <td class="px-4 py-3 text-xs text-muted">
         {{ req.created_at|date:"M d, Y H:i" }}
     </td>
     <td class="px-4 py-3">
@@ -63,7 +63,7 @@
     </td>
     <td class="px-4 py-3 text-right text-sm">
         <div class="flex items-center justify-end gap-1.5">
-            <a href="{% url 'approvals:request_detail' req.pk %}" class="p-1 rounded text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" title="{% trans 'View Details' %}">
+            <a href="{% url 'approvals:request_detail' req.pk %}" class="p-1 rounded text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-surface-2" title="{% trans 'View Details' %}">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />

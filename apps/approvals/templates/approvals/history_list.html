@@ -8,13 +8,13 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Approval Audit Trail" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Approval Audit Trail" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Immutable historical log of all approval submissions, approvals, rejections, and cancellations." %}
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{% url 'approvals:inbox' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-xs transition-colors">
+            <a href="{% url 'approvals:inbox' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-xs transition-colors">
                 <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
@@ -24,11 +24,11 @@
     </div>
 
     <!-- History Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <tr class="border-b border-line bg-slate-50/50 dark:bg-slate-800/50 text-xs font-semibold text-muted uppercase tracking-wider">
                         <th class="px-4 py-3">{% trans "Timestamp" %}</th>
                         <th class="px-4 py-3">{% trans "Document" %}</th>
                         <th class="px-4 py-3">{% trans "Action" %}</th>
@@ -36,9 +36,9 @@
                         <th class="px-4 py-3">{% trans "Notes / Justification" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                <tbody class="divide-y divide-line bg-surface">
                     {% for item in history %}
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <tr class="hover:bg-surface-2 transition-colors">
                             <td class="px-4 py-3 text-xs text-slate-500 font-mono">
                                 {{ item.created_at|date:"Y-m-d H:i:s" }}
                             </td>
@@ -67,16 +67,16 @@
                                     </span>
                                 {% endif %}
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                            <td class="px-4 py-3 text-sm text-muted">
                                 {{ item.actor.get_full_name|default:item.actor.email|default:"System" }}
                             </td>
-                            <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+                            <td class="px-4 py-3 text-sm text-muted">
                                 {{ item.notes|default:"-" }}
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 text-sm">
+                            <td colspan="5" class="px-6 py-12 text-center text-muted text-sm">
                                 {% trans "No approval events have been recorded yet." %}
                             </td>
                         </tr>

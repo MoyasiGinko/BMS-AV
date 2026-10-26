@@ -9,15 +9,15 @@
     <a href="{% url 'integrations:portability_overview' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
       &larr; {% trans "Back to Portability" %}
     </a>
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+    <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
       {% trans "Create Full Tenant Backup Export" %}
     </h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    <p class="mt-1 text-sm text-muted">
       {% trans "Generate a complete cryptographic archive of your tenant organization, members, accounts, journals, catalog, customers, invoices, and configuration." %}
     </p>
   </div>
 
-  <form method="post" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+  <form method="post" class="bg-surface rounded-2xl shadow-sm border border-line p-6 space-y-6">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -32,20 +32,20 @@
           {{ form.include_audit_logs }}
         </div>
         <div class="ml-3 text-sm">
-          <label for="{{ form.include_audit_logs.id_for_label }}" class="font-medium text-slate-700 dark:text-slate-300">
+          <label for="{{ form.include_audit_logs.id_for_label }}" class="font-medium text-muted">
             {{ form.include_audit_logs.label }}
           </label>
-          <p class="text-slate-500 dark:text-slate-400">
+          <p class="text-muted">
             {{ form.include_audit_logs.help_text }}
           </p>
         </div>
       </div>
     </div>
 
-    <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end space-x-3">
+    <div class="pt-4 border-t border-line flex items-center justify-end space-x-3">
       <a
         href="{% url 'integrations:portability_overview' %}"
-        class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+        class="px-4 py-2 border border-line rounded-xl text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700 transition"
       >
         {% trans "Cancel" %}
       </a>

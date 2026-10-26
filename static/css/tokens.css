@@ -12,7 +12,7 @@
 
   --font-sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:16px; --fs-lg:20px; --fs-xl:24px; --fs-2xl:30px;
+  --fs-xs:13px; --fs-sm:14px; --fs-base:15px; --fs-md:17px; --fs-lg:22px; --fs-xl:26px; --fs-2xl:32px;
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
   --radius-sm:6px; --radius-md:10px;
   --shadow-sm:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.08);
@@ -145,7 +145,7 @@ aside.bos-sidebar nav a[class*="border-l-[3px]"] {
   border-color: #223152 !important;
   color: #e6edf7 !important;
 }
-html { font-family:var(--font-sans); font-size:var(--fs-base); color:var(--text); background:var(--bg); }
+html { font-family:var(--font-sans); font-size:var(--fs-base); line-height:1.6; color:var(--text); background:var(--bg); }
 .num, td.num, th.num { font-variant-numeric:tabular-nums; text-align:right; }
 :focus-visible { outline:none; box-shadow:var(--focus-ring); }
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
@@ -179,3 +179,112 @@ body.overflow-hidden {
   }
 }
 
+/* ==========================================================================
+   Theme Consistency Layer (Catches hardcoded Tailwind classes across all themes)
+   Ensures bg-white, slate/gray surfaces, borders, and text adapt to the active theme.
+   ========================================================================== */
+
+/* Dark Theme Overrides */
+[data-theme="dark"] .bg-white:not([data-keep-white]) {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+}
+[data-theme="dark"] .bg-slate-50:not([data-keep-color]),
+[data-theme="dark"] .bg-gray-50:not([data-keep-color]) {
+  background-color: var(--bg) !important;
+}
+[data-theme="dark"] .bg-slate-100:not([data-keep-color]),
+[data-theme="dark"] .bg-gray-100:not([data-keep-color]) {
+  background-color: var(--surface-2) !important;
+}
+[data-theme="dark"] .text-slate-900:not([data-keep-color]),
+[data-theme="dark"] .text-gray-900:not([data-keep-color]),
+[data-theme="dark"] .text-slate-800:not([data-keep-color]),
+[data-theme="dark"] .text-gray-800:not([data-keep-color]) {
+  color: var(--text) !important;
+}
+[data-theme="dark"] .text-slate-700:not([data-keep-color]),
+[data-theme="dark"] .text-gray-700:not([data-keep-color]),
+[data-theme="dark"] .text-slate-600:not([data-keep-color]),
+[data-theme="dark"] .text-gray-600:not([data-keep-color]) {
+  color: var(--text-muted) !important;
+}
+[data-theme="dark"] .text-slate-500:not([data-keep-color]),
+[data-theme="dark"] .text-gray-500:not([data-keep-color]),
+[data-theme="dark"] .text-slate-400:not([data-keep-color]),
+[data-theme="dark"] .text-gray-400:not([data-keep-color]) {
+  color: var(--text-subtle) !important;
+}
+[data-theme="dark"] .border-slate-200:not([data-keep-color]),
+[data-theme="dark"] .border-gray-200:not([data-keep-color]),
+[data-theme="dark"] .border-slate-300:not([data-keep-color]),
+[data-theme="dark"] .border-gray-300:not([data-keep-color]) {
+  border-color: var(--border) !important;
+}
+
+/* Neumorphic Theme Overrides */
+[data-theme="neumorphic"] .bg-white:not([data-keep-white]) {
+  background-color: var(--neu-surface) !important;
+}
+[data-theme="neumorphic"] .bg-slate-50:not([data-keep-color]),
+[data-theme="neumorphic"] .bg-gray-50:not([data-keep-color]),
+[data-theme="neumorphic"] .bg-slate-100:not([data-keep-color]),
+[data-theme="neumorphic"] .bg-gray-100:not([data-keep-color]) {
+  background-color: var(--surface-2) !important;
+}
+[data-theme="neumorphic"] .text-slate-900:not([data-keep-color]),
+[data-theme="neumorphic"] .text-gray-900:not([data-keep-color]) {
+  color: var(--neu-text) !important;
+}
+[data-theme="neumorphic"] .text-slate-700:not([data-keep-color]),
+[data-theme="neumorphic"] .text-slate-600:not([data-keep-color]),
+[data-theme="neumorphic"] .text-gray-700:not([data-keep-color]),
+[data-theme="neumorphic"] .text-gray-600:not([data-keep-color]) {
+  color: var(--neu-text-muted) !important;
+}
+[data-theme="neumorphic"] .border-slate-200:not([data-keep-color]),
+[data-theme="neumorphic"] .border-slate-300:not([data-keep-color]) {
+  border-color: var(--neu-line) !important;
+}
+
+/* Spatial Theme Overrides */
+[data-theme="spatial"] .bg-white:not([data-keep-white]) {
+  background-color: var(--surface) !important;
+}
+[data-theme="spatial"] .bg-slate-50:not([data-keep-color]),
+[data-theme="spatial"] .bg-gray-50:not([data-keep-color]) {
+  background-color: var(--bg) !important;
+}
+[data-theme="spatial"] .bg-slate-100:not([data-keep-color]),
+[data-theme="spatial"] .bg-gray-100:not([data-keep-color]) {
+  background-color: var(--surface-2) !important;
+}
+[data-theme="spatial"] .text-slate-900:not([data-keep-color]),
+[data-theme="spatial"] .text-gray-900:not([data-keep-color]) {
+  color: var(--text) !important;
+}
+[data-theme="spatial"] .text-slate-700:not([data-keep-color]),
+[data-theme="spatial"] .text-slate-600:not([data-keep-color]),
+[data-theme="spatial"] .text-gray-700:not([data-keep-color]),
+[data-theme="spatial"] .text-gray-600:not([data-keep-color]) {
+  color: var(--text-muted) !important;
+}
+[data-theme="spatial"] .border-slate-200:not([data-keep-color]),
+[data-theme="spatial"] .border-slate-300:not([data-keep-color]) {
+  border-color: var(--border) !important;
+}
+
+/* Fast Theme Overrides */
+[data-theme="fast"] .bg-white:not([data-keep-white]) {
+  background-color: var(--surface) !important;
+}
+[data-theme="fast"] .bg-slate-50:not([data-keep-color]) {
+  background-color: var(--bg) !important;
+}
+[data-theme="fast"] .bg-slate-100:not([data-keep-color]) {
+  background-color: var(--surface-2) !important;
+}
+[data-theme="fast"] .border-slate-200:not([data-keep-color]),
+[data-theme="fast"] .border-slate-300:not([data-keep-color]) {
+  border-color: var(--border) !important;
+}

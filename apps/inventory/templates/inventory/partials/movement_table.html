@@ -1,9 +1,9 @@
 {% load i18n %}
-<div id="movement-table-container" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+<div id="movement-table-container" class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-sm">
             <thead>
-                <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
                     <th class="py-3.5 px-4">{% trans "Date & Time" %}</th>
                     <th class="py-3.5 px-4">{% trans "Type" %}</th>
                     <th class="py-3.5 px-4">{% trans "Product / Variant" %}</th>
@@ -14,10 +14,10 @@
                     <th class="py-3.5 px-4">{% trans "Reference / Notes" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody class="divide-y divide-line/60">
                 {% for m in page_obj %}
-                <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors font-mono text-xs">
-                    <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400 whitespace-nowrap font-sans">
+                <tr class="hover:bg-surface-2 transition-colors font-mono text-xs">
+                    <td class="py-3.5 px-4 text-muted whitespace-nowrap font-sans">
                         {{ m.occurred_at|date:"Y-m-d H:i" }}
                     </td>
                     <td class="py-3.5 px-4 whitespace-nowrap">
@@ -40,27 +40,27 @@
                         {% endif %}
                     </td>
                     <td class="py-3.5 px-4 font-sans text-sm">
-                        <span class="font-medium text-slate-900 dark:text-white">{{ m.product.name }}</span>
+                        <span class="font-medium text-ink">{{ m.product.name }}</span>
                         {% if m.variant %}
                         <span class="text-xs text-indigo-600 dark:text-indigo-400">({{ m.variant.name }})</span>
                         {% endif %}
                         <div class="text-xs text-slate-400 font-mono">{{ m.variant.sku|default:m.product.sku }}</div>
                     </td>
-                    <td class="py-3.5 px-4 font-sans text-slate-600 dark:text-slate-300">
+                    <td class="py-3.5 px-4 font-sans text-muted">
                         {{ m.warehouse.name }}
                     </td>
                     <td class="py-3.5 px-4 text-right font-semibold {% if m.quantity > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
                         {% if m.quantity > 0 %}+{% endif %}{{ m.quantity }}
                     </td>
-                    <td class="py-3.5 px-4 text-right text-slate-600 dark:text-slate-300">
+                    <td class="py-3.5 px-4 text-right text-muted">
                         ${{ m.unit_cost }}
                     </td>
-                    <td class="py-3.5 px-4 text-right text-slate-900 dark:text-white font-medium">
+                    <td class="py-3.5 px-4 text-right text-ink font-medium">
                         ${{ m.total_cost }}
                     </td>
-                    <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400 font-sans text-xs">
+                    <td class="py-3.5 px-4 text-muted font-sans text-xs">
                         {% if m.reference_type %}
-                        <span class="font-medium text-slate-700 dark:text-slate-300">{{ m.reference_type }} #{{ m.reference_id }}</span>
+                        <span class="font-medium text-muted">{{ m.reference_type }} #{{ m.reference_id }}</span>
                         {% endif %}
                         {% if m.notes %}
                         <div class="text-slate-400 text-xs">{{ m.notes }}</div>
@@ -69,8 +69,8 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="py-12 text-center text-slate-500 dark:text-slate-400 font-sans">
-                        <p class="text-base font-medium text-slate-900 dark:text-white">{% trans "No stock movements recorded yet" %}</p>
+                    <td colspan="8" class="py-12 text-center text-muted font-sans">
+                        <p class="text-base font-medium text-ink">{% trans "No stock movements recorded yet" %}</p>
                     </td>
                 </tr>
                 {% endfor %}
@@ -80,21 +80,21 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+    <div class="px-4 py-3 border-t border-line flex items-center justify-between text-xs text-muted">
         <div>
             {% trans "Showing" %} {{ page_obj.start_index }} - {{ page_obj.end_index }} {% trans "of" %} {{ page_obj.paginator.count }}
         </div>
         <div class="flex items-center space-x-2">
             {% if page_obj.has_previous %}
             <a href="?page={{ page_obj.previous_page_number }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}"
-               class="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
+               class="px-2.5 py-1.5 border border-line rounded-md hover:bg-surface-2 text-muted">
                 {% trans "Previous" %}
             </a>
             {% endif %}
-            <span class="font-medium text-slate-700 dark:text-slate-300">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            <span class="font-medium text-muted">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
             <a href="?page={{ page_obj.next_page_number }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}"
-               class="px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200">
+               class="px-2.5 py-1.5 border border-line rounded-md hover:bg-surface-2 text-muted">
                 {% trans "Next" %}
             </a>
             {% endif %}

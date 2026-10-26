@@ -11,7 +11,7 @@
         </a>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden">
+    <div class="bg-surface border border-line rounded-2xl shadow-xl overflow-hidden">
         <div class="p-6 bg-indigo-600 text-white">
             <h1 class="text-xl font-bold">{% trans "Open Cashier Shift" %}</h1>
             <p class="text-xs text-indigo-100 mt-1">{% trans "Declare opening float and register" %}</p>
@@ -21,7 +21,7 @@
             {% csrf_token %}
 
             <div>
-                <label for="id_register" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <label for="id_register" class="block text-sm font-semibold text-muted">
                     {% trans "POS Register" %}
                 </label>
                 <div class="mt-2">
@@ -33,7 +33,7 @@
             </div>
 
             <div>
-                <label for="id_opening_cash" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <label for="id_opening_cash" class="block text-sm font-semibold text-muted">
                     {% trans "Opening Cash Float ($)" %}
                 </label>
                 <div class="mt-2">
@@ -45,7 +45,7 @@
             </div>
 
             <div>
-                <label for="id_notes" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <label for="id_notes" class="block text-sm font-semibold text-muted">
                     {% trans "Notes" %}
                 </label>
                 <div class="mt-2">

@@ -12,12 +12,12 @@
         <span>&rsaquo;</span>
         <a href="{% url 'integrations:webhook_endpoint_detail' delivery.endpoint.public_id %}" class="hover:text-indigo-600">{{ delivery.endpoint.url }}</a>
         <span>&rsaquo;</span>
-        <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Delivery Log" %}</span>
+        <span class="text-muted font-medium">{% trans "Delivery Log" %}</span>
     </div>
 
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight text-ink flex items-center gap-2">
                 <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ delivery.event_type }}</span>
                 {% if delivery.status == "success" %}
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">{% trans "Success" %}</span>
@@ -38,10 +38,10 @@
         </form>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs space-y-6">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-6">
         <div>
             <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">{% trans "Destination & Execution" %}</h4>
-            <div class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg text-xs flex justify-between items-center font-mono">
+            <div class="bg-app p-3 rounded-lg text-xs flex justify-between items-center font-mono">
                 <span>POST {{ delivery.endpoint.url }}</span>
                 <span>{{ delivery.execution_time_ms }} ms</span>
             </div>

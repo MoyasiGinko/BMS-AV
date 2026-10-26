@@ -7,13 +7,13 @@
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Salary Components Catalog" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Salary Components Catalog" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Manage earning elements (Basic, Allowances) and deduction items (Health Insurance, Taxes)." %}
             </p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{% url 'payroll:structure_list' %}" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">
+            <a href="{% url 'payroll:structure_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 transition-colors">
                 {% trans "Salary Structures" %}
             </a>
             <a href="{% url 'payroll:component_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
@@ -23,10 +23,10 @@
     </div>
 
     <!-- Components Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <thead class="bg-app border-b border-line text-xs font-semibold uppercase tracking-wider text-muted">
                     <tr>
                         <th class="px-6 py-3.5">{% trans "Component Name" %}</th>
                         <th class="px-6 py-3.5">{% trans "Code" %}</th>
@@ -36,10 +36,10 @@
                         <th class="px-6 py-3.5 text-right">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for comp in components %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                    <tr class="hover:bg-surface-2 transition-colors">
+                        <td class="px-6 py-4 font-medium text-ink">
                             <a href="{% url 'payroll:component_edit' public_id=comp.public_id %}" class="hover:text-indigo-600">
                                 {{ comp.name }}
                             </a>
@@ -47,7 +47,7 @@
                                 <div class="text-xs text-slate-400 mt-0.5">{{ comp.description }}</div>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 font-mono text-slate-600 dark:text-slate-300">
+                        <td class="px-6 py-4 font-mono text-muted">
                             {{ comp.code }}
                         </td>
                         <td class="px-6 py-4 text-center">

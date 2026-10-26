@@ -8,22 +8,22 @@
 
   <!-- Breadcrumbs & Header -->
   <div>
-    <div class="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400 mb-1">
+    <div class="flex items-center space-x-2 text-sm text-muted mb-1">
       <a href="{% url 'automation:rule_list' %}" class="hover:text-slate-700 dark:hover:text-slate-200">{% trans "Automation" %}</a>
       <span>/</span>
       <a href="{% url 'automation:run_list' %}" class="hover:text-slate-700 dark:hover:text-slate-200">{% trans "Run History" %}</a>
       <span>/</span>
-      <span class="text-slate-900 dark:text-white">#{{ run.public_id|stringformat:"s"|slice:":8" }}</span>
+      <span class="text-ink">#{{ run.public_id|stringformat:"s"|slice:":8" }}</span>
     </div>
     <div class="sm:flex sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">
           {% trans "Execution Run Log" %}
         </h1>
         <p class="mt-1 text-xs font-mono text-slate-400">UUID: {{ run.public_id }}</p>
       </div>
       <div class="mt-4 sm:mt-0">
-        <a href="{% url 'automation:run_list' %}" class="inline-flex items-center px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-sm">
+        <a href="{% url 'automation:run_list' %}" class="inline-flex items-center px-4 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-muted hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-sm">
           &larr; {% trans "Back to Run History" %}
         </a>
       </div>
@@ -31,11 +31,11 @@
   </div>
 
   <!-- Run Overview Card -->
-  <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-4">
+  <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-surface p-6 shadow-sm space-y-4">
     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
       <div>
         <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Rule Name</span>
-        <h2 class="text-base font-bold text-slate-900 dark:text-white">
+        <h2 class="text-base font-bold text-ink">
           <a href="{% url 'automation:rule_edit' run.rule.public_id %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
             {{ run.rule.name }}
           </a>
@@ -65,19 +65,19 @@
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
       <div>
         <span class="text-slate-400 block">Trigger Event</span>
-        <span class="font-mono font-semibold text-slate-900 dark:text-white">{{ run.trigger_event_type }}</span>
+        <span class="font-mono font-semibold text-ink">{{ run.trigger_event_type }}</span>
       </div>
       <div>
         <span class="text-slate-400 block">Execution Time</span>
-        <span class="font-mono font-semibold text-slate-900 dark:text-white">{{ run.execution_time_ms }} ms</span>
+        <span class="font-mono font-semibold text-ink">{{ run.execution_time_ms }} ms</span>
       </div>
       <div>
         <span class="text-slate-400 block">Executed At</span>
-        <span class="font-semibold text-slate-900 dark:text-white">{{ run.created_at|date:"M d, Y H:i:s" }}</span>
+        <span class="font-semibold text-ink">{{ run.created_at|date:"M d, Y H:i:s" }}</span>
       </div>
       <div>
         <span class="text-slate-400 block">Actions Count</span>
-        <span class="font-semibold text-slate-900 dark:text-white">{{ run.actions_executed|length }} executed</span>
+        <span class="font-semibold text-ink">{{ run.actions_executed|length }} executed</span>
       </div>
     </div>
 
@@ -89,25 +89,25 @@
   </div>
 
   <!-- Trigger Payload Inspection -->
-  <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-3">
+  <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-surface p-6 shadow-sm space-y-3">
     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-      <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+      <h3 class="text-sm font-semibold text-ink">
         Trigger Payload
       </h3>
       <span class="text-xs font-mono text-slate-400">JSON</span>
     </div>
-    <pre class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-4 text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto border border-slate-200 dark:border-slate-800">{{ run.trigger_payload|pprint }}</pre>
+    <pre class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-4 text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto border border-line">{{ run.trigger_payload|pprint }}</pre>
   </div>
 
   <!-- Actions Output Inspection -->
-  <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-3">
+  <div class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-surface p-6 shadow-sm space-y-3">
     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-      <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+      <h3 class="text-sm font-semibold text-ink">
         Actions Executed Output
       </h3>
       <span class="text-xs font-mono text-slate-400">JSON</span>
     </div>
-    <pre class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-4 text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto border border-slate-200 dark:border-slate-800">{{ run.actions_executed|pprint }}</pre>
+    <pre class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-4 text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto border border-line">{{ run.actions_executed|pprint }}</pre>
   </div>
 
 </div>

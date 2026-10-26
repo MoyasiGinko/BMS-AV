@@ -13,12 +13,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
             </a>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Create Credit Note" %}</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Create Credit Note" %}</h1>
         </div>
     </div>
 
     <!-- Form Card -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
         <form method="post" class="space-y-6">
             {% csrf_token %}
 
@@ -44,12 +44,12 @@
             </div>
 
             <!-- Single Line Item Selection for initial creation -->
-            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
-                <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{% trans "Returned Line Item" %}</h3>
+            <div class="pt-4 border-t border-line space-y-4">
+                <h3 class="text-sm font-semibold uppercase tracking-wider text-muted">{% trans "Returned Line Item" %}</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-1">{% trans "Product *" %}</label>
-                        <select name="product" required class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                        <select name="product" required class="w-full text-sm rounded-lg border-line bg-surface text-ink">
                             <option value="">{% trans "Select a product..." %}</option>
                             {% for p in products %}
                             <option value="{{ p.pk }}">{{ p.name }} ({{ p.sku }}) - ${{ p.price }}</option>
@@ -58,26 +58,26 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-1">{% trans "Quantity" %}</label>
-                        <input type="number" step="0.0001" min="0.0001" name="quantity" value="1.0000" class="w-full text-sm rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+                        <input type="number" step="0.0001" min="0.0001" name="quantity" value="1.0000" class="w-full text-sm rounded-lg border-line bg-surface text-ink">
                     </div>
                     <div class="flex items-center pt-6">
                         <label class="inline-flex items-center cursor-pointer">
                             <input type="checkbox" name="restock" value="1" checked class="rounded border-slate-300 text-indigo-600 shadow-xs focus:ring-indigo-500">
-                            <span class="ml-2 text-xs font-medium text-slate-700 dark:text-slate-300">{% trans "Restock to inventory" %}</span>
+                            <span class="ml-2 text-xs font-medium text-muted">{% trans "Restock to inventory" %}</span>
                         </label>
                     </div>
                 </div>
             </div>
 
             <!-- Notes -->
-            <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div class="pt-4 border-t border-line">
                 <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">{% trans "Internal Notes" %}</label>
                 {{ form.notes }}
             </div>
 
             <!-- Form Actions -->
-            <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
-                <a href="{% url 'sales:credit_note_list' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors">
+            <div class="pt-4 border-t border-line flex justify-end gap-3">
+                <a href="{% url 'sales:credit_note_list' %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50 transition-colors">
                     {% trans "Cancel" %}
                 </a>
                 <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">

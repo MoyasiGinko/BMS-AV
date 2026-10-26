@@ -14,10 +14,10 @@
           &larr; {% trans "Back to AI Chat" %}
         </a>
       </div>
-      <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-ink">
         {% trans "AI Assistant Audit Trail" %}
       </h1>
-      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      <p class="mt-1 text-sm text-muted">
         {% trans "Complete security and compliance audit log of LLM model invocations, tools, and confirmed actions." %}
       </p>
     </div>
@@ -27,14 +27,14 @@
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
     <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-5 shadow-sm">
       <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">{% trans "Monthly Requests" %}</div>
-      <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+      <div class="mt-2 text-2xl font-bold text-ink">
         {{ metrics.current_usage }}
         <span class="text-sm font-normal text-slate-500">/ {% if metrics.max_requests == -1 %}Unlimited{% else %}{{ metrics.max_requests }}{% endif %}</span>
       </div>
     </div>
     <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-5 shadow-sm">
       <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">{% trans "Total Conversations" %}</div>
-      <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+      <div class="mt-2 text-2xl font-bold text-ink">
         {{ metrics.total_conversations }}
       </div>
     </div>
@@ -49,24 +49,24 @@
   <!-- Filters -->
   <div class="flex items-center space-x-2 text-xs">
     <span class="font-medium text-slate-500">{% trans "Filter by Status" %}:</span>
-    <a href="{% url 'ai:audit_logs' %}" class="px-2.5 py-1 rounded-lg border {% if not selected_status %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300{% endif %}">
+    <a href="{% url 'ai:audit_logs' %}" class="px-2.5 py-1 rounded-lg border {% if not selected_status %}bg-indigo-600 text-white border-indigo-600{% else %}bg-surface border-line text-muted{% endif %}">
       {% trans "All" %}
     </a>
-    <a href="{% url 'ai:audit_logs' %}?status=success" class="px-2.5 py-1 rounded-lg border {% if selected_status == 'success' %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300{% endif %}">
+    <a href="{% url 'ai:audit_logs' %}?status=success" class="px-2.5 py-1 rounded-lg border {% if selected_status == 'success' %}bg-indigo-600 text-white border-indigo-600{% else %}bg-surface border-line text-muted{% endif %}">
       {% trans "Success" %}
     </a>
-    <a href="{% url 'ai:audit_logs' %}?status=permission_denied" class="px-2.5 py-1 rounded-lg border {% if selected_status == 'permission_denied' %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300{% endif %}">
+    <a href="{% url 'ai:audit_logs' %}?status=permission_denied" class="px-2.5 py-1 rounded-lg border {% if selected_status == 'permission_denied' %}bg-indigo-600 text-white border-indigo-600{% else %}bg-surface border-line text-muted{% endif %}">
       {% trans "Permission Denied" %}
     </a>
-    <a href="{% url 'ai:audit_logs' %}?status=quota_exceeded" class="px-2.5 py-1 rounded-lg border {% if selected_status == 'quota_exceeded' %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300{% endif %}">
+    <a href="{% url 'ai:audit_logs' %}?status=quota_exceeded" class="px-2.5 py-1 rounded-lg border {% if selected_status == 'quota_exceeded' %}bg-indigo-600 text-white border-indigo-600{% else %}bg-surface border-line text-muted{% endif %}">
       {% trans "Quota Exceeded" %}
     </a>
   </div>
 
   <!-- Audit Logs Table -->
-  <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+  <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-surface shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left text-xs">
+      <table class="min-w-full divide-y divide-line text-left text-xs">
         <thead class="bg-slate-50 dark:bg-slate-850 text-slate-500 uppercase font-semibold">
           <tr>
             <th class="px-5 py-3">{% trans "Timestamp" %}</th>
@@ -82,11 +82,11 @@
           {% for log in logs %}
           <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-850/50 transition-colors">
             <td class="px-5 py-3 text-slate-500 whitespace-nowrap">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
-            <td class="px-5 py-3 font-medium text-slate-900 dark:text-white">{{ log.user.email|default:"System" }}</td>
-            <td class="px-5 py-3 text-slate-600 dark:text-slate-300">{{ log.provider }} / {{ log.model_name }}</td>
+            <td class="px-5 py-3 font-medium text-ink">{{ log.user.email|default:"System" }}</td>
+            <td class="px-5 py-3 text-muted">{{ log.provider }} / {{ log.model_name }}</td>
             <td class="px-5 py-3">
               {% if log.tool_name %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface-2 text-muted">
                 {{ log.tool_name }}
               </span>
               {% else %}

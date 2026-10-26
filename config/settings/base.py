@@ -68,6 +68,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "apps.core.middleware.RequestIdMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
     "django.middleware.csp.ContentSecurityPolicyMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -110,7 +111,8 @@ DATABASES = {
     "default": env.db("DATABASE_URL", default="postgres://postgres:postgres@127.0.0.1:5433/bos"),
 }
 DATABASES["default"]["ATOMIC_REQUESTS"] = False
-DATABASES["default"]["CONN_MAX_AGE"] = 0  # Pooling handles connection lifecycle
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=600)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 DATABASES["default"]["OPTIONS"] = {}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -170,8 +172,12 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
+
+# WhiteNoise: immutable file caching + Brotli/gzip compression
+WHITENOISE_MAX_AGE = 31536000  # 1 year for content-hashed files
+WHITENOISE_ALLOW_ALL_ORIGINS = True
 
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="dev-only-32-byte-base64-key-change-me")
 

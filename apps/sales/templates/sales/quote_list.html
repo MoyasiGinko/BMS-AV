@@ -8,8 +8,8 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Quotations" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Quotations" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Manage customer price estimates, send quotes, and convert to sales orders." %}
             </p>
         </div>
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="border-b border-slate-200 dark:border-slate-800">
+    <div class="border-b border-line">
         <nav class="flex space-x-8" aria-label="Tabs">
             <a href="{% url 'sales:invoice_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
                 {% trans "Invoices" %}
@@ -45,7 +45,7 @@
     </div>
 
     <!-- Filter Bar -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
         <form method="get" class="flex flex-col sm:flex-row gap-3 items-center justify-between"
               hx-get="{% url 'sales:quote_list' %}"
               hx-target="#quote-table-container"
@@ -60,7 +60,7 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="px-3.5 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg transition-colors">
+                <button type="submit" class="px-3.5 py-2 text-sm font-medium text-muted bg-surface-2 hover:bg-slate-200 rounded-lg transition-colors">
                     {% trans "Filter" %}
                 </button>
             </div>
@@ -68,7 +68,7 @@
     </div>
 
     <!-- Data Table Card -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         {% include "sales/partials/quote_table.html" %}
     </div>
 </div>

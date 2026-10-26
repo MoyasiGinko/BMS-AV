@@ -14,7 +14,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                 </a>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">{{ order.order_number }}</h1>
+                <h1 class="text-2xl font-bold tracking-tight text-ink font-mono">{{ order.order_number }}</h1>
                 {% if order.status == 'confirmed' %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Confirmed" %}</span>
                 {% elif order.status == 'draft' %}
@@ -25,7 +25,7 @@
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Cancelled" %}</span>
                 {% endif %}
             </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p class="text-sm text-muted mt-1">
                 {% trans "Order for" %} <a href="{% url 'customers:customer_detail' customer_id=order.customer.pk %}" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">{{ order.customer.name }}</a>
                 &bull; {% trans "Date:" %} {{ order.order_date }}
             </p>
@@ -61,24 +61,24 @@
     </div>
 
     <!-- Metadata Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-surface border border-line rounded-xl p-5 shadow-xs">
         <div>
             <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Warehouse" %}</span>
-            <p class="text-sm font-medium text-slate-900 dark:text-white mt-1">{{ order.warehouse.name }}</p>
+            <p class="text-sm font-medium text-ink mt-1">{{ order.warehouse.name }}</p>
         </div>
         <div>
             <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Expected Delivery" %}</span>
-            <p class="text-sm font-medium text-slate-900 dark:text-white mt-1">{{ order.expected_delivery|default:"-" }}</p>
+            <p class="text-sm font-medium text-ink mt-1">{{ order.expected_delivery|default:"-" }}</p>
         </div>
         <div>
             <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Grand Total" %}</span>
-            <p class="text-sm font-mono font-bold text-slate-900 dark:text-white mt-1">
+            <p class="text-sm font-mono font-bold text-ink mt-1">
                 ${{ order.grand_total }}
             </p>
         </div>
         <div>
             <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Origin Quote" %}</span>
-            <p class="text-sm font-mono text-slate-700 dark:text-slate-300 mt-1">
+            <p class="text-sm font-mono text-muted mt-1">
                 {% if order.quote %}
                     {{ order.quote.quote_number }}
                 {% else %}
@@ -89,13 +89,13 @@
     </div>
 
     <!-- Line Items Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-        <div class="p-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Ordered Products" %}</h2>
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+        <div class="p-4 border-b border-line">
+            <h2 class="text-base font-semibold text-ink">{% trans "Ordered Products" %}</h2>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+            <table class="w-full text-left text-sm text-muted">
+                <thead class="bg-app text-xs uppercase tracking-wider text-muted border-b border-line">
                     <tr>
                         <th scope="col" class="py-3 px-4 font-semibold">{% trans "Product" %}</th>
                         <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Qty Ordered" %}</th>
@@ -105,32 +105,32 @@
                         <th scope="col" class="py-3 px-4 font-semibold text-right">{% trans "Line Total" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for line in order.lines.all %}
                     <tr>
-                        <td class="py-3 px-4 font-medium text-slate-900 dark:text-white">{{ line.product.name }}</td>
+                        <td class="py-3 px-4 font-medium text-ink">{{ line.product.name }}</td>
                         <td class="py-3 px-4 text-right font-mono">{{ line.quantity }}</td>
                         <td class="py-3 px-4 text-right font-mono">{{ line.invoiced_quantity }}</td>
                         <td class="py-3 px-4 text-right font-mono">${{ line.unit_price }}</td>
                         <td class="py-3 px-4 text-right font-mono">{{ line.discount_percent }}%</td>
-                        <td class="py-3 px-4 text-right font-mono font-medium text-slate-900 dark:text-white">${{ line.line_total }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium text-ink">${{ line.line_total }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
-        <div class="p-6 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+        <div class="p-6 bg-app border-t border-line flex justify-end">
             <div class="w-full sm:w-80 space-y-2 text-sm">
-                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                <div class="flex justify-between text-muted">
                     <span>{% trans "Subtotal:" %}</span>
                     <span class="font-mono">${{ order.subtotal }}</span>
                 </div>
-                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                <div class="flex justify-between text-muted">
                     <span>{% trans "Tax Total:" %}</span>
                     <span class="font-mono">${{ order.tax_total }}</span>
                 </div>
-                <div class="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between text-base font-bold text-slate-900 dark:text-white">
+                <div class="pt-2 border-t border-line flex justify-between text-base font-bold text-ink">
                     <span>{% trans "Grand Total:" %}</span>
                     <span class="font-mono text-indigo-600 dark:text-indigo-400">${{ order.grand_total }}</span>
                 </div>

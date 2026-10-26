@@ -12,21 +12,21 @@
     <a href="{% url 'integrations:oauth_applications_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
       &larr; {% trans "OAuth Applications" %}
     </a>
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+    <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
       {% if is_new %}{% trans "Register OAuth Application" %}{% else %}{% trans "Edit Application" %}: {{ application.name }}{% endif %}
     </h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    <p class="mt-1 text-sm text-muted">
       {% trans "Configure client credentials, callback redirect URIs, and permitted API scopes." %}
     </p>
   </div>
 
   <!-- Form -->
-  <form method="post" action="" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+  <form method="post" action="" class="bg-surface rounded-2xl shadow-sm border border-line p-8 space-y-6">
     {% csrf_token %}
 
     <!-- Name -->
     <div>
-      <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+      <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
         {% trans "Application Name" %} <span class="text-rose-500">*</span>
       </label>
       {{ form.name }}
@@ -38,7 +38,7 @@
     <!-- Client Type & Grant Type Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label for="{{ form.client_type.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        <label for="{{ form.client_type.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
           {% trans "Client Type" %} <span class="text-rose-500">*</span>
         </label>
         {{ form.client_type }}
@@ -49,7 +49,7 @@
       </div>
 
       <div>
-        <label for="{{ form.authorization_grant_type.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        <label for="{{ form.authorization_grant_type.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
           {% trans "Grant Type" %} <span class="text-rose-500">*</span>
         </label>
         {{ form.authorization_grant_type }}
@@ -62,7 +62,7 @@
 
     <!-- Redirect URIs -->
     <div>
-      <label for="{{ form.redirect_uris.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+      <label for="{{ form.redirect_uris.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
         {% trans "Redirect URIs" %}
       </label>
       {{ form.redirect_uris }}
@@ -75,13 +75,13 @@
     </div>
 
     <!-- Allowed Scopes Checkboxes -->
-    <div class="border-t border-slate-200 dark:border-slate-800 pt-5">
-      <label class="block text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+    <div class="border-t border-line pt-5">
+      <label class="block text-sm font-semibold text-ink mb-2">
         {% trans "Permitted Scopes" %}
       </label>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto p-3 bg-app rounded-xl border border-slate-200/60 dark:border-slate-700/60">
         {% for val, label in form.fields.scopes.choices %}
-        <label class="flex items-center space-x-2.5 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
+        <label class="flex items-center space-x-2.5 text-xs text-muted hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
           <input
             type="checkbox"
             name="scopes"
@@ -98,7 +98,7 @@
 
     <!-- Description -->
     <div>
-      <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+      <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
         {% trans "Description" %}
       </label>
       {{ form.description }}
@@ -110,16 +110,16 @@
     <!-- Skip Authorization -->
     <div class="flex items-center space-x-3 pt-2">
       {{ form.skip_authorization }}
-      <label for="{{ form.skip_authorization.id_for_label }}" class="text-sm text-slate-700 dark:text-slate-300">
+      <label for="{{ form.skip_authorization.id_for_label }}" class="text-sm text-muted">
         {% trans "Skip user consent screen for first-party internal clients" %}
       </label>
     </div>
 
     <!-- Actions -->
-    <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-end space-x-3 pt-6 border-t border-line">
       <a
         href="{% url 'integrations:oauth_applications_list' %}"
-        class="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+        class="px-4 py-2.5 border border-line text-sm font-medium rounded-xl text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700 transition"
       >
         {% trans "Cancel" %}
       </a>

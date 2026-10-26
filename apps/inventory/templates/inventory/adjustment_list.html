@@ -7,8 +7,8 @@
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Stock Adjustments" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Stock Adjustments" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Audit logs of inventory write-offs, shrinkages, damages, and manual quantity adjustments." %}
             </p>
         </div>
@@ -22,11 +22,11 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                    <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
                         <th class="py-3.5 px-4">{% trans "Adjustment #" %}</th>
                         <th class="py-3.5 px-4">{% trans "Warehouse" %}</th>
                         <th class="py-3.5 px-4">{% trans "Reason" %}</th>
@@ -35,15 +35,15 @@
                         <th class="py-3.5 px-4 text-right">{% trans "Action" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                <tbody class="divide-y divide-line/60">
                     {% for adj in page_obj %}
-                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                        <td class="py-3.5 px-4 font-mono font-medium text-slate-900 dark:text-white">
+                    <tr class="hover:bg-surface-2 transition-colors">
+                        <td class="py-3.5 px-4 font-mono font-medium text-ink">
                             <a href="{% url 'inventory:adjustment_detail' adj.pk %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
                                 {{ adj.adjustment_number }}
                             </a>
                         </td>
-                        <td class="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                        <td class="py-3.5 px-4 text-muted">
                             {{ adj.warehouse.name }}
                         </td>
                         <td class="py-3.5 px-4">
@@ -56,7 +56,7 @@
                                 {{ adj.status|capfirst }}
                             </span>
                         </td>
-                        <td class="py-3.5 px-4 text-slate-500 dark:text-slate-400 text-xs">
+                        <td class="py-3.5 px-4 text-muted text-xs">
                             {{ adj.confirmed_at|date:"Y-m-d H:i" }}
                         </td>
                         <td class="py-3.5 px-4 text-right">
@@ -67,8 +67,8 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="py-12 text-center text-slate-500 dark:text-slate-400">
-                            <p class="text-base font-medium text-slate-900 dark:text-white">{% trans "No stock adjustments recorded" %}</p>
+                        <td colspan="6" class="py-12 text-center text-muted">
+                            <p class="text-base font-medium text-ink">{% trans "No stock adjustments recorded" %}</p>
                         </td>
                     </tr>
                     {% endfor %}

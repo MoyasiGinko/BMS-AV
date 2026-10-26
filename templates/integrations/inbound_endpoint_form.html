@@ -12,22 +12,22 @@
     <a href="{% url 'integrations:inbound_endpoints_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
       &larr; {% trans "Inbound Webhooks" %}
     </a>
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+    <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
       {% if is_new %}{% trans "Configure Inbound Webhook Endpoint" %}{% else %}{% trans "Edit Endpoint" %}: {{ endpoint.name }}{% endif %}
     </h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+    <p class="mt-1 text-sm text-muted">
       {% trans "Configure signature verification headers, cryptographic hashing algorithms, and internal routing events." %}
     </p>
   </div>
 
   <!-- Form -->
-  <form method="post" action="" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+  <form method="post" action="" class="bg-surface rounded-2xl shadow-sm border border-line p-8 space-y-6">
     {% csrf_token %}
 
     <!-- Name & Provider Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
           {% trans "Endpoint Name" %} <span class="text-rose-500">*</span>
         </label>
         {{ form.name }}
@@ -37,7 +37,7 @@
       </div>
 
       <div>
-        <label for="{{ form.provider.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        <label for="{{ form.provider.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
           {% trans "Source Provider" %} <span class="text-rose-500">*</span>
         </label>
         {{ form.provider }}
@@ -48,14 +48,14 @@
     </div>
 
     <!-- Security Verification Settings -->
-    <div class="border-t border-slate-200 dark:border-slate-800 pt-5 space-y-4">
-      <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+    <div class="border-t border-line pt-5 space-y-4">
+      <h3 class="text-sm font-semibold text-ink">
         {% trans "Cryptographic Verification" %}
       </h3>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label for="{{ form.signature_header.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label for="{{ form.signature_header.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
             {% trans "Signature Header" %}
           </label>
           {{ form.signature_header }}
@@ -66,7 +66,7 @@
         </div>
 
         <div>
-          <label for="{{ form.signature_algorithm.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label for="{{ form.signature_algorithm.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
             {% trans "Algorithm" %}
           </label>
           {{ form.signature_algorithm }}
@@ -78,7 +78,7 @@
 
       <!-- Secret -->
       <div>
-        <label for="{{ form.custom_secret.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        <label for="{{ form.custom_secret.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
           {% trans "Signing Secret" %}
         </label>
         {{ form.custom_secret }}
@@ -90,14 +90,14 @@
     </div>
 
     <!-- Internal Dispatch Settings -->
-    <div class="border-t border-slate-200 dark:border-slate-800 pt-5 space-y-4">
-      <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+    <div class="border-t border-line pt-5 space-y-4">
+      <h3 class="text-sm font-semibold text-ink">
         {% trans "Routing & Dispatch" %}
       </h3>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label for="{{ form.target_event.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label for="{{ form.target_event.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
             {% trans "Target Domain Event" %}
           </label>
           {{ form.target_event }}
@@ -108,7 +108,7 @@
         </div>
 
         <div>
-          <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
             {% trans "Operational Status" %}
           </label>
           {{ form.status }}
@@ -121,7 +121,7 @@
 
     <!-- Description -->
     <div>
-      <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+      <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
         {% trans "Description" %}
       </label>
       {{ form.description }}
@@ -131,10 +131,10 @@
     </div>
 
     <!-- Actions -->
-    <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-end space-x-3 pt-6 border-t border-line">
       <a
         href="{% url 'integrations:inbound_endpoints_list' %}"
-        class="px-4 py-2.5 border border-slate-300 dark:border-slate-700 text-sm font-medium rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 transition"
+        class="px-4 py-2.5 border border-line text-sm font-medium rounded-xl text-muted bg-surface hover:bg-slate-50 transition"
       >
         {% trans "Cancel" %}
       </a>

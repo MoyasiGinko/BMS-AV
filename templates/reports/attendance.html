@@ -11,13 +11,13 @@
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
                 <span>&rsaquo;</span>
-                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Attendance & Leave" %}</span>
+                <span class="text-muted font-medium">{% trans "Attendance & Leave" %}</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Workforce Attendance & Leave Analysis" %}</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Workforce Attendance & Leave Analysis" %}</h1>
         </div>
         <div class="flex items-center gap-2" x-data="{ exportOpen: false }">
             <div class="relative inline-block text-left">
-                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
                     <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -26,15 +26,15 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
-                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700 z-50">
+                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-surface border border-line divide-y divide-line z-50">
                     <div class="py-1">
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "CSV Spreadsheet" %}
                         </button>
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "Excel (XLSX)" %}
                         </button>
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "PDF Document" %}
                         </button>
                     </div>
@@ -47,19 +47,19 @@
     <div id="export-container"></div>
 
     <!-- Filter Bar -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
         <form id="filter-form" method="get" class="flex flex-wrap gap-4 items-end">
             <div class="w-44">
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Start Date" %}</label>
-                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-semibold text-muted mb-1">{% trans "Start Date" %}</label>
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-line bg-surface text-ink px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
             </div>
             <div class="w-44">
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "End Date" %}</label>
-                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-semibold text-muted mb-1">{% trans "End Date" %}</label>
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-line bg-surface text-ink px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
             </div>
             <div class="w-56">
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Department" %}</label>
-                <select name="department_id" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-semibold text-muted mb-1">{% trans "Department" %}</label>
+                <select name="department_id" class="w-full text-sm rounded-lg border border-line bg-surface text-ink px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
                     <option value="all">{% trans "All Departments" %}</option>
                     {% for dept in departments %}
                     <option value="{{ dept.id }}" {% if selected_department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
@@ -76,29 +76,29 @@
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Staff Evaluated" %}</span>
-            <div class="text-2xl font-bold text-slate-900 dark:text-white font-mono mt-1">{{ data.summary.total_employees }}</div>
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-muted">{% trans "Staff Evaluated" %}</span>
+            <div class="text-2xl font-bold text-ink font-mono mt-1">{{ data.summary.total_employees }}</div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Total Days Present" %}</span>
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-muted">{% trans "Total Days Present" %}</span>
             <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-1">{{ data.summary.total_present_days }}</div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Avg Attendance Rate" %}</span>
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-muted">{% trans "Avg Attendance Rate" %}</span>
             <div class="text-2xl font-bold text-teal-600 dark:text-teal-400 font-mono mt-1">{{ data.summary.avg_attendance_rate }}%</div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
-            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{% trans "Avg Punctuality Rate" %}</span>
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+            <span class="text-xs font-medium text-muted">{% trans "Avg Punctuality Rate" %}</span>
             <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono mt-1">{{ data.summary.avg_punctuality_rate }}%</div>
         </div>
     </div>
 
     <!-- Data Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
-                <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
+                <thead class="bg-app text-xs uppercase font-semibold text-muted border-b border-line">
                     <tr>
                         <th class="px-4 py-3">{% trans "Code" %}</th>
                         <th class="px-4 py-3">{% trans "Employee Name" %}</th>
@@ -111,13 +111,13 @@
                         <th class="px-4 py-3 text-right">{% trans "Punctuality %" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                <tbody class="divide-y divide-line/60">
                     {% for row in data.rows %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                        <td class="px-4 py-3 font-mono font-medium text-slate-900 dark:text-white">{{ row.code }}</td>
-                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ row.name }}</td>
-                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ row.department }}</td>
-                        <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ row.position }}</td>
+                    <tr class="hover:bg-surface-2">
+                        <td class="px-4 py-3 font-mono font-medium text-ink">{{ row.code }}</td>
+                        <td class="px-4 py-3 font-medium text-ink">{{ row.name }}</td>
+                        <td class="px-4 py-3 text-muted">{{ row.department }}</td>
+                        <td class="px-4 py-3 text-muted">{{ row.position }}</td>
                         <td class="px-4 py-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{{ row.present_days }}</td>
                         <td class="px-4 py-3 text-right font-mono text-amber-600 dark:text-amber-400">{{ row.late_days }}</td>
                         <td class="px-4 py-3 text-right font-mono text-blue-600 dark:text-blue-400">{{ row.leave_days }}</td>
@@ -126,7 +126,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        <td colspan="9" class="px-4 py-8 text-center text-muted">
                             {% trans "No attendance records found for the selected period." %}
                         </td>
                     </tr>

@@ -9,22 +9,22 @@
         <a href="{% url 'inventory:stock_level_list' %}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
             &larr; {% trans "Back to Stock Levels" %}
         </a>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-2">{% trans "Inventory Reconciliation Audit" %}</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">{% trans "Inventory Reconciliation Audit" %}</h1>
+        <p class="text-sm text-muted mt-1">
             {% trans "Mathematically verifies that cached on-hand quantities strictly equal the sum of immutable ledger stock movements." %}
         </p>
     </div>
 
     <!-- Controls -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
         <form method="post" class="space-y-4">
             {% csrf_token %}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
                         {% trans "Warehouse Scope" %}
                     </label>
-                    <select name="warehouse_id" class="w-full text-sm py-2 px-3 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
+                    <select name="warehouse_id" class="w-full text-sm py-2 px-3 border border-line rounded-lg bg-surface text-ink focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
                         <option value="">{% trans "All Warehouses" %}</option>
                         {% for w in warehouses %}
                         <option value="{{ w.pk }}">{{ w.name }}</option>
@@ -32,7 +32,7 @@
                     </select>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button type="submit" name="fix" value="0" class="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+                    <button type="submit" name="fix" value="0" class="flex-1 px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
                         {% trans "Run Audit Check" %}
                     </button>
                     <button type="submit" name="fix" value="1" class="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
@@ -45,10 +45,10 @@
 
     <!-- Results Display -->
     {% if result %}
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
-        <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+        <div class="p-6 border-b border-line flex items-center justify-between">
             <div>
-                <h3 class="font-bold text-slate-900 dark:text-white text-base">{% trans "Reconciliation Audit Report" %}</h3>
+                <h3 class="font-bold text-ink text-base">{% trans "Reconciliation Audit Report" %}</h3>
                 <p class="text-xs text-slate-400 mt-0.5">{% trans "Checked" %} {{ result.total_checked }} {% trans "stock level records" %}</p>
             </div>
             {% if result.is_consistent %}
@@ -66,7 +66,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                    <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
                         <th class="py-3 px-4">{% trans "Product" %}</th>
                         <th class="py-3 px-4">{% trans "Warehouse" %}</th>
                         <th class="py-3 px-4 text-right">{% trans "Cached Level" %}</th>
@@ -75,16 +75,16 @@
                         <th class="py-3 px-4 text-center">{% trans "Status" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono text-xs">
+                <tbody class="divide-y divide-line/60 font-mono text-xs">
                     {% for d in result.discrepancies %}
                     <tr>
-                        <td class="py-3 px-4 font-sans text-sm font-medium text-slate-900 dark:text-white">
+                        <td class="py-3 px-4 font-sans text-sm font-medium text-ink">
                             {{ d.product_name }}
                         </td>
-                        <td class="py-3 px-4 font-sans text-slate-600 dark:text-slate-300">
+                        <td class="py-3 px-4 font-sans text-muted">
                             {{ d.warehouse_name }}
                         </td>
-                        <td class="py-3 px-4 text-right text-slate-500 dark:text-slate-400">
+                        <td class="py-3 px-4 text-right text-muted">
                             {{ d.cached_on_hand }}
                         </td>
                         <td class="py-3 px-4 text-right text-indigo-600 dark:text-indigo-400 font-bold">
@@ -110,11 +110,11 @@
             </table>
         </div>
         {% else %}
-        <div class="p-8 text-center text-slate-500 dark:text-slate-400">
+        <div class="p-8 text-center text-muted">
             <svg class="w-12 h-12 mx-auto text-emerald-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Audit Clean" %}</p>
+            <p class="text-base font-semibold text-ink">{% trans "Audit Clean" %}</p>
             <p class="text-xs text-slate-400 mt-1">{% trans "All cached stock levels precisely match their underlying ledger movement sums." %}</p>
         </div>
         {% endif %}

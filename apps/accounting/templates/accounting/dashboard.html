@@ -8,17 +8,17 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Accounting & Finance" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Accounting & Finance" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "General ledger, banking, reconciliation, expenses, and tax summaries." %}
             </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
-            <a href="{% url 'accounting:journal_create' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+            <a href="{% url 'accounting:journal_create' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
                 <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 {% trans "New Journal Entry" %}
             </a>
-            <a href="{% url 'accounting:expense_create' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 shadow-xs">
+            <a href="{% url 'accounting:expense_create' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
                 <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 {% trans "Record Expense" %}
             </a>
@@ -31,28 +31,28 @@
 
     <!-- Summary KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Assets" %}</span>
             <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-slate-900 dark:text-white font-mono">${{ summary.total_assets|default:"0.00" }}</span>
+                <span class="text-2xl font-bold text-ink font-mono">${{ summary.total_assets|default:"0.00" }}</span>
                 <span class="text-xs text-emerald-600 font-medium">{% trans "Resources owned" %}</span>
             </div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Liabilities" %}</span>
             <div class="mt-2 flex items-baseline justify-between">
                 <span class="text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono">${{ summary.total_liabilities|default:"0.00" }}</span>
                 <span class="text-xs text-rose-500 font-medium">{% trans "Obligations" %}</span>
             </div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Equity" %}</span>
             <div class="mt-2 flex items-baseline justify-between">
                 <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">${{ summary.total_equity|default:"0.00" }}</span>
                 <span class="text-xs text-slate-400">{% trans "Net worth" %}</span>
             </div>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Net Income (YTD)" %}</span>
             <div class="mt-2 flex items-baseline justify-between">
                 <span class="text-2xl font-bold font-mono {% if summary.net_income >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
@@ -65,27 +65,27 @@
 
     <!-- Quick Navigation Links -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <a href="{% url 'accounting:account_list' %}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-indigo-500 transition-all text-center">
+        <a href="{% url 'accounting:account_list' %}" class="flex flex-col items-center justify-center p-4 bg-surface border border-line rounded-xl hover:border-indigo-500 transition-all text-center">
             <span class="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{% trans "Chart of Accounts" %}</span>
             <span class="text-xs text-slate-400 mt-1">{% trans "Structure & Codes" %}</span>
         </a>
-        <a href="{% url 'accounting:journal_list' %}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-indigo-500 transition-all text-center">
+        <a href="{% url 'accounting:journal_list' %}" class="flex flex-col items-center justify-center p-4 bg-surface border border-line rounded-xl hover:border-indigo-500 transition-all text-center">
             <span class="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{% trans "Journals" %}</span>
             <span class="text-xs text-slate-400 mt-1">{% trans "Double-entry Log" %}</span>
         </a>
-        <a href="{% url 'accounting:bank_account_list' %}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-indigo-500 transition-all text-center">
+        <a href="{% url 'accounting:bank_account_list' %}" class="flex flex-col items-center justify-center p-4 bg-surface border border-line rounded-xl hover:border-indigo-500 transition-all text-center">
             <span class="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{% trans "Banking" %}</span>
             <span class="text-xs text-slate-400 mt-1">{% trans "Accounts & Rec" %}</span>
         </a>
-        <a href="{% url 'accounting:expense_list' %}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-indigo-500 transition-all text-center">
+        <a href="{% url 'accounting:expense_list' %}" class="flex flex-col items-center justify-center p-4 bg-surface border border-line rounded-xl hover:border-indigo-500 transition-all text-center">
             <span class="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{% trans "Expenses" %}</span>
             <span class="text-xs text-slate-400 mt-1">{% trans "Spend & Receipts" %}</span>
         </a>
-        <a href="{% url 'accounting:currency_list' %}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-indigo-500 transition-all text-center">
+        <a href="{% url 'accounting:currency_list' %}" class="flex flex-col items-center justify-center p-4 bg-surface border border-line rounded-xl hover:border-indigo-500 transition-all text-center">
             <span class="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{% trans "Currencies" %}</span>
             <span class="text-xs text-slate-400 mt-1">{% trans "Exchange Rates" %}</span>
         </a>
-        <a href="{% url 'accounting:fiscal_period_list' %}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-indigo-500 transition-all text-center">
+        <a href="{% url 'accounting:fiscal_period_list' %}" class="flex flex-col items-center justify-center p-4 bg-surface border border-line rounded-xl hover:border-indigo-500 transition-all text-center">
             <span class="text-indigo-600 dark:text-indigo-400 font-semibold text-sm">{% trans "Fiscal Periods" %}</span>
             <span class="text-xs text-slate-400 mt-1">{% trans "Period Closing" %}</span>
         </a>
@@ -94,16 +94,16 @@
     <!-- Main Grid: Bank Accounts & Recent Journals -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Bank Accounts -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-            <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <h3 class="font-semibold text-slate-900 dark:text-white">{% trans "Bank Accounts" %}</h3>
+        <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+            <div class="p-5 border-b border-line flex items-center justify-between">
+                <h3 class="font-semibold text-ink">{% trans "Bank Accounts" %}</h3>
                 <a href="{% url 'accounting:bank_account_list' %}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                     {% trans "Manage all" %} &rarr;
                 </a>
             </div>
-            <div class="divide-y divide-slate-200 dark:divide-slate-800">
+            <div class="divide-y divide-line">
                 {% for ba in bank_accounts %}
-                <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                <div class="p-4 flex items-center justify-between hover:bg-surface-2 transition-colors">
                     <div>
                         <a href="{% url 'accounting:bank_account_detail' pk=ba.pk %}" class="font-medium text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
                             {{ ba.name }}
@@ -113,7 +113,7 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <span class="font-mono font-semibold text-sm text-slate-900 dark:text-white">
+                        <span class="font-mono font-semibold text-sm text-ink">
                             ${{ ba.current_balance }}
                         </span>
                         <div class="text-xs text-slate-400 mt-0.5">
@@ -133,21 +133,21 @@
         </div>
 
         <!-- Recent Journals -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
-            <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <h3 class="font-semibold text-slate-900 dark:text-white">{% trans "Recent Journal Entries" %}</h3>
+        <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+            <div class="p-5 border-b border-line flex items-center justify-between">
+                <h3 class="font-semibold text-ink">{% trans "Recent Journal Entries" %}</h3>
                 <a href="{% url 'accounting:journal_list' %}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                     {% trans "View all" %} &rarr;
                 </a>
             </div>
-            <div class="divide-y divide-slate-200 dark:divide-slate-800">
+            <div class="divide-y divide-line">
                 {% for j in recent_journals %}
-                <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                <div class="p-4 flex items-center justify-between hover:bg-surface-2 transition-colors">
                     <div>
                         <a href="{% url 'accounting:journal_detail' pk=j.pk %}" class="font-mono font-medium text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
                             {{ j.entry_number }}
                         </a>
-                        <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-xs">
+                        <div class="text-xs text-muted mt-0.5 truncate max-w-xs">
                             {{ j.date }} &bull; {{ j.memo|default:"Journal entry" }}
                         </div>
                     </div>

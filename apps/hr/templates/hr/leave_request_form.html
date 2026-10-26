@@ -13,17 +13,17 @@
                 <span>/</span>
                 <span class="text-slate-800 dark:text-slate-200">{% trans "New Application" %}</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">
                 {% trans "Apply For Leave" %}
             </h1>
         </div>
     </div>
 
     <!-- Application Form Card -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
         <div class="mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
             <span class="text-xs text-slate-400 uppercase font-semibold">{% trans "Applying as" %}</span>
-            <div class="text-base font-bold text-slate-900 dark:text-white mt-0.5">{{ employee.full_name }}</div>
+            <div class="text-base font-bold text-ink mt-0.5">{{ employee.full_name }}</div>
             <span class="text-xs font-mono text-slate-500">{{ employee.code }} &bull; {{ employee.position.title|default:"Staff" }}</span>
         </div>
 
@@ -37,39 +37,39 @@
             {% endif %}
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Leave Category" %} *</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Leave Category" %} *</label>
                 {{ form.leave_type }}
                 {% if form.leave_type.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.leave_type.errors.0 }}</p>{% endif %}
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Start Date" %} *</label>
+                    <label class="block text-sm font-medium text-muted mb-1">{% trans "Start Date" %} *</label>
                     {{ form.start_date }}
                     {% if form.start_date.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.start_date.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "End Date" %} *</label>
+                    <label class="block text-sm font-medium text-muted mb-1">{% trans "End Date" %} *</label>
                     {{ form.end_date }}
                     {% if form.end_date.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.end_date.errors.0 }}</p>{% endif %}
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Calculated Working Days" %} *</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Calculated Working Days" %} *</label>
                 {{ form.days_count }}
                 <span class="text-xs text-slate-400 mt-1 block">{% trans "Specify duration in days (e.g. 1.0 or 0.5 for half-day)." %}</span>
                 {% if form.days_count.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.days_count.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{% trans "Reason / Justification" %} *</label>
+                <label class="block text-sm font-medium text-muted mb-1">{% trans "Reason / Justification" %} *</label>
                 {{ form.reason }}
                 {% if form.reason.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.reason.errors.0 }}</p>{% endif %}
             </div>
 
             <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
-                <a href="{% url 'hr:self_service_profile' %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors">
+                <a href="{% url 'hr:self_service_profile' %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50 transition-colors">
                     {% trans "Cancel" %}
                 </a>
                 <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">

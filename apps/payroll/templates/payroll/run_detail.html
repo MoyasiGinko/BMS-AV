@@ -12,7 +12,7 @@
                 &larr; {% trans "Back to Payroll Runs" %}
             </a>
             <div class="flex items-center gap-3 mt-1">
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">{{ run.number }}</h1>
+                <h1 class="text-2xl font-bold tracking-tight text-ink font-mono">{{ run.number }}</h1>
                 {% if run.status == 'draft' %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{% trans "Draft" %}</span>
                 {% elif run.status == 'reviewed' %}
@@ -25,7 +25,7 @@
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">{{ run.get_status_display }}</span>
                 {% endif %}
             </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            <p class="text-sm text-muted mt-0.5">
                 {% trans "Period" %}: {{ run.period_start|date:"M d, Y" }} &mdash; {{ run.period_end|date:"M d, Y" }} &bull; {% trans "Disbursement" %}: {{ run.payment_date|date:"M d, Y" }}
             </p>
         </div>
@@ -35,7 +35,7 @@
             {% if run.status == 'draft' %}
                 <form method="post" action="{% url 'payroll:run_review' public_id=run.public_id %}">
                     {% csrf_token %}
-                    <button type="submit" class="px-3.5 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium transition-colors">
+                    <button type="submit" class="px-3.5 py-2 border border-line bg-surface hover:bg-slate-50 dark:hover:bg-slate-700 text-muted rounded-lg text-sm font-medium transition-colors">
                         {% trans "Mark as Reviewed" %}
                     </button>
                 </form>
@@ -76,22 +76,22 @@
 
     <!-- Summary Metrics & Ledger Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Gross Pay" %}</span>
-            <div class="mt-2 text-xl font-bold font-mono text-slate-900 dark:text-white">${{ run.total_gross_pay|floatformat:2 }}</div>
+            <div class="mt-2 text-xl font-bold font-mono text-ink">${{ run.total_gross_pay|floatformat:2 }}</div>
             <span class="text-xs text-slate-400">{% trans "Dr Salaries Expense" %}</span>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Deductions" %}</span>
             <div class="mt-2 text-xl font-bold font-mono text-rose-600 dark:text-rose-400">-${{ run.total_deductions|floatformat:2 }}</div>
             <span class="text-xs text-slate-400">{% trans "Taxes & leave deductions" %}</span>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Net Payable" %}</span>
             <div class="mt-2 text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">${{ run.total_net_pay|floatformat:2 }}</div>
             <span class="text-xs text-slate-400">{% trans "Cr Payroll Liability" %}</span>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Accrual Ledger Entry" %}</span>
             <div class="mt-2 text-sm font-bold font-mono text-indigo-600 dark:text-indigo-400">
                 {% if run.journal_entry %}
@@ -102,7 +102,7 @@
             </div>
             <span class="text-xs text-slate-400">{% if run.approved_at %}{{ run.approved_at|date:"M d, H:i" }}{% else %}—{% endif %}</span>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Disbursement Entry" %}</span>
             <div class="mt-2 text-sm font-bold font-mono text-indigo-600 dark:text-indigo-400">
                 {% if run.payment_journal_entry %}
@@ -116,12 +116,12 @@
     </div>
 
     <!-- Search / Filter within Payslips -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
         <form method="get" class="flex items-center gap-4">
             <div class="flex-1">
-                <input type="text" name="q" value="{{ search_query }}" placeholder="{% trans 'Search payslip by employee name...' %}" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm" />
+                <input type="text" name="q" value="{{ search_query }}" placeholder="{% trans 'Search payslip by employee name...' %}" class="w-full rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2 text-sm" />
             </div>
-            <button type="submit" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300">
+            <button type="submit" class="px-4 py-2 bg-surface-2 hover:bg-surface-2 rounded-lg text-sm font-medium text-muted">
                 {% trans "Search" %}
             </button>
             {% if search_query %}
@@ -131,13 +131,13 @@
     </div>
 
     <!-- Payslips Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <h2 class="text-base font-semibold text-slate-900 dark:text-white">{% trans "Itemized Employee Payslips" %} ({{ page_obj.paginator.count }})</h2>
+    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+        <div class="px-6 py-4 border-b border-line flex items-center justify-between">
+            <h2 class="text-base font-semibold text-ink">{% trans "Itemized Employee Payslips" %} ({{ page_obj.paginator.count }})</h2>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <thead class="bg-app border-b border-line text-xs font-semibold uppercase tracking-wider text-muted">
                     <tr>
                         <th class="px-6 py-3.5">{% trans "Employee" %}</th>
                         <th class="px-6 py-3.5">{% trans "Department" %}</th>
@@ -149,22 +149,22 @@
                         <th class="px-6 py-3.5 text-right">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for payslip in payslips %}
-                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr class="hover:bg-surface-2 transition-colors">
                         <td class="px-6 py-4">
-                            <a href="{% url 'payroll:payslip_detail' public_id=payslip.public_id %}" class="font-medium text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400">
+                            <a href="{% url 'payroll:payslip_detail' public_id=payslip.public_id %}" class="font-medium text-ink hover:text-indigo-600 dark:hover:text-indigo-400">
                                 {{ payslip.employee.full_name }}
                             </a>
                             <div class="text-xs text-slate-400 font-mono">{{ payslip.employee.code }}</div>
                         </td>
-                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">
+                        <td class="px-6 py-4 text-muted">
                             {{ payslip.employee.department.name|default:"—" }}
                         </td>
-                        <td class="px-6 py-4 text-right font-mono text-slate-700 dark:text-slate-300">
+                        <td class="px-6 py-4 text-right font-mono text-muted">
                             ${{ payslip.base_salary|floatformat:2 }}
                         </td>
-                        <td class="px-6 py-4 text-right font-mono text-slate-900 dark:text-white">
+                        <td class="px-6 py-4 text-right font-mono text-ink">
                             ${{ payslip.gross_pay|floatformat:2 }}
                         </td>
                         <td class="px-6 py-4 text-right font-mono text-rose-600 dark:text-rose-400">
@@ -173,7 +173,7 @@
                         <td class="px-6 py-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                             ${{ payslip.net_pay|floatformat:2 }}
                         </td>
-                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300 text-xs">
+                        <td class="px-6 py-4 text-muted text-xs">
                             {{ payslip.get_payment_method_display }}
                             {% if payslip.bank_account_number %}
                                 <div class="font-mono text-slate-400">{{ payslip.bank_name }} ({{ payslip.bank_account_number }})</div>
@@ -181,7 +181,7 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <a href="{% url 'payroll:payslip_detail' public_id=payslip.public_id %}" class="px-2.5 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded text-slate-700 dark:text-slate-300 hover:bg-slate-50">
+                                <a href="{% url 'payroll:payslip_detail' public_id=payslip.public_id %}" class="px-2.5 py-1 text-xs border border-line rounded text-muted hover:bg-slate-50">
                                     {% trans "Details" %}
                                 </a>
                                 <a href="{% url 'payroll:payslip_pdf' public_id=payslip.public_id %}" target="_blank" class="px-2.5 py-1 text-xs bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded hover:bg-indigo-100">
@@ -202,14 +202,14 @@
         </div>
 
         {% if page_obj.has_other_pages %}
-        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm">
+        <div class="px-6 py-4 border-t border-line flex items-center justify-between text-sm">
             <span class="text-slate-500">{% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}</span>
             <div class="flex gap-2">
                 {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">{% trans "Previous" %}</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 border border-line rounded-lg text-muted">{% trans "Previous" %}</a>
                 {% endif %}
                 {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300">{% trans "Next" %}</a>
+                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}" class="px-3 py-1.5 border border-line rounded-lg text-muted">{% trans "Next" %}</a>
                 {% endif %}
             </div>
         </div>

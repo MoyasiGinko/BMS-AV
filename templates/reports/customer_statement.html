@@ -11,13 +11,13 @@
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
                 <a href="{% url 'reports:index' %}" class="hover:text-indigo-600">{% trans "Reports" %}</a>
                 <span>&rsaquo;</span>
-                <span class="text-slate-700 dark:text-slate-300 font-medium">{% trans "Customer Statement" %}</span>
+                <span class="text-muted font-medium">{% trans "Customer Statement" %}</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Customer Statement" %}</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Customer Statement" %}</h1>
         </div>
         <div class="flex items-center gap-2" x-data="{ exportOpen: false }">
             <div class="relative inline-block text-left">
-                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
                     <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -26,15 +26,15 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
-                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700 z-50">
+                <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-surface border border-line divide-y divide-line z-50">
                     <div class="py-1">
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "CSV Spreadsheet" %}
                         </button>
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "Excel (XLSX)" %}
                         </button>
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
                             {% trans "PDF Document" %}
                         </button>
                     </div>
@@ -47,23 +47,23 @@
     <div id="export-container"></div>
 
     <!-- Filter Bar -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
         <form id="filter-form" method="get" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "Customer Account" %}</label>
-                <select name="customer_id" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-semibold text-muted mb-1">{% trans "Customer Account" %}</label>
+                <select name="customer_id" class="w-full text-sm rounded-lg border border-line bg-surface text-ink px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
                     {% for c in customers %}
                     <option value="{{ c.id }}" {% if selected_customer_id == c.id %}selected{% endif %}>{{ c.name }} ({{ c.code }})</option>
                     {% endfor %}
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "From Date" %}</label>
-                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-semibold text-muted mb-1">{% trans "From Date" %}</label>
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-line bg-surface text-ink px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">{% trans "To Date" %}</label>
-                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-semibold text-muted mb-1">{% trans "To Date" %}</label>
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="w-full text-sm rounded-lg border border-line bg-surface text-ink px-3 py-1.5 focus:ring-2 focus:ring-indigo-500">
             </div>
             <div class="flex items-end">
                 <button type="submit" class="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">
@@ -76,21 +76,21 @@
     {% if data %}
     <!-- Customer Details & Balance Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Customer Information" %}</span>
-            <div class="mt-2 text-lg font-bold text-slate-900 dark:text-white">{{ data.customer.name }}</div>
+            <div class="mt-2 text-lg font-bold text-ink">{{ data.customer.name }}</div>
             <div class="text-xs text-slate-500 mt-1 font-mono">{% trans "Code" %}: {{ data.customer.code }}</div>
             {% if data.customer.tax_id %}<div class="text-xs text-slate-500 font-mono">{% trans "Tax ID" %}: {{ data.customer.tax_id }}</div>{% endif %}
             {% if data.customer.email %}<div class="text-xs text-slate-500">{{ data.customer.email }}</div>{% endif %}
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Opening Balance" %}</span>
-            <div class="mt-2 text-2xl font-bold text-slate-900 dark:text-white font-mono">${{ data.opening_balance|floatformat:2 }}</div>
+            <div class="mt-2 text-2xl font-bold text-ink font-mono">${{ data.opening_balance|floatformat:2 }}</div>
             <p class="text-xs text-slate-400 mt-1">{% trans "Prior to" %} {{ start_date|date:'Y-m-d' }}</p>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Closing Balance" %}</span>
-            <div class="mt-2 text-2xl font-bold {% if data.closing_balance > 0 %}text-amber-600 dark:text-amber-400{% else %}text-slate-900 dark:text-white{% endif %} font-mono">
+            <div class="mt-2 text-2xl font-bold {% if data.closing_balance > 0 %}text-amber-600 dark:text-amber-400{% else %}text-ink{% endif %} font-mono">
                 ${{ data.closing_balance|floatformat:2 }}
             </div>
             <p class="text-xs text-slate-400 mt-1">{% trans "As of" %} {{ end_date|date:'Y-m-d' }}</p>
@@ -98,26 +98,26 @@
     </div>
 
     <!-- Aging Breakdown Strip -->
-    <div class="bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+    <div class="bg-slate-50 dark:bg-slate-850 border border-line rounded-xl p-4">
         <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{% trans "Unpaid Invoices Aging" %}</div>
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-            <div class="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <div class="bg-surface p-2.5 rounded-lg border border-line">
                 <div class="text-xs text-slate-500">{% trans "Current" %}</div>
-                <div class="text-sm font-bold font-mono text-slate-900 dark:text-white">${{ data.aging.current|floatformat:2 }}</div>
+                <div class="text-sm font-bold font-mono text-ink">${{ data.aging.current|floatformat:2 }}</div>
             </div>
-            <div class="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <div class="bg-surface p-2.5 rounded-lg border border-line">
                 <div class="text-xs text-slate-500">1 - 30 {% trans "Days" %}</div>
-                <div class="text-sm font-bold font-mono text-slate-900 dark:text-white">${{ data.aging.days_1_30|floatformat:2 }}</div>
+                <div class="text-sm font-bold font-mono text-ink">${{ data.aging.days_1_30|floatformat:2 }}</div>
             </div>
-            <div class="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <div class="bg-surface p-2.5 rounded-lg border border-line">
                 <div class="text-xs text-slate-500">31 - 60 {% trans "Days" %}</div>
                 <div class="text-sm font-bold font-mono text-amber-600">${{ data.aging.days_31_60|floatformat:2 }}</div>
             </div>
-            <div class="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <div class="bg-surface p-2.5 rounded-lg border border-line">
                 <div class="text-xs text-slate-500">61 - 90 {% trans "Days" %}</div>
                 <div class="text-sm font-bold font-mono text-rose-500">${{ data.aging.days_61_90|floatformat:2 }}</div>
             </div>
-            <div class="bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+            <div class="bg-surface p-2.5 rounded-lg border border-line">
                 <div class="text-xs text-slate-500">&gt; 90 {% trans "Days" %}</div>
                 <div class="text-sm font-bold font-mono text-rose-700">${{ data.aging.days_over_90|floatformat:2 }}</div>
             </div>
@@ -125,11 +125,11 @@
     </div>
 
     <!-- Statement Transactions Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                    <tr class="bg-app border-b border-line text-xs font-semibold text-muted uppercase tracking-wider">
                         <th class="py-3 px-4">{% trans "Date" %}</th>
                         <th class="py-3 px-4">{% trans "Transaction" %}</th>
                         <th class="py-3 px-4">{% trans "Reference" %}</th>
@@ -139,26 +139,26 @@
                         <th class="py-3 px-4 text-right">{% trans "Balance" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     <!-- Opening Balance Row -->
                     <tr class="bg-slate-50/50 dark:bg-slate-800/20 font-medium">
                         <td class="py-2.5 px-4 font-mono text-xs text-slate-500">{{ start_date|date:'Y-m-d' }}</td>
-                        <td colspan="5" class="py-2.5 px-4 text-slate-600 dark:text-slate-300">{% trans "OPENING BALANCE" %}</td>
-                        <td class="py-2.5 px-4 text-right font-mono font-semibold text-slate-900 dark:text-white">${{ data.opening_balance|floatformat:2 }}</td>
+                        <td colspan="5" class="py-2.5 px-4 text-muted">{% trans "OPENING BALANCE" %}</td>
+                        <td class="py-2.5 px-4 text-right font-mono font-semibold text-ink">${{ data.opening_balance|floatformat:2 }}</td>
                     </tr>
                     {% for row in data.lines %}
-                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                        <td class="py-3 px-4 font-mono text-xs text-slate-600 dark:text-slate-300">{{ row.occurred_at|date:'Y-m-d' }}</td>
+                    <tr class="hover:bg-surface-2 transition-colors">
+                        <td class="py-3 px-4 font-mono text-xs text-muted">{{ row.occurred_at|date:'Y-m-d' }}</td>
                         <td class="py-3 px-4 text-slate-800 dark:text-slate-200 font-medium">{{ row.entry_type_display }}</td>
                         <td class="py-3 px-4 font-mono text-xs text-slate-500">{{ row.reference_number }}</td>
-                        <td class="py-3 px-4 text-slate-500 dark:text-slate-400">{{ row.description }}</td>
-                        <td class="py-3 px-4 text-right font-mono font-medium {% if row.debit > 0 %}text-slate-900 dark:text-white{% else %}text-slate-400{% endif %}">
+                        <td class="py-3 px-4 text-muted">{{ row.description }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium {% if row.debit > 0 %}text-ink{% else %}text-slate-400{% endif %}">
                             {% if row.debit > 0 %}${{ row.debit|floatformat:2 }}{% else %}-{% endif %}
                         </td>
                         <td class="py-3 px-4 text-right font-mono font-medium {% if row.credit > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-slate-400{% endif %}">
                             {% if row.credit > 0 %}${{ row.credit|floatformat:2 }}{% else %}-{% endif %}
                         </td>
-                        <td class="py-3 px-4 text-right font-mono font-semibold text-slate-900 dark:text-white">${{ row.running_balance|floatformat:2 }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-semibold text-ink">${{ row.running_balance|floatformat:2 }}</td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -169,7 +169,7 @@
                     {% endfor %}
                 </tbody>
                 <tfoot>
-                    <tr class="bg-slate-50 dark:bg-slate-800/60 font-semibold border-t-2 border-slate-200 dark:border-slate-700 text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+                    <tr class="bg-app font-semibold border-t-2 border-line text-xs uppercase tracking-wider text-ink">
                         <td colspan="4" class="py-3 px-4">{% trans "Period Totals & Closing Balance" %}</td>
                         <td class="py-3 px-4 text-right font-mono">${{ data.summary.total_debits|floatformat:2 }}</td>
                         <td class="py-3 px-4 text-right font-mono text-emerald-600 dark:text-emerald-400">${{ data.summary.total_credits|floatformat:2 }}</td>

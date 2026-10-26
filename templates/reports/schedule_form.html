@@ -12,18 +12,18 @@
             <span>&rsaquo;</span>
             <a href="{% url 'reports:schedules' %}" class="hover:text-indigo-600">{% trans "Schedules" %}</a>
             <span>&rsaquo;</span>
-            <span class="text-slate-700 dark:text-slate-300 font-medium">{% if is_edit %}{% trans "Edit" %}{% else %}{% trans "Create" %}{% endif %}</span>
+            <span class="text-muted font-medium">{% if is_edit %}{% trans "Edit" %}{% else %}{% trans "Create" %}{% endif %}</span>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 class="text-2xl font-bold tracking-tight text-ink">
             {% if is_edit %}{% trans "Edit Report Schedule" %}{% else %}{% trans "New Report Delivery Schedule" %}{% endif %}
         </h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p class="text-sm text-muted mt-1">
             {% trans "Automate recurring delivery of standard or custom reports directly to email inboxes." %}
         </p>
     </div>
 
     <!-- Form Container -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-xs">
+    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
         <form method="post" class="space-y-6" x-data="{ frequency: '{{ form.frequency.value|default:"weekly" }}' }">
             {% csrf_token %}
 
@@ -37,7 +37,7 @@
 
             <!-- Schedule Name -->
             <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                     {{ form.name.label }} *
                 </label>
                 {{ form.name }}
@@ -48,7 +48,7 @@
 
             <!-- Saved Report Selection -->
             <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                     {{ form.saved_report.label }} *
                 </label>
                 {{ form.saved_report }}
@@ -61,18 +61,18 @@
             <!-- Recurrence & Timing -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                         {{ form.frequency.label }} *
                     </label>
                     <select name="frequency" x-model="frequency"
-                            class="w-full py-2 px-3 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            class="w-full py-2 px-3 text-sm bg-app border border-line rounded-lg text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="daily">{% trans "Daily" %}</option>
                         <option value="weekly">{% trans "Weekly" %}</option>
                         <option value="monthly">{% trans "Monthly" %}</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                         {{ form.format.label }} *
                     </label>
                     {{ form.format }}
@@ -82,13 +82,13 @@
             <!-- Frequency-specific controls -->
             <div x-show="frequency === 'weekly'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                         {{ form.day_of_week.label }}
                     </label>
                     {{ form.day_of_week }}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                         {{ form.time_of_day.label }}
                     </label>
                     {{ form.time_of_day }}
@@ -97,13 +97,13 @@
 
             <div x-show="frequency === 'monthly'" class="grid grid-cols-1 sm:grid-cols-2 gap-4" style="display: none;">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                         {{ form.day_of_month.label }}
                     </label>
                     {{ form.day_of_month }}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                         {{ form.time_of_day.label }}
                     </label>
                     {{ form.time_of_day }}
@@ -112,7 +112,7 @@
 
             <div x-show="frequency === 'daily'" class="grid grid-cols-1 sm:grid-cols-2 gap-4" style="display: none;">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                         {{ form.time_of_day.label }}
                     </label>
                     {{ form.time_of_day }}
@@ -121,7 +121,7 @@
 
             <!-- Email Recipients -->
             <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                     {{ form.recipient_emails.label }} *
                 </label>
                 {{ form.recipient_emails }}
@@ -135,13 +135,13 @@
             <div class="pt-2">
                 <label class="flex items-center gap-2 cursor-pointer">
                     {{ form.is_active }}
-                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{% trans "Schedule is active and will generate deliveries" %}</span>
+                    <span class="text-sm font-medium text-muted">{% trans "Schedule is active and will generate deliveries" %}</span>
                 </label>
             </div>
 
             <!-- Form Actions -->
-            <div class="pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-3">
-                <a href="{% url 'reports:schedules' %}" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+            <div class="pt-6 border-t border-line flex items-center justify-end gap-3">
+                <a href="{% url 'reports:schedules' %}" class="px-4 py-2 text-sm font-medium text-muted hover:bg-surface-2 rounded-lg transition-colors">
                     {% trans "Cancel" %}
                 </a>
                 <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-xs transition-colors">

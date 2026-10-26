@@ -1,22 +1,22 @@
 {% load i18n %}
 {% for lead in leads %}
-<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+<tr class="hover:bg-surface-2 transition-colors">
     <td class="px-6 py-4 whitespace-nowrap">
         <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
             {{ lead.full_name }}
         </a>
         {% if lead.title %}
-        <p class="text-xs text-slate-500 dark:text-slate-400">{{ lead.title }}</p>
+        <p class="text-xs text-muted">{{ lead.title }}</p>
         {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-ink">
         {{ lead.company_name|default:"-" }}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
         {% if lead.email %}<div>{{ lead.email }}</div>{% endif %}
         {% if lead.phone %}<div class="text-xs text-slate-400">{{ lead.phone }}</div>{% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 capitalize">
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-muted capitalize">
         {{ lead.source }}
     </td>
     <td class="px-6 py-4 whitespace-nowrap">
@@ -34,10 +34,10 @@
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{{ lead.status }}</span>
         {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white font-mono">
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-ink font-mono">
         {% if lead.estimated_value %}${{ lead.estimated_value }}{% else %}-{% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
         {% if lead.assigned_to %}{{ lead.assigned_to.email }}{% else %}Unassigned{% endif %}
     </td>
     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -49,7 +49,7 @@
 </tr>
 {% empty %}
 <tr>
-    <td colspan="8" class="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
+    <td colspan="8" class="px-6 py-12 text-center text-sm text-muted">
         {% trans "No leads found matching current filters." %}
     </td>
 </tr>

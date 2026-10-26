@@ -1,7 +1,9 @@
 """Production settings. Every secret comes from the environment."""
 
+import copy
+
 from .base import *  # noqa: F403
-from .base import env
+from .base import TEMPLATES, env
 
 DEBUG = False
 SECRET_KEY = env("SECRET_KEY")
@@ -58,3 +60,21 @@ MAILERS = {
         },
     }
 }
+
+# --- Production Performance Optimizations ---
+
+# Cached template loader: parse templates once, cache compiled result in memory
+TEMPLATES = copy.deepcopy(TEMPLATES)
+TEMPLATES[0]["OPTIONS"]["loaders"] = [
+    (
+        "django.template.loaders.cached.Loader",
+        [
+            "django.template.loaders.filesystem.Loader",
+            "django.template.loaders.app_directories.Loader",
+        ],
+    ),
+]
+TEMPLATES[0]["APP_DIRS"] = False  # Required when using explicit loaders
+
+# Session: read from Redis cache first, fallback to DB (eliminates 1 DB query/request)
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"

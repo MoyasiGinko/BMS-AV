@@ -11,18 +11,18 @@
     <div class="flex items-center justify-between">
         <div>
             <div class="flex items-center gap-2">
-                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="text-sm font-medium text-slate-500 hover:text-muted dark:hover:text-slate-200">
                     &larr; {% trans "Back" %}
                 </a>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink mt-1">
                 {% if is_new %}{% trans "Create New Product" %}{% else %}{% trans "Edit Product" %}: {{ product.name }}{% endif %}
             </h1>
         </div>
     </div>
 
     <!-- Form Card -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
         <form method="post" class="p-6 space-y-6">
             {% csrf_token %}
 
@@ -34,12 +34,12 @@
 
             <!-- Basic Info Section -->
             <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
+                <h3 class="text-base font-semibold text-ink border-b border-line pb-2 mb-4">
                     {% trans "General Information" %}
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label for="{{ form.sku.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.sku.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "SKU" %} <span class="text-red-500">*</span>
                         </label>
                         {{ form.sku }}
@@ -49,7 +49,7 @@
                     </div>
 
                     <div>
-                        <label for="{{ form.barcode.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.barcode.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Barcode / UPC" %}
                         </label>
                         {{ form.barcode }}
@@ -59,7 +59,7 @@
                     </div>
 
                     <div class="md:col-span-2">
-                        <label for="{{ form.name.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.name.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Product Name" %} <span class="text-red-500">*</span>
                         </label>
                         {{ form.name }}
@@ -69,7 +69,7 @@
                     </div>
 
                     <div>
-                        <label for="{{ form.category_id.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.category_id.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Category" %}
                         </label>
                         {{ form.category_id }}
@@ -79,7 +79,7 @@
                     </div>
 
                     <div>
-                        <label for="{{ form.type.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.type.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Product Type" %} <span class="text-red-500">*</span>
                         </label>
                         {{ form.type }}
@@ -92,12 +92,12 @@
 
             <!-- Pricing & Measurement Section -->
             <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
+                <h3 class="text-base font-semibold text-ink border-b border-line pb-2 mb-4">
                     {% trans "Pricing & Measurement" %}
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label for="{{ form.cost_price.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.cost_price.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Cost Price" %} <span class="text-red-500">*</span>
                         </label>
                         {{ form.cost_price }}
@@ -107,7 +107,7 @@
                     </div>
 
                     <div>
-                        <label for="{{ form.selling_price.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.selling_price.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Selling Price" %} <span class="text-red-500">*</span>
                         </label>
                         {{ form.selling_price }}
@@ -117,7 +117,7 @@
                     </div>
 
                     <div>
-                        <label for="{{ form.unit_id.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.unit_id.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Unit of Measure" %} <span class="text-red-500">*</span>
                         </label>
                         {{ form.unit_id }}
@@ -127,7 +127,7 @@
                     </div>
 
                     <div class="md:col-span-3">
-                        <label for="{{ form.tax_code_id.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.tax_code_id.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Tax Code" %}
                         </label>
                         {{ form.tax_code_id }}
@@ -140,12 +140,12 @@
 
             <!-- Inventory Controls Section -->
             <div>
-                <h3 class="text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2 mb-4">
+                <h3 class="text-base font-semibold text-ink border-b border-line pb-2 mb-4">
                     {% trans "Inventory Management" %}
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label for="{{ form.reorder_level.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.reorder_level.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Reorder Alert Level" %}
                         </label>
                         {{ form.reorder_level }}
@@ -155,7 +155,7 @@
                     </div>
 
                     <div>
-                        <label for="{{ form.reorder_quantity.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        <label for="{{ form.reorder_quantity.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                             {% trans "Reorder Quantity Target" %}
                         </label>
                         {{ form.reorder_quantity }}
@@ -166,21 +166,21 @@
 
                     <div class="flex items-center gap-3 pt-2">
                         {{ form.track_batch }}
-                        <label for="{{ form.track_batch.id_for_label }}" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <label for="{{ form.track_batch.id_for_label }}" class="text-sm font-medium text-muted">
                             {% trans "Track Batch / Lots" %}
                         </label>
                     </div>
 
                     <div class="flex items-center gap-3 pt-2">
                         {{ form.track_serial }}
-                        <label for="{{ form.track_serial.id_for_label }}" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <label for="{{ form.track_serial.id_for_label }}" class="text-sm font-medium text-muted">
                             {% trans "Track Serial Numbers" %}
                         </label>
                     </div>
 
                     <div class="flex items-center gap-3 pt-2">
                         {{ form.is_active }}
-                        <label for="{{ form.is_active.id_for_label }}" class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <label for="{{ form.is_active.id_for_label }}" class="text-sm font-medium text-muted">
                             {% trans "Active in Catalog" %}
                         </label>
                     </div>
@@ -189,7 +189,7 @@
 
             <!-- Description -->
             <div>
-                <label for="{{ form.description.id_for_label }}" class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                <label for="{{ form.description.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
                     {% trans "Description & Notes" %}
                 </label>
                 {{ form.description }}
@@ -199,8 +199,8 @@
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-line">
+                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-surface-2 transition-colors">
                     {% trans "Cancel" %}
                 </a>
                 <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">

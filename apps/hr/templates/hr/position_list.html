@@ -13,8 +13,8 @@
                 <span class="mx-2">/</span>
                 <span class="text-slate-800 dark:text-slate-200">{% trans "Positions" %}</span>
             </nav>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{% trans "Job Positions & Salary Bands" %}</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Job Positions & Salary Bands" %}</h1>
+            <p class="text-sm text-muted mt-1">
                 {% trans "Standardized titles, departmental groupings, and baseline compensation bands." %}
             </p>
         </div>
@@ -26,10 +26,10 @@
     </div>
 
     <!-- Table Card -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-                <thead class="bg-slate-50 dark:bg-slate-800/60">
+            <table class="min-w-full divide-y divide-line">
+                <thead class="bg-app">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Position Title" %}</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Code" %}</th>
@@ -39,22 +39,22 @@
                         <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody class="divide-y divide-line">
                     {% for pos in positions %}
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <tr class="hover:bg-surface-2 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ pos.title }}</span>
+                            <span class="text-sm font-semibold text-ink">{{ pos.title }}</span>
                             {% if pos.description %}
                             <p class="text-xs text-slate-400 max-w-xs truncate">{{ pos.description }}</p>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap font-mono text-xs text-slate-600 dark:text-slate-400">
+                        <td class="px-6 py-4 whitespace-nowrap font-mono text-xs text-muted">
                             {{ pos.code }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
                             {{ pos.department.name|default:"—" }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-muted">
                             {% if pos.min_salary > 0 or pos.max_salary > 0 %}
                                 {{ pos.min_salary|floatformat:2 }} – {{ pos.max_salary|floatformat:2 }}
                             {% else %}

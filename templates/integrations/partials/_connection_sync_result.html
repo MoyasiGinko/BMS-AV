@@ -7,7 +7,7 @@
         </svg>
         <div>
             <div class="font-bold">{% trans "Sync Completed Successfully" %}</div>
-            <p class="mt-0.5 text-slate-600 dark:text-slate-300">{{ log.summary }} ({{ log.records_succeeded }}/{{ log.records_processed }} {% trans "records" %}, {{ log.duration_ms }} ms)</p>
+            <p class="mt-0.5 text-muted">{{ log.summary }} ({{ log.records_succeeded }}/{{ log.records_processed }} {% trans "records" %}, {{ log.duration_ms }} ms)</p>
         </div>
     </div>
     <button type="button" onclick="this.closest('div').remove()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">&times;</button>
@@ -20,7 +20,7 @@
         </svg>
         <div>
             <div class="font-bold">{% trans "Sync Failed" %}</div>
-            <p class="mt-0.5 text-slate-600 dark:text-slate-300">{{ log.summary }}</p>
+            <p class="mt-0.5 text-muted">{{ log.summary }}</p>
         </div>
     </div>
     <button type="button" onclick="this.closest('div').remove()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">&times;</button>

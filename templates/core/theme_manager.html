@@ -550,7 +550,7 @@
                 :class="getActiveMode() === 'light' ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/30 ring-2 ring-[var(--brand-600)] shadow-xs' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface)]'"
               >
                 <!-- Visual preview miniature -->
-                <div class="w-full h-12 rounded-lg p-2 mb-2.5 flex items-center justify-between border border-slate-300 dark:border-slate-700" :style="`background-color: ${themePresets[currentTheme]?.light.bg || '#ffffff'}`">
+                <div class="w-full h-12 rounded-lg p-2 mb-2.5 flex items-center justify-between border border-line" :style="`background-color: ${themePresets[currentTheme]?.light.bg || '#ffffff'}`">
                   <div class="flex items-center gap-1.5">
                     <span class="w-2.5 h-2.5 rounded-full" :style="`background-color: ${themePresets[currentTheme]?.light.active_text || '#0f766e'}`"></span>
                     <span class="w-10 h-1.5 rounded" :style="`background-color: ${themePresets[currentTheme]?.light.text || '#64748b'}`"></span>
@@ -583,7 +583,7 @@
                 :class="getActiveMode() === 'custom' ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/30 ring-2 ring-[var(--brand-600)] shadow-xs' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface)]'"
               >
                 <!-- Visual preview miniature -->
-                <div class="w-full h-12 rounded-lg p-2 mb-2.5 flex items-center justify-between border border-slate-300 dark:border-slate-700" :style="`background-color: ${sidebar.bg}`">
+                <div class="w-full h-12 rounded-lg p-2 mb-2.5 flex items-center justify-between border border-line" :style="`background-color: ${sidebar.bg}`">
                   <div class="flex items-center gap-1.5">
                     <span class="w-2.5 h-2.5 rounded-full" :style="`background-color: ${sidebar.active_text}`"></span>
                     <span class="w-10 h-1.5 rounded" :style="`background-color: ${sidebar.text}`"></span>
@@ -855,7 +855,7 @@
 
           <!-- Mock Navigation Container -->
           <div
-            class="rounded-xl border border-slate-300 dark:border-slate-800 p-3 shadow-md transition-colors"
+            class="rounded-xl border border-line p-3 shadow-md transition-colors"
             :style="`background-color: ${sidebar.bg};`"
           >
             <!-- Simulated Header -->

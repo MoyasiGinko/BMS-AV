@@ -1,5 +1,5 @@
 {% load i18n %}
-<div class="border-b border-slate-200 dark:border-slate-800">
+<div class="border-b border-line">
     <nav class="flex space-x-6 overflow-x-auto" aria-label="Tabs">
         <a href="{% url 'sales:invoice_list' %}" class="{% if active_tab == 'invoices' %}border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 font-medium{% endif %} whitespace-nowrap py-3 px-1 border-b-2 text-sm flex items-center gap-1.5 transition-colors">
             {% trans "Invoices" %}
