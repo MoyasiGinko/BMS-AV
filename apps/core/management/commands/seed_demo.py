@@ -104,11 +104,26 @@ class Command(BaseCommand):
             )
         self.stdout.write("Provisioning platform superadmin user...")
         superadmin = _create_superuser("admin@businessos.com", "Platform Superadmin")
+        _attach_superuser_memberships(superadmin)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Platform superadmin '{superadmin.email}' provisioned (is_staff=True, is_superuser=True)."
+                f"Platform superadmin '{superadmin.email}' provisioned (is_staff=True, is_superuser=True) "
+                "with Owner access across demo workspaces."
             )
         )
+
+
+def _attach_superuser_memberships(superadmin: User) -> None:
+    for org in Organization.objects.all():
+        owner_role = Role.all_tenants.filter(organization=org, name="Owner").first()
+        if not owner_role:
+            owner_role = Role.all_tenants.filter(organization=org).first()
+        if owner_role:
+            Membership.all_tenants.get_or_create(
+                organization=org,
+                user=superadmin,
+                defaults={"role": owner_role, "status": Membership.STATUS_ACTIVE},
+            )
 
 
 def _create_superuser(email: str = "admin@businessos.com", name: str = "Platform Superadmin") -> User:

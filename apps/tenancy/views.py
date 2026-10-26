@@ -82,6 +82,8 @@ def select_organization_view(request: HttpRequest) -> HttpResponse:
 
     orgs = list_user_organizations(user=user)
     if not orgs.exists():
+        if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+            return redirect("backoffice:dashboard")
         return redirect("tenancy:onboarding")
 
     if orgs.count() == 1:
