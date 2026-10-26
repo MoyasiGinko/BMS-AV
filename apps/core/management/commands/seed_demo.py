@@ -6,6 +6,7 @@ import datetime
 from decimal import Decimal
 from typing import Any
 
+from allauth.account.models import EmailAddress
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
@@ -101,6 +102,32 @@ class Command(BaseCommand):
                     "Ready for multi-warehouse purchasing, sales, accounting, and people (HR/Payroll/CRM)."
                 )
             )
+        self.stdout.write("Provisioning platform superadmin user...")
+        superadmin = _create_superuser("admin@businessos.com", "Platform Superadmin")
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Platform superadmin '{superadmin.email}' provisioned (is_staff=True, is_superuser=True)."
+            )
+        )
+
+
+def _create_superuser(email: str = "admin@businessos.com", name: str = "Platform Superadmin") -> User:
+    u, _ = User.objects.get_or_create(
+        email=email,
+        defaults={"name": name, "is_active": True, "is_staff": True, "is_superuser": True},
+    )
+    u.name = name
+    u.is_staff = True
+    u.is_superuser = True
+    u.is_active = True
+    u.set_password("demo12345")
+    u.save()
+    EmailAddress.objects.get_or_create(
+        user=u,
+        email=email,
+        defaults={"verified": True, "primary": True},
+    )
+    return u
 
 
 def _create_user(email: str, name: str) -> User:
@@ -110,6 +137,11 @@ def _create_user(email: str, name: str) -> User:
     )
     u.set_password("demo12345")
     u.save()
+    EmailAddress.objects.get_or_create(
+        user=u,
+        email=email,
+        defaults={"verified": True, "primary": True},
+    )
     return u
 
 

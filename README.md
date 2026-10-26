@@ -62,6 +62,15 @@ The platform includes pre-seeded, multi-role demo accounts with realistic histor
 - **Live Railway Deployment**: [https://bms-av-production.up.railway.app/accounts/login/](https://bms-av-production.up.railway.app/accounts/login/)
 - **Local Development**: [http://localhost:8000/accounts/login/](http://localhost:8000/accounts/login/)
 
+### 👑 Platform Superadmin & Back-Office Control Plane
+*Global administrative access (`is_staff=True`, `is_superuser=True`) across all tenants, back-office operations, and Django administration.*
+
+| Role | Email Address | Password | Capabilities & Direct Links |
+|---|---|---|---|
+| **Superadmin** | `admin@businessos.com` | `demo12345` | Access to the internal **[Back-Office](/backoffice/)** portal (tenant provisioning, subscription overrides, staff impersonation, audit logs) and **[Django Admin](/admin/)**. |
+
+> **Tip**: You can also provision custom superuser accounts locally anytime via `uv run python manage.py createsuperuser`.
+
 ### 1. Small Shop: **Artisan Bakery & Cafe** (`slug: small-shop`)
 *Plan: **Starter** | Focus: High-velocity POS counter checkouts, retail inventory, cash/card split tenders, and customer invoicing.*
 
