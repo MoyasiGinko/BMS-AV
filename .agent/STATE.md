@@ -20,5 +20,11 @@
     - Live URL: `https://bms-av-production.up.railway.app`.
     - Health Checks: `/healthz` -> 200 OK (`{"status":"ok"}`), `/readyz` -> 200 OK (`{"status":"ready","checks":{"database":"ok","cache":"ok"}}`).
     - Gunicorn (4 gthread workers) + background Celery worker verified running cleanly.
+  - Theme Contrast & Component Hardening:
+    - Default (Fast) Theme: Elevated contrast across all screens with slate-100 canvas (`#f1f5f9`), distinct white cards (`#ffffff`), slate-300 borders (`#cbd5e1`), deep ink black text (`#090d16`), WCAG-AA compliant muted text (`#334155`), and subtle text (`#475569`).
+    - Minimal Spatial Theme: Elevated floating cards with subtle dual-layer box shadows, crisp 1px borders, deep text contrast (`#090d16`), bold high-contrast table headers with distinct background tint, and 1.5px solid inputs with focus glow.
+    - Dark Component Elimination: Visited and refactored hardcoded dark elements across 90 template/form files, including P&L inverted net profit box, hardcoded buttons in Reports/HR/Payroll, form inputs across CRM/POS/HR/Automation/Integrations/AI-Assistant, and offline fallback screen. Replaced all with theme-adaptive semantic tokens (`bg-surface`, `bg-surface-2`, `text-ink`, `text-muted`, `border-line`, `bg-brand-600`).
+    - Live Deployment: Commit `cd47b56` deployed to Railway with status `SUCCESS`. Verified via live browser tour across Dashboard, Reports, Sales, HR, Payroll, POS, and Offline screens.
+
 
 
