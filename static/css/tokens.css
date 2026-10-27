@@ -111,6 +111,10 @@ aside.bos-sidebar .sidebar-footer {
 }
 
 /* Header & Sidebar Brand & Collapse Styling */
+header {
+  background-color: transparent !important;
+}
+
 header .sidebar-brand-link,
 header .sidebar-brand-title {
   color: var(--text) !important;
