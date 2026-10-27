@@ -80,15 +80,15 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] aside.bos-sidebar {
   background-color: var(--sidebar-bg) !important;
   color: var(--sidebar-text) !important;
-  border-right: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.65)) !important;
-  box-shadow: 6px 0 24px rgba(166, 175, 195, 0.35) !important;
+  border: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.65)) !important;
+  box-shadow: 6px 6px 20px rgba(166, 175, 195, 0.45), -4px -4px 14px rgba(255, 255, 255, 0.85) !important;
   transition: all 200ms ease !important;
 }
 
 [data-theme="neumorphic"][data-sidebar-tone="dark"] aside.bos-sidebar,
 [data-theme="neumorphic"] aside.bos-sidebar[data-sidebar-tone="dark"] {
-  border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
-  box-shadow: 6px 0 24px rgba(0, 0, 0, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 6px 6px 22px rgba(0, 0, 0, 0.5), -2px -2px 10px rgba(255, 255, 255, 0.05) !important;
 }
 
 /* 2. Sidebar Header & Logo */

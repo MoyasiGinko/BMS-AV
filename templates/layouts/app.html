@@ -48,7 +48,7 @@
        1. TOPBAR / FULL-WIDTH HEADER
        Spans full width across top; hosts Brand, Global Switchers & Utility Actions
        ========================================================================= -->
-  <header class="w-full h-14 bg-[var(--surface)] border-b border-[var(--border)] px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 z-40">
+  <header class="w-full h-14 bg-transparent border-b border-[var(--border)]/40 px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 z-40 backdrop-blur-md">
     <!-- Left: Mobile Menu Toggle, Brand Logo & Title, Sidebar Collapse Button, Tenant Switcher -->
     <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
       <!-- Mobile hamburger toggle button -->
@@ -359,7 +359,7 @@
   <!-- =========================================================================
        2. APP SHELL BODY AREA (FLOATING STICKY SIDEBAR + INDEPENDENT MAIN CONTENT)
        ========================================================================= -->
-  <div class="flex-1 flex overflow-hidden relative">
+  <div class="flex-1 flex overflow-hidden relative lg:p-3 lg:gap-3">
     <!-- Mobile Sidebar Backdrop (Pins below header) -->
     <div
       x-show="sidebarOpen"
@@ -369,7 +369,7 @@
       class="fixed inset-0 top-14 z-40 bg-black/50 backdrop-blur-xs lg:hidden transition-opacity"
     ></div>
 
-    <!-- Left Sidebar: Floating Sticky Navigation -->
+    <!-- Left Sidebar: Floating Sticky Navigation with Rounded Corners -->
     <aside
       :class="{
         'translate-x-0': sidebarOpen,
@@ -377,9 +377,9 @@
         'lg:w-16': sidebarCollapsed,
         'lg:w-60': !sidebarCollapsed
       }"
-      class="bos-sidebar fixed lg:static top-14 bottom-0 left-0 z-40 w-60 shrink-0 h-full flex flex-col transition-all duration-200 ease-out"
+      class="bos-sidebar fixed lg:static top-16 bottom-3 left-3 z-40 w-60 shrink-0 h-[calc(100vh-4.75rem)] lg:h-full flex flex-col rounded-2xl shadow-xl shadow-slate-900/5 border border-[var(--sidebar-border)] overflow-hidden transition-all duration-200 ease-out"
       data-sidebar-tone="{{ active_sidebar_tone|default:'light' }}"
-      style="background-color: var(--sidebar-bg); color: var(--sidebar-text); border-right: 1px solid var(--sidebar-border);"
+      style="background-color: var(--sidebar-bg); color: var(--sidebar-text); border-color: var(--sidebar-border);"
     >
       <!-- Mobile Close Row (Visible on small screens when sidebar is opened) -->
       <div class="lg:hidden flex items-center justify-between px-3.5 py-2.5 border-b border-[var(--border)] shrink-0">
@@ -678,7 +678,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <div id="app-content-column" class="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
+    <div id="app-content-column" class="flex-1 flex flex-col min-w-0 h-full overflow-y-auto lg:rounded-2xl">
       <!-- Main Body Container -->
       <main class="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-[var(--content-max)] mx-auto {% block container_class %}{% endblock %}">
         <!-- Page Header Slot -->
