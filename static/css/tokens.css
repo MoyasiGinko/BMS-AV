@@ -110,6 +110,21 @@ aside.bos-sidebar .sidebar-footer {
   opacity: 0.85;
 }
 
+/* Header & Sidebar Brand & Collapse Styling */
+header .sidebar-brand-link,
+header .sidebar-brand-title {
+  color: var(--text) !important;
+}
+
+header .sidebar-collapse-btn {
+  color: var(--text-muted) !important;
+}
+
+header .sidebar-collapse-btn:hover {
+  color: var(--text) !important;
+  background-color: var(--surface-2) !important;
+}
+
 aside.bos-sidebar .sidebar-brand-title,
 aside.bos-sidebar .sidebar-brand-link {
   color: var(--sidebar-hover-text, #ffffff) !important;

@@ -97,17 +97,20 @@ html[data-theme="neumorphic"],
   background: transparent !important;
 }
 
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-brand-icon-box,
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-header a div.rounded-lg {
+/* 2. Brand Logo & Header Typography */
+[data-theme="neumorphic"] .sidebar-brand-icon-box,
+[data-theme="neumorphic"] header a div.rounded-lg,
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-brand-icon-box {
   box-shadow: 2.5px 2.5px 6px rgba(166, 175, 195, 0.45), -2.5px -2.5px 6px rgba(255, 255, 255, 0.95) !important;
   border: 1px solid rgba(255, 255, 255, 0.4) !important;
   transition: transform 180ms ease, box-shadow 180ms ease !important;
 }
 
-[data-theme="neumorphic"][data-sidebar-tone="dark"] aside.bos-sidebar .sidebar-header a div.rounded-lg,
-[data-theme="neumorphic"] aside.bos-sidebar[data-sidebar-tone="dark"] .sidebar-header a div.rounded-lg {
-  box-shadow: 3px 3px 7px rgba(0, 0, 0, 0.5), -2px -2px 5px rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+[data-theme="neumorphic"] header .sidebar-brand-title {
+  color: var(--neu-text, #1e293b) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 [data-theme="neumorphic"] aside.bos-sidebar .sidebar-brand-title {
@@ -123,22 +126,22 @@ html[data-theme="neumorphic"],
 }
 
 /* 3. Collapse Buttons (Tactile Circular) */
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-collapse-btn {
+[data-theme="neumorphic"] .sidebar-collapse-btn {
   border-radius: 9999px !important;
   box-shadow: 2px 2px 5px rgba(166, 175, 195, 0.4), -2px -2px 5px rgba(255, 255, 255, 0.9) !important;
-  background-color: var(--sidebar-bg) !important;
-  color: var(--sidebar-text) !important;
+  background-color: var(--neu-surface) !important;
+  color: var(--text-muted) !important;
   border: 1px solid rgba(255, 255, 255, 0.4) !important;
   transition: all 150ms ease !important;
 }
 
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-collapse-btn:hover {
+[data-theme="neumorphic"] .sidebar-collapse-btn:hover {
   box-shadow: 3px 3px 8px rgba(166, 175, 195, 0.5), -3px -3px 8px rgba(255, 255, 255, 1) !important;
-  color: var(--sidebar-hover-text) !important;
+  color: var(--text) !important;
   transform: translateY(-1px);
 }
 
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-collapse-btn:active {
+[data-theme="neumorphic"] .sidebar-collapse-btn:active {
   box-shadow: inset 2px 2px 4px rgba(166, 175, 195, 0.55), inset -2px -2px 4px rgba(255, 255, 255, 0.9) !important;
   transform: translateY(0);
 }
