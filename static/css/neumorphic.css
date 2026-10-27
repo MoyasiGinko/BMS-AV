@@ -116,15 +116,37 @@ html[data-theme="neumorphic"],
 
 /* Neumorphic Global Cards & Dashboard Widgets (Automatic Dual Shadows) */
 [data-theme="neumorphic"] .card,
-[data-theme="neumorphic"] [class*="card"],
+[data-theme="neumorphic"] [class*="card"]:not(.sidebar-preset-card),
 [data-theme="neumorphic"] #dashboard-widgets-container > div > div,
-[data-theme="neumorphic"] .rounded-2xl.border,
-[data-theme="neumorphic"] .rounded-xl.border {
+[data-theme="neumorphic"] .rounded-2xl.border:not(.sidebar-preset-card),
+[data-theme="neumorphic"] .rounded-xl.border:not(.sidebar-preset-card) {
   background-color: var(--neu-surface) !important;
   border-radius: var(--neu-radius-card) !important;
   box-shadow: var(--neu-raise-lg) !important;
   border: 1px solid rgba(255, 255, 255, 0.45) !important;
   color: var(--neu-text) !important;
+}
+
+/* Neumorphic Sidebar Preset Cards Active Highlight & Selection Styling */
+[data-theme="neumorphic"] .sidebar-preset-card {
+  background-color: var(--neu-surface) !important;
+  border-radius: var(--neu-radius-card) !important;
+  box-shadow: var(--neu-raise-md) !important;
+  border: 2px solid transparent !important;
+  transition: all 180ms ease !important;
+}
+
+[data-theme="neumorphic"] .sidebar-preset-card:hover:not(.is-active) {
+  box-shadow: var(--neu-raise-lg) !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
+[data-theme="neumorphic"] .sidebar-preset-card.is-active,
+[data-theme="neumorphic"] .sidebar-preset-card[data-active="true"] {
+  background-color: #eef2ff !important;
+  border-color: #4f46e5 !important;
+  border-width: 2px !important;
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 2px #4f46e5, 0 6px 20px rgba(79, 70, 229, 0.28) !important;
 }
 
 /* Secondary / Sub-elements inside cards */

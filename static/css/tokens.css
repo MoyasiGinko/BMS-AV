@@ -152,6 +152,26 @@ aside.bos-sidebar nav a[class*="border-l-[3px]"] {
   border-left-color: var(--sidebar-active-border, var(--sidebar-active-text)) !important;
 }
 
+/* Sidebar Preset Cards Active Highlight & Selection Styling */
+.sidebar-preset-card {
+  transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  border-width: 2px !important;
+}
+
+.sidebar-preset-card.is-active,
+.sidebar-preset-card[data-active="true"] {
+  border-color: var(--brand-600) !important;
+  background-color: var(--surface) !important;
+  box-shadow: 0 0 0 2px var(--brand-600), 0 6px 16px rgba(13, 148, 136, 0.18) !important;
+}
+
+[data-theme="dark"] .sidebar-preset-card.is-active,
+[data-theme="dark"] .sidebar-preset-card[data-active="true"] {
+  border-color: var(--brand-500) !important;
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  box-shadow: 0 0 0 2px var(--brand-500), 0 6px 16px rgba(45, 212, 191, 0.25) !important;
+}
+
 [data-theme="dark"] header {
   background-color: #111a2e !important;
   border-bottom-color: #223152 !important;
