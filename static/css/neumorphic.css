@@ -71,11 +71,41 @@ html[data-theme="neumorphic"],
   font-family: var(--neu-font) !important;
 }
 
-/* App Shell: Sidebar & Header */
+/* App Shell: Neumorphic Sidebar & Header */
 [data-theme="neumorphic"] aside.bos-sidebar {
-  background-color: var(--neu-surface) !important;
-  border-right: 1px solid var(--neu-line) !important;
-  box-shadow: 4px 0 16px rgba(197, 202, 219, 0.45) !important;
+  background-color: var(--sidebar-bg) !important;
+  color: var(--sidebar-text) !important;
+  border-right: 1px solid var(--sidebar-border, var(--neu-line)) !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-header {
+  border-bottom: 1px solid var(--sidebar-border, var(--neu-line)) !important;
+}
+
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-footer {
+  border-top: 1px solid var(--sidebar-border, var(--neu-line)) !important;
+  color: var(--sidebar-text) !important;
+  opacity: 0.85;
+}
+
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-brand-title,
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-brand-link {
+  color: var(--sidebar-hover-text, #ffffff) !important;
+}
+
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-collapse-btn {
+  color: var(--sidebar-text) !important;
+}
+
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-collapse-btn:hover {
+  background-color: var(--sidebar-hover-bg) !important;
+  color: var(--sidebar-hover-text) !important;
+}
+
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-section-title {
+  color: var(--sidebar-text) !important;
+  opacity: 0.75;
 }
 
 [data-theme="neumorphic"] header {
@@ -130,21 +160,34 @@ html[data-theme="neumorphic"],
   outline: none !important;
 }
 
-/* Sidebar Active Nav Item */
-[data-theme="neumorphic"] aside.bos-sidebar a.border-l-\[3px\],
-[data-theme="neumorphic"] aside.bos-sidebar a[class*="bg-\[var\(--brand-50\)\]"] {
-  background-color: var(--neu-surface) !important;
-  box-shadow: var(--neu-inset-nav) !important;
-  border-left: none !important;
-  border-radius: 14px !important;
-  color: var(--neu-accent-text) !important;
-  font-weight: 700 !important;
+/* Sidebar Nav Items (Neumorphic tactile shapes with dynamic sidebar colors) */
+[data-theme="neumorphic"] aside.bos-sidebar nav a,
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item {
+  color: var(--sidebar-text) !important;
+  border-radius: 12px !important;
+  transition: all 150ms ease;
 }
 
-[data-theme="neumorphic"] aside.bos-sidebar a:hover:not([class*="bg-\[var\(--brand-50\)\]"]):not(.border-l-\[3px\]) {
-  border-radius: 14px !important;
-  box-shadow: var(--neu-raise-xs) !important;
-  color: var(--neu-text) !important;
+[data-theme="neumorphic"] aside.bos-sidebar nav a:hover:not([class*="bg-[var(--brand-50)]"]):not(.border-l-\[3px\]):not(.active):not(.is-active),
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item:hover:not(.active):not(.is-active) {
+  background-color: var(--sidebar-hover-bg) !important;
+  color: var(--sidebar-hover-text) !important;
+  border-radius: 12px !important;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.22), -1px -1px 3px rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="neumorphic"] aside.bos-sidebar a.border-l-\[3px\],
+[data-theme="neumorphic"] aside.bos-sidebar a[class*="bg-\[var\(--brand-50\)\]"],
+[data-theme="neumorphic"] aside.bos-sidebar nav a.active,
+[data-theme="neumorphic"] aside.bos-sidebar nav a.is-active,
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item.active,
+[data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item.is-active {
+  background-color: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-text) !important;
+  border-left: 3px solid var(--sidebar-active-border, var(--sidebar-active-text)) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.32), inset -1px -1px 3px rgba(255, 255, 255, 0.08) !important;
+  font-weight: 700 !important;
 }
 
 /* Buttons */

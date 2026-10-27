@@ -252,28 +252,28 @@ body.overflow-hidden {
   border-color: var(--border) !important;
 }
 
-/* Neumorphic Theme Overrides */
-[data-theme="neumorphic"] .bg-white:not([data-keep-white]) {
+/* Neumorphic Theme Overrides (Excludes sidebar so sidebar colors remain dynamic) */
+[data-theme="neumorphic"] .bg-white:not([data-keep-white]):not(aside.bos-sidebar):not(aside.bos-sidebar *) {
   background-color: var(--neu-surface) !important;
 }
-[data-theme="neumorphic"] .bg-slate-50:not([data-keep-color]),
-[data-theme="neumorphic"] .bg-gray-50:not([data-keep-color]),
-[data-theme="neumorphic"] .bg-slate-100:not([data-keep-color]),
-[data-theme="neumorphic"] .bg-gray-100:not([data-keep-color]) {
+[data-theme="neumorphic"] .bg-slate-50:not([data-keep-color]):not(aside.bos-sidebar *),
+[data-theme="neumorphic"] .bg-gray-50:not([data-keep-color]):not(aside.bos-sidebar *),
+[data-theme="neumorphic"] .bg-slate-100:not([data-keep-color]):not(aside.bos-sidebar *),
+[data-theme="neumorphic"] .bg-gray-100:not([data-keep-color]):not(aside.bos-sidebar *) {
   background-color: var(--surface-2) !important;
 }
-[data-theme="neumorphic"] .text-slate-900:not([data-keep-color]),
-[data-theme="neumorphic"] .text-gray-900:not([data-keep-color]) {
+[data-theme="neumorphic"] .text-slate-900:not([data-keep-color]):not(aside.bos-sidebar *),
+[data-theme="neumorphic"] .text-gray-900:not([data-keep-color]):not(aside.bos-sidebar *) {
   color: var(--neu-text) !important;
 }
-[data-theme="neumorphic"] .text-slate-700:not([data-keep-color]),
-[data-theme="neumorphic"] .text-slate-600:not([data-keep-color]),
-[data-theme="neumorphic"] .text-gray-700:not([data-keep-color]),
-[data-theme="neumorphic"] .text-gray-600:not([data-keep-color]) {
+[data-theme="neumorphic"] .text-slate-700:not([data-keep-color]):not(aside.bos-sidebar *),
+[data-theme="neumorphic"] .text-slate-600:not([data-keep-color]):not(aside.bos-sidebar *),
+[data-theme="neumorphic"] .text-gray-700:not([data-keep-color]):not(aside.bos-sidebar *),
+[data-theme="neumorphic"] .text-gray-600:not([data-keep-color]):not(aside.bos-sidebar *) {
   color: var(--neu-text-muted) !important;
 }
-[data-theme="neumorphic"] .border-slate-200:not([data-keep-color]),
-[data-theme="neumorphic"] .border-slate-300:not([data-keep-color]) {
+[data-theme="neumorphic"] .border-slate-200:not([data-keep-color]):not(aside.bos-sidebar *),
+[data-theme="neumorphic"] .border-slate-300:not([data-keep-color]):not(aside.bos-sidebar *) {
   border-color: var(--neu-line) !important;
 }
 
