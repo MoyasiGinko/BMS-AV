@@ -96,13 +96,43 @@ html[data-theme="dark"],
 
 aside.bos-sidebar {
   background-color: var(--sidebar-bg) !important;
+  color: var(--sidebar-text) !important;
   border-right-color: var(--sidebar-border, var(--border)) !important;
+}
+
+aside.bos-sidebar .sidebar-header {
+  border-bottom-color: var(--sidebar-border, var(--border)) !important;
+}
+
+aside.bos-sidebar .sidebar-footer {
+  border-top-color: var(--sidebar-border, var(--border)) !important;
+  color: var(--sidebar-text) !important;
+  opacity: 0.85;
+}
+
+aside.bos-sidebar .sidebar-brand-title,
+aside.bos-sidebar .sidebar-brand-link {
+  color: var(--sidebar-hover-text, #ffffff) !important;
+}
+
+aside.bos-sidebar .sidebar-collapse-btn {
+  color: var(--sidebar-text) !important;
+}
+
+aside.bos-sidebar .sidebar-collapse-btn:hover {
+  background-color: var(--sidebar-hover-bg) !important;
+  color: var(--sidebar-hover-text) !important;
+}
+
+aside.bos-sidebar .sidebar-section-title {
+  color: var(--sidebar-text) !important;
+  opacity: 0.75;
 }
 
 /* Sidebar Navigation Items: Custom and Default Styling */
 aside.bos-sidebar nav a,
 aside.bos-sidebar .sidebar-nav-item {
-  color: var(--sidebar-text);
+  color: var(--sidebar-text) !important;
   transition: background-color 150ms ease, color 150ms ease;
 }
 
@@ -119,7 +149,7 @@ aside.bos-sidebar .sidebar-nav-item.is-active,
 aside.bos-sidebar nav a[class*="border-l-[3px]"] {
   background-color: var(--sidebar-active-bg) !important;
   color: var(--sidebar-active-text) !important;
-  border-left-color: var(--sidebar-active-border) !important;
+  border-left-color: var(--sidebar-active-border, var(--sidebar-active-text)) !important;
 }
 
 [data-theme="dark"] header {

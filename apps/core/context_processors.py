@@ -21,7 +21,7 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
         "light": {
             "name": "Clean White",
             "bg": "#ffffff",
-            "text": "#64748b",
+            "text": "#475569",
             "hover_bg": "#f1f5f9",
             "hover_text": "#0f172a",
             "active_bg": "#f0fdfa",
@@ -31,9 +31,9 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
     },
     "dark": {
         "dark_contrast": {
-            "name": "Dark Contrast (Default)",
+            "name": "Midnight Dark (Default)",
             "bg": "#090d16",
-            "text": "#818cf8",
+            "text": "#94a3b8",
             "hover_bg": "#161f30",
             "hover_text": "#ffffff",
             "active_bg": "#1e293b",
@@ -53,7 +53,7 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
     },
     "spatial": {
         "dark_contrast": {
-            "name": "Dark Contrast (Default)",
+            "name": "Frosted Obsidian Glass (Default)",
             "bg": "rgba(15, 23, 42, 0.95)",
             "text": "#94a3b8",
             "hover_bg": "rgba(30, 41, 59, 0.90)",
@@ -63,10 +63,10 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
             "active_border": "#0284c7",
         },
         "light": {
-            "name": "Frosted Light Glass",
+            "name": "Frosted Opal Light Glass",
             "bg": "rgba(255, 255, 255, 0.90)",
-            "text": "#475569",
-            "hover_bg": "rgba(241, 245, 249, 0.85)",
+            "text": "#334155",
+            "hover_bg": "rgba(241, 245, 249, 0.90)",
             "hover_text": "#0f172a",
             "active_bg": "#e0f2fe",
             "active_text": "#0284c7",
@@ -75,7 +75,7 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
     },
     "neumorphic": {
         "dark_contrast": {
-            "name": "Dark Contrast (Default)",
+            "name": "Tactile Slate Dark (Default)",
             "bg": "#1e293b",
             "text": "#94a3b8",
             "hover_bg": "#334155",
@@ -85,9 +85,9 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
             "active_border": "#3b82f6",
         },
         "light": {
-            "name": "Soft Light Neumorphic",
+            "name": "Soft Clay Light",
             "bg": "#e2e8f0",
-            "text": "#475569",
+            "text": "#334155",
             "hover_bg": "#cbd5e1",
             "hover_text": "#0f172a",
             "active_bg": "#dbeafe",

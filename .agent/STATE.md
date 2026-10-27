@@ -25,6 +25,12 @@
     - Minimal Spatial Theme: Elevated floating cards with subtle dual-layer box shadows, crisp 1px borders, deep text contrast (`#090d16`), bold high-contrast table headers with distinct background tint, and 1.5px solid inputs with focus glow.
     - Dark Component Elimination: Visited and refactored hardcoded dark elements across 90 template/form files, including P&L inverted net profit box, hardcoded buttons in Reports/HR/Payroll, form inputs across CRM/POS/HR/Automation/Integrations/AI-Assistant, and offline fallback screen. Replaced all with theme-adaptive semantic tokens (`bg-surface`, `bg-surface-2`, `text-ink`, `text-muted`, `border-line`, `bg-brand-600`).
     - Live Deployment: Commit `cd47b56` deployed to Railway with status `SUCCESS`. Verified via live browser tour across Dashboard, Reports, Sales, HR, Payroll, POS, and Offline screens.
+  - Sidebar Theme Presets & Speed Optimization:
+    - Speed Optimization: Replaced blocking Redis connection attempt in `config/settings/dev.py` with non-blocking socket test (`timeout=0.1s`) using memory cache fallback, eliminating local startup/test latency on Windows.
+    - Curated 2 Presets + 1 Custom Architecture: Configured `THEME_SIDEBAR_PRESETS` in `apps/core/context_processors.py` for all 4 visual themes (`fast`, `dark`, `spatial`, `neumorphic`). Each theme has exactly two immutable presets (Preset 1 Dark Contrast / Theme Default, Preset 2 Clean White/Light) and 1 editable Custom Palette.
+    - Locked vs. Editable Enforcement: In `theme_manager.html`, color pickers and text inputs are strictly disabled (`:disabled="getActiveMode() !== 'custom'"`) when in Preset 1 or Preset 2, displaying a locked read-only banner. Custom mode enables all 6 color controls and the "Save Custom Palette" button.
+    - Full CSS Variable Binding: Added CSS variable bindings in `static/css/tokens.css` for `aside.bos-sidebar` header, brand logo/title, collapse button, section titles, navigation items, and footer.
+    - Tests & Verification: 15/15 unit/functional tests passing in `tests/test_theme_selector.py` and 3/3 end-to-end Playwright tests passing in `tests/test_ui_theme_manager.py`. Browser subagent verified visual transitions and color application.
 
 
 

@@ -107,15 +107,17 @@
     },
     getModeLabel(t) {
       var m = this.getModeForTheme(t);
-      if (m === 'light') return 'Light';
-      if (m === 'custom') return 'Custom';
-      return 'Dark Contrast (Default)';
+      var presetsForTheme = this.themePresets[t] || this.themePresets.fast || {};
+      if (m === 'light') return 'Preset 2: ' + (presetsForTheme.light?.name || 'Light Mode');
+      if (m === 'custom') return '3. Custom Palette (Editable)';
+      return 'Preset 1: ' + (presetsForTheme.dark_contrast?.name || 'Dark Contrast');
     },
     getActiveMode() {
       return this.getModeForTheme(this.currentTheme);
     },
     syncFromTheme() {
       var resolved = window.resolveSidebarForTheme(this.currentTheme);
+      this.sidebarModes[this.currentTheme] = resolved.mode;
       this.sidebar.bg = resolved.colors.bg || '#0f172a';
       this.sidebar.text = resolved.colors.text || '#94a3b8';
       this.sidebar.hover_bg = resolved.colors.hover_bg || '#1e293b';
@@ -131,6 +133,10 @@
     selectSidebarPreset(mode) {
       this.sidebarModes[this.currentTheme] = mode;
       if (mode === 'custom') {
+        var existingCustom = this.sidebarCustoms[this.currentTheme];
+        if (existingCustom && existingCustom.bg) {
+          Object.assign(this.sidebar, existingCustom);
+        }
         window.setSidebarPreset(this.currentTheme, 'custom', this.sidebar);
       } else {
         var presetsForTheme = this.themePresets[this.currentTheme] || this.themePresets.fast;
@@ -145,26 +151,34 @@
       }
     },
     applyPalette(p) {
+      this.sidebarModes[this.currentTheme] = 'custom';
       this.sidebar.bg = p.bg;
       this.sidebar.text = p.text;
       this.sidebar.hover_bg = p.hover_bg;
       this.sidebar.hover_text = p.hover_text;
       this.sidebar.active_bg = p.active_bg;
       this.sidebar.active_text = p.active_text;
-      this.sidebarModes[this.currentTheme] = 'custom';
       this.liveUpdate();
     },
     liveUpdate() {
-      this.sidebarModes[this.currentTheme] = 'custom';
-      window.applySidebarColors(this.sidebar);
+      if (this.getActiveMode() === 'custom') {
+        this.sidebarCustoms[this.currentTheme] = Object.assign({}, this.sidebar);
+        window.applySidebarColors(this.sidebar);
+      }
     },
     saveSidebar() {
-      this.sidebarModes[this.currentTheme] = 'custom';
-      window.setSidebarPreset(this.currentTheme, 'custom', this.sidebar);
+      if (this.getActiveMode() === 'custom') {
+        this.sidebarModes[this.currentTheme] = 'custom';
+        this.sidebarCustoms[this.currentTheme] = Object.assign({}, this.sidebar);
+        window.setSidebarPreset(this.currentTheme, 'custom', this.sidebar);
+      }
     },
     resetSidebar() {
       this.selectSidebarPreset('dark_contrast');
       window.resetSidebarTheme();
+      if (window.toast) {
+        window.toast('Sidebar reset to Theme Preset 1 (Default)', 'info');
+      }
     }
   }"
   @theme-changed.window="currentTheme = $event.detail.theme; syncFromTheme()"
@@ -527,14 +541,17 @@
                   </div>
                 </div>
                 <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs font-bold text-[var(--text)]">1. Dark Contrast</span>
-                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">Default</span>
+                  <span class="text-xs font-bold text-[var(--text)]" x-text="'1. ' + (themePresets[currentTheme]?.dark_contrast.name || 'Dark Contrast')"></span>
+                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">Preset 1</span>
                 </div>
                 <p class="text-[11px] text-[var(--text-muted)] line-clamp-2">
-                  Curated dark contrast surface tailored for <span x-text="currentTheme"></span>.
+                  Curated dark contrast surface tailored for <span x-text="currentTheme"></span>. Immutable preset.
                 </p>
                 <div class="mt-auto pt-2.5 flex items-center justify-between text-[11px]">
-                  <span class="text-[10px] text-[var(--text-subtle)] font-medium">Dark mode</span>
+                  <span class="text-[10px] text-[var(--text-subtle)] font-medium flex items-center gap-1">
+                    <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    Locked preset
+                  </span>
                   <span x-show="getActiveMode() === 'dark_contrast'" class="font-bold text-[var(--brand-600)] flex items-center gap-0.5 text-[10px]">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     Selected
@@ -553,21 +570,24 @@
                 <div class="w-full h-12 rounded-lg p-2 mb-2.5 flex items-center justify-between border border-line" :style="`background-color: ${themePresets[currentTheme]?.light.bg || '#ffffff'}`">
                   <div class="flex items-center gap-1.5">
                     <span class="w-2.5 h-2.5 rounded-full" :style="`background-color: ${themePresets[currentTheme]?.light.active_text || '#0f766e'}`"></span>
-                    <span class="w-10 h-1.5 rounded" :style="`background-color: ${themePresets[currentTheme]?.light.text || '#64748b'}`"></span>
+                    <span class="w-10 h-1.5 rounded" :style="`background-color: ${themePresets[currentTheme]?.light.text || '#475569'}`"></span>
                   </div>
                   <div class="px-1.5 py-0.5 rounded text-[9px] font-bold" :style="`background-color: ${themePresets[currentTheme]?.light.active_bg || '#f0fdfa'}; color: ${themePresets[currentTheme]?.light.active_text || '#0f766e'}`">
                     Active
                   </div>
                 </div>
                 <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs font-bold text-[var(--text)]">2. Light Mode</span>
-                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300">Clean</span>
+                  <span class="text-xs font-bold text-[var(--text)]" x-text="'2. ' + (themePresets[currentTheme]?.light.name || 'Clean Light')"></span>
+                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300">Preset 2</span>
                 </div>
                 <p class="text-[11px] text-[var(--text-muted)] line-clamp-2">
-                  Matching light surface tailored to <span x-text="currentTheme"></span>.
+                  Matching light surface tailored to <span x-text="currentTheme"></span>. Immutable preset.
                 </p>
                 <div class="mt-auto pt-2.5 flex items-center justify-between text-[11px]">
-                  <span class="text-[10px] text-[var(--text-subtle)] font-medium">Light surface</span>
+                  <span class="text-[10px] text-[var(--text-subtle)] font-medium flex items-center gap-1">
+                    <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    Locked preset
+                  </span>
                   <span x-show="getActiveMode() === 'light'" class="font-bold text-[var(--brand-600)] flex items-center gap-0.5 text-[10px]">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     Selected
@@ -575,7 +595,7 @@
                 </div>
               </div>
 
-              <!-- Preset 3: Custom Palette -->
+              <!-- Preset 3: Custom Palette (Editable) -->
               <div
                 id="sidebar-preset-custom"
                 @click="selectSidebarPreset('custom')"
@@ -594,44 +614,91 @@
                 </div>
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-xs font-bold text-[var(--text)]">3. Custom Palette</span>
-                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300">Custom</span>
+                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300">Editable</span>
                 </div>
                 <p class="text-[11px] text-[var(--text-muted)] line-clamp-2">
                   Bespoke 6-color palette customized and saved for <span x-text="currentTheme"></span>.
                 </p>
                 <div class="mt-auto pt-2.5 flex items-center justify-between text-[11px]">
-                  <span class="text-[10px] text-[var(--text-subtle)] font-medium">Customizable</span>
+                  <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    Fully customizable
+                  </span>
                   <span x-show="getActiveMode() === 'custom'" class="font-bold text-[var(--brand-600)] flex items-center gap-0.5 text-[10px]">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    Selected
+                    Selected (Editing)
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Custom Color Pickers Section Divider -->
-          <div class="pt-4 border-t border-[var(--border)]">
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
-                  {% trans "Custom Color Fine-Tuning" %}
-                </h3>
-                <p class="text-[11px] text-[var(--text-muted)] mt-0.5">
-                  {% trans "Modifying any color below or clicking a swatch automatically enables Custom mode for" %} <strong class="text-[var(--text)]" x-text="currentTheme"></strong>.
-                </p>
+          <!-- Custom Color Pickers Section Divider & Lock State Banner -->
+          <div class="pt-4 border-t border-[var(--border)] space-y-4">
+            <!-- Preset Locked Banner (shown when Preset 1 or Preset 2 is active) -->
+            <div
+              x-show="getActiveMode() !== 'custom'"
+              class="p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs"
+            >
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-[var(--text)] flex items-center gap-2">
+                    <span>Preset Colors are Locked (Read-Only)</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">Immutable</span>
+                  </div>
+                  <p class="text-[11px] text-[var(--text-muted)] mt-0.5">
+                    Preset <span class="font-semibold text-[var(--text)]" x-text="getActiveMode() === 'light' ? '2 (Clean Light)' : '1 (Dark Contrast)'"></span> is design-certified and locked. Only the <strong>Custom Palette</strong> can be edited.
+                  </p>
+                </div>
               </div>
-              <span x-show="getActiveMode() === 'custom'" class="text-[11px] px-2 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 font-bold border border-purple-200 dark:border-purple-800">
-                Custom Mode Active
-              </span>
+              <button
+                type="button"
+                id="unlock-custom-sidebar-btn"
+                @click="selectSidebarPreset('custom')"
+                class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-2xs shrink-0"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                <span>Unlock & Edit in Custom</span>
+              </button>
+            </div>
+
+            <!-- Custom Mode Active Banner (shown when Custom mode is active) -->
+            <div
+              x-show="getActiveMode() === 'custom'"
+              class="p-3.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs"
+            >
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-purple-600/10 text-purple-600 dark:text-purple-300 flex items-center justify-center shrink-0 border border-purple-300 dark:border-purple-700">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-purple-900 dark:text-purple-100 flex items-center gap-2">
+                    <span>Custom Palette Active & Unlocked</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-purple-200 text-purple-900 dark:bg-purple-900/80 dark:text-purple-200">Editable</span>
+                  </div>
+                  <p class="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">
+                    You can freely edit the 6 color states below or pick from curated swatches. Saved separately for <span class="font-semibold capitalize" x-text="currentTheme"></span>.
+                  </p>
+                </div>
+              </div>
+              <span class="text-[11px] font-medium text-purple-600 dark:text-purple-300 self-start sm:self-auto">Live updates active</span>
             </div>
           </div>
 
           <!-- Color Control 1: Normal State -->
           <div>
-            <div class="flex items-center gap-2 mb-3">
-              <span class="w-2.5 h-2.5 rounded-full bg-[var(--brand-600)]"></span>
-              <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">1. Normal Navigation State</h3>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-[var(--brand-600)]"></span>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">1. Normal Navigation State</h3>
+              </div>
+              <span x-show="getActiveMode() !== 'custom'" class="text-[10px] font-semibold text-[var(--text-subtle)] flex items-center gap-1">
+                <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                Locked
+              </span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Background Color -->
@@ -644,15 +711,19 @@
                     type="color"
                     x-model="sidebar.bg"
                     @input="liveUpdate()"
-                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent cursor-pointer shrink-0"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'cursor-pointer'"
+                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent shrink-0"
                     title="Choose sidebar background color"
                   >
                   <input
                     type="text"
                     x-model="sidebar.bg"
                     @input="liveUpdate()"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-500 select-none' : 'bg-[var(--surface-2)] text-[var(--text)]'"
                     placeholder="#ffffff"
-                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] px-3 py-2"
                   >
                 </div>
               </div>
@@ -667,15 +738,19 @@
                     type="color"
                     x-model="sidebar.text"
                     @input="liveUpdate()"
-                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent cursor-pointer shrink-0"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'cursor-pointer'"
+                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent shrink-0"
                     title="Choose sidebar text color"
                   >
                   <input
                     type="text"
                     x-model="sidebar.text"
                     @input="liveUpdate()"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-500 select-none' : 'bg-[var(--surface-2)] text-[var(--text)]'"
                     placeholder="#64748b"
-                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] px-3 py-2"
                   >
                 </div>
               </div>
@@ -684,9 +759,15 @@
 
           <!-- Color Control 2: Hover State -->
           <div class="pt-4 border-t border-[var(--border)]">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-              <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">2. Hover State (Mouse-over)</h3>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">2. Hover State (Mouse-over)</h3>
+              </div>
+              <span x-show="getActiveMode() !== 'custom'" class="text-[10px] font-semibold text-[var(--text-subtle)] flex items-center gap-1">
+                <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                Locked
+              </span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Hover Background -->
@@ -699,15 +780,19 @@
                     type="color"
                     x-model="sidebar.hover_bg"
                     @input="liveUpdate()"
-                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent cursor-pointer shrink-0"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'cursor-pointer'"
+                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent shrink-0"
                     title="Choose hover background color"
                   >
                   <input
                     type="text"
                     x-model="sidebar.hover_bg"
                     @input="liveUpdate()"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-500 select-none' : 'bg-[var(--surface-2)] text-[var(--text)]'"
                     placeholder="#f1f5f9"
-                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] px-3 py-2"
                   >
                 </div>
               </div>
@@ -722,15 +807,19 @@
                     type="color"
                     x-model="sidebar.hover_text"
                     @input="liveUpdate()"
-                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent cursor-pointer shrink-0"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'cursor-pointer'"
+                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent shrink-0"
                     title="Choose hover text color"
                   >
                   <input
                     type="text"
                     x-model="sidebar.hover_text"
                     @input="liveUpdate()"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-500 select-none' : 'bg-[var(--surface-2)] text-[var(--text)]'"
                     placeholder="#0f172a"
-                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] px-3 py-2"
                   >
                 </div>
               </div>
@@ -739,9 +828,15 @@
 
           <!-- Color Control 3: Active State -->
           <div class="pt-4 border-t border-[var(--border)]">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">3. Active State (Selected Item)</h3>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">3. Active State (Selected Item)</h3>
+              </div>
+              <span x-show="getActiveMode() !== 'custom'" class="text-[10px] font-semibold text-[var(--text-subtle)] flex items-center gap-1">
+                <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                Locked
+              </span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Active Background -->
@@ -754,15 +849,19 @@
                     type="color"
                     x-model="sidebar.active_bg"
                     @input="liveUpdate()"
-                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent cursor-pointer shrink-0"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'cursor-pointer'"
+                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent shrink-0"
                     title="Choose active background color"
                   >
                   <input
                     type="text"
                     x-model="sidebar.active_bg"
                     @input="liveUpdate()"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-500 select-none' : 'bg-[var(--surface-2)] text-[var(--text)]'"
                     placeholder="#f0fdfa"
-                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] px-3 py-2"
                   >
                 </div>
               </div>
@@ -777,15 +876,19 @@
                     type="color"
                     x-model="sidebar.active_text"
                     @input="liveUpdate()"
-                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent cursor-pointer shrink-0"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'cursor-pointer'"
+                    class="h-9 w-10 p-0.5 rounded border border-[var(--border)] bg-transparent shrink-0"
                     title="Choose active text color"
                   >
                   <input
                     type="text"
                     x-model="sidebar.active_text"
                     @input="liveUpdate()"
+                    :disabled="getActiveMode() !== 'custom'"
+                    :class="getActiveMode() !== 'custom' ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-500 select-none' : 'bg-[var(--surface-2)] text-[var(--text)]'"
                     placeholder="#0f766e"
-                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+                    class="w-full text-xs font-mono rounded-md border border-[var(--border)] px-3 py-2"
                   >
                 </div>
               </div>
@@ -794,9 +897,14 @@
 
           <!-- Quick Palette Swatches -->
           <div class="pt-4 border-t border-[var(--border)]">
-            <label class="block text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)] mb-2.5">
-              {% trans "Curated Palette Swatches" %}
-            </label>
+            <div class="flex items-center justify-between mb-2.5">
+              <label class="block text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)]">
+                {% trans "Curated Palette Swatches" %}
+              </label>
+              <span x-show="getActiveMode() !== 'custom'" class="text-[10px] text-[var(--text-subtle)]">
+                (Clicking a swatch activates Custom mode)
+              </span>
+            </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               <template x-for="p in palettes" :key="p.name">
                 <button
@@ -823,18 +931,27 @@
               class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors"
             >
               <svg class="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-              <span>{% trans "Reset to Theme Default" %}</span>
+              <span>{% trans "Reset to Preset 1 (Theme Default)" %}</span>
             </button>
 
-            <button
-              type="button"
-              id="save-sidebar-theme-btn"
-              @click="saveSidebar()"
-              class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>{% trans "Save Sidebar Preferences" %}</span>
-            </button>
+            <div class="flex items-center gap-2.5">
+              <div x-show="getActiveMode() !== 'custom'" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Preset Active & Saved</span>
+              </div>
+
+              <button
+                type="button"
+                id="save-sidebar-theme-btn"
+                @click="saveSidebar()"
+                class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+                :class="getActiveMode() !== 'custom' ? 'opacity-40 cursor-not-allowed' : ''"
+                :disabled="getActiveMode() !== 'custom'"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>{% trans "Save Custom Palette" %}</span>
+              </button>
+            </div>
           </div>
         </div>
 

@@ -66,17 +66,17 @@
       class="bos-sidebar fixed inset-y-0 left-0 z-50 w-60 lg:static shrink-0 h-full bg-[var(--surface)] border-r border-[var(--border)] flex flex-col transition-all duration-200 ease-out"
     >
       <!-- Brand Header -->
-      <div class="h-14 flex items-center justify-between px-4 border-b border-[var(--border)] shrink-0">
-        <a href="/" class="flex items-center gap-3 overflow-hidden text-[var(--text)] no-underline">
+      <div class="sidebar-header h-14 flex items-center justify-between px-4 border-b border-[var(--border)] shrink-0">
+        <a href="/" class="sidebar-brand-link flex items-center gap-3 overflow-hidden no-underline">
           <div class="w-8 h-8 rounded-lg bg-[var(--brand-600)] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
             B
           </div>
-          <span x-show="!sidebarCollapsed" class="font-semibold text-base tracking-tight truncate">Business OS</span>
+          <span x-show="!sidebarCollapsed" class="sidebar-brand-title font-semibold text-base tracking-tight truncate">Business OS</span>
         </a>
         <button
           type="button"
           @click="toggleCollapse()"
-          class="hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+          class="sidebar-collapse-btn hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
           title="Toggle sidebar collapse"
         >
           <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': sidebarCollapsed }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
@@ -84,7 +84,7 @@
         <button
           type="button"
           @click="sidebarOpen = false"
-          class="lg:hidden p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+          class="sidebar-collapse-btn lg:hidden p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
@@ -94,7 +94,7 @@
       <nav class="flex-1 overflow-y-auto no-scrollbar px-2 py-4 space-y-5" style="scrollbar-width: none; -ms-overflow-style: none;">
         <!-- Main Group -->
         <div>
-          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+          <div x-show="!sidebarCollapsed" class="sidebar-section-title px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
             Platform
           </div>
           <div class="space-y-1">
@@ -119,7 +119,7 @@
 
         <!-- Sell Group -->
         <div>
-          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+          <div x-show="!sidebarCollapsed" class="sidebar-section-title px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
             Sell
           </div>
           <div class="space-y-1">
@@ -160,7 +160,7 @@
 
         <!-- Stock Group -->
         <div>
-          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+          <div x-show="!sidebarCollapsed" class="sidebar-section-title px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
             Stock
           </div>
           <div class="space-y-1">
@@ -193,7 +193,7 @@
 
         <!-- Finance Group -->
         <div>
-          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+          <div x-show="!sidebarCollapsed" class="sidebar-section-title px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
             Finance
           </div>
           <div class="space-y-1">
@@ -274,7 +274,7 @@
 
         <!-- People & Payroll Group -->
         <div>
-          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+          <div x-show="!sidebarCollapsed" class="sidebar-section-title px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
             People & Payroll
           </div>
           <div class="space-y-1">
@@ -307,7 +307,7 @@
 
         <!-- System Group -->
         <div>
-          <div x-show="!sidebarCollapsed" class="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+          <div x-show="!sidebarCollapsed" class="sidebar-section-title px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
             System
           </div>
           <div class="space-y-1">
@@ -362,7 +362,7 @@
       </nav>
 
       <!-- Sidebar Footer (Quick Help & Version) -->
-      <div x-show="!sidebarCollapsed" class="p-3 border-t border-[var(--border)] text-xs text-[var(--text-subtle)]">
+      <div x-show="!sidebarCollapsed" class="sidebar-footer p-3 border-t border-[var(--border)] text-xs text-[var(--text-subtle)]">
         <div class="flex items-center justify-between">
           <span>v0.1.0</span>
           <span class="inline-flex items-center gap-1.5">

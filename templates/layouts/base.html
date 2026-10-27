@@ -61,11 +61,18 @@
           doc.style.setProperty('--sidebar-active-text', colors.active_text);
           doc.style.setProperty('--sidebar-active-border', colors.active_border || colors.active_text);
         }
-        if (colors.bg && (colors.bg === '#0f172a' || colors.bg === '#090d16' || colors.bg.indexOf('rgba(15,') !== -1 || colors.bg === '#1e293b')) {
-          doc.style.setProperty('--sidebar-border', 'rgba(255, 255, 255, 0.08)');
-        } else {
-          doc.style.setProperty('--sidebar-border', 'var(--border)');
+        var isDarkBg = true;
+        if (colors.bg) {
+          if (colors.bg === '#ffffff' || colors.bg === '#fff' || colors.bg.indexOf('255, 255, 255') !== -1 || colors.bg === '#f8fafc' || colors.bg === '#e2e8f0') {
+            isDarkBg = false;
+          } else if (colors.bg.startsWith('#') && colors.bg.length >= 7) {
+            var r = parseInt(colors.bg.substr(1,2), 16) || 0;
+            var g = parseInt(colors.bg.substr(3,2), 16) || 0;
+            var b = parseInt(colors.bg.substr(5,2), 16) || 0;
+            isDarkBg = ((0.299 * r + 0.587 * g + 0.114 * b) / 255) < 0.55;
+          }
         }
+        doc.style.setProperty('--sidebar-border', isDarkBg ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)');
       } catch (e) {}
     })();
   </script>
@@ -162,11 +169,18 @@
         doc.style.setProperty('--sidebar-active-text', colors.active_text);
         doc.style.setProperty('--sidebar-active-border', colors.active_border || colors.active_text);
       }
-      if (colors.bg && (colors.bg === '#0f172a' || colors.bg === '#090d16' || colors.bg.indexOf('rgba(15,') !== -1 || colors.bg === '#1e293b')) {
-        doc.style.setProperty('--sidebar-border', 'rgba(255, 255, 255, 0.08)');
-      } else {
-        doc.style.setProperty('--sidebar-border', 'var(--border)');
+      var isDarkBg = true;
+      if (colors.bg) {
+        if (colors.bg === '#ffffff' || colors.bg === '#fff' || colors.bg.indexOf('255, 255, 255') !== -1 || colors.bg === '#f8fafc' || colors.bg === '#e2e8f0') {
+          isDarkBg = false;
+        } else if (colors.bg.startsWith('#') && colors.bg.length >= 7) {
+          var r = parseInt(colors.bg.substr(1,2), 16) || 0;
+          var g = parseInt(colors.bg.substr(3,2), 16) || 0;
+          var b = parseInt(colors.bg.substr(5,2), 16) || 0;
+          isDarkBg = ((0.299 * r + 0.587 * g + 0.114 * b) / 255) < 0.55;
+        }
       }
+      doc.style.setProperty('--sidebar-border', isDarkBg ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)');
     };
 
     window.setTheme = function(theme) {
