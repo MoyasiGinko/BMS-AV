@@ -12,13 +12,13 @@
 
   --font-sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --fs-xs:13px; --fs-sm:14px; --fs-base:15px; --fs-md:17px; --fs-lg:22px; --fs-xl:26px; --fs-2xl:32px;
+  --fs-xs:14px; --fs-sm:15px; --fs-base:16px; --fs-md:18px; --fs-lg:24px; --fs-xl:30px; --fs-2xl:36px;
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
   --radius-sm:6px; --radius-md:10px;
   --shadow-sm:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.06);
   --shadow-lg:0 10px 30px rgba(15,23,42,.16);
   --focus-ring:0 0 0 3px rgba(20,184,166,.45);
-  --sidebar-w:240px; --sidebar-w-collapsed:64px; --topbar-h:56px; --content-max:100%;
+  --sidebar-w:260px; --sidebar-w-collapsed:68px; --topbar-h:64px; --content-max:100%;
   --ease:cubic-bezier(.2,.8,.2,1); --dur:140ms;
 
   /* Sidebar Appearance Tokens (Default Dark Contrast across all themes) */
@@ -241,7 +241,7 @@ body.overflow-hidden {
 @media (min-width: 1024px) {
   aside.bos-sidebar {
     position: static !important;
-    height: 100% !important;
+    height: calc(100% - 0.5rem) !important;
     transform: none !important;
     flex-shrink: 0 !important;
     z-index: 10 !important;
