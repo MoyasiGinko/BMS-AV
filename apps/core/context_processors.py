@@ -74,18 +74,8 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     "neumorphic": {
-        "dark_contrast": {
-            "name": "Tactile Slate Dark (Default)",
-            "bg": "#1e293b",
-            "text": "#94a3b8",
-            "hover_bg": "#334155",
-            "hover_text": "#ffffff",
-            "active_bg": "#0f172a",
-            "active_text": "#60a5fa",
-            "active_border": "#3b82f6",
-        },
         "light": {
-            "name": "Soft Clay Light",
+            "name": "Soft Clay Light (Default)",
             "bg": "#e2e8f0",
             "text": "#334155",
             "hover_bg": "#cbd5e1",
@@ -94,11 +84,28 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
             "active_text": "#1d4ed8",
             "active_border": "#2563eb",
         },
+        "dark_contrast": {
+            "name": "Tactile Slate Dark",
+            "bg": "#1e293b",
+            "text": "#94a3b8",
+            "hover_bg": "#334155",
+            "hover_text": "#ffffff",
+            "active_bg": "#0f172a",
+            "active_text": "#60a5fa",
+            "active_border": "#3b82f6",
+        },
     },
 }
 
+DEFAULT_SIDEBAR_MODES: dict[str, str] = {
+    "fast": "dark_contrast",
+    "dark": "dark_contrast",
+    "spatial": "dark_contrast",
+    "neumorphic": "light",
+}
+
 DEFAULT_SIDEBAR_COLORS: dict[str, dict[str, str]] = {
-    theme: presets["dark_contrast"] for theme, presets in THEME_SIDEBAR_PRESETS.items()
+    theme: presets[DEFAULT_SIDEBAR_MODES[theme]] for theme, presets in THEME_SIDEBAR_PRESETS.items()
 }
 
 
@@ -184,17 +191,18 @@ def _resolve_sidebar_for_theme(
     """Determine final mode and color map for the given theme."""
     presets = THEME_SIDEBAR_PRESETS.get(theme, THEME_SIDEBAR_PRESETS["fast"])
 
+    default_mode = DEFAULT_SIDEBAR_MODES.get(theme, "dark_contrast")
     if theme in modes:
         mode = modes[theme]
     elif customs.get(theme) or custom_single:
         mode = "custom"
     else:
-        mode = "dark_contrast"
+        mode = default_mode
 
     if mode == "light":
         return "light", dict(presets["light"])
     if mode == "custom":
-        res = dict(presets["dark_contrast"])
+        res = dict(presets[default_mode])
         override = customs.get(theme, custom_single)
         res.update(override)
         return "custom", res

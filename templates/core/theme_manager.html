@@ -72,7 +72,7 @@
       fast: 'dark_contrast',
       dark: 'dark_contrast',
       spatial: 'dark_contrast',
-      neumorphic: 'dark_contrast'
+      neumorphic: 'light'
     }, JSON.parse(document.getElementById('user-sidebar-modes-data').textContent || '{}')),
     sidebarCustoms: Object.assign({}, JSON.parse(document.getElementById('user-sidebar-custom-data').textContent || '{}')),
     sidebar: {
@@ -103,13 +103,18 @@
         var raw = localStorage.getItem('bos_sidebar_modes');
         if (raw) Object.assign(this.sidebarModes, JSON.parse(raw));
       } catch(e) {}
-      return this.sidebarModes[themeKey] || 'dark_contrast';
+      var defaultMode = themeKey === 'neumorphic' ? 'light' : 'dark_contrast';
+      return this.sidebarModes[themeKey] || defaultMode;
     },
     getModeLabel(t) {
       var m = this.getModeForTheme(t);
       var presetsForTheme = this.themePresets[t] || this.themePresets.fast || {};
-      if (m === 'light') return 'Preset 2: ' + (presetsForTheme.light?.name || 'Light Mode');
       if (m === 'custom') return '3. Custom Palette (Editable)';
+      if (t === 'neumorphic') {
+        if (m === 'light') return 'Preset 1: ' + (presetsForTheme.light?.name || 'Soft Clay Light (Default)');
+        return 'Preset 2: ' + (presetsForTheme.dark_contrast?.name || 'Tactile Slate Dark');
+      }
+      if (m === 'light') return 'Preset 2: ' + (presetsForTheme.light?.name || 'Clean Light');
       return 'Preset 1: ' + (presetsForTheme.dark_contrast?.name || 'Dark Contrast');
     },
     getActiveMode() {
@@ -523,10 +528,11 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              <!-- Preset 1: Dark Contrast (Default for each and all themes) -->
+              <!-- Preset: Dark Contrast -->
               <div
                 id="sidebar-preset-dark-contrast"
                 @click="selectSidebarPreset('dark_contrast')"
+                :style="currentTheme === 'neumorphic' ? 'order: 2;' : 'order: 1;'"
                 class="relative flex flex-col p-3.5 rounded-xl border cursor-pointer transition-all hover:shadow-sm"
                 :class="getActiveMode() === 'dark_contrast' ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/30 ring-2 ring-[var(--brand-600)] shadow-xs' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface)]'"
               >
@@ -541,11 +547,10 @@
                   </div>
                 </div>
                 <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs font-bold text-[var(--text)]" x-text="'1. ' + (themePresets[currentTheme]?.dark_contrast.name || 'Dark Contrast')"></span>
-                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">Preset 1</span>
+                  <span class="text-xs font-bold text-[var(--text)]" x-text="(currentTheme === 'neumorphic' ? '2. ' : '1. ') + (themePresets[currentTheme]?.dark_contrast.name || 'Dark Contrast')"></span>
+                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded" :class="currentTheme === 'neumorphic' ? 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300'" x-text="currentTheme === 'neumorphic' ? 'Preset 2 (Dark)' : 'Preset 1 (Default)'"></span>
                 </div>
-                <p class="text-[11px] text-[var(--text-muted)] line-clamp-2">
-                  Curated dark contrast surface tailored for <span x-text="currentTheme"></span>. Immutable preset.
+                <p class="text-[11px] text-[var(--text-muted)] line-clamp-2" x-text="currentTheme === 'neumorphic' ? 'Tactile dark contrast surface tailored for neumorphic. Immutable preset.' : 'Curated dark contrast surface tailored for ' + currentTheme + '. Immutable preset.'">
                 </p>
                 <div class="mt-auto pt-2.5 flex items-center justify-between text-[11px]">
                   <span class="text-[10px] text-[var(--text-subtle)] font-medium flex items-center gap-1">
@@ -559,10 +564,11 @@
                 </div>
               </div>
 
-              <!-- Preset 2: Light Mode -->
+              <!-- Preset: Light Mode -->
               <div
                 id="sidebar-preset-light"
                 @click="selectSidebarPreset('light')"
+                :style="currentTheme === 'neumorphic' ? 'order: 1;' : 'order: 2;'"
                 class="relative flex flex-col p-3.5 rounded-xl border cursor-pointer transition-all hover:shadow-sm"
                 :class="getActiveMode() === 'light' ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/30 ring-2 ring-[var(--brand-600)] shadow-xs' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface)]'"
               >
@@ -577,11 +583,10 @@
                   </div>
                 </div>
                 <div class="flex items-center justify-between mb-1">
-                  <span class="text-xs font-bold text-[var(--text)]" x-text="'2. ' + (themePresets[currentTheme]?.light.name || 'Clean Light')"></span>
-                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300">Preset 2</span>
+                  <span class="text-xs font-bold text-[var(--text)]" x-text="(currentTheme === 'neumorphic' ? '1. ' : '2. ') + (themePresets[currentTheme]?.light.name || 'Clean Light')"></span>
+                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded" :class="currentTheme === 'neumorphic' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' : 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300'" x-text="currentTheme === 'neumorphic' ? 'Preset 1 (Default)' : 'Preset 2 (Light)'"></span>
                 </div>
-                <p class="text-[11px] text-[var(--text-muted)] line-clamp-2">
-                  Matching light surface tailored to <span x-text="currentTheme"></span>. Immutable preset.
+                <p class="text-[11px] text-[var(--text-muted)] line-clamp-2" x-text="currentTheme === 'neumorphic' ? 'Matching soft clay light surface tailored to neumorphic. Immutable preset.' : 'Matching light surface tailored to ' + currentTheme + '. Immutable preset.'">
                 </p>
                 <div class="mt-auto pt-2.5 flex items-center justify-between text-[11px]">
                   <span class="text-[10px] text-[var(--text-subtle)] font-medium flex items-center gap-1">

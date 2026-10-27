@@ -43,12 +43,13 @@
           if (rawCustoms) Object.assign(customs, JSON.parse(rawCustoms));
         } catch(e) {}
 
-        var mode = modes[theme] || 'dark_contrast';
+        var defaultMode = theme === 'neumorphic' ? 'light' : 'dark_contrast';
+        var mode = modes[theme] || defaultMode;
         var themePresets = presets[theme] || presets.fast;
-        var colors = themePresets[mode] || themePresets.dark_contrast;
+        var colors = themePresets[mode] || themePresets[defaultMode] || themePresets.dark_contrast;
         if (mode === 'custom') {
           var customForTheme = customs[theme] || {};
-          colors = Object.assign({}, themePresets.dark_contrast, customForTheme);
+          colors = Object.assign({}, themePresets[defaultMode] || themePresets.dark_contrast, customForTheme);
         }
 
         var doc = document.documentElement;
@@ -87,9 +88,9 @@
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
   <!-- Calm Ledger Tokens, Neumorphic System & Tailwind 4 -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=1.0.6">
-  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=1.0.5">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=1.0.6">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=2.2.0">
+  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=2.2.0">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=2.2.0">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -132,12 +133,18 @@
     window.resolveSidebarForTheme = function(themeName) {
       themeName = themeName || document.documentElement.getAttribute('data-theme') || 'fast';
       var presets = (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS[themeName]) || (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS.fast) || {};
-      var modes = Object.assign({}, window.USER_SIDEBAR_MODES || {});
+      var defaultMode = themeName === 'neumorphic' ? 'light' : 'dark_contrast';
+      var modes = Object.assign({
+        fast: 'dark_contrast',
+        dark: 'dark_contrast',
+        spatial: 'dark_contrast',
+        neumorphic: 'light'
+      }, window.USER_SIDEBAR_MODES || {});
       try {
         var rawModes = localStorage.getItem('bos_sidebar_modes');
         if (rawModes) Object.assign(modes, JSON.parse(rawModes));
       } catch(e) {}
-      var mode = modes[themeName] || 'dark_contrast';
+      var mode = modes[themeName] || defaultMode;
 
       var customs = Object.assign({}, window.USER_SIDEBAR_CUSTOM || {});
       try {
@@ -148,11 +155,13 @@
       var colors;
       if (mode === 'light' && presets.light) {
         colors = presets.light;
+      } else if (mode === 'dark_contrast' && presets.dark_contrast) {
+        colors = presets.dark_contrast;
       } else if (mode === 'custom') {
-        colors = Object.assign({}, presets.dark_contrast || {}, customs[themeName] || {});
+        colors = Object.assign({}, presets[defaultMode] || presets.dark_contrast || presets.light || {}, customs[themeName] || {});
       } else {
-        mode = 'dark_contrast';
-        colors = presets.dark_contrast || {};
+        mode = defaultMode;
+        colors = presets[defaultMode] || presets.dark_contrast || presets.light || {};
       }
       return { mode: mode, colors: colors };
     };
@@ -180,7 +189,15 @@
           isDarkBg = ((0.299 * r + 0.587 * g + 0.114 * b) / 255) < 0.55;
         }
       }
-      doc.style.setProperty('--sidebar-border', isDarkBg ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)');
+      var borderColor = isDarkBg ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+      doc.style.setProperty('--sidebar-border', borderColor);
+
+      var asideEl = document.querySelector('aside.bos-sidebar');
+      if (asideEl) {
+        if (colors.bg) asideEl.style.setProperty('background-color', colors.bg, 'important');
+        if (colors.text) asideEl.style.setProperty('color', colors.text, 'important');
+        asideEl.style.setProperty('border-right-color', borderColor, 'important');
+      }
     };
 
     window.setTheme = function(theme) {

@@ -136,6 +136,22 @@ def test_ui_per_theme_sidebar_preset_persistence(live_server: pytest.FixtureRequ
     )
     assert "255, 255, 255" in bg_spatial_restored
 
+    # 6. Switch to 'Neumorphic Mode' and verify default Light bg and Dark preset
+    page.click("button:has-text('Neumorphic Mode')")
+    expect(page.locator("html")).to_have_attribute("data-theme", "neumorphic")
+    # Default for neumorphic is Soft Clay Light (#e2e8f0)
+    bg_neu_default = page.evaluate(
+        "() => document.documentElement.style.getPropertyValue('--sidebar-bg')"
+    )
+    assert bg_neu_default == "#e2e8f0"
+    # Select dark preset for neumorphic
+    page.click("#sidebar-preset-dark-contrast")
+    bg_neu_dark = page.evaluate(
+        "() => document.documentElement.style.getPropertyValue('--sidebar-bg')"
+    )
+    assert bg_neu_dark == "#1e293b"
+
+
 
 @pytest.mark.ui
 @pytest.mark.django_db(transaction=True)
@@ -207,17 +223,17 @@ def test_ui_sidebar_presets_locked_and_custom_editable(
     page.click("button:has-text('Neumorphic Mode')")
     expect(page.locator("html")).to_have_attribute("data-theme", "neumorphic")
 
-    # In neumorphic, Preset 1 should be active by default and inputs locked
+    # In neumorphic, Preset 1 (Soft Clay Light) should be active by default and inputs locked
     expect(page.locator("text=Preset Colors are Locked (Read-Only)")).to_be_visible()
     expect(first_color_picker).to_be_disabled()
     bg_neu_p1 = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
-    assert bg_neu_p1 == "#1e293b"
+    assert bg_neu_p1 == "#e2e8f0"
 
-    # Select Preset 2 for neumorphic
-    page.click("#sidebar-preset-light")
+    # Select Dark Preset for neumorphic
+    page.click("#sidebar-preset-dark-contrast")
     expect(first_color_picker).to_be_disabled()
-    bg_neu_p2 = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
-    assert bg_neu_p2 == "#e2e8f0"
+    bg_neu_dark = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
+    assert bg_neu_dark == "#1e293b"
 
     # Unlock custom for neumorphic via "Unlock & Edit in Custom" button
     page.click("#unlock-custom-sidebar-btn")

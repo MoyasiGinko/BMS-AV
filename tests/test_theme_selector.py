@@ -394,3 +394,14 @@ def test_theme_manager_template_locks_preset_inputs_and_exposes_custom(
     assert "3. Custom Palette" in content
 
 
+def test_neumorphic_sidebar_presets_light_default_and_dark() -> None:
+    """Verify that neumorphic mode has soft clay light as default, tactile dark preset, and custom."""
+    presets = THEME_SIDEBAR_PRESETS["neumorphic"]
+    assert "light" in presets
+    assert "dark_contrast" in presets
+    # Light default
+    assert presets["light"]["name"] == "Soft Clay Light (Default)"
+    assert presets["light"]["bg"] == "#e2e8f0"
+    # Dark preset
+    assert presets["dark_contrast"]["name"] == "Tactile Slate Dark"
+    assert presets["dark_contrast"]["bg"] == "#1e293b"
