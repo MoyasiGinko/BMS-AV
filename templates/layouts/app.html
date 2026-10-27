@@ -64,12 +64,13 @@
         'lg:w-60': !sidebarCollapsed
       }"
       class="bos-sidebar fixed inset-y-0 left-0 z-50 w-60 lg:static shrink-0 h-full flex flex-col transition-all duration-200 ease-out"
+      data-sidebar-tone="{{ active_sidebar_tone|default:'light' }}"
       style="background-color: var(--sidebar-bg); color: var(--sidebar-text); border-right: 1px solid var(--sidebar-border);"
     >
       <!-- Brand Header -->
       <div class="sidebar-header h-14 flex items-center justify-between px-4 border-b border-[var(--border)] shrink-0">
         <a href="/" class="sidebar-brand-link flex items-center gap-3 overflow-hidden no-underline">
-          <div class="w-8 h-8 rounded-lg bg-[var(--brand-600)] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
+          <div class="sidebar-brand-icon-box w-8 h-8 rounded-lg bg-[var(--brand-600)] text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
             B
           </div>
           <span x-show="!sidebarCollapsed" class="sidebar-brand-title font-semibold text-base tracking-tight truncate">Business OS</span>

@@ -74,6 +74,7 @@
           }
         }
         doc.style.setProperty('--sidebar-border', isDarkBg ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)');
+        doc.setAttribute('data-sidebar-tone', isDarkBg ? 'dark' : 'light');
       } catch (e) {}
     })();
   </script>
@@ -88,9 +89,9 @@
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
   <!-- Calm Ledger Tokens, Neumorphic System & Tailwind 4 -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=2.3.0">
-  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=2.3.0">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=2.3.0">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=2.4.0">
+  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=2.4.0">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=2.4.0">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -197,7 +198,9 @@
         if (colors.bg) asideEl.style.setProperty('background-color', colors.bg, 'important');
         if (colors.text) asideEl.style.setProperty('color', colors.text, 'important');
         asideEl.style.setProperty('border-right-color', borderColor, 'important');
+        asideEl.setAttribute('data-sidebar-tone', isDarkBg ? 'dark' : 'light');
       }
+      doc.setAttribute('data-sidebar-tone', isDarkBg ? 'dark' : 'light');
     };
 
     window.setTheme = function(theme) {

@@ -219,11 +219,16 @@ def theme_context(request: HttpRequest) -> dict[str, Any]:
         theme, user_sidebar_modes, user_sidebar_custom, custom_sidebar
     )
 
+    bg_val = active_sidebar_colors.get("bg", "")
+    is_light = bg_val in ("#ffffff", "#e2e8f0", "#f8fafc") or "255, 255, 255" in bg_val
+    active_sidebar_tone = "light" if is_light else "dark"
+
     return {
         "current_theme": theme,
         "default_theme": "fast",
         "active_sidebar_mode": active_mode,
         "active_sidebar_colors": active_sidebar_colors,
+        "active_sidebar_tone": active_sidebar_tone,
         "user_sidebar_modes": user_sidebar_modes,
         "user_sidebar_modes_json": json.dumps(user_sidebar_modes),
         "user_sidebar_custom": user_sidebar_custom,
