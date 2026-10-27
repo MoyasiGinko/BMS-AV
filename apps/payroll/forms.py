@@ -18,8 +18,7 @@ from apps.payroll.models import (
 from apps.tenancy.models import Organization
 
 INPUT_CSS = (
-    "w-full rounded-lg border-slate-300 dark:border-slate-700 "
-    "dark:bg-slate-800 dark:text-white px-3 py-2 text-sm"
+    "w-full rounded-lg border-line bg-surface text-ink px-3 py-2 text-sm shadow-2xs"
 )
 MONO_INPUT_CSS = f"{INPUT_CSS} font-mono"
 UPPER_MONO_CSS = f"{INPUT_CSS} uppercase font-mono"

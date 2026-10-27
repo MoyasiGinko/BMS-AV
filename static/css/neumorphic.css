@@ -179,18 +179,18 @@ html[data-theme="neumorphic"],
 
 /* ==========================================================================
    Minimal Spatial Theme Mode ([data-theme="spatial"])
-   Subtle floating elevation, glassmorphism, borderless cards, deep typography.
+   Crisp floating elevation, deep contrast typography, highlighted cards.
    ========================================================================== */
 [data-theme="spatial"] {
-  --bg: #f8fafc;
+  --bg: #edf2f7;
   --surface: #ffffff;
   --surface-1: #ffffff;
-  --surface-2: #f1f5f9;
-  --border: rgba(226, 232, 240, 0.85);
-  --border-strong: #cbd5e1;
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
+  --surface-2: #e2e8f0;
+  --border: #cbd5e1;
+  --border-strong: #94a3b8;
+  --text: #090d16;
+  --text-muted: #334155;
+  --text-subtle: #475569;
   --brand-600: #4f46e5;
   --brand-700: #4338ca;
   --brand-50: #eef2ff;
@@ -200,43 +200,44 @@ html[data-theme="neumorphic"],
 
 html[data-theme="spatial"],
 [data-theme="spatial"] body {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+  background-color: #edf2f7 !important;
+  color: #090d16 !important;
 }
 
-/* Spatial Topbar: Frosted glass */
+/* Spatial Topbar: Crisp frosted glass with solid boundary */
 [data-theme="spatial"] header {
-  background-color: rgba(255, 255, 255, 0.82) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8) !important;
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04) !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  box-shadow: 0 2px 10px -2px rgba(15, 23, 42, 0.06) !important;
 }
 
 /* Spatial Sidebar */
 [data-theme="spatial"] aside.bos-sidebar {
-  background-color: #ffffff !important;
-  border-right: 1px solid rgba(226, 232, 240, 0.85) !important;
-  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.02) !important;
+  background-color: var(--sidebar-bg) !important;
+  border-right: 1px solid #1e293b !important;
+  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.15) !important;
 }
 
-/* Spatial Floating Cards */
+/* Spatial Floating Cards - High Contrast & Crisp Elevation */
 [data-theme="spatial"] .card,
 [data-theme="spatial"] [class*="card"],
 [data-theme="spatial"] #dashboard-widgets-container > div > div,
 [data-theme="spatial"] .rounded-2xl.border,
 [data-theme="spatial"] .rounded-xl.border {
   background-color: #ffffff !important;
-  border-radius: 18px !important;
-  border: 1px solid rgba(226, 232, 240, 0.85) !important;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.04) !important;
+  border-radius: 16px !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05) !important;
+  color: #090d16 !important;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 [data-theme="spatial"] .card:hover,
 [data-theme="spatial"] #dashboard-widgets-container > div > div:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.08), 0 10px 15px -8px rgba(15, 23, 42, 0.05) !important;
+  box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05) !important;
 }
 
 /* Spatial Form Inputs */
@@ -247,15 +248,36 @@ html[data-theme="spatial"],
 [data-theme="spatial"] input[type="password"],
 [data-theme="spatial"] select,
 [data-theme="spatial"] textarea {
-  border-radius: 12px !important;
-  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  border: 1.5px solid #cbd5e1 !important;
   background-color: #ffffff !important;
+  color: #090d16 !important;
+}
+
+[data-theme="spatial"] input:focus,
+[data-theme="spatial"] select:focus,
+[data-theme="spatial"] textarea:focus {
+  border-color: #4f46e5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25) !important;
+}
+
+/* Spatial Table & Headers High Contrast */
+[data-theme="spatial"] th {
+  color: #090d16 !important;
+  font-weight: 700 !important;
+  background-color: #f1f5f9 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+[data-theme="spatial"] td {
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #090d16 !important;
 }
 
 /* Spatial Buttons */
 [data-theme="spatial"] button,
 [data-theme="spatial"] .btn {
-  border-radius: 12px !important;
+  border-radius: 10px !important;
   transition: all 0.2s ease !important;
 }
 

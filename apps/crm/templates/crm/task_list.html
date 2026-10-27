@@ -28,7 +28,7 @@
         <form method="get" class="flex items-center gap-4">
             <label class="text-sm font-medium text-muted">{% trans "Status" %}:</label>
             <div class="w-48">
-                <select name="status" onchange="this.form.submit()" class="w-full text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2">
+                <select name="status" onchange="this.form.submit()" class="w-full text-sm rounded-lg border-line bg-surface text-ink px-3 py-2">
                     <option value="">{% trans "All Tasks" %}</option>
                     <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>{% trans "Pending" %}</option>
                     <option value="in_progress" {% if status_filter == "in_progress" %}selected{% endif %}>{% trans "In Progress" %}</option>

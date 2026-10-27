@@ -25,7 +25,7 @@
             <!-- Pipeline selector if multiple -->
             {% if all_pipelines|length > 1 %}
             <form method="get" class="flex items-center">
-                <select name="pipeline" onchange="this.form.submit()" class="text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2">
+                <select name="pipeline" onchange="this.form.submit()" class="text-sm rounded-lg border-line bg-surface text-ink px-3 py-2">
                     {% for p in all_pipelines %}
                     <option value="{{ p.code }}" {% if p.id == pipeline.id %}selected{% endif %}>{{ p.name }}</option>
                     {% endfor %}

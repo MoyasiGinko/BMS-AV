@@ -11,17 +11,17 @@ from django.utils.translation import gettext_lazy as _
 from apps.automation.models import TriggerType
 
 INPUT_CLASSES = (
-    "block w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-    "bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 "
-    "dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 "
-    "focus:ring-1 focus:ring-indigo-500"
+    "block w-full rounded-lg border border-line "
+    "bg-surface px-3.5 py-2 text-sm text-ink "
+    "placeholder:text-muted focus:border-brand-500 "
+    "focus:ring-1 focus:ring-brand-500 shadow-2xs"
 )
 
 CODE_CLASSES = (
-    "font-mono block w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-    "bg-white dark:bg-slate-900 px-3.5 py-2 text-xs text-slate-900 "
-    "dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 "
-    "focus:ring-1 focus:ring-indigo-500"
+    "font-mono block w-full rounded-lg border border-line "
+    "bg-surface px-3.5 py-2 text-xs text-ink "
+    "placeholder:text-muted focus:border-brand-500 "
+    "focus:ring-1 focus:ring-brand-500 shadow-2xs"
 )
 
 

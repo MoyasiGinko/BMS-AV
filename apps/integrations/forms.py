@@ -22,7 +22,7 @@ class WebhookEndpointForm(forms.ModelForm):
 
     INPUT_CSS = (
         "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white "
-        "dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 "
+        "bg-surface px-3 py-2 text-sm text-slate-900 dark:text-slate-100 "
         "placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
     )
 
@@ -61,7 +61,7 @@ class WebhookEndpointForm(forms.ModelForm):
             attrs={
                 "class": (
                     "h-4 w-4 rounded border-slate-300 text-indigo-600 "
-                    "focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900"
+                    "focus:ring-brand-500 border-line bg-surface"
                 ),
             }
         ),
@@ -100,12 +100,12 @@ class IntegrationConnectionForm(forms.ModelForm):
 
     INPUT_CSS = (
         "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white "
-        "dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 "
+        "bg-surface px-3 py-2 text-sm text-slate-900 dark:text-slate-100 "
         "placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
     )
     MONO_CSS = (
         "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white "
-        "dark:bg-slate-900 px-3 py-2 font-mono text-xs text-slate-900 dark:text-slate-100 "
+        "bg-surface px-3 py-2 font-mono text-xs text-slate-900 dark:text-slate-100 "
         "placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
     )
 
@@ -149,7 +149,7 @@ class IntegrationConnectionForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 placeholder-slate-400 focus:outline-none "
                         "focus:ring-1 focus:ring-indigo-500"
                     ),
@@ -160,7 +160,7 @@ class IntegrationConnectionForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -169,7 +169,7 @@ class IntegrationConnectionForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -178,7 +178,7 @@ class IntegrationConnectionForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 placeholder-slate-400 focus:outline-none "
                         "focus:ring-1 focus:ring-indigo-500"
                     ),
@@ -190,7 +190,7 @@ class IntegrationConnectionForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -254,7 +254,7 @@ class OAuthApplicationForm(forms.ModelForm):
 
     INPUT_CSS = (
         "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white "
-        "dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 "
+        "bg-surface px-3 py-2 text-sm text-slate-900 dark:text-slate-100 "
         "placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
     )
 
@@ -304,7 +304,7 @@ class OAuthApplicationForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 placeholder-slate-400 focus:outline-none "
                         "focus:ring-1 focus:ring-indigo-500"
                     ),
@@ -315,7 +315,7 @@ class OAuthApplicationForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -324,7 +324,7 @@ class OAuthApplicationForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -333,7 +333,7 @@ class OAuthApplicationForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 font-mono text-xs text-slate-900 "
+                        "bg-surface px-3 py-2 font-mono text-xs text-slate-900 "
                         "dark:text-slate-100 placeholder-slate-400 focus:outline-none "
                         "focus:ring-1 focus:ring-indigo-500"
                     ),
@@ -345,7 +345,7 @@ class OAuthApplicationForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 placeholder-slate-400 focus:outline-none "
                         "focus:ring-1 focus:ring-indigo-500"
                     ),
@@ -376,7 +376,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
 
     INPUT_CSS = (
         "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white "
-        "dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 "
+        "bg-surface px-3 py-2 text-sm text-slate-900 dark:text-slate-100 "
         "placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
     )
 
@@ -388,7 +388,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
             attrs={
                 "class": (
                     "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                    "bg-white dark:bg-slate-900 px-3 py-2 font-mono text-xs text-slate-900 "
+                    "bg-surface px-3 py-2 font-mono text-xs text-slate-900 "
                     "dark:text-slate-100 placeholder-slate-400 focus:outline-none "
                     "focus:ring-1 focus:ring-indigo-500"
                 ),
@@ -416,7 +416,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 placeholder-slate-400 focus:outline-none "
                         "focus:ring-1 focus:ring-indigo-500"
                     ),
@@ -427,7 +427,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -436,7 +436,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 font-mono text-xs text-slate-900 "
+                        "bg-surface px-3 py-2 font-mono text-xs text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "placeholder": "X-Signature, Stripe-Signature, X-Hub-Signature-256",
@@ -446,7 +446,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -455,7 +455,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 font-mono text-xs text-slate-900 "
+                        "bg-surface px-3 py-2 font-mono text-xs text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "placeholder": "inbound_webhook.received",
@@ -465,7 +465,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -474,7 +474,7 @@ class InboundWebhookEndpointForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 placeholder-slate-400 focus:outline-none "
                         "focus:ring-1 focus:ring-indigo-500"
                     ),
@@ -502,7 +502,7 @@ class TenantExportJobForm(forms.Form):
             attrs={
                 "class": (
                     "h-4 w-4 rounded border-slate-300 text-indigo-600 "
-                    "focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900"
+                    "focus:ring-brand-500 border-line bg-surface"
                 ),
             }
         ),
@@ -557,7 +557,7 @@ class DataRetentionPolicyForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "min": 30,
@@ -567,7 +567,7 @@ class DataRetentionPolicyForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "min": 7,
@@ -577,7 +577,7 @@ class DataRetentionPolicyForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "min": 7,
@@ -587,7 +587,7 @@ class DataRetentionPolicyForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "min": 1,
@@ -597,7 +597,7 @@ class DataRetentionPolicyForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "h-4 w-4 rounded border-slate-300 text-indigo-600 "
-                        "focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900"
+                        "focus:ring-brand-500 border-line bg-surface"
                     ),
                 }
             ),
@@ -622,7 +622,7 @@ class DataSubjectRequestForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "placeholder": "user@example.com",
@@ -632,7 +632,7 @@ class DataSubjectRequestForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -641,7 +641,7 @@ class DataSubjectRequestForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "placeholder": "Full name of the data subject",
@@ -651,7 +651,7 @@ class DataSubjectRequestForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                 }
@@ -660,7 +660,7 @@ class DataSubjectRequestForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "rows": 2,
@@ -671,7 +671,7 @@ class DataSubjectRequestForm(forms.ModelForm):
                 attrs={
                     "class": (
                         "w-full rounded-lg border border-slate-300 dark:border-slate-700 "
-                        "bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 "
+                        "bg-surface px-3 py-2 text-sm text-slate-900 "
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "rows": 2,

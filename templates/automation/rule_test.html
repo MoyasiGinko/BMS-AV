@@ -24,7 +24,7 @@
   </div>
 
   <!-- Rule Details Box -->
-  <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-surface p-5 shadow-sm space-y-2">
+  <div class="rounded-xl border border-line bg-surface p-5 shadow-sm space-y-2">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if rule.trigger_type == 'event' %}bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300{% else %}bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300{% endif %}">
@@ -76,7 +76,7 @@
         </h4>
         <div class="space-y-2">
           {% for act in simulation_result.actions_simulated %}
-            <div class="rounded-lg bg-white/80 dark:bg-slate-900/80 p-3 text-xs border border-line flex items-center justify-between">
+            <div class="rounded-lg bg-surface/90 p-3 text-xs border border-line flex items-center justify-between">
               <div>
                 <span class="font-semibold text-ink">{{ act.action_type }}</span>
                 <span class="text-slate-500 font-mono ml-2">{{ act.params }}</span>
@@ -92,7 +92,7 @@
   {% endif %}
 
   <!-- Test Form -->
-  <form method="post" class="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-surface p-6 shadow-sm space-y-4">
+  <form method="post" class="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-4">
     {% csrf_token %}
 
     <div>

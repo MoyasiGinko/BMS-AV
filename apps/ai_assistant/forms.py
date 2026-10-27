@@ -6,10 +6,10 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 INPUT_CLASSES = (
-    "block w-full rounded-xl border border-slate-300 dark:border-slate-700 "
-    "bg-white dark:bg-slate-900 px-4 py-3 text-sm text-slate-900 "
-    "dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 "
-    "focus:ring-2 focus:ring-indigo-500/20 shadow-sm"
+    "block w-full rounded-xl border border-line "
+    "bg-surface px-4 py-3 text-sm text-ink "
+    "placeholder:text-muted focus:border-brand-500 "
+    "focus:ring-2 focus:ring-brand-500/20 shadow-xs"
 )
 
 

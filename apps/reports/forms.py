@@ -15,13 +15,13 @@ from apps.reports.models import (
 )
 
 COMMON_INPUT_CLASS = (
-    "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white "
-    "dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white "
-    "focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    "w-full rounded-lg border border-line bg-surface "
+    "px-3.5 py-2 text-sm text-ink "
+    "focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-2xs"
 )
 COMMON_CHECKBOX_CLASS = (
-    "h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 "
-    "dark:border-slate-700 dark:bg-slate-900"
+    "h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-500 "
+    "bg-surface"
 )
 
 

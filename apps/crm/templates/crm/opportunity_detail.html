@@ -105,7 +105,7 @@
                     <input type="hidden" name="customer_id" value="{{ opp.customer.pk }}">
                     {% endif %}
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <select name="type" class="text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2">
+                        <select name="type" class="text-sm rounded-lg border-line bg-surface text-ink px-3 py-2">
                             <option value="call">{% trans "Call" %}</option>
                             <option value="email">{% trans "Email" %}</option>
                             <option value="meeting">{% trans "Meeting" %}</option>
@@ -113,10 +113,10 @@
                             <option value="other">{% trans "Other" %}</option>
                         </select>
                         <div class="sm:col-span-2">
-                            <input type="text" name="summary" required placeholder="{% trans 'Brief summary of touchpoint...' %}" class="w-full text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2">
+                            <input type="text" name="summary" required placeholder="{% trans 'Brief summary of touchpoint...' %}" class="w-full text-sm rounded-lg border-line bg-surface text-ink px-3 py-2">
                         </div>
                     </div>
-                    <textarea name="details" rows="2" placeholder="{% trans 'Detailed notes or outcomes (optional)...' %}" class="w-full text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2"></textarea>
+                    <textarea name="details" rows="2" placeholder="{% trans 'Detailed notes or outcomes (optional)...' %}" class="w-full text-sm rounded-lg border-line bg-surface text-ink px-3 py-2"></textarea>
                     <div class="flex justify-end">
                         <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700">
                             {% trans "Record Activity" %}

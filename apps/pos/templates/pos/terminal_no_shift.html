@@ -28,7 +28,7 @@
                     {% trans "Select Register / Terminal" %}
                 </label>
                 <div class="mt-2">
-                    <select id="id_register" name="register" required class="block w-full rounded-xl border-line dark:bg-slate-800 dark:text-white shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm p-3">
+                    <select id="id_register" name="register" required class="block w-full rounded-xl border-line bg-surface text-ink shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm p-3">
                         {% for reg in registers %}
                             <option value="{{ reg.pk }}" {% if selected_register and selected_register.pk == reg.pk %}selected{% endif %}>
                                 {{ reg.code }} — {{ reg.name }} ({{ reg.branch.name }})
@@ -46,7 +46,7 @@
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-mono text-base">
                         $
                     </div>
-                    <input type="number" step="0.01" min="0" name="opening_cash" id="id_opening_cash" required value="0.00" class="block w-full pl-8 pr-4 py-3 rounded-xl border-line dark:bg-slate-800 dark:text-white font-mono text-lg font-bold focus:border-indigo-500 focus:ring-indigo-500">
+                    <input type="number" step="0.01" min="0" name="opening_cash" id="id_opening_cash" required value="0.00" class="block w-full pl-8 pr-4 py-3 rounded-xl border-line bg-surface text-ink font-mono text-lg font-bold focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
                 <p class="mt-1 text-xs text-muted">
                     {% trans "Count physical cash in the drawer before starting your shift." %}
@@ -58,7 +58,7 @@
                     {% trans "Opening Notes (Optional)" %}
                 </label>
                 <div class="mt-2">
-                    <input type="text" name="notes" id="id_notes" placeholder="{% trans 'e.g., Morning shift, drawer verified' %}" class="block w-full rounded-xl border-line dark:bg-slate-800 dark:text-white shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm p-3">
+                    <input type="text" name="notes" id="id_notes" placeholder="{% trans 'e.g., Morning shift, drawer verified' %}" class="block w-full rounded-xl border-line bg-surface text-ink shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm p-3">
                 </div>
             </div>
 

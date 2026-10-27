@@ -66,7 +66,7 @@
                 {% if active_check_in %}
                 <form method="post" action="{% url 'hr:attendance_check_out' %}" class="flex items-center gap-2">
                     {% csrf_token %}
-                    <input type="text" name="notes" placeholder="{% trans 'Optional sign-out note' %}" class="text-xs rounded-lg border-line dark:bg-slate-800 px-3 py-1.5">
+                    <input type="text" name="notes" placeholder="{% trans 'Optional sign-out note' %}" class="text-xs rounded-lg border-line bg-surface text-ink px-3 py-1.5 shadow-2xs">
                     <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition-colors">
                         {% trans "Clock Out" %}
                     </button>
@@ -74,7 +74,7 @@
                 {% else %}
                 <form method="post" action="{% url 'hr:attendance_check_in' %}" class="flex items-center gap-2">
                     {% csrf_token %}
-                    <input type="text" name="notes" placeholder="{% trans 'Optional note or location' %}" class="text-xs rounded-lg border-line dark:bg-slate-800 px-3 py-1.5">
+                    <input type="text" name="notes" placeholder="{% trans 'Optional note or location' %}" class="text-xs rounded-lg border-line bg-surface text-ink px-3 py-1.5 shadow-2xs">
                     <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors">
                         {% trans "Clock In" %}
                     </button>
@@ -98,14 +98,14 @@
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {% for bal in leave_balances %}
-            <div class="p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                <span class="text-xs font-medium text-slate-500 uppercase">{{ bal.leave_type.name }}</span>
+            <div class="p-3 rounded-lg border border-line bg-surface-2/50">
+                <span class="text-xs font-medium text-muted uppercase">{{ bal.leave_type.name }}</span>
                 <div class="mt-1 text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                    {{ bal.remaining_days }} <span class="text-xs font-normal text-slate-400">/ {{ bal.allocated_days }}</span>
+                    {{ bal.remaining_days }} <span class="text-xs font-normal text-subtle">/ {{ bal.allocated_days }}</span>
                 </div>
             </div>
             {% empty %}
-            <div class="col-span-4 text-center py-4 text-xs text-slate-400">
+            <div class="col-span-4 text-center py-4 text-xs text-subtle">
                 {% trans "No leave quotas allocated yet for this calendar year." %}
             </div>
             {% endfor %}

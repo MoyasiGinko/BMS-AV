@@ -19,8 +19,8 @@
                             {% if employee.status == 'active' %}bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800
                             {% elif employee.status == 'on_leave' %}bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800
                             {% elif employee.status == 'suspended' %}bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800
-                            {% elif employee.status == 'terminated' %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-line
-                            {% else %}bg-slate-50 text-slate-600 border border-slate-200{% endif %}">
+                            {% elif employee.status == 'terminated' %}bg-surface-2 text-muted border border-line
+                            {% else %}bg-surface-2 text-muted border border-line{% endif %}">
                             {{ employee.get_status_display }}
                         </span>
                     </div>
@@ -139,7 +139,7 @@
                         🔓 {% trans "Sensitive Access Granted" %}
                     </span>
                     {% else %}
-                    <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium">
+                    <span class="text-xs px-2 py-0.5 rounded bg-surface-2 text-muted border border-line font-medium">
                         🔒 {% trans "Masked" %}
                     </span>
                     {% endif %}
@@ -203,7 +203,7 @@
                         <label class="block text-xs font-semibold text-muted mb-1">{% trans "Termination Date (if offboarding)" %}</label>
                         {{ status_form.termination_date }}
                     </div>
-                    <button type="submit" class="w-full py-2 px-4 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors">
+                    <button type="submit" class="w-full py-2 px-4 rounded-lg text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 shadow-xs transition-colors">
                         {% trans "Update Status" %}
                     </button>
                 </form>

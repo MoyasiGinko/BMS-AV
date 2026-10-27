@@ -51,14 +51,14 @@
                                 <form method="post" action="{% url 'integrations:export_trigger' entity_type='products' %}" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="file_format" value="csv">
-                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-muted hover:bg-slate-100 shadow-xs">
+                                    <button type="submit" class="px-3 py-1.5 bg-surface hover:bg-surface-2 border border-line rounded-lg text-xs font-semibold text-ink shadow-xs transition-colors">
                                         {% trans "Export CSV" %}
                                     </button>
                                 </form>
                                 <form method="post" action="{% url 'integrations:export_trigger' entity_type='products' %}" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="file_format" value="xlsx">
-                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-slate-100 shadow-xs">
+                                    <button type="submit" class="px-3 py-1.5 bg-surface hover:bg-surface-2 border border-line rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-xs transition-colors">
                                         {% trans "Export Excel (.xlsx)" %}
                                     </button>
                                 </form>
@@ -71,14 +71,14 @@
                                 <form method="post" action="{% url 'integrations:export_trigger' entity_type='customers' %}" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="file_format" value="csv">
-                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-muted hover:bg-slate-100 shadow-xs">
+                                    <button type="submit" class="px-3 py-1.5 bg-surface hover:bg-surface-2 border border-line rounded-lg text-xs font-semibold text-ink shadow-xs transition-colors">
                                         {% trans "Export CSV" %}
                                     </button>
                                 </form>
                                 <form method="post" action="{% url 'integrations:export_trigger' entity_type='customers' %}" class="inline">
                                     {% csrf_token %}
                                     <input type="hidden" name="file_format" value="xlsx">
-                                    <button type="submit" class="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-slate-100 shadow-xs">
+                                    <button type="submit" class="px-3 py-1.5 bg-surface hover:bg-surface-2 border border-line rounded-lg text-xs font-semibold text-emerald-600 dark:text-emerald-400 shadow-xs transition-colors">
                                         {% trans "Export Excel (.xlsx)" %}
                                     </button>
                                 </form>

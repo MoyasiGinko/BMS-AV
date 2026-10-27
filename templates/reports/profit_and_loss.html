@@ -17,7 +17,7 @@
         </div>
         <div class="flex items-center gap-2" x-data="{ exportOpen: false }">
             <div class="relative inline-block text-left">
-                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs">
+                <button @click="exportOpen = !exportOpen" type="button" class="inline-flex items-center px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-surface-2 hover:text-ink shadow-xs">
                     <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
@@ -28,13 +28,13 @@
                 </button>
                 <div x-show="exportOpen" @click.outside="exportOpen = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-xl shadow-lg bg-surface border border-line divide-y divide-line z-50">
                     <div class="py-1">
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "csv"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink">
                             {% trans "CSV Spreadsheet" %}
                         </button>
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "xlsx"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink">
                             {% trans "Excel (XLSX)" %}
                         </button>
-                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                        <button type="button" hx-post="{% url 'reports:export' %}" hx-include="#filter-form" hx-vals='{"report_type": "{{ report_type }}", "file_format": "pdf"}' hx-target="#export-container" hx-swap="innerHTML" @click="exportOpen = false" class="w-full text-left px-4 py-2 text-sm text-muted hover:bg-surface-2 hover:text-ink">
                             {% trans "PDF Document" %}
                         </button>
                     </div>
@@ -162,9 +162,9 @@
             </div>
 
             <!-- Net Profit Highlight -->
-            <div class="flex justify-between py-4 px-4 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-xl font-bold text-lg">
+            <div class="flex justify-between py-4 px-4 bg-surface-2 text-ink border-2 border-line rounded-xl font-bold text-lg shadow-xs">
                 <span>{% trans "Net Profit / (Loss)" %}</span>
-                <span class="font-mono">{{ data.net_profit|floatformat:2 }}</span>
+                <span class="font-mono text-brand-700">{{ data.net_profit|floatformat:2 }}</span>
             </div>
         </div>
     </div>

@@ -14,10 +14,10 @@
             </p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{% url 'payroll:structure_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <a href="{% url 'payroll:structure_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-surface-2 hover:text-ink transition-colors">
                 {% trans "Structures & Rules" %}
             </a>
-            <a href="{% url 'payroll:assignment_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            <a href="{% url 'payroll:assignment_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-surface-2 hover:text-ink transition-colors">
                 {% trans "Employee Salaries" %}
             </a>
             <a href="{% url 'payroll:run_create' %}" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
@@ -66,7 +66,7 @@
     <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
         <form method="get" class="flex flex-col sm:flex-row items-center gap-4">
             <div class="w-full sm:w-64">
-                <select name="status" onchange="this.form.submit()" class="w-full rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2 text-sm">
+                <select name="status" onchange="this.form.submit()" class="w-full rounded-lg border-line bg-surface text-ink px-3 py-2 text-sm">
                     <option value="">{% trans "All Statuses" %}</option>
                     {% for code, label in statuses %}
                         <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
@@ -74,7 +74,7 @@
                 </select>
             </div>
             <div class="w-full sm:w-48">
-                <input type="number" name="year" value="{{ year_filter }}" placeholder="{% trans 'Filter Year...' %}" class="w-full rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2 text-sm" />
+                <input type="number" name="year" value="{{ year_filter }}" placeholder="{% trans 'Filter Year...' %}" class="w-full rounded-lg border-line bg-surface text-ink px-3 py-2 text-sm" />
             </div>
             <div class="flex items-center gap-2">
                 <button type="submit" class="px-4 py-2 bg-surface-2 hover:bg-surface-2 rounded-lg text-sm font-medium text-muted">

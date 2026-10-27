@@ -63,7 +63,7 @@
                        hx-get="{% url 'hr:attendance_list' %}"
                        hx-trigger="change"
                        hx-target="#attendance-table-body"
-                       class="w-full rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm">
+                       class="w-full rounded-lg border-line bg-surface text-ink px-3 py-1.5 text-sm">
             </div>
             <div class="w-full sm:w-48">
                 <label class="block text-xs font-medium text-slate-500 mb-1">{% trans "Status" %}</label>
@@ -71,7 +71,7 @@
                         hx-get="{% url 'hr:attendance_list' %}"
                         hx-trigger="change"
                         hx-target="#attendance-table-body"
-                        class="w-full rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm">
+                        class="w-full rounded-lg border-line bg-surface text-ink px-3 py-1.5 text-sm">
                     <option value="">{% trans "All Statuses" %}</option>
                     <option value="present" {% if status_filter == 'present' %}selected{% endif %}>{% trans "Present" %}</option>
                     <option value="late" {% if status_filter == 'late' %}selected{% endif %}>{% trans "Late" %}</option>

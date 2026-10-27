@@ -25,20 +25,20 @@
 
   <!-- Metric / Quota Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-    <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-5 shadow-sm">
+    <div class="rounded-xl border border-line bg-surface p-5 shadow-sm">
       <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">{% trans "Monthly Requests" %}</div>
       <div class="mt-2 text-2xl font-bold text-ink">
         {{ metrics.current_usage }}
         <span class="text-sm font-normal text-slate-500">/ {% if metrics.max_requests == -1 %}Unlimited{% else %}{{ metrics.max_requests }}{% endif %}</span>
       </div>
     </div>
-    <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-5 shadow-sm">
+    <div class="rounded-xl border border-line bg-surface p-5 shadow-sm">
       <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">{% trans "Total Conversations" %}</div>
       <div class="mt-2 text-2xl font-bold text-ink">
         {{ metrics.total_conversations }}
       </div>
     </div>
-    <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 p-5 shadow-sm">
+    <div class="rounded-xl border border-line bg-surface p-5 shadow-sm">
       <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">{% trans "Confirmed Actions" %}</div>
       <div class="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
         {{ metrics.confirmed_actions }}
@@ -64,7 +64,7 @@
   </div>
 
   <!-- Audit Logs Table -->
-  <div class="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-surface shadow-sm overflow-hidden">
+  <div class="rounded-xl border border-line bg-surface shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-line text-left text-xs">
         <thead class="bg-slate-50 dark:bg-slate-850 text-slate-500 uppercase font-semibold">

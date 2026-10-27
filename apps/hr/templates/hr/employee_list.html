@@ -59,12 +59,12 @@
                        hx-trigger="keyup changed delay:400ms"
                        hx-target="#employee-table-body"
                        hx-include="[name='status'], [name='department']"
-                       class="w-full rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2 text-sm">
+                       class="w-full rounded-lg border-line bg-surface text-ink px-3 py-2 text-sm">
             </div>
             <div class="w-full sm:w-48">
                 <select name="status"
                         onchange="this.form.submit()"
-                        class="w-full rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2 text-sm">
+                        class="w-full rounded-lg border-line bg-surface text-ink px-3 py-2 text-sm">
                     <option value="">{% trans "All Statuses" %}</option>
                     <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
                     <option value="on_leave" {% if status_filter == "on_leave" %}selected{% endif %}>On Leave</option>

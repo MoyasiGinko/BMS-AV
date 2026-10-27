@@ -146,14 +146,14 @@
                             {% trans "Closing Cash Counted ($)" %}
                         </label>
                         <input type="number" step="0.01" min="0" required name="closing_cash_counted"
-                               class="mt-1 block w-full py-2 px-3 rounded-xl border-line dark:bg-slate-800 dark:text-white font-mono font-bold text-base">
+                               class="mt-1 block w-full py-2 px-3 rounded-xl border-line bg-surface text-ink font-mono font-bold text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-muted">
                             {% trans "Closing Notes" %}
                         </label>
                         <input type="text" name="notes" placeholder="{% trans 'Optional notes' %}"
-                               class="mt-1 block w-full py-1.5 px-3 rounded-xl border-line dark:bg-slate-800 dark:text-white text-xs">
+                               class="mt-1 block w-full py-1.5 px-3 rounded-xl border-line bg-surface text-ink text-xs">
                     </div>
                     <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition">
                         {% trans "Close Shift & Audit Variance" %}

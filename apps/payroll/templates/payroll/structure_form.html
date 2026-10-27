@@ -116,28 +116,28 @@
         </table>
 
         <!-- Add Component Rule Subform -->
-        <div class="p-6 bg-slate-50/50 dark:bg-slate-800/40 border-t border-line">
+        <div class="p-6 bg-surface-2/50 border-t border-line">
             <h4 class="text-xs font-bold uppercase tracking-wider text-muted mb-3">{% trans "+ Add Component Rule" %}</h4>
             <form method="post" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add_item" />
                 <div class="sm:col-span-1">
-                    <label class="block text-xs text-slate-500 mb-1">{% trans "Component" %}</label>
+                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Component" %}</label>
                     {{ item_form.component }}
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-500 mb-1">{% trans "Calculation Type" %}</label>
+                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Calculation Type" %}</label>
                     {{ item_form.calculation_type }}
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-500 mb-1">{% trans "Amount / Pct" %}</label>
+                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Amount / Pct" %}</label>
                     <div class="grid grid-cols-2 gap-2">
                         {{ item_form.amount }}
                         {{ item_form.percentage }}
                     </div>
                 </div>
                 <div>
-                    <button type="submit" class="w-full px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-medium transition-colors">
+                    <button type="submit" class="w-full px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold shadow-xs transition-colors">
                         {% trans "Add Rule" %}
                     </button>
                 </div>

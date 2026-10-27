@@ -34,8 +34,8 @@
         
         <!-- Actions & Export -->
         <div class="flex items-center gap-2">
-            <a href="{% url 'reports:saved_report_detail' report_id=report.public_id %}" class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-muted text-sm font-medium rounded-lg transition-colors">
-                <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <a href="{% url 'reports:saved_report_detail' report_id=report.public_id %}" class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface hover:bg-surface-2 text-ink border border-line shadow-xs text-sm font-semibold rounded-lg transition-colors">
+                <svg class="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
                 {% trans "Refresh" %}
@@ -47,7 +47,7 @@
                 <input type="hidden" name="report_type" value="{{ report.report_type }}">
                 <input type="hidden" name="file_format" value="csv">
                 <input type="hidden" name="filters" value="{{ report.filters|default:'{}' }}">
-                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-muted text-sm font-medium rounded-lg transition-colors" title="Export CSV">
+                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface hover:bg-surface-2 text-ink border border-line shadow-xs text-sm font-semibold rounded-lg transition-colors" title="Export CSV">
                     <span>CSV</span>
                 </button>
             </form>
@@ -56,7 +56,7 @@
                 <input type="hidden" name="report_type" value="{{ report.report_type }}">
                 <input type="hidden" name="file_format" value="xlsx">
                 <input type="hidden" name="filters" value="{{ report.filters|default:'{}' }}">
-                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-muted text-sm font-medium rounded-lg transition-colors" title="Export Excel">
+                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 bg-surface hover:bg-surface-2 text-ink border border-line shadow-xs text-sm font-semibold rounded-lg transition-colors" title="Export Excel">
                     <span>XLSX</span>
                 </button>
             </form>

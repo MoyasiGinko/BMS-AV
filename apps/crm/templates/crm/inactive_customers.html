@@ -30,7 +30,7 @@
         <form method="get" class="flex items-center gap-4">
             <label class="text-sm font-medium text-muted">{% trans "Inactivity Threshold" %}:</label>
             <div class="w-48">
-                <select name="days" onchange="this.form.submit()" class="w-full text-sm rounded-lg border-line dark:bg-slate-800 dark:text-white px-3 py-2">
+                <select name="days" onchange="this.form.submit()" class="w-full text-sm rounded-lg border-line bg-surface text-ink px-3 py-2">
                     <option value="30" {% if days_threshold == 30 %}selected{% endif %}>30 {% trans "days" %}</option>
                     <option value="60" {% if days_threshold == 60 %}selected{% endif %}>60 {% trans "days" %}</option>
                     <option value="90" {% if days_threshold == 90 %}selected{% endif %}>90 {% trans "days" %}</option>
