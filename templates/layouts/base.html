@@ -268,6 +268,10 @@
       targetTheme = targetTheme || document.documentElement.getAttribute('data-theme') || 'fast';
       mode = mode || 'dark_contrast';
       window.USER_SIDEBAR_MODES = window.USER_SIDEBAR_MODES || {};
+      try {
+        var rawModes = localStorage.getItem('bos_sidebar_modes');
+        if (rawModes) Object.assign(window.USER_SIDEBAR_MODES, JSON.parse(rawModes));
+      } catch(e) {}
       window.USER_SIDEBAR_MODES[targetTheme] = mode;
       try {
         localStorage.setItem('bos_sidebar_modes', JSON.stringify(window.USER_SIDEBAR_MODES));
@@ -276,6 +280,10 @@
 
       if (mode === 'custom' && customColors) {
         window.USER_SIDEBAR_CUSTOM = window.USER_SIDEBAR_CUSTOM || {};
+        try {
+          var rawCustoms = localStorage.getItem('bos_sidebar_custom');
+          if (rawCustoms) Object.assign(window.USER_SIDEBAR_CUSTOM, JSON.parse(rawCustoms));
+        } catch(e) {}
         window.USER_SIDEBAR_CUSTOM[targetTheme] = customColors;
         try {
           localStorage.setItem('bos_sidebar_custom', JSON.stringify(window.USER_SIDEBAR_CUSTOM));

@@ -194,7 +194,7 @@ def _resolve_sidebar_for_theme(
     default_mode = DEFAULT_SIDEBAR_MODES.get(theme, "dark_contrast")
     if theme in modes:
         mode = modes[theme]
-    elif customs.get(theme) or custom_single:
+    elif customs.get(theme) or (theme == "fast" and custom_single and not modes):
         mode = "custom"
     else:
         mode = default_mode
@@ -203,7 +203,7 @@ def _resolve_sidebar_for_theme(
         return "light", dict(presets["light"])
     if mode == "custom":
         res = dict(presets[default_mode])
-        override = customs.get(theme, custom_single)
+        override = customs.get(theme) or (custom_single if (theme == "fast" and not modes) else {})
         res.update(override)
         return "custom", res
     return "dark_contrast", dict(presets["dark_contrast"])

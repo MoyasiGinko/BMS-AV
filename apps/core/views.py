@@ -12,7 +12,7 @@ from django.db import connection
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 
-from apps.core.context_processors import THEME_SIDEBAR_PRESETS
+from apps.core.context_processors import DEFAULT_SIDEBAR_MODES, THEME_SIDEBAR_PRESETS
 from apps.core.dashboard import (
     get_visible_widgets,
     get_widget,
@@ -232,12 +232,13 @@ def _resolve_active_sidebar_colors(
     theme: str, modes: dict[str, str], customs: dict[str, Any]
 ) -> dict[str, str]:
     """Helper to compute final active sidebar colors for the active theme."""
-    mode = modes.get(theme, "dark_contrast")
+    default_mode = DEFAULT_SIDEBAR_MODES.get(theme, "dark_contrast")
+    mode = modes.get(theme, default_mode)
     presets = THEME_SIDEBAR_PRESETS.get(theme, THEME_SIDEBAR_PRESETS["fast"])
     if mode == "light":
         return dict(presets["light"])
     if mode == "custom":
-        res = dict(presets["dark_contrast"])
+        res = dict(presets[default_mode])
         custom_colors = customs.get(theme, {})
         if isinstance(custom_colors, dict):
             res.update(custom_colors)
