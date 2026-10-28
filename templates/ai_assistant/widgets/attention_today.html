@@ -41,7 +41,7 @@
       </div>
     </div>
 
-    <!-- Right Controls: Filter Pills + Actions -->
+    <!-- Right Controls: Filter Pills + Dropdown Actions -->
     <div class="flex items-center gap-2.5 flex-wrap">
       <!-- Minimal Category Segmented Tabs -->
       <div class="inline-flex items-center p-1 rounded-xl bg-[var(--surface-2)]/80 border border-[var(--border)] gap-1 shadow-2xs"
@@ -87,26 +87,62 @@
         {% endif %}
       </div>
 
-      <!-- Action Buttons -->
+      <!-- Executive Briefing Dropdown -->
       {% if can_use_ai %}
-        <button type="button"
-                id="btn-executive-briefing"
-                hx-post="{% url 'ai:attention_briefing' %}"
-                hx-target="#attention-briefing-container"
-                hx-indicator="#briefing-spinner"
-                title="{% trans 'Generate executive operational summary' %}"
-                class="btn-primary attention-briefing-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow-2xs transition-all cursor-pointer">
-          <svg id="briefing-spinner" class="htmx-indicator w-3.5 h-3.5 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-          </svg>
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          <span class="hidden sm:inline">{% trans "Executive Briefing" %}</span>
-        </button>
+        <div class="relative" x-data="{ open: false }">
+          <button type="button"
+                  id="btn-executive-briefing"
+                  @click="open = !open"
+                  hx-post="{% url 'ai:attention_briefing' %}"
+                  hx-target="#attention-briefing-container"
+                  hx-indicator="#briefing-spinner"
+                  title="{% trans 'Executive Morning Briefing' %}"
+                  class="btn-primary attention-briefing-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow-2xs transition-all cursor-pointer">
+            <svg id="briefing-spinner" class="htmx-indicator w-3.5 h-3.5 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span class="hidden sm:inline">{% trans "Executive Briefing" %}</span>
+            <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <!-- Dropdown Popover Menu -->
+          <div x-show="open"
+               x-cloak
+               @click.away="open = false"
+               x-transition:enter="transition ease-out duration-150"
+               x-transition:enter-start="opacity-0 scale-95 translate-y-1"
+               x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+               x-transition:leave="transition ease-in duration-100"
+               x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+               x-transition:leave-end="opacity-0 scale-95 translate-y-1"
+               class="absolute right-0 mt-2 w-[340px] sm:w-[480px] max-w-[90vw] rounded-2xl bg-[var(--surface-1)] border border-[var(--border)] shadow-xl z-50 overflow-hidden"
+               id="attention-briefing-dropdown-box"
+               style="display: none;">
+            
+            <div id="attention-briefing-container">
+              {% if cached_briefing %}
+                {% include "ai_assistant/widgets/partials/briefing_banner.html" with briefing=cached_briefing briefing_lines=cached_lines highlights=cached_highlights provider="Executive Digest" generated_at="Today" %}
+              {% else %}
+                <div class="p-6 text-center text-xs text-[var(--text-muted)] flex flex-col items-center justify-center gap-2.5">
+                  <svg class="w-6 h-6 text-[var(--brand-600)] animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                  </svg>
+                  <span>{% trans "Synthesizing executive briefing..." %}</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
       {% endif %}
 
+      <!-- Refresh Insights -->
       <button type="button"
               hx-get="{% url 'ai:attention_items' %}?category=all"
               hx-target="#attention-items-container"
@@ -139,13 +175,6 @@
       }
     }
   </script>
-
-  <!-- Executive Briefing Container (Hidden by default, smooth slide-down when requested) -->
-  <div id="attention-briefing-container" class="mt-4 empty:mt-0 transition-all">
-    {% if cached_briefing %}
-      {% include "ai_assistant/widgets/partials/briefing_banner.html" with briefing=cached_briefing briefing_lines=cached_lines highlights=cached_highlights provider="Executive Digest" generated_at="Today" %}
-    {% endif %}
-  </div>
 
   <!-- Bento Grid Items Container -->
   <div id="attention-items-container" class="mt-5">

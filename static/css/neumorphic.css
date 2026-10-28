@@ -502,23 +502,22 @@ html[data-theme="neumorphic"],
   color: #FFFFFF !important;
 }
 
-/* Executive Briefing Banner & Highlights in Neumorphic Mode */
-[data-theme="neumorphic"] #attention-briefing-banner {
+/* Executive Briefing Dropdown Popover in Neumorphic Mode */
+[data-theme="neumorphic"] #attention-briefing-dropdown-box {
   background-color: var(--neu-surface) !important;
-  box-shadow: var(--neu-inset-sm) !important;
-  border: 1px solid var(--neu-line) !important;
-  border-left: 4px solid var(--neu-accent-fill, #4F46E5) !important;
-  border-radius: 18px !important;
+  box-shadow: 10px 10px 24px rgba(166, 175, 195, 0.65), -8px -8px 20px rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  border-radius: 20px !important;
 }
 
-[data-theme="neumorphic"] .briefing-micro-card {
+[data-theme="neumorphic"] .briefing-dropdown-item {
   background-color: var(--neu-surface) !important;
   box-shadow: var(--neu-raise-xs) !important;
-  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
   border-radius: 14px !important;
 }
 
-[data-theme="neumorphic"] .briefing-micro-card:hover {
+[data-theme="neumorphic"] .briefing-dropdown-item:hover {
   box-shadow: var(--neu-raise-sm) !important;
   transform: translateY(-1px);
 }
