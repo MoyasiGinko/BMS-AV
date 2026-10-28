@@ -47,3 +47,18 @@
     - Updated `apps/core/context_processors.py` available theme metadata with clean UTF-8 bullets and concise descriptions.
     - Updated `templates/core/styleguide_sections.html`: fixed degree symbol formatting and removed internal CSS file path labels (`static/css/tokens.css`, `static/css/neumorphic.css`).
     - Verified all 20 theme selector and UI Playwright tests pass (20/20 passed in 47.3s).
+
+  - Executive Dashboard Beautification & Analytics Visualizations:
+    - Activated development organization subscriptions (`trial_end` extended 365 days, status active) to unlock the full suite of 18 domain-aware operational and reporting widgets.
+    - Completely removed the 140-line disruptive "Visual Theme" radio group from `templates/core/dashboard.html`, returning prime above-the-fold space to executive financial and operational indicators.
+    - Added an executive header with organization title, live ledger heartbeat badge, localized date, quick data sync button, and fast invoice/POS shortcuts.
+    - Built interactive SVG Area & Line Chart for Profitability Trajectory (`templates/reports/widgets/profit_trend.html`): dynamic Bezier curve path, gradient fill under the curve, revenue trend overlay, month tick marks, and interactive hover tooltip with revenue, expenses, profit, and margin readouts.
+    - Built interactive SVG Donut / Pie Chart + 6-Month Bar Chart for Operating Expenses (`templates/reports/widgets/expense_trend.html`): dual-view analytics with 6-month historical towers and an SVG Donut Chart with segmented stroke-dasharray arcs, color swatches, center percentage readout, and interactive category legend.
+    - Added Segmented Aging Exposure Bar to Accounts Receivable (`templates/reports/widgets/receivables.html`): proportional colored risk bands (Current, 1-30d, 31-60d, 60d+) with live balances.
+    - Added Channel Split Ratio Bar to Sales Today (`templates/reports/widgets/sales_today.html`): dual-toned visual indicator comparing POS counter tickets vs direct invoices, transaction count pill, and average order value metric.
+    - Added Dual Liquidity Flow Gauge to Cash Position (`templates/reports/widgets/cash_position.html`): inflow vs outflow ratio bar, bank account status list, and net liquidity change.
+    - Added Radial Donut Presence Meter to Today's Attendance (`templates/reports/widgets/attendance.html`): circular SVG progress ring, on-time vs late vs leave metrics.
+    - Upgraded Top Selling Products Leaderboard (`templates/reports/widgets/top_products.html`): gold/silver/bronze rank badges, SKU chips, unit volume, and visual revenue share progress tracks.
+    - Upgraded Multi-Branch Performance (`templates/reports/widgets/branch_performance.html`): comparative horizontal bar chart comparing branch sales and order contributions with HQ badges.
+    - Cleaned up Action Items widget (`templates/ai_assistant/widgets/attention_today.html`): removed AI-hype terminology, replaced with crisp executive phrasing ("Executive Briefing", category tabs, structured status counts).
+    - Verified all 12 dashboard unit and regression tests pass (12/12 passed in 17.86s).
