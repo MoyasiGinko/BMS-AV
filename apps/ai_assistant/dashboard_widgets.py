@@ -34,6 +34,7 @@ class AttentionTodayWidget(DashboardWidget):
             if cached_briefing
             else []
         )
+        cached_highlights = [it.to_dict() for it in summary["items"][:3]] if cached_briefing else []
 
         return {
             "summary": summary,
@@ -46,5 +47,6 @@ class AttentionTodayWidget(DashboardWidget):
             "can_use_ai": can_use_ai,
             "cached_briefing": cached_briefing,
             "cached_lines": cached_lines,
+            "cached_highlights": cached_highlights,
             "selected_category": request.GET.get("category", "all"),
         }

@@ -254,12 +254,14 @@ class AttentionBriefingView(BaseAiView):
         request.session[f"ai_briefing_{org_id}"] = briefing_text
 
         briefing_lines = [line.strip() for line in briefing_text.strip().split("\n") if line.strip()]
+        highlights = [it.to_dict() for it in items[:3]]
         return render(
             request,
             "ai_assistant/widgets/partials/briefing_banner.html",
             {
                 "briefing": briefing_text,
                 "briefing_lines": briefing_lines,
+                "highlights": highlights,
                 "generated_at": result.get("generated_at"),
                 "provider": result.get("provider"),
             },
