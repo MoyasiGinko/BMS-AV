@@ -56,13 +56,15 @@ def test_ui_theme_manager_and_sidebar_customizer(live_server: pytest.FixtureRequ
     expect(page.locator("text=Live Sidebar Preview")).to_be_visible()
     expect(page.locator("#save-sidebar-theme-btn")).to_be_visible()
 
-    # 5. Click a Curated Palette Swatch (e.g. Modern Slate Dark)
-    page.click("text=Modern Slate Dark")
+    # 5. Click Sidebar Preset 1 (Dark Contrast)
+    page.click("#sidebar-preset-dark-contrast")
     # Verify that the CSS variable was applied in real time to documentElement
     sidebar_bg = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
     assert sidebar_bg == "#0f172a"
 
-    # Click Save Sidebar Preferences
+    # Select Custom Mode to enable the Save button and verify saving custom palette
+    page.click("#sidebar-preset-custom")
+    expect(page.locator("#save-sidebar-theme-btn")).to_be_enabled()
     page.click("#save-sidebar-theme-btn")
     expect(page.locator("text=Sidebar appearance saved").first).to_be_visible()
 
