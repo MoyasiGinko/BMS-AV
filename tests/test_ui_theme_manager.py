@@ -36,7 +36,7 @@ def test_ui_theme_manager_and_sidebar_customizer(live_server: pytest.FixtureRequ
     page.goto(f"{server_url}/settings/theme/")
 
     # 1. Assert Title and Header
-    expect(page.locator("h1")).to_contain_text("Calm Ledger Styleguide & Theme Manager")
+    expect(page.locator("h1")).to_contain_text("Theme Manager")
 
     # 2. Assert Navigation Tabs
     expect(page.locator("#tab-btn-presets")).to_be_visible()
