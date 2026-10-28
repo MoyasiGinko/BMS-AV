@@ -89,9 +89,9 @@
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
   <!-- Calm Ledger Tokens, Neumorphic System & Tailwind 4 -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=2.4.0">
-  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=2.4.0">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=2.4.0">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=2.5.0">
+  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=2.5.0">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=2.5.0">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -199,6 +199,13 @@
         if (colors.text) asideEl.style.setProperty('color', colors.text, 'important');
         asideEl.style.setProperty('border-right-color', borderColor, 'important');
         asideEl.setAttribute('data-sidebar-tone', isDarkBg ? 'dark' : 'light');
+
+        var activeLinks = asideEl.querySelectorAll('nav a[class*="border-l-[3px]"], nav a.active, nav a.is-active, .sidebar-nav-item.active, .sidebar-nav-item.is-active');
+        activeLinks.forEach(function(el) {
+          if (colors.active_bg) el.style.setProperty('background-color', colors.active_bg, 'important');
+          if (colors.active_text) el.style.setProperty('color', colors.active_text, 'important');
+          if (colors.active_border || colors.active_text) el.style.setProperty('border-left-color', colors.active_border || colors.active_text, 'important');
+        });
       }
       doc.setAttribute('data-sidebar-tone', isDarkBg ? 'dark' : 'light');
     };
