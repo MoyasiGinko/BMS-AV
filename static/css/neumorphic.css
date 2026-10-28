@@ -296,13 +296,16 @@ html[data-theme="neumorphic"],
 }
 
 /* 10. Live Preview Simulated Sidebar (Theme Manager Studio) */
-.neu-sidebar-mock {
+.neu-sidebar-mock,
+#sidebar-live-preview-box {
   box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45), inset -2px -2px 5px rgba(255, 255, 255, 0.95) !important;
   border: 1px solid rgba(255, 255, 255, 0.7) !important;
 }
 
 [data-sidebar-tone="dark"] .neu-sidebar-mock,
-.neu-sidebar-mock[data-sidebar-tone="dark"] {
+.neu-sidebar-mock[data-sidebar-tone="dark"],
+[data-sidebar-tone="dark"] #sidebar-live-preview-box,
+#sidebar-live-preview-box[data-sidebar-tone="dark"] {
   box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.55), inset -2px -2px 5px rgba(255, 255, 255, 0.06) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
@@ -343,10 +346,10 @@ html[data-theme="neumorphic"],
 
 /* Neumorphic Global Cards & Dashboard Widgets (Automatic Dual Shadows) */
 [data-theme="neumorphic"] .card,
-[data-theme="neumorphic"] [class*="card"]:not(.sidebar-preset-card),
+[data-theme="neumorphic"] [class*="card"]:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
 [data-theme="neumorphic"] #dashboard-widgets-container > div > div,
-[data-theme="neumorphic"] .rounded-2xl.border:not(.sidebar-preset-card),
-[data-theme="neumorphic"] .rounded-xl.border:not(.sidebar-preset-card) {
+[data-theme="neumorphic"] .rounded-2xl.border:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
+[data-theme="neumorphic"] .rounded-xl.border:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box) {
   background-color: var(--neu-surface) !important;
   border-radius: var(--neu-radius-card) !important;
   box-shadow: var(--neu-raise-lg) !important;
@@ -377,8 +380,8 @@ html[data-theme="neumorphic"],
 }
 
 /* Secondary / Sub-elements inside cards */
-[data-theme="neumorphic"] .card .rounded-xl,
-[data-theme="neumorphic"] .card .rounded-lg,
+[data-theme="neumorphic"] .card .rounded-xl:not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
+[data-theme="neumorphic"] .card .rounded-lg:not([class*="h-12"]),
 [data-theme="neumorphic"] #dashboard-widgets-container .rounded-xl,
 [data-theme="neumorphic"] #dashboard-widgets-container .rounded-lg {
   background-color: var(--neu-surface) !important;
@@ -514,10 +517,10 @@ html[data-theme="spatial"],
 
 /* Spatial Floating Cards - High Contrast & Crisp Elevation */
 [data-theme="spatial"] .card,
-[data-theme="spatial"] [class*="card"],
+[data-theme="spatial"] [class*="card"]:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
 [data-theme="spatial"] #dashboard-widgets-container > div > div,
-[data-theme="spatial"] .rounded-2xl.border,
-[data-theme="spatial"] .rounded-xl.border {
+[data-theme="spatial"] .rounded-2xl.border:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
+[data-theme="spatial"] .rounded-xl.border:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box) {
   background-color: #ffffff !important;
   border-radius: 16px !important;
   border: 1px solid #cbd5e1 !important;

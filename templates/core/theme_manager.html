@@ -1010,9 +1010,11 @@
 
           <!-- Mock Navigation Container -->
           <div
-            class="rounded-xl border border-line p-3 shadow-md transition-colors"
+            id="sidebar-live-preview-box"
+            class="rounded-xl border border-line p-3 shadow-md transition-colors neu-sidebar-mock"
             :class="{ 'neu-sidebar-mock': currentTheme === 'neumorphic' }"
-            :style="`background-color: ${sidebar.bg};`"
+            :data-sidebar-tone="sidebar.bg === '#ffffff' || sidebar.bg === '#f8fafc' || sidebar.bg === '#e2e8f0' ? 'light' : 'dark'"
+            :style="`background-color: ${sidebar.bg} !important; color: ${sidebar.text} !important;`"
           >
             <!-- Simulated Header -->
             <div class="h-10 flex items-center justify-between px-2 pb-2 mb-2 border-b border-black/10 dark:border-white/10">

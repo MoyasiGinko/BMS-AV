@@ -338,6 +338,12 @@
       return window.setSidebarPreset(targetTheme, 'dark_contrast');
     };
 
+    document.addEventListener('DOMContentLoaded', function() {
+      var currentTheme = document.documentElement.getAttribute('data-theme') || 'fast';
+      var resolved = window.resolveSidebarForTheme(currentTheme);
+      window.applySidebarColors(resolved.colors);
+    });
+
     window.toast = function(message, type, duration) {
       window.dispatchEvent(new CustomEvent('toast', {
         detail: {

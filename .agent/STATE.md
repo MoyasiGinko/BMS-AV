@@ -34,3 +34,9 @@
 
 
 
+  - Neumorphic Mode Sidebar Preset Dark Background Fix:
+    - Fixed root cause where `.rounded-2xl.border:not(.sidebar-preset-card)` and `.rounded-xl.border:not(.sidebar-preset-card)` in `static/css/neumorphic.css` had `background-color: var(--neu-surface) !important;` which matched `aside.bos-sidebar` and `#sidebar-live-preview-box`, overriding the dark tactile slate background with light neumorphic surface (`#e6e9f2`).
+    - Added explicit exclusions `:not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box)` to card rules in both `neumorphic.css` and spatial mode rules.
+    - Updated `#sidebar-live-preview-box` in `templates/core/theme_manager.html` with `:style="background-color: ${sidebar.bg} !important; color: ${sidebar.text} !important;"` and `:data-sidebar-tone`.
+    - Added `DOMContentLoaded` listener in `templates/layouts/base.html` to invoke `window.applySidebarColors(resolved.colors)` immediately on page load, ensuring `aside.bos-sidebar` and document tone remain synchronized across page reloads and tab navigations.
+    - Added automated Playwright test `test_ui_neumorphic_sidebar_preset_dark_bg_retention` in `tests/test_ui_theme_manager.py` verifying light/dark preset toggling and background retention after page reload and tab switches. All tests passing.

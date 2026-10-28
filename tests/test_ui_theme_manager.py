@@ -142,17 +142,12 @@ def test_ui_per_theme_sidebar_preset_persistence(live_server: pytest.FixtureRequ
     page.click("button:has-text('Neumorphic Mode')")
     expect(page.locator("html")).to_have_attribute("data-theme", "neumorphic")
     # Default for neumorphic is Soft Clay Light (#e2e8f0)
-    bg_neu_default = page.evaluate(
-        "() => document.documentElement.style.getPropertyValue('--sidebar-bg')"
-    )
+    bg_neu_default = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
     assert bg_neu_default == "#e2e8f0"
     # Select dark preset for neumorphic
     page.click("#sidebar-preset-dark-contrast")
-    bg_neu_dark = page.evaluate(
-        "() => document.documentElement.style.getPropertyValue('--sidebar-bg')"
-    )
+    bg_neu_dark = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
     assert bg_neu_dark == "#1e293b"
-
 
 
 @pytest.mark.ui
@@ -243,3 +238,94 @@ def test_ui_sidebar_presets_locked_and_custom_editable(
     expect(first_color_picker).to_be_enabled()
     expect(save_btn).to_be_enabled()
 
+
+@pytest.mark.ui
+@pytest.mark.django_db(transaction=True)
+def test_ui_neumorphic_sidebar_preset_dark_bg_retention(
+    live_server: pytest.FixtureRequest, page: Page
+) -> None:
+    """Verify that selecting dark preset in neumorphic mode properly applies and retains dark bg colors."""
+    org = Organization.objects.create(name="Neu Org", slug="neu-org")
+    role = Role.objects.create(organization=org, name="Admin", permissions=["*"])
+    user = User.objects.create_user(
+        email="neu_tester@example.com",
+        password="NeuPassword123!",
+        name="Neu Tester",
+    )
+    Membership.objects.create(
+        organization=org,
+        user=user,
+        role=role,
+        status=Membership.STATUS_ACTIVE,
+    )
+
+    server_url = getattr(live_server, "url", str(live_server))
+    page.goto(f"{server_url}/accounts/login/")
+    page.fill("#id_login", "neu_tester@example.com")
+    page.fill("#id_password", "NeuPassword123!")
+    page.click("#submit-login-btn")
+    page.wait_for_load_state("networkidle")
+
+    # Navigate to Sidebar Studio
+    page.goto(f"{server_url}/settings/theme/#sidebar")
+    page.wait_for_selector("#sidebar-preset-dark-contrast")
+
+    # Switch to Neumorphic mode
+    page.click("button:has-text('Neumorphic Mode')")
+    expect(page.locator("html")).to_have_attribute("data-theme", "neumorphic")
+
+    # 1. Preset 1 (Soft Clay Light) is default: check preview box and aside bg
+    page.click("#sidebar-preset-light")
+    page.wait_for_timeout(200)
+    aside_bg_light = page.evaluate(
+        "() => getComputedStyle(document.querySelector('aside.bos-sidebar')).backgroundColor"
+    )
+    mock_bg_light = page.evaluate(
+        "() => getComputedStyle(document.querySelector('#sidebar-live-preview-box')).backgroundColor"
+    )
+    assert aside_bg_light == "rgb(226, 232, 240)"
+    assert mock_bg_light == "rgb(226, 232, 240)"
+
+    # 2. Select Preset 2 (Tactile Slate Dark)
+    page.click("#sidebar-preset-dark-contrast")
+    page.wait_for_timeout(200)
+    aside_bg_dark = page.evaluate(
+        "() => getComputedStyle(document.querySelector('aside.bos-sidebar')).backgroundColor"
+    )
+    mock_bg_dark = page.evaluate(
+        "() => getComputedStyle(document.querySelector('#sidebar-live-preview-box')).backgroundColor"
+    )
+    assert aside_bg_dark == "rgb(30, 41, 59)"
+    assert mock_bg_dark == "rgb(30, 41, 59)"
+
+    # 3. Reload page and verify dark background is retained (does NOT revert to white)
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(200)
+    aside_bg_reloaded = page.evaluate(
+        "() => getComputedStyle(document.querySelector('aside.bos-sidebar')).backgroundColor"
+    )
+    mock_bg_reloaded = page.evaluate(
+        "() => getComputedStyle(document.querySelector('#sidebar-live-preview-box')).backgroundColor"
+    )
+    assert aside_bg_reloaded == "rgb(30, 41, 59)"
+    assert mock_bg_reloaded == "rgb(30, 41, 59)"
+
+    # 4. Switch around tabs and verify dark background remains
+    page.click("#tab-btn-presets")
+    page.wait_for_timeout(150)
+    aside_bg_presets = page.evaluate(
+        "() => getComputedStyle(document.querySelector('aside.bos-sidebar')).backgroundColor"
+    )
+    assert aside_bg_presets == "rgb(30, 41, 59)"
+
+    page.click("#tab-btn-sidebar")
+    page.wait_for_timeout(150)
+    aside_bg_sidebar_tab = page.evaluate(
+        "() => getComputedStyle(document.querySelector('aside.bos-sidebar')).backgroundColor"
+    )
+    mock_bg_sidebar_tab = page.evaluate(
+        "() => getComputedStyle(document.querySelector('#sidebar-live-preview-box')).backgroundColor"
+    )
+    assert aside_bg_sidebar_tab == "rgb(30, 41, 59)"
+    assert mock_bg_sidebar_tab == "rgb(30, 41, 59)"
