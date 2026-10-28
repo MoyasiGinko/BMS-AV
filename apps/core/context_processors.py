@@ -241,30 +241,26 @@ def theme_context(request: HttpRequest) -> dict[str, Any]:
             {
                 "id": "fast",
                 "name": "Modern & Fast",
-                "weight": "Lightweight (Default) • Best for performance & old devices",
-                "description": "Crisp 1px borders, high contrast, zero blur, instant 60fps rendering.",
+                "weight": "Lightweight (Default) • Best for performance",
+                "description": "High contrast, crisp borders, and instant responsiveness.",
             },
             {
                 "id": "dark",
                 "name": "Modern Dark",
-                "weight": "Lightweight • Deep dark palette for low-light environments",
-                "description": ("Deep midnight slate palette with soft teal accents and low eye strain."),
+                "weight": "Dark Mode",
+                "description": "Deep midnight slate palette for low-light environments.",
             },
             {
                 "id": "spatial",
                 "name": "Minimal Spatial",
-                "weight": "Balanced • Clean spatial depth & modern typography",
-                "description": (
-                    "Delicate floating elevations, translucent frosted glass headers, and spacious cards."
-                ),
+                "weight": "Spatial Depth",
+                "description": "Translucent frosted glass with clean spatial depth.",
             },
             {
                 "id": "neumorphic",
                 "name": "Neumorphic",
-                "weight": "Heavy • Tactile dual-shadow continuous surface",
-                "description": (
-                    "Single continuous surface with dual opposing 135° soft highlights & sunken wells."
-                ),
+                "weight": "Tactile Surface",
+                "description": "Soft tactile dual-shadow embossed surfaces.",
             },
         ],
     }

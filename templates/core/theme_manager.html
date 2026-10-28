@@ -261,7 +261,7 @@
         <div>
           <h2 class="text-base font-bold text-[var(--text)]">{% trans "Select Active Visual Theme Preset" %}</h2>
           <p class="text-xs text-[var(--text-muted)] mt-1">
-            {% trans "Choose a baseline theme style. Selection takes effect instantly and saves across sessions." %}
+            {% trans "Choose a baseline visual theme for your workspace." %}
           </p>
         </div>
         <div class="flex items-center gap-2">
@@ -303,16 +303,11 @@
             <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">Default</span>
           </div>
           <p class="text-xs text-[var(--text-muted)] mb-3">
-            Crisp 1px borders, high contrast, zero blur overhead, instant 60fps rendering for enterprise density.
+            High contrast, crisp borders, and instant responsiveness.
           </p>
 
-          <div class="mb-3 px-2 py-1.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-between text-[11px]">
-            <span class="text-[var(--text-subtle)] font-medium">Sidebar preset:</span>
-            <span class="font-bold text-[var(--text)]" x-text="getModeLabel('fast')"></span>
-          </div>
-
           <div class="mt-auto pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
-            <span class="text-[11px] font-medium text-[var(--text-subtle)]">Lightweight • 60fps</span>
+            <span></span>
             <span x-show="isTheme('fast')" class="font-bold text-[var(--brand-600)] flex items-center gap-1 text-[11px]">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
               Active
@@ -352,13 +347,8 @@
             <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">Midnight</span>
           </div>
           <p class="text-xs text-[var(--text-muted)] mb-3">
-            Deep slate midnight palette with soft teal accents for reduced eye fatigue in low-light environments.
+            Deep midnight slate palette for low-light environments.
           </p>
-
-          <div class="mb-3 px-2 py-1.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-between text-[11px]">
-            <span class="text-[var(--text-subtle)] font-medium">Sidebar preset:</span>
-            <span class="font-bold text-[var(--text)]" x-text="getModeLabel('dark')"></span>
-          </div>
 
           <div class="mt-auto pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
             <span class="text-[11px] font-medium text-[var(--text-subtle)]">Low-light • High contrast</span>
@@ -401,13 +391,8 @@
             <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">Spatial</span>
           </div>
           <p class="text-xs text-[var(--text-muted)] mb-3">
-            Delicate floating elevations, translucent frosted glass cards, and generous whitespace for modern clarity.
+            Translucent frosted glass with clean spatial depth.
           </p>
-
-          <div class="mb-3 px-2 py-1.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-between text-[11px]">
-            <span class="text-[var(--text-subtle)] font-medium">Sidebar preset:</span>
-            <span class="font-bold text-[var(--text)]" x-text="getModeLabel('spatial')"></span>
-          </div>
 
           <div class="mt-auto pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
             <span class="text-[11px] font-medium text-[var(--text-subtle)]">Balanced • Glass depth</span>
@@ -450,16 +435,11 @@
             <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300">Tactile</span>
           </div>
           <p class="text-xs text-[var(--text-muted)] mb-3">
-            Soft extruded dual opposing highlights and sunken wells creating an organic, tangible hardware-feel surface.
+            Soft tactile dual-shadow embossed surfaces.
           </p>
 
-          <div class="mb-3 px-2 py-1.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-between text-[11px]">
-            <span class="text-[var(--text-subtle)] font-medium">Sidebar preset:</span>
-            <span class="font-bold text-[var(--text)]" x-text="getModeLabel('neumorphic')"></span>
-          </div>
-
           <div class="mt-auto pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
-            <span class="text-[11px] font-medium text-[var(--text-subtle)]">Tactile • Dual shadow</span>
+            <span></span>
             <span x-show="isTheme('neumorphic')" class="font-bold text-[var(--brand-600)] flex items-center gap-1 text-[11px]">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
               Active
@@ -484,7 +464,7 @@
           <div class="border-b border-[var(--border)] pb-4">
             <h2 class="text-base font-bold text-[var(--text)]">{% trans "Sidebar Color Customizer" %}</h2>
             <p class="text-xs text-[var(--text-muted)] mt-1">
-              {% trans "Personalize your workspace navigation bar. Each platform theme saves its own sidebar preset choice. When switching platform themes, your saved sidebar preset for that theme is automatically restored." %}
+              {% trans "Personalize navigation colors for the active theme." %}
             </p>
           </div>
 
@@ -538,9 +518,7 @@
                 <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
                   {% trans "Sidebar Presets for" %} <span class="capitalize text-[var(--brand-600)]" x-text="currentTheme"></span>
                 </h3>
-                <p class="text-[11px] text-[var(--text-muted)] mt-0.5">
-                  {% trans "Each theme has 3 distinct presets: Default Dark Contrast, Light Mode, or Custom Palette." %}
-                </p>
+                
               </div>
             </div>
 
@@ -572,13 +550,9 @@
                   </span>
                   <span x-show="getActiveMode() !== 'dark_contrast'" class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded" :class="currentTheme === 'neumorphic' ? 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300'" x-text="currentTheme === 'neumorphic' ? 'Preset 2 (Dark)' : 'Preset 1 (Default)'"></span>
                 </div>
-                <p class="text-[11px] text-[var(--text-muted)] line-clamp-2" x-text="currentTheme === 'neumorphic' ? 'Tactile dark contrast surface tailored for neumorphic. Immutable preset.' : 'Curated dark contrast surface tailored for ' + currentTheme + '. Immutable preset.'">
-                </p>
+                
                 <div class="mt-auto pt-2.5 flex items-center justify-between text-[11px]">
-                  <span class="text-[10px] text-[var(--text-subtle)] font-medium flex items-center gap-1">
-                    <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    Locked preset
-                  </span>
+                  <span></span>
                   <span x-show="getActiveMode() === 'dark_contrast'" class="font-extrabold text-[var(--brand-600)] flex items-center gap-0.5 text-[10px]">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     Selected Active
@@ -613,13 +587,9 @@
                   </span>
                   <span x-show="getActiveMode() !== 'light'" class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded" :class="currentTheme === 'neumorphic' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' : 'bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300'" x-text="currentTheme === 'neumorphic' ? 'Preset 1 (Default)' : 'Preset 2 (Light)'"></span>
                 </div>
-                <p class="text-[11px] text-[var(--text-muted)] line-clamp-2" x-text="currentTheme === 'neumorphic' ? 'Matching soft clay light surface tailored to neumorphic. Immutable preset.' : 'Matching light surface tailored to ' + currentTheme + '. Immutable preset.'">
-                </p>
+                
                 <div class="mt-auto pt-2.5 flex items-center justify-between text-[11px]">
-                  <span class="text-[10px] text-[var(--text-subtle)] font-medium flex items-center gap-1">
-                    <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    Locked preset
-                  </span>
+                  <span></span>
                   <span x-show="getActiveMode() === 'light'" class="font-extrabold text-[var(--brand-600)] flex items-center gap-0.5 text-[10px]">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     Selected Active
@@ -654,14 +624,9 @@
                   </span>
                   <span x-show="getActiveMode() !== 'custom'" class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300">Editable</span>
                 </div>
-                <p class="text-[11px] text-[var(--text-muted)] line-clamp-2">
-                  Bespoke 6-color palette customized and saved for <span x-text="currentTheme"></span>.
-                </p>
+                
                 <div class="mt-auto pt-2.5 flex items-center justify-between text-[11px]">
-                  <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                    Fully customizable
-                  </span>
+                  <span></span>
                   <span x-show="getActiveMode() === 'custom'" class="font-extrabold text-[var(--brand-600)] flex items-center gap-0.5 text-[10px]">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     Selected (Editing)
@@ -685,11 +650,9 @@
                 <div>
                   <div class="text-xs font-bold text-[var(--text)] flex items-center gap-2">
                     <span>Preset Colors are Locked (Read-Only)</span>
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300">Immutable</span>
+                    
                   </div>
-                  <p class="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    <span class="font-semibold text-[var(--text)]" x-text="getModeLabel(currentTheme)"></span> is design-certified and locked. Only the <strong>Custom Palette</strong> can be edited.
-                  </p>
+                  <p class="text-[11px] text-[var(--text-muted)] mt-0.5">Preset palette is active. Choose Custom to edit navigation colors.</p>
                 </div>
               </div>
               <button
@@ -715,11 +678,9 @@
                 <div>
                   <div class="text-xs font-bold text-purple-900 dark:text-purple-100 flex items-center gap-2">
                     <span>Custom Palette Active & Unlocked</span>
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-purple-200 text-purple-900 dark:bg-purple-900/80 dark:text-purple-200">Editable</span>
+                    
                   </div>
-                  <p class="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">
-                    You can freely edit the 6 color states below or pick from curated swatches. Saved separately for <span class="font-semibold capitalize" x-text="currentTheme"></span>.
-                  </p>
+                  <p class="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">Custom palette active for <span class="font-semibold capitalize" x-text="currentTheme"></span>.</p>
                 </div>
               </div>
               <span class="text-[11px] font-medium text-purple-600 dark:text-purple-300 self-start sm:self-auto">Live updates active</span>
@@ -731,7 +692,7 @@
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-[var(--brand-600)]"></span>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">1. Normal Navigation State</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">Default State</h3>
               </div>
               <span x-show="getActiveMode() !== 'custom'" class="text-[10px] font-semibold text-[var(--text-subtle)] flex items-center gap-1">
                 <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -800,7 +761,7 @@
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">2. Hover State (Mouse-over)</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">Hover State</h3>
               </div>
               <span x-show="getActiveMode() !== 'custom'" class="text-[10px] font-semibold text-[var(--text-subtle)] flex items-center gap-1">
                 <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -869,7 +830,7 @@
             <div class="flex items-center justify-between mb-3">
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">3. Active State (Selected Item)</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">Active State</h3>
               </div>
               <span x-show="getActiveMode() !== 'custom'" class="text-[10px] font-semibold text-[var(--text-subtle)] flex items-center gap-1">
                 <svg class="w-3 h-3 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -1000,13 +961,9 @@
         <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xs">
           <div class="flex items-center justify-between mb-3 pb-2 border-b border-[var(--border)]">
             <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">{% trans "Live Sidebar Preview" %}</h3>
-            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-              Interactive
-            </span>
+            
           </div>
-          <p class="text-xs text-[var(--text-muted)] mb-4">
-            {% trans "As you adjust colors above, this simulated navigation bar and your actual application sidebar both update instantaneously." %}
-          </p>
+          
 
           <!-- Mock Navigation Container -->
           <div
@@ -1038,7 +995,7 @@
                 :style="`color: ${sidebar.text};`"
               >
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/></svg>
-                <span class="truncate">Dashboard (Normal)</span>
+                <span class="truncate">Dashboard</span>
               </div>
 
               <!-- Item 2: Hover State Demonstration -->
@@ -1047,8 +1004,8 @@
                 :style="`background-color: ${sidebar.hover_bg}; color: ${sidebar.hover_text};`"
               >
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span class="font-medium truncate">Invoices (Hovered)</span>
-                <span class="ml-auto text-[9px] px-1 rounded bg-black/10 dark:bg-white/10 uppercase">Hover</span>
+                <span class="font-medium truncate">Invoices</span>
+                
               </div>
 
               <!-- Item 3: Active State Demonstration -->
@@ -1057,8 +1014,8 @@
                 :style="`background-color: ${sidebar.active_bg}; color: ${sidebar.active_text}; ${currentTheme === 'neumorphic' ? '' : 'border-left: 3px solid ' + sidebar.active_text + ';'}`"
               >
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
-                <span class="truncate">Theme Manager (Active)</span>
-                <span class="ml-auto text-[9px] px-1 rounded bg-black/10 dark:bg-white/10 uppercase">Active</span>
+                <span class="truncate">Theme Manager</span>
+                
               </div>
 
               <!-- Item 4: Another Normal Item -->
@@ -1088,7 +1045,7 @@
         </div>
         <div>
           <h3 class="text-sm font-bold text-[var(--text)]">Living Component Library</h3>
-          <p class="text-xs text-[var(--text-muted)]">All components react live to your chosen theme preset and sidebar customizations.</p>
+          
         </div>
       </div>
     </div>

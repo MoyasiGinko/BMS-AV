@@ -40,3 +40,10 @@
     - Updated `#sidebar-live-preview-box` in `templates/core/theme_manager.html` with `:style="background-color: ${sidebar.bg} !important; color: ${sidebar.text} !important;"` and `:data-sidebar-tone`.
     - Added `DOMContentLoaded` listener in `templates/layouts/base.html` to invoke `window.applySidebarColors(resolved.colors)` immediately on page load, ensuring `aside.bos-sidebar` and document tone remain synchronized across page reloads and tab navigations.
     - Added automated Playwright test `test_ui_neumorphic_sidebar_preset_dark_bg_retention` in `tests/test_ui_theme_manager.py` verifying light/dark preset toggling and background retention after page reload and tab switches. All tests passing.
+  - UI Minimal & Clean Polish:
+    - Streamlined `templates/core/theme_manager.html`: eliminated walls of descriptive helper text, removed redundant "Sidebar preset:" display boxes on theme cards, removed repetitive "Locked preset" and "Immutable" tags, replaced development test labels in the live sidebar preview ("(Normal)", "(Hovered)", "(Active)", "Interactive", "Hover", "Active") with authentic navigation links, and simplified lock/custom mode banners.
+    - Cleaned `templates/layouts/app.html` topbar theme dropdown: removed broken character artifacts, simplified theme labels to crisp concise tags ("Clean & high contrast", "Deep midnight low-light palette", "Translucent glass & spatial depth", "Soft tactile embossed surfaces").
+    - Cleaned `templates/core/dashboard.html`: removed broken bullet characters, simplified theme card descriptions, streamlined headers to reduce visual clutter.
+    - Updated `apps/core/context_processors.py` available theme metadata with clean UTF-8 bullets and concise descriptions.
+    - Updated `templates/core/styleguide_sections.html`: fixed degree symbol formatting and removed internal CSS file path labels (`static/css/tokens.css`, `static/css/neumorphic.css`).
+    - Verified all 20 theme selector and UI Playwright tests pass (20/20 passed in 47.3s).
