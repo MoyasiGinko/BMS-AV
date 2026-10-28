@@ -6,30 +6,34 @@
 {% block content %}
 <div class="space-y-6 w-full" id="dashboard-root">
 
-  <!-- Welcome / Dashboard Top Header -->
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-[var(--border)]">
+  <!-- Executive Dashboard Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[var(--border)]">
     <div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5">
         <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">
           {% blocktrans with name=organization.name %}Welcome to {{ name }}{% endblocktrans %}
         </h1>
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--brand-50)] text-[var(--brand-700)] dark:bg-[var(--brand-950)] dark:text-[var(--brand-300)] border border-[var(--brand-200)] dark:border-[var(--brand-800)]">
-          {{ organization.slug }}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          {% trans "Live Ledger" %}
         </span>
       </div>
-      <p class="text-sm text-[var(--text-muted)] mt-1">
-        {% trans "Operational overview and metrics." %}
+      <p class="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-2">
+        <span>{% now "l, F j, Y" %}</span>
+        <span>&bull;</span>
+        <span>{% trans "Real-time financial, operational, and workforce analytics" %}</span>
       </p>
     </div>
 
-    <div class="flex items-center gap-3">
+    <!-- Quick Action Controls -->
+    <div class="flex items-center gap-2.5 flex-wrap">
       {% if checklist_dismissed %}
       <a
         href="{% url 'dashboard_reset_checklist' %}"
-        class="btn btn-secondary text-xs inline-flex items-center gap-1.5"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors text-xs font-medium shadow-2xs"
         title="{% trans "Restore onboarding setup checklist" %}"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <svg class="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
         <span>{% trans "Show Checklist" %}</span>
       </a>
       {% endif %}
@@ -39,163 +43,33 @@
         hx-get="{% url 'dashboard' %}?partial=widgets"
         hx-target="#dashboard-widgets-container"
         hx-swap="innerHTML"
-        class="btn btn-secondary text-xs inline-flex items-center gap-1.5"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors text-xs font-medium shadow-2xs"
         title="{% trans "Refresh all dashboard widgets" %}"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-        <span>{% trans "Refresh" %}</span>
+        <svg class="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span>{% trans "Sync Data" %}</span>
       </button>
 
-      <a href="{% url 'settings:general' %}" class="btn btn-secondary text-xs inline-flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span>{% trans "Settings" %}</span>
+      <a
+        href="{% url 'sales:invoice_create' %}"
+        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-2xs"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <span>{% trans "New Invoice" %}</span>
+      </a>
+
+      <a
+        href="{% url 'pos:terminal' %}"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors text-xs font-medium shadow-2xs"
+      >
+        <svg class="w-3.5 h-3.5 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <span>{% trans "POS" %}</span>
       </a>
     </div>
   </div>
 
-  <!-- Theme Selector Radio Group -->
-  <div class="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition-all shadow-xs"
-       x-data="{
-         activeTheme: (['fast', 'dark', 'spatial', 'neumorphic'].includes(document.documentElement.getAttribute('data-theme')) ? document.documentElement.getAttribute('data-theme') : '{{ current_theme|default:'fast' }}') || 'fast',
-         isTheme(t) {
-           return this.activeTheme === t || (t === 'fast' && !['dark', 'spatial', 'neumorphic'].includes(this.activeTheme));
-         },
-         select(theme) {
-           this.activeTheme = theme;
-           window.setTheme(theme);
-         }
-       }"
-       @theme-changed.window="activeTheme = $event.detail.theme">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-[var(--brand-50)] text-[var(--brand-600)] dark:bg-[var(--brand-950)] dark:text-[var(--brand-400)] flex items-center justify-center shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
-        </div>
-        <div>
-          <h2 class="text-sm font-bold text-[var(--text)]">{% trans "Visual Theme" %}</h2>
-          <p class="text-xs text-[var(--text-muted)]">{% trans "Choose your visual presentation style." %}</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 text-xs text-[var(--text-muted)]">
-        <span>{% trans "Active Theme:" %}</span>
-        <span class="font-semibold text-[var(--brand-600)] font-mono uppercase tracking-wider" x-text="isTheme('dark') ? 'dark' : (isTheme('spatial') ? 'spatial' : (isTheme('neumorphic') ? 'neumorphic' : 'fast'))"></span>
-      </div>
-    </div>
-
-    <!-- Radio Options -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <!-- Modern & Fast (Default) -->
-      <label
-        @click="select('fast')"
-        class="relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all"
-        :class="isTheme('fast') ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/40 ring-2 ring-[var(--brand-600)]/20' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface-2)]/40'"
-      >
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2.5">
-            <input
-              type="radio"
-              name="dash_theme"
-              value="fast"
-              :checked="isTheme('fast')"
-              {% if current_theme == 'fast' or not current_theme or current_theme not in 'dark spatial neumorphic' %}checked{% endif %}
-              class="h-4 w-4 text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
-            >
-            <span class="text-sm font-bold text-[var(--text)]">{% trans "Modern & Fast" %}</span>
-          </div>
-          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">{% trans "Default" %}</span>
-        </div>
-        <p class="text-xs text-[var(--text-muted)] mb-3">{% trans "High contrast and instant responsiveness." %}</p>
-        <div class="mt-auto pt-2.5 border-t border-[var(--border)] text-[11px] font-medium text-[var(--text-subtle)] flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>{% trans "Lightweight (Default) • Best for performance" %}</span>
-        </div>
-      </label>
-
-      <!-- Modern Dark -->
-      <label
-        @click="select('dark')"
-        class="relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all"
-        :class="isTheme('dark') ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/40 ring-2 ring-[var(--brand-600)]/20' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface-2)]/40'"
-      >
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2.5">
-            <input
-              type="radio"
-              name="dash_theme"
-              value="dark"
-              :checked="isTheme('dark')"
-              {% if current_theme == 'dark' %}checked{% endif %}
-              class="h-4 w-4 text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
-            >
-            <span class="text-sm font-bold text-[var(--text)]">{% trans "Modern Dark" %}</span>
-          </div>
-          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-surface-2 text-muted border border-line">{% trans "Dark" %}</span>
-        </div>
-        <p class="text-xs text-[var(--text-muted)] mb-3">{% trans "Deep midnight slate for low light." %}</p>
-        <div class="mt-auto pt-2.5 border-t border-[var(--border)] text-[11px] font-medium text-[var(--text-subtle)] flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-          <span>{% trans "Low-light dark palette" %}</span>
-        </div>
-      </label>
-
-      <!-- Minimal Spatial -->
-      <label
-        @click="select('spatial')"
-        class="relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all"
-        :class="isTheme('spatial') ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/40 ring-2 ring-[var(--brand-600)]/20' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface-2)]/40'"
-      >
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2.5">
-            <input
-              type="radio"
-              name="dash_theme"
-              value="spatial"
-              :checked="isTheme('spatial')"
-              {% if current_theme == 'spatial' %}checked{% endif %}
-              class="h-4 w-4 text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
-            >
-            <span class="text-sm font-bold text-[var(--text)]">{% trans "Minimal Spatial" %}</span>
-          </div>
-          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">{% trans "Spatial" %}</span>
-        </div>
-        <p class="text-xs text-[var(--text-muted)] mb-3">{% trans "Translucent glass with clean spatial depth." %}</p>
-        <div class="mt-auto pt-2.5 border-t border-[var(--border)] text-[11px] font-medium text-[var(--text-subtle)] flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-          <span>{% trans "Clean spatial depth" %}</span>
-        </div>
-      </label>
-
-      <!-- Neumorphic -->
-      <label
-        @click="select('neumorphic')"
-        class="relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all"
-        :class="isTheme('neumorphic') ? 'border-[var(--brand-600)] bg-[var(--brand-50)]/40 ring-2 ring-[var(--brand-600)]/20' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface-2)]/40'"
-      >
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2.5">
-            <input
-              type="radio"
-              name="dash_theme"
-              value="neumorphic"
-              :checked="isTheme('neumorphic')"
-              {% if current_theme == 'neumorphic' %}checked{% endif %}
-              class="h-4 w-4 text-[var(--brand-600)] focus:ring-[var(--brand-600)]"
-            >
-            <span class="text-sm font-bold text-[var(--text)]">{% trans "Neumorphic" %}</span>
-          </div>
-          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300">{% trans "Tactile" %}</span>
-        </div>
-        <p class="text-xs text-[var(--text-muted)] mb-3">{% trans "Soft shapes pressed from a single continuous surface with opposing 135° dual shadows." %}</p>
-        <div class="mt-auto pt-2.5 border-t border-[var(--border)] text-[11px] font-medium text-[var(--text-subtle)] flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-          <span>{% trans "Tactile embossed surface" %}</span>
-        </div>
-      </label>
-    </div>
-  </div>
-
   <!-- Dynamic Widget Grid Container -->
-  <div id="dashboard-widgets-container" class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+  <div id="dashboard-widgets-container" class="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
     {% for item in widgets %}
       <div
         id="widget-{{ item.widget_id }}"
@@ -204,7 +78,7 @@
         {{ item.html|safe }}
       </div>
     {% empty %}
-      <div class="col-span-1 md:col-span-12 py-12 text-center bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl">
+      <div class="col-span-1 md:col-span-12 py-16 text-center bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl">
         <svg class="w-12 h-12 mx-auto text-[var(--text-muted)] opacity-50 mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
         <h3 class="text-base font-semibold text-[var(--text)]">{% trans "No Active Dashboard Widgets" %}</h3>
         <p class="text-xs text-[var(--text-muted)] mt-1 max-w-sm mx-auto">

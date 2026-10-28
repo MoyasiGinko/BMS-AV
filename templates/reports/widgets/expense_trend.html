@@ -1,98 +1,178 @@
 {% load i18n %}
-<div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs h-full flex flex-col justify-between">
+<div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs h-full flex flex-col justify-between"
+     x-data="{
+       activeCatIdx: 0,
+       palette: ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#0ea5e9', '#8b5cf6'],
+       categories: [
+         {% for cat in expense_trend_kpi.categories %}
+         {
+           name: '{{ cat.name|escapejs }}',
+           amount: {{ cat.amount|default:0 }},
+           percentage: {{ cat.percentage|default:0 }}
+         }{% if not forloop.last %},{% endif %}
+         {% endfor %}
+       ],
+       get activeCat() {
+         return this.categories[this.activeCatIdx] || this.categories[0] || { name: 'Total', percentage: 100, amount: {{ expense_trend_kpi.current_month_expenses|default:0 }} };
+       },
+       getSlices() {
+         const circ = 238.76; // 2 * PI * 38
+         let accumulated = 0;
+         return this.categories.map((c, i) => {
+           const pct = Math.max(2, c.percentage || 1);
+           const strokeLen = (pct / 100) * circ;
+           const offset = - (accumulated / 100) * circ;
+           accumulated += pct;
+           return {
+             idx: i,
+             name: c.name,
+             color: this.palette[i % this.palette.length],
+             dasharray: `${strokeLen} ${circ}`,
+             offset: offset
+           };
+         });
+       }
+     }"
+>
   <div>
+    <!-- Header -->
     <div class="flex items-center justify-between pb-3 mb-4 border-b border-[var(--border)]">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5">
         <div class="w-8 h-8 rounded-lg bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 flex items-center justify-center shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"/></svg>
         </div>
         <div>
-          <h3 class="text-sm font-bold text-[var(--text)]">{% trans "Expense Trend" %}</h3>
-          <p class="text-2xs text-[var(--text-muted)] mt-0.5">{% trans "Operating expenses & category breakdown" %}</p>
+          <h3 class="text-sm font-bold text-[var(--text)]">{% trans "Operating Expenses" %}</h3>
+          <p class="text-2xs text-[var(--text-muted)] mt-0.5">{% trans "6-Month Trend & Category Distribution" %}</p>
         </div>
       </div>
-      <button
-        type="button"
-        hx-get="{% url 'dashboard_widget_partial' 'expense_trend' %}"
-        hx-target="#widget-expense_trend"
-        hx-swap="innerHTML"
-        class="text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-md hover:bg-[var(--surface-2)] transition-colors"
-        title="{% trans "Refresh widget" %}"
-      >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      </button>
+
+      <div class="flex items-center gap-2">
+        {% if expense_trend_kpi.change_pct > 0 %}
+        <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-2xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"/></svg>
+          +{{ expense_trend_kpi.change_pct }}% MoM
+        </span>
+        {% elif expense_trend_kpi.change_pct < 0 %}
+        <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+          {{ expense_trend_kpi.change_pct }}% MoM
+        </span>
+        {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-slate-500/10 text-[var(--text-muted)]">
+          0.0% MoM
+        </span>
+        {% endif %}
+
+        <button
+          type="button"
+          hx-get="{% url 'dashboard_widget_partial' 'expense_trend' %}"
+          hx-target="#widget-expense_trend"
+          hx-swap="innerHTML"
+          class="text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-md hover:bg-[var(--surface-2)] transition-colors"
+          title="{% trans "Refresh widget" %}"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
     </div>
 
-    <!-- Main Metric & MoM Change -->
+    <!-- Main Metric -->
     <div class="mb-4">
       <div class="flex items-baseline justify-between gap-2">
         <span class="text-2xl font-extrabold text-[var(--text)] tracking-tight font-mono">
           {{ expense_trend_kpi.currency }} {{ expense_trend_kpi.current_month_expenses|floatformat:2 }}
         </span>
-        <div class="text-right">
-          {% if expense_trend_kpi.change_pct > 0 %}
-          <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5"/></svg>
-            +{{ expense_trend_kpi.change_pct }}%
-          </span>
-          {% elif expense_trend_kpi.change_pct < 0 %}
-          <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-            {{ expense_trend_kpi.change_pct }}%
-          </span>
-          {% else %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-500/10 text-[var(--text-muted)]">
-            0.0%
-          </span>
-          {% endif %}
-        </div>
+        <span class="text-2xs text-[var(--text-muted)]">
+          {% trans "Prior month:" %} <span class="font-mono font-medium text-[var(--text)]">{{ expense_trend_kpi.currency }} {{ expense_trend_kpi.prior_month_expenses|floatformat:2 }}</span>
+        </span>
       </div>
-      <p class="text-2xs text-[var(--text-muted)] mt-1">
-        {% trans "Prior month:" %} {{ expense_trend_kpi.currency }} {{ expense_trend_kpi.prior_month_expenses|floatformat:2 }}
-      </p>
     </div>
 
-    <!-- Monthly Trend Mini Chart -->
+    <!-- 6-Month Comparative Bar Chart -->
     <div class="mb-4 pt-3 border-t border-[var(--border)]/60">
-      <div class="text-3xs uppercase font-semibold text-[var(--text-muted)] tracking-wider mb-2">
-        {% trans "6-Month Expense History" %}
+      <div class="text-3xs uppercase font-semibold text-[var(--text-muted)] tracking-wider mb-2 flex items-center justify-between">
+        <span>{% trans "6-Month Expense History" %}</span>
+        <span class="font-mono text-3xs text-[var(--text-muted)]">{% trans "Monthly totals" %}</span>
       </div>
-      <div class="flex items-end gap-2 h-16 pt-2">
+      <div class="flex items-end gap-2 h-14 pt-1">
         {% for m in expense_trend_kpi.trend %}
         <div class="flex-1 flex flex-col items-center gap-1 group relative">
-          <div class="w-full bg-[var(--surface-2)] rounded-t h-12 flex items-end overflow-hidden">
+          <div class="w-full bg-[var(--surface-2)]/60 rounded-t h-10 flex items-end overflow-hidden">
             <div
-              class="w-full bg-fuchsia-500/70 hover:bg-fuchsia-500 transition-all rounded-t"
+              class="w-full bg-fuchsia-500/75 group-hover:bg-fuchsia-500 transition-all rounded-t"
               style="height: {{ m.bar_pct }}%;"
               title="{{ m.label }}: {{ expense_trend_kpi.currency }} {{ m.amount|floatformat:2 }}"
             ></div>
           </div>
-          <span class="text-3xs font-medium text-[var(--text-muted)] uppercase">{{ m.label }}</span>
+          <span class="text-3xs font-medium text-[var(--text-muted)] group-hover:text-[var(--text)] uppercase transition-colors">{{ m.label }}</span>
         </div>
         {% endfor %}
       </div>
     </div>
 
-    <!-- Category Breakdown -->
+    <!-- Category Breakdown: Interactive SVG Donut / Pie Chart -->
     {% if expense_trend_kpi.categories %}
     <div class="pt-3 border-t border-[var(--border)]/60">
-      <div class="text-3xs uppercase font-semibold text-[var(--text-muted)] tracking-wider mb-2">
-        {% trans "Category Breakdown (This Month)" %}
+      <div class="text-3xs uppercase font-semibold text-[var(--text-muted)] tracking-wider mb-2.5">
+        {% trans "Expense by Category (Donut Distribution)" %}
       </div>
-      <div class="space-y-2">
-        {% for cat in expense_trend_kpi.categories %}
-        <div>
-          <div class="flex items-center justify-between text-xs mb-1">
-            <span class="truncate font-medium text-[var(--text)]">{{ cat.name }}</span>
-            <span class="font-mono font-semibold text-[var(--text-muted)] shrink-0 ml-2">
-              {{ expense_trend_kpi.currency }} {{ cat.amount|floatformat:2 }} ({{ cat.percentage }}%)
-            </span>
-          </div>
-          <div class="w-full bg-[var(--surface-2)] rounded-full h-1.5 overflow-hidden">
-            <div class="bg-fuchsia-500 h-1.5 rounded-full" style="width: {{ cat.percentage }}%;"></div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+        <!-- SVG Donut Chart -->
+        <div class="sm:col-span-5 flex flex-col items-center justify-center relative">
+          <div class="w-28 h-28 relative">
+            <svg class="w-full h-full transform -rotate-90 overflow-visible" viewBox="0 0 100 100">
+              <!-- Background Ring -->
+              <circle cx="50" cy="50" r="38" fill="transparent" stroke="var(--surface-2)" stroke-width="12"/>
+
+              <!-- Interactive Donut Slices -->
+              <template x-for="slice in getSlices()" :key="slice.idx">
+                <circle
+                  cx="50" cy="50" r="38"
+                  fill="transparent"
+                  :stroke="slice.color"
+                  :stroke-width="activeCatIdx === slice.idx ? 15 : 12"
+                  :stroke-dasharray="slice.dasharray"
+                  :stroke-dashoffset="slice.offset"
+                  stroke-linecap="round"
+                  class="cursor-pointer transition-all duration-200 hover:opacity-90"
+                  @mouseenter="activeCatIdx = slice.idx"
+                />
+              </template>
+            </svg>
+
+            <!-- Center Donut Callout -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
+              <span class="text-xs font-extrabold text-[var(--text)] font-mono leading-none" x-text="(activeCat.percentage || 0) + '%'">
+                {{ expense_trend_kpi.categories.0.percentage }}%
+              </span>
+              <span class="text-4xs text-[var(--text-muted)] truncate max-w-[4rem] mt-0.5 leading-tight" x-text="activeCat.name || ''">
+                {{ expense_trend_kpi.categories.0.name }}
+              </span>
+            </div>
           </div>
         </div>
-        {% endfor %}
+
+        <!-- Category Legend List -->
+        <div class="sm:col-span-7 space-y-1.5">
+          <template x-for="(cat, idx) in categories" :key="idx">
+            <div
+              class="p-1.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between text-xs"
+              :class="activeCatIdx === idx ? 'bg-[var(--surface-2)] border-[var(--border-strong)]' : 'border-transparent hover:bg-[var(--surface-2)]/40'"
+              @mouseenter="activeCatIdx = idx"
+            >
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="`background-color: ${palette[idx % palette.length]};`"></span>
+                <span class="truncate font-medium text-[var(--text)]" x-text="cat.name"></span>
+              </div>
+              <div class="text-right shrink-0 ml-2 font-mono text-3xs font-semibold text-[var(--text)]">
+                <span x-text="'{{ expense_trend_kpi.currency }} ' + cat.amount.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})"></span>
+                <span class="text-[var(--text-muted)] font-normal" x-text="'(' + cat.percentage + '%)'"></span>
+              </div>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
     {% endif %}
@@ -102,16 +182,16 @@
   <div class="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
     <a
       href="{% url 'accounting:expense_list' %}"
-      class="text-[var(--primary)] hover:underline font-semibold flex items-center gap-1"
+      class="text-[var(--brand-600)] hover:underline font-semibold flex items-center gap-1 text-2xs"
     >
-      <span>{% trans "Manage expenses" %}</span>
+      <span>{% trans "All Expense Vouchers" %}</span>
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
     </a>
     <a
-      href="{% url 'reports:profit_and_loss' %}"
-      class="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+      href="{% url 'accounting:journal_list' %}"
+      class="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-2xs"
     >
-      {% trans "P&L report" %}
+      {% trans "General Ledger" %}
     </a>
   </div>
 </div>

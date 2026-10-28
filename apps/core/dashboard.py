@@ -203,7 +203,7 @@ class RecentAuditActivityWidget(DashboardWidget):
     title = _("Recent Workspace Activity")
     description = _("Immutable audit log feed of security actions and changes")
     permission = "settings.manage"
-    col_span = 8
+    col_span = 6
     order = 40
     template_name = "core/dashboard/widgets/recent_activity.html"
 

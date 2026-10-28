@@ -1,14 +1,25 @@
 {% load i18n %}
-<div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs h-full flex flex-col justify-between">
+<div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs h-full flex flex-col justify-between"
+     x-data="{
+       posGross: {{ sales_kpi.pos_gross|default:0 }},
+       directGross: {{ sales_kpi.direct_gross|default:0 }},
+       totalGross: {{ sales_kpi.gross_sales|default:0 }},
+       getPosPct() {
+         if (!this.totalGross || this.totalGross <= 0) return 50;
+         return Math.round((this.posGross / this.totalGross) * 100);
+       }
+     }"
+>
   <div>
+    <!-- Header -->
     <div class="flex items-center justify-between pb-3 mb-4 border-b border-[var(--border)]">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5">
         <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div>
           <h3 class="text-sm font-bold text-[var(--text)]">{% trans "Sales Today" %}</h3>
-          <p class="text-2xs text-[var(--text-muted)] mt-0.5">{{ sales_kpi.date|date:"M d, Y" }}</p>
+          <p class="text-2xs text-[var(--text-muted)] mt-0.5">{{ sales_kpi.date|date:"l, M d" }}</p>
         </div>
       </div>
       <button
@@ -34,28 +45,48 @@
         </span>
       </div>
       <p class="text-2xs text-[var(--text-muted)] mt-1">
-        {% trans "Average order value" %}: <span class="font-mono font-medium text-[var(--text)]">{{ sales_kpi.currency }} {{ sales_kpi.aov|floatformat:2 }}</span>
+        {% trans "Average order value" %}: <span class="font-mono font-semibold text-[var(--text)]">{{ sales_kpi.currency }} {{ sales_kpi.aov|floatformat:2 }}</span>
       </p>
     </div>
 
+    <!-- Proportional Channel Ratio Bar -->
+    <div class="mb-4 pt-3 border-t border-[var(--border)]/60">
+      <div class="text-3xs uppercase font-semibold text-[var(--text-muted)] tracking-wider mb-2 flex items-center justify-between">
+        <span>{% trans "Channel Volume Split" %}</span>
+        <span class="font-mono text-3xs text-[var(--text-muted)]">
+          <span x-text="getPosPct() + '% POS'"></span> &bull; <span x-text="(100 - getPosPct()) + '% Direct'"></span>
+        </span>
+      </div>
+      <div class="w-full bg-[var(--surface-2)]/80 h-2.5 rounded-full overflow-hidden flex gap-0.5 p-0.5">
+        <div class="bg-emerald-500 rounded-l-full transition-all" :style="`width: ${getPosPct()}%;`" title="POS Counter"></div>
+        <div class="bg-indigo-500 rounded-r-full transition-all" :style="`width: ${100 - getPosPct()}%;`" title="Direct Invoices"></div>
+      </div>
+    </div>
+
     <!-- Breakdown Metrics -->
-    <div class="grid grid-cols-2 gap-2 pt-3 border-t border-[var(--border)]/60 text-xs">
+    <div class="grid grid-cols-2 gap-2 text-xs">
       <div class="p-2.5 rounded-xl bg-[var(--surface-2)]/40 border border-[var(--border)]/50">
-        <div class="text-2xs text-[var(--text-muted)] font-medium">{% trans "POS Counter" %}</div>
-        <div class="text-sm font-bold text-[var(--text)] font-mono mt-0.5">
+        <div class="flex items-center gap-1.5 text-3xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>{% trans "POS Terminal" %}</span>
+        </div>
+        <div class="text-sm font-bold text-[var(--text)] font-mono mt-1">
           {{ sales_kpi.currency }} {{ sales_kpi.pos_gross|floatformat:2 }}
         </div>
-        <div class="text-2xs text-[var(--text-muted)] mt-0.5">
-          {{ sales_kpi.pos_count }} {% trans "ticket" %}{{ sales_kpi.pos_count|pluralize }}
+        <div class="text-3xs text-[var(--text-muted)] mt-0.5">
+          {{ sales_kpi.pos_count }} {% trans "receipt" %}{{ sales_kpi.pos_count|pluralize }}
         </div>
       </div>
 
       <div class="p-2.5 rounded-xl bg-[var(--surface-2)]/40 border border-[var(--border)]/50">
-        <div class="text-2xs text-[var(--text-muted)] font-medium">{% trans "Direct Invoices" %}</div>
-        <div class="text-sm font-bold text-[var(--text)] font-mono mt-0.5">
+        <div class="flex items-center gap-1.5 text-3xs text-[var(--text-muted)] font-semibold uppercase tracking-wider">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+          <span>{% trans "Direct Invoices" %}</span>
+        </div>
+        <div class="text-sm font-bold text-[var(--text)] font-mono mt-1">
           {{ sales_kpi.currency }} {{ sales_kpi.direct_gross|floatformat:2 }}
         </div>
-        <div class="text-2xs text-[var(--text-muted)] mt-0.5">
+        <div class="text-3xs text-[var(--text-muted)] mt-0.5">
           {{ sales_kpi.direct_count }} {% trans "invoice" %}{{ sales_kpi.direct_count|pluralize }}
         </div>
       </div>
@@ -65,12 +96,12 @@
   <!-- Footer Actions -->
   <div class="mt-4 pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
     <a href="{% url 'sales:invoice_list' %}" class="text-[var(--brand-600)] hover:underline inline-flex items-center gap-1 font-medium text-2xs">
-      <span>{% trans "View Invoices" %}</span>
+      <span>{% trans "All Sales Invoices" %}</span>
       <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
     </a>
     <a href="{% url 'pos:terminal' %}" class="text-[var(--text-muted)] hover:text-[var(--text)] inline-flex items-center gap-1 font-medium text-2xs">
       <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      <span>{% trans "Open POS" %}</span>
+      <span>{% trans "Open POS Terminal" %}</span>
     </a>
   </div>
 </div>
