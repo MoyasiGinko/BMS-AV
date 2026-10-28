@@ -204,36 +204,19 @@ html[data-theme="neumorphic"],
   transform: translateY(-1.5px) !important;
 }
 
-/* 7. Navigation Items: ACTIVE State (Tactile Inset Well with Glowing Left Accent Indicator) */
+/* 7. Navigation Items: ACTIVE State (Uses Dynamic CSS Variables --sidebar-active-bg & --sidebar-active-text) */
 [data-theme="neumorphic"] aside.bos-sidebar nav a[class*="border-l-[3px]"],
 [data-theme="neumorphic"] aside.bos-sidebar nav a[class*="bg-[var(--brand-50)]"],
 [data-theme="neumorphic"] aside.bos-sidebar nav a.active,
 [data-theme="neumorphic"] aside.bos-sidebar nav a.is-active,
 [data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item.active,
 [data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item.is-active {
-  border-left: none !important;
+  background-color: var(--sidebar-active-bg) !important;
+  color: var(--sidebar-active-text) !important;
+  border-left: 3.5px solid var(--sidebar-active-border, var(--sidebar-active-text)) !important;
   border-radius: 12px !important;
   font-weight: 700 !important;
-  padding-left: 18px !important;
-}
-
-/* Clean vertical glowing accent indicator pill inside well */
-[data-theme="neumorphic"] aside.bos-sidebar nav a[class*="border-l-[3px]"]::before,
-[data-theme="neumorphic"] aside.bos-sidebar nav a[class*="bg-[var(--brand-50)]"]::before,
-[data-theme="neumorphic"] aside.bos-sidebar nav a.active::before,
-[data-theme="neumorphic"] aside.bos-sidebar nav a.is-active::before,
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item.active::before,
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item.is-active::before {
-  content: "" !important;
-  position: absolute !important;
-  left: 6px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  width: 4px !important;
-  height: 20px !important;
-  border-radius: 9999px !important;
-  background-color: var(--sidebar-active-border, #2563eb) !important;
-  box-shadow: 0 0 10px var(--sidebar-active-border, #2563eb), 1px 1px 2px rgba(0, 0, 0, 0.25) !important;
+  transform: translateY(0) !important;
 }
 
 /* Light sidebar active well */
@@ -243,11 +226,10 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] aside.bos-sidebar:not([data-sidebar-tone="dark"]) nav a.is-active,
 [data-theme="neumorphic"] aside.bos-sidebar:not([data-sidebar-tone="dark"]) .sidebar-nav-item.active,
 [data-theme="neumorphic"] aside.bos-sidebar:not([data-sidebar-tone="dark"]) .sidebar-nav-item.is-active {
-  background-color: #dbe4f0 !important;
-  color: var(--sidebar-active-text, #1d4ed8) !important;
-  box-shadow: inset 3px 3px 6px rgba(166, 175, 195, 0.65), inset -3px -3px 6px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(37, 99, 235, 0.12) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  transform: translateY(0) !important;
+  box-shadow: inset 3px 3px 6px rgba(166, 175, 195, 0.55), inset -3px -3px 6px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(37, 99, 235, 0.12) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5) !important;
 }
 
 /* Dark sidebar active well */
@@ -259,11 +241,10 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] aside.bos-sidebar[data-sidebar-tone="dark"] nav a[class*="bg-[var(--brand-50)]"],
 [data-theme="neumorphic"] aside.bos-sidebar[data-sidebar-tone="dark"] .sidebar-nav-item.active,
 [data-theme="neumorphic"] aside.bos-sidebar[data-sidebar-tone="dark"] .sidebar-nav-item.is-active {
-  background-color: #141c2a !important;
-  color: var(--sidebar-active-text, #60a5fa) !important;
   box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.75), inset -2px -2px 5px rgba(255, 255, 255, 0.07), 0 1px 2px rgba(59, 130, 246, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  transform: translateY(0) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
 /* 8. Icons inside Navigation Items */
@@ -272,15 +253,16 @@ html[data-theme="neumorphic"],
 }
 
 [data-theme="neumorphic"] aside.bos-sidebar nav a:hover svg {
-  transform: scale(1.1) !important;
+  transform: scale(1.08) !important;
 }
 
 [data-theme="neumorphic"] aside.bos-sidebar nav a[class*="border-l-[3px]"] svg,
 [data-theme="neumorphic"] aside.bos-sidebar nav a[class*="bg-[var(--brand-50)]"] svg,
 [data-theme="neumorphic"] aside.bos-sidebar nav a.active svg,
 [data-theme="neumorphic"] aside.bos-sidebar nav a.is-active svg {
-  transform: scale(1.1) !important;
-  filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.3)) !important;
+  transform: scale(1.08) !important;
+  color: var(--sidebar-active-text) !important;
+  stroke: currentColor !important;
 }
 
 /* 9. Sidebar Footer */
@@ -319,24 +301,10 @@ html[data-theme="neumorphic"],
 
 .neu-sidebar-mock:not([data-sidebar-tone="dark"]) .preview-active-item {
   box-shadow: inset 2.5px 2.5px 5px rgba(166, 175, 195, 0.65), inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  border-left: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4) !important;
   border-radius: 10px !important;
-  position: relative !important;
-  padding-left: 16px !important;
-}
-
-.neu-sidebar-mock:not([data-sidebar-tone="dark"]) .preview-active-item::before {
-  content: "" !important;
-  position: absolute !important;
-  left: 5px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  width: 3.5px !important;
-  height: 16px !important;
-  border-radius: 9999px !important;
-  background-color: var(--sidebar-active-border, #2563eb) !important;
-  box-shadow: 0 0 8px var(--sidebar-active-border, #2563eb) !important;
 }
 
 /* Dark tone preview items */
@@ -352,25 +320,10 @@ html[data-theme="neumorphic"],
 [data-sidebar-tone="dark"] .neu-sidebar-mock .preview-active-item,
 .neu-sidebar-mock[data-sidebar-tone="dark"] .preview-active-item {
   box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.75), inset -2px -2px 5px rgba(255, 255, 255, 0.07), 0 1px 2px rgba(59, 130, 246, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  border-left: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 10px !important;
-  position: relative !important;
-  padding-left: 16px !important;
-}
-
-[data-sidebar-tone="dark"] .neu-sidebar-mock .preview-active-item::before,
-.neu-sidebar-mock[data-sidebar-tone="dark"] .preview-active-item::before {
-  content: "" !important;
-  position: absolute !important;
-  left: 5px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  width: 3.5px !important;
-  height: 16px !important;
-  border-radius: 9999px !important;
-  background-color: var(--sidebar-active-border, #60a5fa) !important;
-  box-shadow: 0 0 8px var(--sidebar-active-border, #60a5fa) !important;
 }
 
 [data-theme="neumorphic"] header {
@@ -455,26 +408,24 @@ html[data-theme="neumorphic"],
   transition: all 150ms ease;
 }
 
+/* Hover state fallback to dynamic variables */
 [data-theme="neumorphic"] aside.bos-sidebar nav a:hover:not([class*="bg-[var(--brand-50)]"]):not(.border-l-\[3px\]):not(.active):not(.is-active),
 [data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item:hover:not(.active):not(.is-active) {
   background-color: var(--sidebar-hover-bg) !important;
   color: var(--sidebar-hover-text) !important;
   border-radius: 12px !important;
-  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.22), -1px -1px 3px rgba(255, 255, 255, 0.08) !important;
 }
 
-[data-theme="neumorphic"] aside.bos-sidebar a.border-l-\[3px\],
-[data-theme="neumorphic"] aside.bos-sidebar a[class*="bg-\[var\(--brand-50\)\]"],
-[data-theme="neumorphic"] aside.bos-sidebar nav a.active,
-[data-theme="neumorphic"] aside.bos-sidebar nav a.is-active,
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item.active,
-[data-theme="neumorphic"] aside.bos-sidebar .sidebar-nav-item.is-active {
-  background-color: var(--sidebar-active-bg) !important;
-  color: var(--sidebar-active-text) !important;
-  border-left: 3px solid var(--sidebar-active-border, var(--sidebar-active-text)) !important;
-  border-radius: 12px !important;
-  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.32), inset -1px -1px 3px rgba(255, 255, 255, 0.08) !important;
-  font-weight: 700 !important;
+/* Theme Manager Navigation Tabs in Neumorphic Mode */
+[data-theme="neumorphic"] nav[aria-label="Theme Manager Tabs"] button {
+  transition: all 180ms ease !important;
+}
+[data-theme="neumorphic"] nav[aria-label="Theme Manager Tabs"] button[class*="border-[var(--brand-600)]"],
+[data-theme="neumorphic"] nav[aria-label="Theme Manager Tabs"] button[class*="text-[var(--brand-600)]"] {
+  color: var(--neu-accent-fill, #4f46e5) !important;
+  border-bottom: 2.5px solid var(--neu-accent-fill, #4f46e5) !important;
+  background-color: var(--surface-2, #dde2ee) !important;
+  box-shadow: inset 1px 1px 3px rgba(166, 175, 195, 0.45), inset -1px -1px 3px rgba(255, 255, 255, 0.85) !important;
 }
 
 /* Buttons */
