@@ -54,7 +54,6 @@ def test_ui_theme_manager_and_sidebar_customizer(live_server: pytest.FixtureRequ
     page.click("#tab-btn-sidebar")
     expect(page.locator("text=Sidebar Color Customizer")).to_be_visible()
     expect(page.locator("text=Live Sidebar Preview")).to_be_visible()
-    expect(page.locator("#save-sidebar-theme-btn")).to_be_visible()
 
     # 5. Click Sidebar Preset 1 (Dark Contrast)
     page.click("#sidebar-preset-dark-contrast")
@@ -62,9 +61,9 @@ def test_ui_theme_manager_and_sidebar_customizer(live_server: pytest.FixtureRequ
     sidebar_bg = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
     assert sidebar_bg == "#0f172a"
 
-    # Select Custom Mode to enable the Save button and verify saving custom palette
+    # Select Custom Mode to reveal the Save button and verify saving custom palette
     page.click("#sidebar-preset-custom")
-    expect(page.locator("#save-sidebar-theme-btn")).to_be_enabled()
+    expect(page.locator("#save-sidebar-theme-btn")).to_be_visible()
     page.click("#save-sidebar-theme-btn")
     expect(page.locator("text=Sidebar appearance saved").first).to_be_visible()
 
@@ -187,10 +186,10 @@ def test_ui_sidebar_presets_locked_and_custom_editable(
     first_text_input = page.locator('input[placeholder="#ffffff"]').first
     save_btn = page.locator("#save-sidebar-theme-btn")
 
-    # Both inputs and save button must be disabled when in Preset 1
+    # Both inputs must be disabled and save button hidden when in Preset 1
     expect(first_color_picker).to_be_disabled()
     expect(first_text_input).to_be_disabled()
-    expect(save_btn).to_be_disabled()
+    expect(save_btn).to_be_hidden()
 
     # Verify Preset 1 background applied
     bg_fast_p1 = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
@@ -198,11 +197,11 @@ def test_ui_sidebar_presets_locked_and_custom_editable(
 
     # 2. Select Preset 2 ('light')
     page.click("#sidebar-preset-light")
-    # Inputs and save button must remain disabled
+    # Inputs must remain disabled and save button hidden
     expect(page.locator("text=Preset Colors are Locked (Read-Only)")).to_be_visible()
     expect(first_color_picker).to_be_disabled()
     expect(first_text_input).to_be_disabled()
-    expect(save_btn).to_be_disabled()
+    expect(save_btn).to_be_hidden()
 
     # Verify Preset 2 color applied
     bg_fast_p2 = page.evaluate("() => document.documentElement.style.getPropertyValue('--sidebar-bg')")
@@ -211,10 +210,10 @@ def test_ui_sidebar_presets_locked_and_custom_editable(
     # 3. Select Custom Mode
     page.click("#sidebar-preset-custom")
     expect(page.locator("text=Custom Palette Active & Unlocked")).to_be_visible()
-    # Now inputs and save button must be enabled
+    # Now inputs and save button must be enabled/visible
     expect(first_color_picker).to_be_enabled()
     expect(first_text_input).to_be_enabled()
-    expect(save_btn).to_be_enabled()
+    expect(save_btn).to_be_visible()
 
     # 4. Switch theme to 'neumorphic'
     page.click("button:has-text('Neumorphic Mode')")
@@ -236,7 +235,7 @@ def test_ui_sidebar_presets_locked_and_custom_editable(
     page.click("#unlock-custom-sidebar-btn")
     expect(page.locator("text=Custom Palette Active & Unlocked")).to_be_visible()
     expect(first_color_picker).to_be_enabled()
-    expect(save_btn).to_be_enabled()
+    expect(save_btn).to_be_visible()
 
 
 @pytest.mark.ui
