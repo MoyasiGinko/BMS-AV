@@ -368,10 +368,10 @@ html[data-theme="neumorphic"],
 }
 
 /* Secondary / Sub-elements inside cards */
-[data-theme="neumorphic"] .card .rounded-xl:not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
-[data-theme="neumorphic"] .card .rounded-lg:not([class*="h-12"]),
-[data-theme="neumorphic"] #dashboard-widgets-container .rounded-xl,
-[data-theme="neumorphic"] #dashboard-widgets-container .rounded-lg {
+[data-theme="neumorphic"] .card .rounded-xl:not(.neu-sidebar-mock):not(#sidebar-live-preview-box):not(.btn-primary):not(.attention-card):not(#attention-briefing-banner),
+[data-theme="neumorphic"] .card .rounded-lg:not([class*="h-12"]):not(.btn-primary):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-emerald"]):not([class*="text-white"]),
+[data-theme="neumorphic"] #dashboard-widgets-container .rounded-xl:not(.btn-primary):not(.attention-card):not(#attention-briefing-banner),
+[data-theme="neumorphic"] #dashboard-widgets-container .rounded-lg:not(.btn-primary):not([class*="bg-amber"]):not([class*="bg-rose"]):not([class*="bg-emerald"]):not([class*="text-white"]) {
   background-color: var(--neu-surface) !important;
   box-shadow: var(--neu-raise-xs) !important;
   border: 1px solid rgba(255, 255, 255, 0.6) !important;
@@ -450,12 +450,50 @@ html[data-theme="neumorphic"],
 }
 
 [data-theme="neumorphic"] .btn-primary,
-[data-theme="neumorphic"] button[class*="bg-\[var\(--brand-600\)\]"] {
-  background-color: var(--neu-accent-fill) !important;
+[data-theme="neumorphic"] #btn-executive-briefing,
+[data-theme="neumorphic"] .attention-briefing-btn,
+[data-theme="neumorphic"] .attention-tab-active,
+[data-theme="neumorphic"] #dashboard-widgets-container .btn-primary,
+[data-theme="neumorphic"] #dashboard-widgets-container #btn-executive-briefing,
+[data-theme="neumorphic"] #dashboard-widgets-container .attention-briefing-btn,
+[data-theme="neumorphic"] #dashboard-widgets-container .attention-tab-active {
+  background-color: var(--neu-accent-fill, #4F46E5) !important;
   color: #FFFFFF !important;
   border: none !important;
-  border-radius: 14px !important;
-  box-shadow: 4px 4px 10px rgba(79, 70, 229, 0.4), -2px -2px 6px rgba(255, 255, 255, 0.8) !important;
+  border-radius: 12px !important;
+  box-shadow: 3px 3px 8px rgba(79, 70, 229, 0.4), -2px -2px 6px rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-theme="neumorphic"] .btn-primary:hover,
+[data-theme="neumorphic"] #btn-executive-briefing:hover,
+[data-theme="neumorphic"] .attention-briefing-btn:hover {
+  background-color: var(--neu-accent-text, #4338CA) !important;
+  box-shadow: 4px 4px 12px rgba(79, 70, 229, 0.5), -2px -2px 6px rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Executive Briefing Banner in Neumorphic Mode */
+[data-theme="neumorphic"] #attention-briefing-banner {
+  background-color: var(--neu-surface) !important;
+  box-shadow: var(--neu-inset-sm) !important;
+  border: 1px solid var(--neu-line) !important;
+  border-left: 4px solid var(--neu-accent-fill, #4F46E5) !important;
+}
+
+/* Attention Today Cards in Neumorphic Mode */
+[data-theme="neumorphic"] .attention-card {
+  background-color: var(--neu-surface) !important;
+  box-shadow: var(--neu-raise-sm) !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  border-radius: 16px !important;
+}
+[data-theme="neumorphic"] .attention-card.attention-critical {
+  border-left: 4px solid #F43F5E !important;
+}
+[data-theme="neumorphic"] .attention-card.attention-warning {
+  border-left: 4px solid #F59E0B !important;
+}
+[data-theme="neumorphic"] .attention-card.attention-info {
+  border-left: 4px solid var(--neu-accent-fill, #4F46E5) !important;
 }
 
 /* ==========================================================================

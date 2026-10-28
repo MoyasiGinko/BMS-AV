@@ -1,32 +1,44 @@
 {% load i18n %}
-<div id="attention-briefing-banner" class="relative overflow-hidden rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 p-4 shadow-sm mb-4 transition-all duration-300">
-  <div class="flex items-start justify-between">
-    <div class="flex items-center space-x-2">
-      <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+<div id="attention-briefing-banner"
+     class="relative rounded-xl border border-[var(--border)] border-l-4 border-l-[var(--brand-600)] bg-[var(--surface-2)]/60 p-4 mb-4 shadow-2xs transition-all duration-200">
+  <div class="flex items-center justify-between pb-2.5 border-b border-[var(--border)]/70">
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-lg bg-[var(--brand-600)] text-white flex items-center justify-center shrink-0 shadow-2xs">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       </div>
-      <div>
-        <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
-          <span>{% trans "Executive Morning Briefing" %}</span>
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
-            {{ provider|default:"AI Copilot" }}
-          </span>
+      <div class="flex items-center gap-2">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
+          {% trans "Executive Morning Briefing" %}
         </h4>
-        <span class="text-[10px] text-muted">{{ generated_at }}</span>
+        <span class="text-3xs text-[var(--text-muted)] font-medium">
+          &bull; {{ generated_at|default:"Today" }}
+        </span>
       </div>
     </div>
-    <button type="button" 
-            onclick="document.getElementById('attention-briefing-banner').remove()"
-            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md transition-colors">
+    <button type="button"
+            hx-post="{% url 'ai:attention_briefing_dismiss' %}"
+            hx-target="#attention-briefing-banner"
+            hx-swap="outerHTML"
+            title="{% trans 'Dismiss executive briefing' %}"
+            class="text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-lg hover:bg-[var(--surface-1)] transition-colors cursor-pointer">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
       </svg>
     </button>
   </div>
-  
-  <div class="mt-3 text-sm text-muted whitespace-pre-wrap font-normal leading-relaxed pl-9">
-    {{ briefing }}
+
+  <div class="mt-3 text-xs text-[var(--text)] space-y-2 font-normal leading-relaxed pl-1">
+    {% for line in briefing_lines %}
+      {% if line.strip %}
+        <div class="flex items-start gap-2">
+          <span class="text-[var(--brand-600)] font-bold shrink-0 mt-0.5">•</span>
+          <span class="text-[var(--text)] font-medium">{{ line|cut:"• "|cut:"* "|cut:"- " }}</span>
+        </div>
+      {% endif %}
+    {% empty %}
+      <div class="text-xs text-[var(--text-muted)]">{{ briefing }}</div>
+    {% endfor %}
   </div>
 </div>

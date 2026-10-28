@@ -87,6 +87,26 @@ def test_attention_briefing_htmx_view(attention_web_setup: dict[str, Any]) -> No
     assert "Executive Morning Briefing" in content
 
 
+def test_attention_briefing_dismiss_htmx_view(attention_web_setup: dict[str, Any]) -> None:
+    client = attention_web_setup["client"]
+    org = attention_web_setup["org"]
+
+    # Generate briefing to populate session
+    client.post(reverse("ai:attention_briefing"))
+    session = client.session
+    assert f"ai_briefing_{org.pk}" in session
+
+    # Dismiss briefing
+    dismiss_url = reverse("ai:attention_briefing_dismiss")
+    res_dismiss = client.post(dismiss_url)
+    assert res_dismiss.status_code == 200
+    assert res_dismiss.content == b""
+
+    # Session key must be removed
+    session = client.session
+    assert f"ai_briefing_{org.pk}" not in session
+
+
 def test_attention_dismiss_and_reset_htmx_view(attention_web_setup: dict[str, Any]) -> None:
     client = attention_web_setup["client"]
     dismiss_url = reverse("ai:attention_dismiss", kwargs={"item_id": "low_stock_alerts"})

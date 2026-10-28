@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.urls import path
 
 from apps.ai_assistant.views import (
+    AttentionBriefingDismissView,
     AttentionBriefingView,
     AttentionDismissView,
     AttentionPanelItemsView,
@@ -28,6 +29,11 @@ urlpatterns = [
     # Attention Today Intelligence Panel HTMX Endpoints
     path("attention/items/", AttentionPanelItemsView.as_view(), name="attention_items"),
     path("attention/briefing/", AttentionBriefingView.as_view(), name="attention_briefing"),
+    path(
+        "attention/briefing/dismiss/",
+        AttentionBriefingDismissView.as_view(),
+        name="attention_briefing_dismiss",
+    ),
     path("attention/dismiss/<str:item_id>/", AttentionDismissView.as_view(), name="attention_dismiss"),
     path("attention/reset/", AttentionResetDismissedView.as_view(), name="attention_reset"),
 ]

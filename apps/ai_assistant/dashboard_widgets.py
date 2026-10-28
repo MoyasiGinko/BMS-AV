@@ -29,6 +29,11 @@ class AttentionTodayWidget(DashboardWidget):
         summary = get_attention_summary(organization, request.user, dismissed_ids=dismissed)
         can_use_ai = user_has_ai_permission(request.user, organization.pk, "ai.chat")
         cached_briefing = request.session.get(f"ai_briefing_{organization.pk}", None)
+        cached_lines = (
+            [line.strip() for line in cached_briefing.strip().split("\n") if line.strip()]
+            if cached_briefing
+            else []
+        )
 
         return {
             "summary": summary,
@@ -40,5 +45,6 @@ class AttentionTodayWidget(DashboardWidget):
             "categories": summary["categories"],
             "can_use_ai": can_use_ai,
             "cached_briefing": cached_briefing,
+            "cached_lines": cached_lines,
             "selected_category": request.GET.get("category", "all"),
         }
