@@ -34,6 +34,18 @@
 
 
 
+  - Pure Neumorphism Refinement (Zero White Box Shadows & Zero Border Boxes):
+    - Converted `--neu-shadow-light` to `transparent` in `static/css/neumorphic.css`, completely eliminating glaring white drop shadows / halos across all neumorphic elements.
+    - Removed all border boxes across neumorphic mode (`border: none !important`), adhering to pure tactile neumorphism where shapes are seamlessly extruded or sunken directly from the continuous canvas without outline strokes.
+    - Updated POS terminal components (`terminal.html`, `product_grid.html`, and `neumorphic.css`):
+      - Catalog cards: soft raised tactile surfaces with zero borders and natural ambient depth.
+      - Search bar & Category dropdown: sunken wells pressed into the surface with zero borders and zero white shadows.
+      - Cart items: soft physical tiles (`box-shadow: 3px 3px 8px rgba(166, 175, 195, 0.35)`) without border boxes.
+      - Steppers: sunken inset well with raised tactile `-` and `+` buttons.
+      - TOTAL DUE: smooth sunken readout well with zero border boxes.
+      - Buttons: clean tactile pills without border boxes or white shadows.
+    - Verified all 8 POS view/HTMX tests passing in `apps/pos/tests/test_views.py` and validated via live browser tour and screenshots.
+
   - POS Terminal White Box Shadow Removal & Proper Spacing/Padding:
     - Fixed root cause of white border box drop shadows by removing broad `.rounded-2xl.border`, `.rounded-xl.border`, and `button.border` selectors from global card rules in `static/css/neumorphic.css`, which were indiscriminately applying `-9px -9px 18px #FFFFFF` dual extrusion shadows to inputs, steppers, total boxes, and action buttons.
     - Added scoped rules for `.pos-terminal` ensuring zero box-shadow halos on capsules, steppers, total boxes, and buttons, with subtle inset styling on inputs.
