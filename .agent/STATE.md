@@ -39,8 +39,10 @@
     - Cleaned up the header layout to display the organization title `Welcome to {{ name }}` (`text-2xl font-bold tracking-tight text-[var(--text)]`) accompanied by a clean, minimalist date line (`Thursday, October 29, 2026`).
     - Verified live rendering with Chrome DevTools; all 12 `tests/test_dashboard.py` tests passing. Commit `8ce0e25`.
 
-  - Onboarding Checklist Widget Redesign & Top Placement (`templates/tenancy/dashboard/onboarding_checklist.html`, `apps/tenancy/dashboard_widgets.py`):
-    - Changed widget priority `order = 1` in `OnboardingChecklistWidget` so the checklist displays at the very top of the dashboard widget grid, directly beneath the executive header.
+  - Onboarding Checklist Widget Redesign, Top Placement & Auto-Hide (`templates/tenancy/dashboard/onboarding_checklist.html`, `apps/tenancy/dashboard_widgets.py`, `apps/core/views.py`, `templates/core/dashboard.html`):
+    - Configured checklist auto-hide: when all 5 onboarding steps are completed (`all_completed is True`), the checklist is hidden by default to keep the dashboard uncluttered.
+    - Preserved manual trigger: users can manually reveal the checklist via the "Show Checklist" header button (session flag `show_checklist_{org.pk}`) or `?show_checklist=1`. When hidden, "Show Checklist" appears in the quick actions bar.
+    - Changed widget priority `order = 1` in `OnboardingChecklistWidget` so the checklist displays at the very top of the dashboard widget grid when visible.
     - Removed garish top multi-color gradient bar and heavy green background washes.
     - Cleaned and modernized header: Prominent title `Getting Started with Business OS` (`text-lg sm:text-xl font-bold text-[var(--text)] tracking-tight`) with compact status badge `{{ completed_count }} / {{ total_count }} Completed`.
     - Integrated setup progress directly into the header as a sleek compact pill with mini progress bar and percentage (`Progress [===] 100%`), eliminating the bulky full-width progress bar.
