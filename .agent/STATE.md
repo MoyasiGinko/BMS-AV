@@ -34,6 +34,13 @@
 
 
 
+  - POS Terminal Toolbar Symmetrical Alignment & Border Removal:
+    - Symmetrically sized all 4 controls across the POS toolbar: Search barcode input, Category select dropdown, Customer select dropdown, and Hold button are now unified to the exact same 48px height (`h-12`), matching border radius (`rounded-xl`), and identical typography (`text-sm sm:text-base font-semibold`/`font-medium`).
+    - Seamless vertical alignment: Both the left search/category bar and the right customer selector bar share the exact same container height (`h-20`), surface background (`bg-[var(--surface-1)]`), and vertical centering (`flex items-center`), ensuring all 4 controls align on the exact same horizontal centerline.
+    - Embedded customer icon: Repositioned the customer avatar icon inside the customer dropdown (`pointer-events-none absolute inset-y-0 left-0 pl-4`) matching the barcode search input, eliminating loose floating SVGs.
+    - Removed bottom black border: Eliminated `border-b border-[var(--border)]/70` from both toolbar containers, seamlessly blending the toolbar into the products catalog and cart.
+    - Verified with live Chrome DevTools layout metrics and screenshot inspection; all 8 POS tests in `apps/pos/tests/test_views.py` passing.
+
   - Pure Neumorphism Refinement (Zero White Box Shadows & Zero Border Boxes):
     - Converted `--neu-shadow-light` to `transparent` in `static/css/neumorphic.css`, completely eliminating glaring white drop shadows / halos across all neumorphic elements.
     - Removed all border boxes across neumorphic mode (`border: none !important`), adhering to pure tactile neumorphism where shapes are seamlessly extruded or sunken directly from the continuous canvas without outline strokes.
