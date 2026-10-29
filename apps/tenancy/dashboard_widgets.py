@@ -21,7 +21,7 @@ class OnboardingChecklistWidget(DashboardWidget):
     title = _("Getting Started with Business OS")
     description = _("Setup steps to get your organization fully operational")
     col_span = 12
-    order = 10
+    order = 1
     template_name = "tenancy/dashboard/onboarding_checklist.html"
 
     def is_visible(self, request: HttpRequest, organization: Any) -> bool:
