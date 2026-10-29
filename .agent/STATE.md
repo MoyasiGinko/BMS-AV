@@ -35,9 +35,9 @@
 
 
   - Dashboard Executive Header Simplification (`templates/core/dashboard.html`):
-    - Removed `Live Ledger` badge and date/analytics subtitle (`Thursday, October 29, 2026 • Real-time financial, operational, and workforce analytics`).
-    - Retained only the clean organization title `Welcome to {{ name }}` (`text-2xl font-bold tracking-tight text-[var(--text)]`), achieving balanced alignment with the action buttons on the right.
-    - Verified live rendering with Chrome DevTools; all 12 `tests/test_dashboard.py` tests passing. Commit `831ef20`.
+    - Removed `Live Ledger` badge and buzzword subtitle (`Real-time financial, operational, and workforce analytics`).
+    - Cleaned up the header layout to display the organization title `Welcome to {{ name }}` (`text-2xl font-bold tracking-tight text-[var(--text)]`) accompanied by a clean, minimalist date line (`Thursday, October 29, 2026`).
+    - Verified live rendering with Chrome DevTools; all 12 `tests/test_dashboard.py` tests passing. Commit `8ce0e25`.
 
   - Onboarding Checklist Widget Redesign (`templates/tenancy/dashboard/onboarding_checklist.html`):
     - Removed garish top multi-color gradient bar and heavy green background washes.
