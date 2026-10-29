@@ -146,22 +146,13 @@
     </div>
 
     <!-- Filter & Search Toolbar -->
-    <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-4 shadow-xs"
-         x-data="{
-             setStatus(val) {
-                 const select = document.getElementById('id_status') || document.querySelector('select[name=status]');
-                 if (select) {
-                     select.value = val;
-                     select.dispatchEvent(new Event('change', { bubbles: true }));
-                 }
-             }
-         }">
-        <form method="get" class="flex flex-col lg:flex-row gap-3.5 items-stretch lg:items-center justify-between"
+    <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-4 shadow-xs">
+        <form method="get" class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between"
               hx-get="{% url 'sales:invoice_list' %}"
               hx-target="#invoice-table-container"
               hx-swap="outerHTML"
               hx-trigger="keyup from:input[name='search'] delay:300ms, change from:select[name='status']">
-            <!-- Left: Search & Status Dropdown -->
+            <!-- Search & Status Dropdown -->
             <div class="flex flex-1 flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                 <!-- Search Input Container -->
                 <div class="relative w-full sm:w-80">
@@ -171,31 +162,16 @@
                     {{ filter_form.search }}
                 </div>
 
-                <!-- Status Select Container -->
+                <!-- Status Select Dropdown Container -->
                 <div class="w-full sm:w-56">
                     {{ filter_form.status }}
                 </div>
             </div>
 
-            <!-- Right: Quick Filter Pills & Clear Action -->
-            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <button type="button" @click="setStatus('')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[var(--surface-2)]/70 hover:bg-[var(--surface-2)] text-muted hover:text-ink border border-[var(--border)]/50 transition-all">
-                    {% trans "All" %}
-                </button>
-                <button type="button" @click="setStatus('posted')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 hover:bg-sky-100 border border-sky-200/50 transition-all">
-                    {% trans "Posted" %}
-                </button>
-                <button type="button" @click="setStatus('paid')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200/50 transition-all">
-                    {% trans "Paid" %}
-                </button>
-                <button type="button" @click="setStatus('partially_paid')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 border border-amber-200/50 transition-all">
-                    {% trans "Partial" %}
-                </button>
-                <button type="button" @click="setStatus('draft')" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 border border-slate-200/50 transition-all">
-                    {% trans "Draft" %}
-                </button>
-                <a href="{% url 'sales:invoice_list' %}" class="px-3 py-1.5 text-xs font-semibold rounded-xl text-muted hover:text-ink hover:bg-[var(--surface-2)] transition-colors ml-1">
-                    {% trans "Reset" %}
+            <!-- Clear Action -->
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'sales:invoice_list' %}" class="px-3.5 py-2 text-xs font-bold rounded-xl text-muted hover:text-ink bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] border border-[var(--border)]/50 transition-all shadow-2xs">
+                    {% trans "Reset Filters" %}
                 </a>
             </div>
         </form>

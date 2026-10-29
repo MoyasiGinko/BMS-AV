@@ -10,7 +10,7 @@
         shiftId: {{ shift.pk }},
         shiftPublicId: '{{ shift.public_id }}',
         currency: '$',
-        selectedCategory: {% if selected_category_id %}{{ selected_category_id }}{% else %}null{% endif %}
+        selectedCategory: {% if selected_category_id %}'{{ selected_category_id }}'{% else %}''{% endif %}
      })"
      class="flex-1 flex flex-col h-full max-h-full bg-[var(--bg)] text-[var(--text)] overflow-hidden min-h-0">
 
@@ -116,32 +116,28 @@
                            hx-trigger="keyup changed delay:300ms, search"
                            hx-target="#product-grid"
                            hx-swap="outerHTML"
+                           hx-include="[name='category']"
                            @keydown.enter.prevent="handleBarcodeInput($event)"
                            class="block w-full pl-9 pr-4 py-2 rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent text-sm font-medium shadow-inner transition-all">
                 </div>
 
-                <!-- Category Pills (Horizontal scroll) -->
-                <div class="p-1 bg-[var(--surface-2)]/50 rounded-xl border border-[var(--border)]/40 shadow-inner inline-flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">
-                    <button type="button"
-                            @click="selectedCategory = null"
+                <!-- Category Dropdown Select -->
+                <div class="w-full sm:w-56 shrink-0">
+                    <select name="category"
+                            x-model="selectedCategory"
                             hx-get="{% url 'pos:terminal' %}"
+                            hx-trigger="change"
                             hx-target="#product-grid"
                             hx-swap="outerHTML"
-                            :class="selectedCategory === null ? 'bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70' : 'text-muted hover:text-ink hover:bg-[var(--surface-1)]/40 font-medium border border-transparent'"
-                            class="px-3 py-1.5 text-xs rounded-lg whitespace-nowrap transition-all cursor-pointer">
-                        {% trans "All" %}
-                    </button>
-                    {% for cat in categories %}
-                    <button type="button"
-                            @click="selectedCategory = {{ cat.pk }}"
-                            hx-get="{% url 'pos:terminal' %}?category={{ cat.pk }}"
-                            hx-target="#product-grid"
-                            hx-swap="outerHTML"
-                            :class="selectedCategory === {{ cat.pk }} ? 'bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70' : 'text-muted hover:text-ink hover:bg-[var(--surface-1)]/40 font-medium border border-transparent'"
-                            class="px-3 py-1.5 text-xs rounded-lg whitespace-nowrap transition-all cursor-pointer">
-                        {{ cat.name }}
-                    </button>
-                    {% endfor %}
+                            hx-include="[name='search']"
+                            class="block w-full py-2 px-3 text-xs sm:text-sm font-semibold rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink shadow-inner focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent transition-all cursor-pointer">
+                        <option value="">{% trans "All Categories" %}</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.pk }}" {% if selected_category_id == cat.pk %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
 
@@ -493,7 +489,7 @@ function posTerminal(config) {
         shiftId: config.shiftId,
         shiftPublicId: config.shiftPublicId,
         currency: config.currency || '$',
-        selectedCategory: config.selectedCategory !== undefined ? config.selectedCategory : null,
+        selectedCategory: config.selectedCategory || '',
         mobileTab: 'catalog',
         cart: [],
         selectedCustomerId: '',
