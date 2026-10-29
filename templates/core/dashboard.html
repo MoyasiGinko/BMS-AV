@@ -9,20 +9,9 @@
   <!-- Executive Dashboard Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3 border-b border-[var(--border)]">
     <div>
-      <div class="flex items-center gap-2.5">
-        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">
-          {% blocktrans with name=organization.name %}Welcome to {{ name }}{% endblocktrans %}
-        </h1>
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          {% trans "Live Ledger" %}
-        </span>
-      </div>
-      <p class="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-2">
-        <span>{% now "l, F j, Y" %}</span>
-        <span>&bull;</span>
-        <span>{% trans "Real-time financial, operational, and workforce analytics" %}</span>
-      </p>
+      <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">
+        {% blocktrans with name=organization.name %}Welcome to {{ name }}{% endblocktrans %}
+      </h1>
     </div>
 
     <!-- Quick Action Controls -->
