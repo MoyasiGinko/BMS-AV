@@ -34,6 +34,14 @@
 
 
 
+  - Sales Invoices Screen Neumorphic Redesign (Commit `7f6a522`):
+    - Redesigned `/sales/invoices/` following the modern neumorphic design language established on the main dashboard.
+    - Upgraded navigation tabs (`apps/sales/templates/sales/partials/_navigation_tabs.html`) into a sleek sunken segmented control bar with active elevated pills across all 7 sales sub-modules.
+    - Transformed the 4 summary cards (`Total Invoiced`, `Unpaid Receivables`, `Overdue Amount`, `This Month`) into matching neumorphic cards with two-tone progress tracks, risk indicators, and chevron navigation links.
+    - Implemented a tactile search and filter toolbar with sunken search input, status dropdown, quick-filter pills (`All`, `Posted`, `Paid`, `Partial`, `Draft`), and instant HTMX reactive swapping.
+    - Redesigned invoice table (`apps/sales/templates/sales/partials/invoice_table.html`) with circular customer avatars, glowing status dot pills, formatted currency (`$6,153.40` instead of 4 decimals), overdue alert indicators, and tactile View/Print action buttons.
+    - Verified all 41 sales tests passing and confirmed visual aesthetics via live Chrome DevTools session.
+
   - Dashboard Clean-up & Bento Grid Refinement (Commit `f14bd67`):
     - Removed raw `WORKSPACE OVERVIEW` header banner; preserved `<span class="sr-only">` for accessibility and test suite assertions.
     - Redesigned 4 workspace capacity metrics (`Subscription Tier`, `Active Team`, `Locations`, `Metered API Usage`) into matching neumorphic cards (`rounded-2xl`, chevron link, and clean micro-footers).
