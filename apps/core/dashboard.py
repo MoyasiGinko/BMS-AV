@@ -182,7 +182,7 @@ class QuickActionsWidget(DashboardWidget):
     widget_id = "quick_actions"
     title = _("Quick Actions")
     description = _("Fast shortcuts to common platform workflows")
-    col_span = 4
+    col_span = 6
     order = 30
     template_name = "core/dashboard/widgets/quick_actions.html"
     is_user_specific = True

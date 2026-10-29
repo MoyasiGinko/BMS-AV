@@ -1,98 +1,106 @@
 {% load i18n %}
-<div class="space-y-3">
-  <div class="flex items-center justify-between">
-    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-      {% trans "Workspace Overview" %}
-    </h3>
-  </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div>
+  <span class="sr-only">{% trans "Workspace Overview" %}</span>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
-  <!-- KPI 1: Active Subscription Plan -->
-  <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5 shadow-xs flex flex-col justify-between hover:border-[var(--brand-300)] transition-colors">
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Subscription Tier" %}</span>
-      <div class="p-1.5 rounded-md bg-[var(--brand-50)] text-[var(--brand-600)] dark:bg-[var(--brand-950)] dark:text-[var(--brand-400)]">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+    <!-- KPI 1: Active Subscription Plan -->
+    <div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs transition-all h-full flex flex-col justify-between">
+      <div>
+        <div class="text-xs uppercase font-bold tracking-wider text-[var(--text-muted)] flex items-center justify-between">
+          <span>{% trans "Subscription Tier" %}</span>
+          <a href="{% url 'billing:dashboard' %}" class="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" title="{% trans 'Manage Subscription' %}">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+        <div class="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight mt-2">
+          {{ plan_name }}
+        </div>
+        <div class="mt-1.5 text-xs font-semibold">
+          <span class="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            {{ plan_status|title }}
+          </span>
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[var(--border)]/50 flex items-center justify-between text-3xs font-medium text-[var(--text-muted)]">
+        <span>{% trans "Billing plan" %}</span>
+        <a href="{% url 'billing:dashboard' %}" class="text-[var(--brand-600)] hover:underline font-semibold">{% trans "Manage" %}</a>
       </div>
     </div>
-    <div class="my-3">
-      <div class="text-2xl font-bold tracking-tight text-[var(--text)]">
-        {{ plan_name }}
-      </div>
-    </div>
-    <div class="flex items-center justify-between text-xs pt-2 border-t border-[var(--border)]">
-      <span class="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-        {{ plan_status|title }}
-      </span>
-      <a href="{% url 'billing:dashboard' %}" class="text-[var(--text-muted)] hover:text-[var(--brand-600)] underline">
-        {% trans "Manage" %}
-      </a>
-    </div>
-  </div>
 
-  <!-- KPI 2: Team Members -->
-  <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5 shadow-xs flex flex-col justify-between hover:border-[var(--brand-300)] transition-colors">
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Active Team" %}</span>
-      <div class="p-1.5 rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    <!-- KPI 2: Team Members -->
+    <div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs transition-all h-full flex flex-col justify-between">
+      <div>
+        <div class="text-xs uppercase font-bold tracking-wider text-[var(--text-muted)] flex items-center justify-between">
+          <span>{% trans "Active Team" %}</span>
+          <a href="{% url 'settings:users' %}" class="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" title="{% trans 'Manage Users' %}">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+        <div class="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight font-mono mt-2">
+          {{ members_count }}
+        </div>
+        <div class="mt-1.5 text-xs font-semibold text-[var(--text-muted)]">
+          {% trans "Active collaborators" %}
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[var(--border)]/50 flex items-center justify-between text-3xs font-medium text-[var(--text-muted)]">
+        <span>{% trans "Workspace users" %}</span>
+        <a href="{% url 'settings:users' %}" class="text-[var(--brand-600)] hover:underline font-semibold">{% trans "Users" %}</a>
       </div>
     </div>
-    <div class="my-3">
-      <div class="text-2xl font-bold tracking-tight text-[var(--text)] font-mono tabular-nums">
-        {{ members_count }}
-      </div>
-    </div>
-    <div class="flex items-center justify-between text-xs pt-2 border-t border-[var(--border)]">
-      <span class="text-[var(--text-muted)]">{% trans "Active collaborators" %}</span>
-      <a href="{% url 'settings:users' %}" class="text-[var(--text-muted)] hover:text-[var(--brand-600)] underline">
-        {% trans "Users" %}
-      </a>
-    </div>
-  </div>
 
-  <!-- KPI 3: Branches & Warehouses -->
-  <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5 shadow-xs flex flex-col justify-between hover:border-[var(--brand-300)] transition-colors">
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Locations" %}</span>
-      <div class="p-1.5 rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+    <!-- KPI 3: Branches & Warehouses -->
+    <div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs transition-all h-full flex flex-col justify-between">
+      <div>
+        <div class="text-xs uppercase font-bold tracking-wider text-[var(--text-muted)] flex items-center justify-between">
+          <span>{% trans "Locations" %}</span>
+          <a href="{% url 'settings:branches' %}" class="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" title="{% trans 'Manage Branches' %}">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+        <div class="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight font-mono mt-2">
+          {{ branch_count }} <span class="text-sm font-normal text-[var(--text-muted)]">/ {{ warehouse_count }} wh</span>
+        </div>
+        <div class="mt-1.5 text-xs font-semibold text-[var(--text-muted)]">
+          {% trans "Branches & Warehouses" %}
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[var(--border)]/50 flex items-center justify-between text-3xs font-medium text-[var(--text-muted)]">
+        <span>{% trans "Fulfillment network" %}</span>
+        <a href="{% url 'settings:branches' %}" class="text-[var(--brand-600)] hover:underline font-semibold">{% trans "Branches" %}</a>
       </div>
     </div>
-    <div class="my-3">
-      <div class="text-2xl font-bold tracking-tight text-[var(--text)] font-mono tabular-nums">
-        {{ branch_count }} <span class="text-sm font-normal text-[var(--text-muted)]">/ {{ warehouse_count }} wh</span>
-      </div>
-    </div>
-    <div class="flex items-center justify-between text-xs pt-2 border-t border-[var(--border)]">
-      <span class="text-[var(--text-muted)]">{% trans "Branches & Warehouses" %}</span>
-      <a href="{% url 'settings:branches' %}" class="text-[var(--text-muted)] hover:text-[var(--brand-600)] underline">
-        {% trans "Branches" %}
-      </a>
-    </div>
-  </div>
 
-  <!-- KPI 4: Monthly API Usage -->
-  <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-xl p-5 shadow-xs flex flex-col justify-between hover:border-[var(--brand-300)] transition-colors">
-    <div class="flex items-center justify-between">
-      <span class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{% trans "Metered API Usage" %}</span>
-      <div class="p-1.5 rounded-md bg-[var(--surface-2)] text-[var(--text-muted)]">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+    <!-- KPI 4: Monthly API Usage -->
+    <div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs transition-all h-full flex flex-col justify-between">
+      <div>
+        <div class="text-xs uppercase font-bold tracking-wider text-[var(--text-muted)] flex items-center justify-between">
+          <span>{% trans "Metered API Usage" %}</span>
+          <a href="{% url 'settings:api_keys' %}" class="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" title="{% trans 'Manage API Keys' %}">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+        <div class="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight font-mono mt-2">
+          {{ monthly_api_calls }}
+        </div>
+        <div class="mt-1.5 text-xs font-semibold text-[var(--text-muted)]">
+          {% trans "Calls this month" %}
+        </div>
+      </div>
+      <div class="mt-4 pt-3 border-t border-[var(--border)]/50 flex items-center justify-between text-3xs font-medium text-[var(--text-muted)]">
+        <span>{% trans "Integration access" %}</span>
+        <a href="{% url 'settings:api_keys' %}" class="text-[var(--brand-600)] hover:underline font-semibold">{% trans "API Keys" %}</a>
       </div>
     </div>
-    <div class="my-3">
-      <div class="text-2xl font-bold tracking-tight text-[var(--text)] font-mono tabular-nums">
-        {{ monthly_api_calls }}
-      </div>
-    </div>
-    <div class="flex items-center justify-between text-xs pt-2 border-t border-[var(--border)]">
-      <span class="text-[var(--text-muted)]">{% trans "Calls this month" %}</span>
-      <a href="{% url 'settings:api_keys' %}" class="text-[var(--text-muted)] hover:text-[var(--brand-600)] underline">
-        {% trans "API Keys" %}
-      </a>
-    </div>
-  </div>
 
   </div>
 </div>

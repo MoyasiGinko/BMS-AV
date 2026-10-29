@@ -201,8 +201,8 @@ class HeadcountWidget(DashboardWidget):
     description = _("Active headcount, departmental distribution, and hiring trends")
     module = "hr"
     permission = "hr.view"
-    col_span = 4
-    order = 30
+    col_span = 6
+    order = 32
     template_name = "reports/widgets/headcount.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -219,8 +219,8 @@ class AttendanceWidget(DashboardWidget):
     description = _("Real-time workforce presence, late check-ins, and active leaves")
     module = "hr"
     permission = "hr.view"
-    col_span = 4
-    order = 31
+    col_span = 6
+    order = 33
     template_name = "reports/widgets/attendance.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -256,7 +256,7 @@ class EmployeePerformanceWidget(DashboardWidget):
     module = "hr"
     permission = "hr.view"
     col_span = 6
-    order = 33
+    order = 36
     template_name = "reports/widgets/employee_performance.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
