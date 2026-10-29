@@ -33,12 +33,12 @@
             {% if product.type == 'stock' %}
             <div class="mb-2.5 flex items-center">
                 {% if product.stock_qty <= 0 %}
-                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-2.5 py-0.5 rounded-full border border-rose-200/50">
+                <span class="pos-stock-out inline-flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-100/90 px-2.5 py-0.5 rounded-full border border-rose-300/60">
                     <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                     {% trans "Out of stock" %}
                 </span>
                 {% else %}
-                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200/50">
+                <span class="pos-stock-in inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-300/60">
                     <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                     {{ product.stock_qty|floatformat:0 }} {% trans "in stock" %}
                 </span>

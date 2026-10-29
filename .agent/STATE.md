@@ -34,10 +34,14 @@
 
 
 
-  - POS Terminal Toolbar Symmetrical Spacing & Light Gray Bottom Border Framing:
-    - Added symmetrical vertical spacing: Configured `py-4` (16px) top and bottom padding across both toolbar containers (`px-4 sm:px-6 py-4 bg-[var(--surface-1)] border-b border-slate-200 dark:border-slate-700/60`), ensuring exactly 16px spacing between the top border and controls, and exactly 16px spacing between the controls and the bottom border.
-    - Standardized light gray border: Added `.pos-toolbar-bar` rule in `static/css/neumorphic.css` (`border-bottom: 1px solid var(--neu-line) !important;`) matching the top header border (`#D3D8E8` / `rgb(211, 216, 232)`), eliminating default dark text color fallback and providing an exact match to the system's light gray dividing line.
-    - Verified layout with Chrome DevTools bounding box metrics (`topSpace: 16px`, `bottomSpace: 17px` with 1px border, control height `48px`, `borderBottom: 1px solid rgb(211, 216, 232)`) and live viewport screenshot; all 8 POS tests in `apps/pos/tests/test_views.py` passing.
+  - POS Stock Badge Contrast & Un-Graying Polish:
+    - Root cause: `dark:bg-emerald-950/60` and `dark:text-emerald-400` classes in `product_grid.html` were triggering via media query when the client OS had dark mode enabled, causing a muddy dark slate cast (`oklab(0.262 -0.0505697 0.00661094 / 0.6)`) over the light neumorphic card surface.
+    - Added dedicated `.pos-stock-in` and `.pos-stock-out` semantic badge classes in `product_grid.html`.
+    - Styled with vibrant, crisp, un-grayed colors in `static/css/neumorphic.css`:
+      - In-stock (`.pos-stock-in`): crisp mint background (`#d1fae5` / `rgb(209, 250, 229)`), deep readable emerald green text (`#065f46` / `rgb(6, 95, 70)`), pulsing green dot, and delicate border (`#a7f3d0`).
+      - Out-of-stock (`.pos-stock-out`): soft rose background (`#ffe4e6`), deep rose text (`#9f1239`), and border (`#fecdd3`).
+      - Added dark theme scoped styling (`[data-theme="dark"] .pos-stock-in`) ensuring appropriate dark-mode contrast when intentional.
+    - Verified with live DevTools computed style inspection and screenshot; all 8 POS tests in `apps/pos/tests/test_views.py` passing.
 
   - Pure Neumorphism Refinement (Zero White Box Shadows & Zero Border Boxes):
     - Converted `--neu-shadow-light` to `transparent` in `static/css/neumorphic.css`, completely eliminating glaring white drop shadows / halos across all neumorphic elements.

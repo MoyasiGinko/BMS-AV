@@ -1110,6 +1110,31 @@ html[data-theme="spatial"],
   border: none !important;
 }
 
+/* POS Terminal Stock Badges - Crisp, vibrant, un-grayed tactile pills */
+[data-theme="neumorphic"] .pos-catalog-card .pos-stock-in {
+  background-color: #d1fae5 !important; /* emerald-100 */
+  color: #065f46 !important; /* emerald-800 */
+  border: 1px solid #a7f3d0 !important; /* emerald-200 */
+}
+
+[data-theme="neumorphic"] .pos-catalog-card .pos-stock-out {
+  background-color: #ffe4e6 !important; /* rose-100 */
+  color: #9f1239 !important; /* rose-800 */
+  border: 1px solid #fecdd3 !important; /* rose-200 */
+}
+
+[data-theme="dark"] .pos-catalog-card .pos-stock-in {
+  background-color: rgba(6, 78, 59, 0.45) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+[data-theme="dark"] .pos-catalog-card .pos-stock-out {
+  background-color: rgba(136, 19, 55, 0.45) !important;
+  color: #fb7185 !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+}
+
 [data-theme="neumorphic"] .pos-terminal .pos-catalog-card {
   background-color: var(--neu-surface) !important;
   box-shadow: 4px 4px 12px rgba(166, 175, 195, 0.45) !important;
