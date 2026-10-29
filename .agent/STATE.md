@@ -39,7 +39,8 @@
     - Cleaned up the header layout to display the organization title `Welcome to {{ name }}` (`text-2xl font-bold tracking-tight text-[var(--text)]`) accompanied by a clean, minimalist date line (`Thursday, October 29, 2026`).
     - Verified live rendering with Chrome DevTools; all 12 `tests/test_dashboard.py` tests passing. Commit `8ce0e25`.
 
-  - Onboarding Checklist Widget Redesign (`templates/tenancy/dashboard/onboarding_checklist.html`):
+  - Onboarding Checklist Widget Redesign & Top Placement (`templates/tenancy/dashboard/onboarding_checklist.html`, `apps/tenancy/dashboard_widgets.py`):
+    - Changed widget priority `order = 1` in `OnboardingChecklistWidget` so the checklist displays at the very top of the dashboard widget grid, directly beneath the executive header.
     - Removed garish top multi-color gradient bar and heavy green background washes.
     - Cleaned and modernized header: Prominent title `Getting Started with Business OS` (`text-lg sm:text-xl font-bold text-[var(--text)] tracking-tight`) with compact status badge `{{ completed_count }} / {{ total_count }} Completed`.
     - Integrated setup progress directly into the header as a sleek compact pill with mini progress bar and percentage (`Progress [===] 100%`), eliminating the bulky full-width progress bar.
