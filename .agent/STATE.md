@@ -34,15 +34,18 @@
 
 
 
-  - POS Dual-Tier Per-Product Discount & Overall Order Discount Input:
-    - Replaced the discount button presets with an accessible input field defaulting to 0 (`orderDiscountPercent = 0`) in `.pos-checkout-box`. Typing into the order discount input optionally sets the discount across all items (`(apply all)`).
-    - Designed and implemented individual per-product discount options on each cart item card (`.pos-cart-card`):
-      - Two-tier layout: Top tier displays Product title, SKU, unit price, and Line Total (with strikethrough original total when discounted).
-      - Bottom tier contains: Quantity stepper (`[-] qty [+]`), Per-Product Discount input (`Disc: [ 0 ] %`), real-time line deduction badge (`-$X.XX` in amber), and Trash/Remove button.
-      - Each item maintains its own `item.discount_percent` independently, allowing different products in the same transaction to carry different discount rates.
-      - Alpine.js automatically calculates item-level totals, cumulative order discount deductions, subtotal, taxes, and total due in real time, passing the exact per-line `discount_percent` to the checkout backend.
-    - Added tactile styling in `static/css/neumorphic.css` for `.pos-cart-divider` and input wells (`border-top: 1px solid var(--neu-line) !important;` with sunken tactile shadow and zero border box outlines).
-    - Validated in Chrome DevTools MCP with live cart mutations (individual 20% on item 2, 0% on item 1; order discount sync) and verified all 22 POS unit, isolation, and idempotency tests passing (`22 passed`).
+  - Inventory-Configured Product Discounts & POS Extra Order Discount:
+    - User requirement clarification: Individual product discounts are configured when adding/editing the product in inventory, not manually typed on each line during checkout. The checkout discount input is reserved for an extra discount over the entire order.
+    - Added `discount_percent` to `Product` model in `apps/catalog/models.py` (migration `0006_product_discount_percent` applied) and `effective_price` property.
+    - Updated `ProductForm` (`apps/catalog/forms.py`), `create_product`/`update_product` (`apps/catalog/services.py`), `product_create_view`/`product_edit_view` (`apps/catalog/views.py`), and `product_form.html` to enable setting product-level promotional discounts during inventory catalog creation and updates.
+    - Enhanced POS Touch Catalog Grid (`product_grid.html`):
+      - In-stock products with inventory promotional discounts show vibrant `X% OFF` badge in amber, effective price, and struck-through original price.
+      - Added product carries its inventory `discount_percent` into the cart.
+    - Refactored POS Cart & Checkout (`terminal.html`):
+      - Cleaned cart row markup: removed clumsy per-product inputs, restored clean stepper and remove actions.
+      - Discounted items display inventory `X% OFF` badge, line total, and struck-through original price.
+      - In checkout box: Extra Discount input defaults to `0` (`[ 0 ] %`). Applying an extra order discount calculates on top of any existing inventory item discounts across the whole order.
+    - Verified all 22 POS tests and 6 catalog tests passing (`pytest apps/pos/tests/ apps/catalog/tests/ -v`).
 
   - POS Checkout Accessibility, Bottom Grounding, Light Gray Border & Discount Option:
     - Root cause of dark/black border: Tailwind class `border-[var(--border)]/70` without an explicit compiled color class evaluated to `currentColor` (#262B45 dark ink). Replaced with `border-t border-slate-200 dark:border-slate-700/60` and explicit scoped CSS rule `[data-theme="neumorphic"] .pos-terminal .pos-checkout-box { border-top: 1px solid var(--neu-line) !important; }` guaranteeing exact light gray `#D3D8E8` (`rgb(211, 216, 232)`).

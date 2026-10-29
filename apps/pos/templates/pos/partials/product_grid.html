@@ -8,6 +8,7 @@
                 sku: '{{ product.sku|escapejs }}',
                 name: '{{ product.name|escapejs }}',
                 price: '{{ product.selling_price }}',
+                discount_percent: {{ product.discount_percent|default:'0.00' }},
                 tax_rate: '{{ product.tax_code.rate|default:'0.00' }}',
                 stock_qty: {{ product.stock_qty|default:0 }},
                 is_stock: {% if product.type == 'stock' %}true{% else %}false{% endif %}
@@ -48,9 +49,21 @@
 
             <!-- Price and Tactile Plus Action -->
             <div class="pt-3 border-t border-[var(--border)]/50 flex items-center justify-between">
-                <span class="text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors">
-                    ${{ product.selling_price|floatformat:2|intcomma }}
-                </span>
+                <div>
+                    {% if product.discount_percent > 0 %}
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60">{{ product.discount_percent|floatformat:0 }}% OFF</span>
+                        <span class="text-xs font-mono text-muted line-through">${{ product.selling_price|floatformat:2|intcomma }}</span>
+                    </div>
+                    <span class="text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors">
+                        ${{ product.effective_price|floatformat:2|intcomma }}
+                    </span>
+                    {% else %}
+                    <span class="text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors">
+                        ${{ product.selling_price|floatformat:2|intcomma }}
+                    </span>
+                    {% endif %}
+                </div>
                 <span class="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--brand-600)] dark:text-[var(--brand-400)] group-hover:bg-[var(--brand-600)] group-hover:text-white transition-all shadow-2xs border border-[var(--border)]/60">
                     <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 4v16m8-8H4" />

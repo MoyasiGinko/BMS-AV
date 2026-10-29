@@ -65,6 +65,14 @@ class ProductForm(forms.Form):
         initial=Decimal("0.0000"),
         widget=forms.NumberInput(attrs={"class": "form-input", "step": "0.01"}),
     )
+    discount_percent = forms.DecimalField(
+        label=_("Discount (%)"),
+        max_digits=5,
+        decimal_places=2,
+        required=False,
+        initial=Decimal("0.00"),
+        widget=forms.NumberInput(attrs={"class": "form-input", "step": "0.5", "min": "0", "max": "100", "placeholder": "0.00"}),
+    )
     tax_code_id = forms.IntegerField(
         label=_("Tax Code"),
         required=False,

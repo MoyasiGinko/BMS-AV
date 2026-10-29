@@ -8,6 +8,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import TenantModel
+from apps.core.money import FOUR_PLACES
 
 
 class Category(TenantModel):
@@ -155,6 +156,13 @@ class Product(TenantModel):
         decimal_places=4,
         default=Decimal("0.0000"),
     )
+    discount_percent = models.DecimalField(
+        _("discount percent"),
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text=_("Default promotional discount percentage for this product in inventory/POS."),
+    )
     tax_code = models.ForeignKey(
         "tenancy.TaxCode",
         on_delete=models.SET_NULL,
@@ -206,6 +214,14 @@ class Product(TenantModel):
 
     @property
     def price(self) -> Decimal:
+        return self.selling_price
+
+    @property
+    def effective_price(self) -> Decimal:
+        """Selling price after product-level promotional discount."""
+        if self.discount_percent and self.discount_percent > Decimal("0"):
+            discount_mult = Decimal("1") - (self.discount_percent / Decimal("100"))
+            return (self.selling_price * discount_mult).quantize(FOUR_PLACES)
         return self.selling_price
 
     @property
