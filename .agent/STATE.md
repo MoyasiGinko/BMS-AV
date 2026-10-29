@@ -43,7 +43,7 @@
       - Added product carries its inventory `discount_percent` into the cart.
     - Refactored POS Cart & Checkout (`terminal.html`):
       - Cleaned cart row markup: removed clumsy per-product inputs, restored clean stepper and remove actions.
-      - Discounted items display inventory `X% OFF` badge, line total, and struck-through original price.
+      - Discounted items display the inventory `X% OFF` badge directly in the subtitle line next to the SKU (replacing the redundant `$xx.xx ea`), with clean title typography above, line total, and struck-through original price on the right.
       - In checkout box: Extra Discount input defaults to `0` (`[ 0 ] %`). Applying an extra order discount calculates on top of any existing inventory item discounts across the whole order.
     - Verified all 22 POS tests and 6 catalog tests passing (`pytest apps/pos/tests/ apps/catalog/tests/ -v`).
 

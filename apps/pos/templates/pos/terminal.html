@@ -211,17 +211,17 @@
 
                 <template x-for="(item, index) in cart" :key="item.id">
                     <div class="pos-cart-card p-3.5 sm:p-4 rounded-xl bg-[var(--surface-1)] flex items-center justify-between gap-3 transition-colors">
-                        <!-- Product Title & Details (shows inventory discount badge if active) -->
+                        <!-- Product Title & Details -->
                         <div class="flex-1 min-w-0 pr-2">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="font-bold text-ink text-sm sm:text-base leading-snug" x-text="item.name"></span>
+                            <h4 class="font-bold text-ink text-sm sm:text-base leading-snug line-clamp-2" x-text="item.name"></h4>
+                            <div class="text-xs font-mono mt-1 flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-md bg-[var(--surface-2)]/80 font-bold text-muted" x-text="item.sku"></span>
                                 <template x-if="item.discount_percent > 0">
-                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 text-[11px] font-black shrink-0" x-text="item.discount_percent + '% OFF'"></span>
+                                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 text-[11px] font-black border border-amber-300/60" x-text="item.discount_percent + '% OFF'"></span>
                                 </template>
-                            </div>
-                            <div class="text-xs text-muted font-mono mt-1 flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded-md bg-[var(--surface-2)]/80 font-bold" x-text="item.sku"></span>
-                                <span>$<span x-text="formatDec(item.price)"></span> ea</span>
+                                <template x-if="!item.discount_percent || item.discount_percent <= 0">
+                                    <span class="text-muted font-mono">$<span x-text="formatDec(item.price)"></span> ea</span>
+                                </template>
                             </div>
                         </div>
 
