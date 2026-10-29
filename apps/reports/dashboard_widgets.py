@@ -21,8 +21,8 @@ class SalesTodayWidget(DashboardWidget):
     description = _("Gross sales, transaction volume, and POS vs invoice breakdown for today")
     module = "sales"
     permission = "sales.view"
-    col_span = 4
-    order = 15
+    col_span = 3
+    order = 9
     template_name = "reports/widgets/sales_today.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -39,8 +39,8 @@ class ReceivablesWidget(DashboardWidget):
     description = _("Open invoice aging, overdue balances, and top outstanding customer debts")
     module = "sales"
     permission = "sales.view"
-    col_span = 4
-    order = 16
+    col_span = 3
+    order = 6
     template_name = "reports/widgets/receivables.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -57,8 +57,8 @@ class LowStockWidget(DashboardWidget):
     description = _("Products at or below their reorder points and safety stock levels")
     module = "inventory"
     permission = "inventory.view"
-    col_span = 4
-    order = 17
+    col_span = 3
+    order = 8
     template_name = "reports/widgets/low_stock.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -111,8 +111,8 @@ class PayablesWidget(DashboardWidget):
     description = _("Open vendor bill aging, overdue totals, and top outstanding supplier liabilities")
     module = "purchasing"
     permission = "purchasing.view"
-    col_span = 4
-    order = 18
+    col_span = 3
+    order = 7
     template_name = "reports/widgets/payables.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -165,8 +165,8 @@ class ProfitTrendWidget(DashboardWidget):
     description = _("6-month revenue, expense, net profit margin, and financial growth trajectory")
     module = "accounting"
     permission = "accounting.view"
-    col_span = 6
-    order = 28
+    col_span = 7
+    order = 2
     template_name = "reports/widgets/profit_trend.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:

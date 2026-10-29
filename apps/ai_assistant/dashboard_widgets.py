@@ -20,8 +20,8 @@ class AttentionTodayWidget(DashboardWidget):
     description = _(
         "Operational intelligence alerting managers to critical bottlenecks, cash risks, and stockouts"
     )
-    col_span = 12
-    order = 5  # Topmost prominent placement on the dashboard grid
+    col_span = 5
+    order = 3  # Bento right column placed alongside Operating Revenue
     template_name = "ai_assistant/widgets/attention_today.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:

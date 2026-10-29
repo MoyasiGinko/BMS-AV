@@ -34,6 +34,20 @@
 
 
 
+  - Dashboard Bento Grid Refactor (Executive Briefing, Operating Revenue Chart & 4-Metric Grid):
+    - Redesigned the primary dashboard layout into a modern Bento Grid based on user specifications:
+      - Top Row (12 columns on desktop):
+        - Left (`lg:col-span-7`): Operating Revenue widget (`ProfitTrendWidget`) featuring prominent metric typography (`$1,284,950.00` with `+18.4% vs last period`), interactive `Week | Month | Quarter` segmented pill toggle, smooth Catmull-Rom cubic bezier area spline chart with purple/indigo gradient fill, and subtle footer (`Audit interval: 30-day continuous` and `✓ General Ledger Balanced`).
+        - Right (`lg:col-span-5`): "What Needs Attention Today" widget (`AttentionTodayWidget`) featuring clean header (`3 Items Active`, refresh action), embossed circular letter avatars (`H`, `P`, `M`), clean titles and descriptive subtitles, soft pill action buttons (`Restock`, `Create PO`, `Review`), and footer (`All anomalies routed to operational outbox` • `Sync: Online`).
+      - Second Row (12 columns on desktop):
+        - 4 KPI cards across equal 4-column spans (`lg:col-span-3`):
+          1. `AGED RECEIVABLES` with total overdue, health indicator, and micro aging breakdown.
+          2. `VENDOR BILLS DUE` with total payable, due counts, and vendor status bar.
+          3. `STOCK VALUATION` with inventory balance, safety reorder alerts, and replenishment indicator.
+          4. `POS REGISTERS` with active terminal counts, daily cash takings, and shift balance indicator.
+    - Updated `templates/core/dashboard.html` and `dashboard_widgets_partial.html` to support `lg:col-span-7`, `lg:col-span-5`, and `lg:col-span-3` bento grid layout classes.
+    - All tests verified passing (22/22 across `test_dashboard.py`, `test_attention_views.py`, and `test_widgets.py`).
+
   - Dashboard Executive Header Simplification (`templates/core/dashboard.html`):
     - Removed `Live Ledger` badge and buzzword subtitle (`Real-time financial, operational, and workforce analytics`).
     - Cleaned up the header layout to display the organization title `Welcome to {{ name }}` (`text-2xl font-bold tracking-tight text-[var(--text)]`) accompanied by a clean, minimalist date line (`Thursday, October 29, 2026`).
