@@ -35,6 +35,9 @@
 
 
   - What Needs Attention Today & Executive Morning Briefing Streamline:
+    - Cleaned and enlarged widget title header per user direction ("keep it cleen only the title but a little bigger"):
+      - Removed warning icon box, total count badge, "Briefing" pill, and subtitle counts from header left side.
+      - Retained only the clean title, enlarged to `text-lg sm:text-xl font-bold text-[var(--text)] tracking-tight`.
     - Unified Briefing & Attention into single non-duplicated layout per user direction ("briefing alone and the cards are same thing so, dont duplicate just make them mirgate to one"):
       - Removed duplicate standalone Briefing card from occupying a redundant 4th column in the row.
       - Migrated the 3 operational items directly into the unified 3-column bento grid (`repeat(auto-fit, minmax(280px, 1fr))`), giving each card 485px width on desktop with generous breathing room and zero awkward line-wrapping.
