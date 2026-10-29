@@ -1,73 +1,161 @@
-{% load i18n %}
+{% load i18n humanize %}
 <div id="invoice-table-container">
     <div class="overflow-x-auto">
-        <table class="w-full text-left text-base text-muted">
-            <thead class="bg-app text-xs uppercase tracking-wider text-muted border-b border-line font-bold">
+        <table class="w-full text-left text-sm text-muted">
+            <thead class="bg-[var(--surface-2)]/60 text-xs font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/70">
                 <tr>
-                    <th scope="col" class="py-4 px-5 font-bold">{% trans "Invoice" %}</th>
-                    <th scope="col" class="py-4 px-5 font-bold">{% trans "Customer" %}</th>
-                    <th scope="col" class="py-4 px-5 font-bold">{% trans "Date" %}</th>
-                    <th scope="col" class="py-4 px-5 font-bold">{% trans "Due Date" %}</th>
-                    <th scope="col" class="py-4 px-5 font-bold">{% trans "Status" %}</th>
-                    <th scope="col" class="py-4 px-5 font-bold text-right">{% trans "Total" %}</th>
-                    <th scope="col" class="py-4 px-5 font-bold text-right">{% trans "Balance Due" %}</th>
-                    <th scope="col" class="py-4 px-5 font-bold text-right">{% trans "Actions" %}</th>
+                    <th scope="col" class="py-3.5 px-5 font-bold">{% trans "Invoice" %}</th>
+                    <th scope="col" class="py-3.5 px-5 font-bold">{% trans "Customer" %}</th>
+                    <th scope="col" class="py-3.5 px-5 font-bold">{% trans "Issue Date" %}</th>
+                    <th scope="col" class="py-3.5 px-5 font-bold">{% trans "Due Date" %}</th>
+                    <th scope="col" class="py-3.5 px-5 font-bold">{% trans "Status" %}</th>
+                    <th scope="col" class="py-3.5 px-5 font-bold text-right">{% trans "Total" %}</th>
+                    <th scope="col" class="py-3.5 px-5 font-bold text-right">{% trans "Balance Due" %}</th>
+                    <th scope="col" class="py-3.5 px-5 font-bold text-right">{% trans "Actions" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-line text-[15px]">
+            <tbody class="divide-y divide-[var(--border)]/60 text-[14px]">
                 {% for inv in invoices %}
-                <tr class="hover:bg-surface-2 transition-colors">
-                    <td class="py-4 px-5 font-mono font-semibold text-ink">
-                        <a href="{% url 'sales:invoice_detail' public_id=inv.public_id %}" class="text-[var(--brand-600)] dark:text-[var(--brand-500)] hover:underline">
+                <tr class="hover:bg-[var(--surface-2)]/40 transition-colors group">
+                    <!-- Invoice # -->
+                    <td class="py-3.5 px-5 font-mono font-semibold text-ink">
+                        <a href="{% url 'sales:invoice_detail' public_id=inv.public_id %}"
+                           class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface-2)]/80 text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:bg-[var(--surface-2)] hover:underline transition-all text-xs font-bold border border-[var(--border)]/40">
+                            <svg class="w-3.5 h-3.5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             {{ inv.invoice_number }}
                         </a>
                     </td>
-                    <td class="py-4 px-5 font-medium text-ink">
-                        <a href="{% url 'customers:customer_detail' customer_id=inv.customer.pk %}" class="hover:underline">
-                            {{ inv.customer.name }}
-                        </a>
-                        <span class="block text-xs text-slate-400 font-mono">{{ inv.customer.code }}</span>
+
+                    <!-- Customer -->
+                    <td class="py-3.5 px-5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-[var(--surface-2)] flex items-center justify-center font-bold text-xs text-[var(--brand-600)] dark:text-[var(--brand-400)] shrink-0 shadow-2xs border border-[var(--border)]/50">
+                                {{ inv.customer.name|slice:":1"|upper }}
+                            </div>
+                            <div class="min-w-0">
+                                <a href="{% url 'customers:customer_detail' customer_id=inv.customer.pk %}"
+                                   class="font-semibold text-ink hover:text-[var(--brand-600)] dark:hover:text-[var(--brand-400)] transition-colors block truncate text-sm">
+                                    {{ inv.customer.name }}
+                                </a>
+                                <span class="block text-2xs text-muted font-mono tracking-tight">{{ inv.customer.code }}</span>
+                            </div>
+                        </div>
                     </td>
-                    <td class="py-4 px-5 text-slate-600 dark:text-slate-300 font-mono">{{ inv.invoice_date }}</td>
-                    <td class="py-4 px-5 text-slate-600 dark:text-slate-300 font-mono">{{ inv.due_date|default:"-" }}</td>
-                    <td class="py-4 px-5">
-                        {% if inv.status == 'posted' %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Posted" %}</span>
-                        {% elif inv.status == 'draft' %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{% trans "Draft" %}</span>
-                        {% elif inv.status == 'paid' %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-400">{% trans "Paid" %}</span>
-                        {% elif inv.status == 'partially_paid' %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400">{% trans "Partially Paid" %}</span>
-                        {% elif inv.status == 'void' %}
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Void" %}</span>
+
+                    <!-- Dates -->
+                    <td class="py-3.5 px-5 text-ink font-mono text-xs whitespace-nowrap">
+                        {{ inv.invoice_date|date:"M d, Y" }}
+                    </td>
+                    <td class="py-3.5 px-5 font-mono text-xs whitespace-nowrap">
+                        {% if inv.due_date %}
+                            {% if inv.balance_due > 0 and inv.due_date < today %}
+                                <span class="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold">
+                                    <svg class="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    {{ inv.due_date|date:"M d, Y" }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">{{ inv.due_date|date:"M d, Y" }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted/60">-</span>
                         {% endif %}
                     </td>
-                    <td class="py-4 px-5 text-right font-mono font-bold text-ink text-base">
-                        ${{ inv.grand_total }}
+
+                    <!-- Status Badges -->
+                    <td class="py-3.5 px-5 whitespace-nowrap">
+                        {% if inv.status == 'posted' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 border border-sky-200/50">
+                                <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                                {% trans "Posted" %}
+                            </span>
+                        {% elif inv.status == 'paid' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/50">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                {% trans "Paid" %}
+                            </span>
+                        {% elif inv.status == 'partially_paid' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200/50">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                {% trans "Partially Paid" %}
+                            </span>
+                        {% elif inv.status == 'draft' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/50">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                {% trans "Draft" %}
+                            </span>
+                        {% elif inv.status == 'void' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200/50">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                {% trans "Void" %}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                {{ inv.status }}
+                            </span>
+                        {% endif %}
                     </td>
-                    <td class="py-4 px-5 text-right font-mono font-bold text-base {% if inv.balance_due > 0 %}text-amber-600 dark:text-amber-400{% else %}text-slate-500{% endif %}">
-                        ${{ inv.balance_due }}
+
+                    <!-- Grand Total -->
+                    <td class="py-3.5 px-5 text-right font-mono font-bold text-ink text-sm whitespace-nowrap">
+                        ${{ inv.grand_total|floatformat:2|intcomma }}
                     </td>
-                    <td class="py-4 px-5 text-right">
-                        <div class="flex items-center justify-end gap-2.5">
-                            <a href="{% url 'sales:invoice_detail' public_id=inv.public_id %}" class="px-2.5 py-1 text-xs font-semibold text-muted hover:text-[var(--brand-600)] hover:bg-surface-2 rounded-md transition-colors">
-                                {% trans "View" %}
+
+                    <!-- Balance Due -->
+                    <td class="py-3.5 px-5 text-right font-mono font-bold text-sm whitespace-nowrap">
+                        {% if inv.balance_due > 0 %}
+                            <span class="text-amber-600 dark:text-amber-400">${{ inv.balance_due|floatformat:2|intcomma }}</span>
+                        {% else %}
+                            <span class="text-muted/60 font-medium">$0.00</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="py-3.5 px-5 text-right whitespace-nowrap">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <a href="{% url 'sales:invoice_detail' public_id=inv.public_id %}"
+                               class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-[var(--brand-600)] hover:text-white bg-[var(--surface-2)]/80 hover:bg-[var(--brand-600)] rounded-lg border border-[var(--border)] transition-all shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <span>{% trans "View" %}</span>
                             </a>
-                            <a href="{% url 'sales:invoice_print' public_id=inv.public_id %}" target="_blank" class="px-2.5 py-1 text-xs font-semibold text-muted hover:text-[var(--brand-600)] hover:bg-surface-2 rounded-md transition-colors">
-                                {% trans "Print" %}
+                            <a href="{% url 'sales:invoice_print' public_id=inv.public_id %}"
+                               target="_blank"
+                               class="inline-flex items-center p-1.5 text-xs font-bold text-muted hover:text-ink bg-[var(--surface-2)]/80 hover:bg-[var(--surface-2)] rounded-lg border border-[var(--border)] transition-all shadow-2xs"
+                               title="{% trans 'Print invoice' %}">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                             </a>
                         </div>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="py-14 text-center text-muted">
-                        <p class="text-lg font-semibold text-ink">{% trans "No invoices found" %}</p>
+                    <td colspan="8" class="py-16 text-center">
+                        <div class="max-w-xs mx-auto flex flex-col items-center justify-center text-center">
+                            <div class="w-14 h-14 rounded-2xl bg-[var(--surface-2)] flex items-center justify-center text-muted mb-4 shadow-inner border border-[var(--border)]/50">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <h3 class="text-base font-bold text-ink">{% trans "No invoices found" %}</h3>
+                            <p class="text-xs text-muted mt-1 leading-relaxed">{% trans "No sales invoices match your current search or status filter." %}</p>
+                            <a href="{% url 'sales:invoice_list' %}" class="mt-4 px-3.5 py-1.5 text-xs font-bold text-[var(--brand-600)] bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 rounded-xl border border-[var(--border)] transition-colors">
+                                {% trans "Clear Filters" %}
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- Table Footer / Count -->
+    <div class="px-5 py-3.5 bg-[var(--surface-2)]/30 border-t border-[var(--border)]/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>{% blocktrans count counter=invoices.count %}Showing <strong>{{ counter }}</strong> invoice{% plural %}Showing <strong>{{ counter }}</strong> invoices{% endblocktrans %}</span>
+        </div>
+        <div class="flex items-center gap-4 font-mono text-2xs text-muted">
+            <span>{% trans "Currency" %}: <strong class="text-ink">USD</strong></span>
+            <span>•</span>
+            <span class="text-emerald-700 dark:text-emerald-400 font-semibold">✓ {% trans "Live Ledger Sync" %}</span>
+        </div>
     </div>
 </div>
