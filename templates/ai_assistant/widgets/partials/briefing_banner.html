@@ -1,32 +1,32 @@
 {% load i18n %}
 <div id="attention-briefing-banner"
-     class="h-full flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface-1)] to-[var(--surface-2)]/50 p-5 shadow-xs transition-all duration-200 hover:shadow-md">
+     class="h-full flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface-1)] to-[var(--surface-2)]/40 p-5 sm:p-6 shadow-xs transition-all duration-200 hover:shadow-md">
   
   <div>
     <!-- Bento Card Header -->
     <div class="flex items-center justify-between pb-3.5 border-b border-[var(--border)]/70">
       <div class="flex items-center gap-2.5">
-        <div class="w-7 h-7 rounded-lg bg-[var(--brand-600)] text-white flex items-center justify-center shrink-0 shadow-2xs">
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        <div class="w-8 h-8 rounded-xl bg-[var(--brand-600)]/10 text-[var(--brand-600)] flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         </div>
         <div>
-          <h4 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
+          <h4 class="text-sm font-bold text-[var(--text)] tracking-tight">
             {% trans "Executive Morning Briefing" %}
           </h4>
-          <span class="text-3xs text-[var(--text-muted)] font-medium">
-            {{ generated_at|default:"Live Digest" }}
+          <span class="text-xs text-[var(--text-muted)] font-medium">
+            {{ generated_at|default:"Today" }}
           </span>
         </div>
       </div>
 
-      <div class="flex items-center gap-1">
-        <!-- Regenerate Briefing Button -->
+      <div class="flex items-center gap-1.5">
+        <!-- Refresh Button -->
         <button type="button"
                 hx-post="{% url 'ai:attention_briefing' %}"
                 hx-target="#attention-briefing-container"
-                title="{% trans 'Regenerate executive briefing' %}"
+                title="{% trans 'Refresh' %}"
                 class="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -39,7 +39,7 @@
                 hx-post="{% url 'ai:attention_briefing_dismiss' %}"
                 hx-target="#attention-briefing-container"
                 hx-swap="innerHTML"
-                title="{% trans 'Dismiss executive briefing' %}"
+                title="{% trans 'Dismiss' %}"
                 class="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -48,32 +48,23 @@
       </div>
     </div>
 
-    <!-- Executive Briefing Highlights (Clean, Minimalist Takeaway Rows) -->
-    <div class="mt-4 space-y-3">
+    <!-- Briefing Takeaways -->
+    <div class="mt-4 space-y-3.5">
       {% for line in briefing_lines %}
         {% if line.strip %}
-          <div class="flex items-start gap-2.5 text-xs">
-            <span class="w-1.5 h-1.5 rounded-full bg-[var(--brand-600)] mt-1.5 shrink-0"></span>
-            <p class="text-[var(--text)] leading-relaxed font-medium">
+          <div class="flex items-start gap-2.5 text-sm">
+            <span class="w-2 h-2 rounded-full bg-[var(--brand-600)] mt-2 shrink-0"></span>
+            <p class="text-sm text-[var(--text)] leading-relaxed font-medium">
               {{ line|cut:"• "|cut:"* "|cut:"- " }}
             </p>
           </div>
         {% endif %}
       {% empty %}
-        <div class="text-xs text-[var(--text-muted)] p-2">
+        <div class="text-sm text-[var(--text-muted)] p-3">
           {{ briefing }}
         </div>
       {% endfor %}
     </div>
-  </div>
-
-  <!-- Bento Card Footer -->
-  <div class="mt-4 pt-3 border-t border-[var(--border)]/60 flex items-center justify-between text-3xs text-[var(--text-muted)]">
-    <span class="font-medium">{% trans "Autonomous Operational Digest" %}</span>
-    <span class="inline-flex items-center gap-1 text-[var(--brand-600)] font-semibold">
-      <span class="w-1.5 h-1.5 rounded-full bg-[var(--brand-600)] animate-pulse"></span>
-      {% trans "Active" %}
-    </span>
   </div>
 
 </div>

@@ -5,8 +5,6 @@
      x-data="{ hasBriefing: {% if cached_briefing %}true{% else %}false{% endif %} }">
 
   <style>
-    .text-2xs { font-size: 0.6875rem !important; line-height: 0.875rem !important; }
-    .text-3xs { font-size: 0.625rem !important; line-height: 0.75rem !important; }
     .attention-bento-grid {
       display: grid !important;
       grid-template-columns: 1fr !important;
@@ -15,12 +13,12 @@
     }
     @media (min-width: 1024px) {
       .attention-bento-grid.has-briefing {
-        grid-template-columns: 310px minmax(0, 1fr) !important;
+        grid-template-columns: 350px minmax(0, 1fr) !important;
       }
     }
     @media (min-width: 1280px) {
       .attention-bento-grid.has-briefing {
-        grid-template-columns: 320px minmax(0, 1fr) !important;
+        grid-template-columns: 380px minmax(0, 1fr) !important;
       }
     }
     .attention-bento-hero {
@@ -35,37 +33,37 @@
     }
   </style>
 
-  <!-- Unified Minimal Header -->
+  <!-- Unified Clean Header -->
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[var(--border)]/70">
     <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       </div>
       <div>
-        <div class="flex items-center gap-2">
-          <h3 class="text-sm font-bold text-[var(--text)] tracking-tight">
+        <div class="flex items-center gap-2.5">
+          <h3 class="text-base font-bold text-[var(--text)] tracking-tight">
             {% trans "What Needs Attention Today" %}
           </h3>
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-bold bg-[var(--surface-2)] text-[var(--text-muted)]">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--surface-2)] text-[var(--text-muted)]">
             {{ total_count }}
           </span>
         </div>
-        <div class="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-muted)]">
+        <div class="flex items-center gap-2.5 mt-0.5 text-xs text-[var(--text-muted)]">
           {% if critical_count > 0 %}
-            <span class="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1 text-2xs">
+            <span class="text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1.5 text-xs">
               <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
               {{ critical_count }} {% trans "Critical" %}
             </span>
           {% endif %}
           {% if warning_count > 0 %}
-            <span class="text-amber-600 dark:text-amber-400 font-medium text-2xs">
+            <span class="text-amber-600 dark:text-amber-400 font-medium text-xs">
               &bull; {{ warning_count }} {% trans "Urgent" %}
             </span>
           {% endif %}
           {% if total_count == 0 %}
-            <span class="text-emerald-600 dark:text-emerald-400 font-medium text-2xs">
+            <span class="text-emerald-600 dark:text-emerald-400 font-medium text-xs">
               {% trans "All operational indicators healthy" %}
             </span>
           {% endif %}
@@ -83,18 +81,18 @@
                 hx-get="{% url 'ai:attention_items' %}?category=all"
                 hx-target="#attention-items-container"
                 onclick="updateAttentionActiveTab(this)"
-                class="attention-tab attention-tab-active inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-white bg-[var(--brand-600)] transition-all cursor-pointer">
+                class="attention-tab attention-tab-active inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[var(--brand-600)] transition-all cursor-pointer">
           <span>{% trans "All" %}</span>
-          <span class="attention-badge px-1.5 py-0.2 rounded-full text-3xs font-bold bg-white/20 text-white">{{ total_count }}</span>
+          <span class="attention-badge px-2 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white">{{ total_count }}</span>
         </button>
         {% if categories.finance %}
           <button type="button"
                   hx-get="{% url 'ai:attention_items' %}?category=finance"
                   hx-target="#attention-items-container"
                   onclick="updateAttentionActiveTab(this)"
-                  class="attention-tab inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
+                  class="attention-tab inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
             <span>{% trans "Finance" %}</span>
-            <span class="attention-badge px-1.5 py-0.2 rounded-full text-3xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.finance }}</span>
+            <span class="attention-badge px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.finance }}</span>
           </button>
         {% endif %}
         {% if categories.inventory %}
@@ -102,9 +100,9 @@
                   hx-get="{% url 'ai:attention_items' %}?category=inventory"
                   hx-target="#attention-items-container"
                   onclick="updateAttentionActiveTab(this)"
-                  class="attention-tab inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
+                  class="attention-tab inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
             <span>{% trans "Inventory" %}</span>
-            <span class="attention-badge px-1.5 py-0.2 rounded-full text-3xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.inventory }}</span>
+            <span class="attention-badge px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.inventory }}</span>
           </button>
         {% endif %}
         {% if categories.sales %}
@@ -112,14 +110,14 @@
                   hx-get="{% url 'ai:attention_items' %}?category=sales"
                   hx-target="#attention-items-container"
                   onclick="updateAttentionActiveTab(this)"
-                  class="attention-tab inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
+                  class="attention-tab inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
             <span>{% trans "Orders" %}</span>
-            <span class="attention-badge px-1.5 py-0.2 rounded-full text-3xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.sales }}</span>
+            <span class="attention-badge px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.sales }}</span>
           </button>
         {% endif %}
       </div>
 
-      <!-- Executive Briefing Action (shown when dismissed to restore) -->
+      <!-- Briefing Toggle Button (when dismissed) -->
       {% if can_use_ai %}
         <button type="button"
                 id="btn-executive-briefing"
@@ -129,7 +127,7 @@
                 hx-target="#attention-briefing-container"
                 hx-indicator="#briefing-spinner"
                 title="{% trans 'Executive Morning Briefing' %}"
-                class="btn-primary attention-briefing-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow-2xs transition-all cursor-pointer">
+                class="btn-primary attention-briefing-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white shadow-2xs transition-all cursor-pointer">
           <svg id="briefing-spinner" class="htmx-indicator w-3.5 h-3.5 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
@@ -145,9 +143,9 @@
       <button type="button"
               hx-get="{% url 'ai:attention_items' %}?category=all"
               hx-target="#attention-items-container"
-              title="{% trans 'Refresh Operational Insights' %}"
+              title="{% trans 'Refresh' %}"
               class="inline-flex items-center p-2 rounded-xl border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer shadow-2xs">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
       </button>
@@ -163,14 +161,14 @@
         t.classList.add('text-[var(--text-muted)]', 'font-medium');
         const b = t.querySelector('.attention-badge');
         if (b) {
-          b.className = 'attention-badge px-1.5 py-0.2 rounded-full text-3xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]';
+          b.className = 'attention-badge px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]';
         }
       });
       btn.classList.add('attention-tab-active', 'btn-primary', 'text-white', 'bg-[var(--brand-600)]', 'font-semibold');
       btn.classList.remove('text-[var(--text-muted)]', 'font-medium');
       const badge = btn.querySelector('.attention-badge');
       if (badge) {
-        badge.className = 'attention-badge px-1.5 py-0.2 rounded-full text-3xs font-bold bg-white/20 text-white';
+        badge.className = 'attention-badge px-2 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white';
       }
     }
   </script>
