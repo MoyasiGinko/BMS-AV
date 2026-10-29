@@ -1,91 +1,88 @@
 {% load i18n %}
 
 {% if items %}
-  <div class="grid grid-cols-1 {% if items|length == 1 %}sm:grid-cols-1{% elif items|length == 2 %}sm:grid-cols-2{% else %}sm:grid-cols-2 xl:grid-cols-3{% endif %} gap-4.5 h-full">
-    {% for item in items %}
-      <div class="attention-card relative flex flex-col justify-between rounded-2xl border p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md
-                  {% if item.severity == 'critical' %}
-                    attention-critical border-rose-500/25 bg-gradient-to-b from-rose-500/[0.04] to-transparent dark:border-rose-900/40
-                  {% elif item.severity == 'warning' %}
-                    attention-warning border-amber-500/25 bg-gradient-to-b from-amber-500/[0.04] to-transparent dark:border-amber-900/40
-                  {% else %}
-                    attention-info border-[var(--border)] bg-[var(--surface-1)]
-                  {% endif %}">
-        
-        <!-- Bento Top: Severity Badge, Category & Dismiss -->
-        <div>
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 flex-wrap">
-              {% if item.severity == 'critical' %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5 animate-pulse"></span>
-                  {% trans "Critical" %}
-                </span>
-              {% elif item.severity == 'warning' %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
-                  {% trans "Urgent" %}
-                </span>
-              {% else %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]">
-                  <span class="w-1.5 h-1.5 rounded-full bg-[var(--brand-600)] mr-1.5"></span>
-                  {% trans "Notice" %}
-                </span>
-              {% endif %}
-
-              <span class="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wider">
-                {{ item.category }}
+  {% for item in items %}
+    <div class="attention-card relative flex flex-col justify-between rounded-2xl border p-4.5 sm:p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md h-full
+                {% if item.severity == 'critical' %}
+                  attention-critical border-rose-500/25 bg-gradient-to-b from-rose-500/[0.04] to-transparent dark:border-rose-900/40
+                {% elif item.severity == 'warning' %}
+                  attention-warning border-amber-500/25 bg-gradient-to-b from-amber-500/[0.04] to-transparent dark:border-amber-900/40
+                {% else %}
+                  attention-info border-[var(--border)] bg-[var(--surface-1)]
+                {% endif %}">
+      
+      <!-- Bento Top: Severity Badge, Category & Dismiss -->
+      <div>
+        <div class="flex items-center justify-between gap-1.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            {% if item.severity == 'critical' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5 animate-pulse"></span>
+                {% trans "Critical" %}
               </span>
-            </div>
+            {% elif item.severity == 'warning' %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span>
+                {% trans "Urgent" %}
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--brand-600)] mr-1.5"></span>
+                {% trans "Notice" %}
+              </span>
+            {% endif %}
 
-            <!-- Dismiss Button -->
-            <button type="button"
-                    hx-post="{% url 'ai:attention_dismiss' item.id %}"
-                    hx-target="closest .attention-card"
-                    hx-swap="outerHTML"
-                    title="{% trans 'Dismiss' %}"
-                    class="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer shrink-0">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <span class="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wider">
+              {{ item.category }}
+            </span>
           </div>
 
-          <!-- Hero Metric & Typography -->
-          <div class="mt-4">
-            <div class="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-[var(--text)]">
-              {{ item.metric }}
-            </div>
-            <h4 class="text-sm font-bold text-[var(--text)] mt-1.5 tracking-tight">
-              {{ item.title }}
-            </h4>
-            <p class="text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed line-clamp-2">
-              {{ item.description }}
-            </p>
-          </div>
+          <!-- Dismiss Button -->
+          <button type="button"
+                  hx-post="{% url 'ai:attention_dismiss' item.id %}"
+                  hx-target="closest .attention-card"
+                  hx-swap="outerHTML"
+                  title="{% trans 'Dismiss' %}"
+                  class="w-6 h-6 flex items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer shrink-0">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <!-- Bento Footer Action -->
-        <div class="mt-5 pt-3.5 border-t border-[var(--border)]/60 flex items-center justify-between">
-          <span class="text-xs font-medium text-[var(--text-muted)]">
-            {{ item.count }} {% trans "item(s)" %}
-          </span>
-          <a href="{{ item.action_url }}"
-             class="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--brand-600)] hover:text-[var(--brand-700)] group transition-colors">
-            <span>{{ item.action_label }}</span>
-            <span class="w-5 h-5 rounded-md bg-[var(--surface-2)]/80 group-hover:bg-[var(--brand-600)] group-hover:text-white flex items-center justify-center transition-all shadow-2xs">
-              <svg class="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
-              </svg>
-            </span>
-          </a>
+        <!-- Hero Metric & Typography -->
+        <div class="mt-3.5">
+          <div class="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-[var(--text)]">
+            {{ item.metric }}
+          </div>
+          <h4 class="text-sm font-bold text-[var(--text)] mt-1.5 tracking-tight">
+            {{ item.title }}
+          </h4>
+          <p class="text-[15px] sm:text-base text-[var(--text-muted)] mt-2 leading-relaxed">
+            {{ item.description }}
+          </p>
         </div>
       </div>
-    {% endfor %}
-  </div>
+
+      <!-- Bento Footer Action -->
+      <div class="mt-5 pt-3.5 border-t border-[var(--border)]/60 flex items-center justify-between">
+        <span class="text-xs font-medium text-[var(--text-muted)]">
+          {{ item.count }} {% trans "item(s)" %}
+        </span>
+        <a href="{{ item.action_url }}"
+           class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[var(--brand-600)] hover:text-[var(--brand-700)] group transition-colors">
+          <span>{{ item.action_label }}</span>
+          <span class="w-5 h-5 rounded-md bg-[var(--surface-2)]/80 group-hover:bg-[var(--brand-600)] group-hover:text-white flex items-center justify-center transition-all shadow-2xs">
+            <svg class="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+          </span>
+        </a>
+      </div>
+    </div>
+  {% endfor %}
 {% else %}
-  <!-- Clear Horizon Celebratory Empty State -->
-  <div class="rounded-2xl border border-dashed border-emerald-500/30 bg-emerald-500/5 p-8 text-center h-full flex flex-col items-center justify-center">
+  <div class="col-span-full rounded-2xl border border-dashed border-emerald-500/30 bg-emerald-500/5 p-8 text-center flex flex-col items-center justify-center">
     <div class="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center shadow-2xs">
       <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

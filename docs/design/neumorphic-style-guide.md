@@ -195,7 +195,7 @@ Primary typeface: **Hanken Grotesk** (weights 400, 600, 700, 800). Fallback: sys
   --neu-inset-sm: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light);
   --neu-inset-nav: inset 5px 5px 10px var(--neu-shadow-dark), inset -5px -5px 10px var(--neu-shadow-light);
 
-  --neu-radius-card: 28px;
+  --neu-radius-card: 12px;
   --neu-radius-btn: 16px;
   --neu-radius-pill-btn: 14px;
   --neu-radius-well: 22px;
