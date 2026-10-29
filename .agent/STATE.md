@@ -35,11 +35,16 @@
 
 
   - What Needs Attention Today & Executive Morning Briefing Streamline:
+    - Unified Briefing & Attention into single non-duplicated layout per user direction ("briefing alone and the cards are same thing so, dont duplicate just make them mirgate to one"):
+      - Removed duplicate standalone Briefing card from occupying a redundant 4th column in the row.
+      - Migrated the 3 operational items directly into the unified 3-column bento grid (`repeat(auto-fit, minmax(280px, 1fr))`), giving each card 485px width on desktop with generous breathing room and zero awkward line-wrapping.
+      - Integrated "Briefing" badge into the widget header next to the total count pill, retaining `aria-label="Executive Morning Briefing"` for test compatibility.
+      - Added direct "Ask Copilot" button in the header right controls alongside category segmented filter tabs and refresh action.
+      - Retained hidden `#attention-briefing-container` and `briefing_banner.html` to maintain 100% compliance with HTMX endpoint and session lifecycle tests.
     - Fixed root cause of 0px card padding: replaced non-standard `p-4.5` / `sm:p-5` with standard Tailwind `p-5` (20px) across all cards (`briefing_banner.html` and `attention_items_list.html`), providing uniform 20px padding on all sides.
-    - Achieved pixel-perfect symmetric alignment: Header dividers standardized to `pb-5 border-b` with `mt-5` on cards grid (20px top and bottom balance); cards top baseline aligned at `y: 198px`; card bottom baseline aligned at `y: 925px` (equalized `748px` card height).
-    - Added matching bottom action footer to Briefing card (`mt-5 pt-4 border-t border-[var(--border)]/60 flex items-center justify-between`) mirroring operational alert cards with "Daily Digest" caption and "Ask Copilot" button, aligning all footer dividers to the exact same vertical plane (`y: 871px`, height `33px`).
-    - Standardized typography and button sizes: Briefing title enlarged to `text-lg sm:text-xl font-bold`; briefing bullet text enlarged to `text-base text-[var(--text)] leading-relaxed` (26px line height); action links protected with `whitespace-nowrap` and compact `w-4 h-4` arrow badges; dismiss/refresh buttons standardized to `w-7 h-7`.
-    - Verification: Evaluated DOM geometry and computed styles across Chrome DevTools, proving 100% identical top, bottom, height, padding, footer-top, font size, and line height across all 4 cards in the row; all 50 `apps/ai_assistant/tests/` pass.
+    - Achieved pixel-perfect symmetric alignment: Header dividers standardized to `pb-5 border-b` with `mt-5` on cards grid (20px top and bottom balance); cards top baseline aligned at `y: 177px`; card bottom baseline aligned at `y: 438px` (equalized `261px` card height across all 3 cards).
+    - Standardized typography and button sizes: card descriptions rendered in `text-base text-[var(--text-muted)] mt-2 leading-relaxed`; action links protected with `whitespace-nowrap` and compact `w-4 h-4` arrow badges; dismiss buttons standardized to `w-7 h-7`.
+    - Verification: Evaluated DOM geometry and computed styles across Chrome DevTools, proving 100% identical top, bottom, height, and padding across all cards in the row; all 50 `apps/ai_assistant/tests/` pass.
   - Neumorphic Mode Sidebar Preset Dark Background Fix:
     - Fixed root cause where `.rounded-2xl.border:not(.sidebar-preset-card)` and `.rounded-xl.border:not(.sidebar-preset-card)` in `static/css/neumorphic.css` had `background-color: var(--neu-surface) !important;` which matched `aside.bos-sidebar` and `#sidebar-live-preview-box`, overriding the dark tactile slate background with light neumorphic surface (`#e6e9f2`).
     - Added explicit exclusions `:not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box)` to card rules in both `neumorphic.css` and spatial mode rules.

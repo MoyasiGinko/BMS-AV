@@ -18,7 +18,7 @@
     }
     @media (min-width: 1024px) {
       .attention-cards-grid {
-        grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)) !important;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
       }
     }
   </style>
@@ -38,6 +38,10 @@
           </h3>
           <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--surface-2)] text-[var(--text-muted)]">
             {{ total_count }}
+          </span>
+          <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--brand-600)]/10 text-[var(--brand-600)] border border-[var(--brand-600)]/20"
+                aria-label="{% trans 'Executive Morning Briefing' %}">
+            {% trans "Briefing" %}
           </span>
         </div>
         <div class="flex items-center gap-2.5 mt-0.5 text-xs text-[var(--text-muted)]">
@@ -107,26 +111,16 @@
         {% endif %}
       </div>
 
-      <!-- Briefing Toggle Button (when dismissed) -->
+      <!-- Ask Copilot Direct Action -->
       {% if can_use_ai %}
-        <button type="button"
-                id="btn-executive-briefing"
-                x-show="!hasBriefing"
-                @click="hasBriefing = true"
-                hx-post="{% url 'ai:attention_briefing' %}"
-                hx-target="#attention-briefing-container"
-                hx-indicator="#briefing-spinner"
-                title="{% trans 'Briefing' %}"
-                class="btn-primary attention-briefing-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white shadow-2xs transition-all cursor-pointer">
-          <svg id="briefing-spinner" class="htmx-indicator w-3.5 h-3.5 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-          </svg>
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <a href="{% url 'ai:chat' %}"
+           title="{% trans 'Ask Copilot' %}"
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-2xs">
+          <svg class="w-3.5 h-3.5 text-[var(--brand-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          <span>{% trans "Briefing" %}</span>
-        </button>
+          <span>{% trans "Ask Copilot" %}</span>
+        </a>
       {% endif %}
 
       <!-- Refresh Insights -->
@@ -163,24 +157,20 @@
     }
   </script>
 
-  <!-- Unified Cards Grid: All cards in the same row, responsively wrapping -->
+  <!-- Hidden Briefing Container for HTMX / Endpoint Compatibility -->
+  <div id="attention-briefing-container" class="hidden">
+    {% if cached_briefing %}
+      {% include "ai_assistant/widgets/partials/briefing_banner.html" with briefing=cached_briefing briefing_lines=cached_lines highlights=cached_highlights provider="Executive Digest" generated_at="Today" %}
+    {% endif %}
+  </div>
+
+  <!-- Unified Attention & Briefing Cards Grid -->
   <div class="attention-cards-grid mt-5">
-
-    <!-- Briefing Card Container -->
-    <div id="attention-briefing-container"
-         x-show="hasBriefing"
-         class="flex flex-col h-full">
-      {% if cached_briefing %}
-        {% include "ai_assistant/widgets/partials/briefing_banner.html" with briefing=cached_briefing briefing_lines=cached_lines highlights=cached_highlights provider="Executive Digest" generated_at="Today" %}
-      {% endif %}
-    </div>
-
     <!-- Operational Cards Container (contents) -->
     <div id="attention-items-container"
          class="contents">
       {% include "ai_assistant/widgets/partials/attention_items_list.html" with items=items %}
     </div>
-
   </div>
 
 </div>
