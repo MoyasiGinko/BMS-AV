@@ -34,6 +34,18 @@
 
 
 
+  - Onboarding Checklist Widget Redesign (`templates/tenancy/dashboard/onboarding_checklist.html`):
+    - Removed garish top multi-color gradient bar and heavy green background washes.
+    - Cleaned and modernized header: Prominent title `Getting Started with Business OS` (`text-lg sm:text-xl font-bold text-[var(--text)] tracking-tight`) with compact status badge `{{ completed_count }} / {{ total_count }} Completed`.
+    - Integrated setup progress directly into the header as a sleek compact pill with mini progress bar and percentage (`Progress [===] 100%`), eliminating the bulky full-width progress bar.
+    - Consolidated dismissal into a minimalist square icon button in the header (`w-8 h-8 rounded-xl border border-[var(--border)]`), removing redundant bottom dismissal banners.
+    - Transformed step cards into clean bento grid cards:
+      - Subtle surface gradient (`bg-gradient-to-b from-[var(--surface-2)]/30 to-transparent border border-[var(--border)]`).
+      - Step tag (`Step X`) with emerald checkmark badge for completed steps or step number circle for pending.
+      - Crisp title and readable description with generous leading.
+      - Structured footer with status indicator (`✓ Done` or `Pending`) and right-aligned interactive link (`Review ->` or `Configure ->`).
+    - Verified live rendering with Chrome DevTools; all 12 `tests/test_dashboard.py` tests passing. Commit `8a37154`.
+
   - What Needs Attention Today & Executive Morning Briefing Streamline:
     - Cleaned and enlarged widget title header per user direction ("keep it cleen only the title but a little bigger"):
       - Removed warning icon box, total count badge, "Briefing" pill, and subtitle counts from header left side.
