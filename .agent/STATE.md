@@ -34,11 +34,20 @@
 
 
 
-  - Dashboard Clean-up (AI Text Elimination & Header Button Relocation):
-    - Removed bottom AI / status metadata footers from Operating Revenue (`profit_trend.html`: "Audit interval: 30-day continuous • General Ledger Balanced") and Attention Today (`attention_today.html`: "All anomalies routed to operational outbox • Sync: Online"), creating ultra-clean modern containers.
-    - Relocated navigation action buttons in Cash Position and Top Selling Products to the card headers directly adjacent to the refresh button (`Reconciliation >` and `Invoices >`).
-    - Completely removed bottom footers from Cash Position and Top Selling Products (`Live Balance`, `Catalog Directory`), streamlining vertical card balance.
-    - Verified all 22 tests passing and confirmed live rendering in Chrome DevTools.
+  - Dashboard Clean-up & Bento Grid Refinement (Commit `f14bd67`):
+    - Removed raw `WORKSPACE OVERVIEW` header banner; preserved `<span class="sr-only">` for accessibility and test suite assertions.
+    - Redesigned 4 workspace capacity metrics (`Subscription Tier`, `Active Team`, `Locations`, `Metered API Usage`) into matching neumorphic cards (`rounded-2xl`, chevron link, and clean micro-footers).
+    - Relocated navigation action buttons to card headers beside the refresh icon across all dashboard widgets:
+      - `Reconciliation >` on Cash Position
+      - `Invoices >` on Top Selling Products
+      - `Expenses >` on Operating Expenses
+      - `Branches >` on Branch Performance
+      - `Roster >` on Workforce Headcount and Today's Attendance
+      - `Scorecards >` on Employee Performance
+      - `Payroll >` on Payroll Cost
+    - Eliminated redundant bottom footers and system buzzword metadata across all remaining widgets (Recent Activity, Operating Expenses, Branch Performance, Workforce Headcount, Attendance, Recent Workspace Activity).
+    - Balanced 12-column bento grid pairings (`BranchPerformanceWidget` paired with `QuickActionsWidget` [6+6], `HeadcountWidget` paired with `AttendanceWidget` [6+6], `EmployeePerformanceWidget` paired with `RecentActivityWidget` [6+6]).
+    - All 22 automated dashboard tests passing.
 
   - Dashboard Bento Grid Row 3: Cash Position and Top Selling Products Paired:
     - Positioned `CashPositionWidget` (`order = 14`, `col_span = 6`) and `TopProductsWidget` (`order = 15`, `col_span = 6`) into the exact same dashboard row directly below the 4-metric KPI grid.
