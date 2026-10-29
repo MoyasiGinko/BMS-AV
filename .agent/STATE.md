@@ -34,6 +34,11 @@
 
 
 
+  - Category & Status Filter Simplification to Dropdowns (Commit `a01b49e`):
+    - Replaced the wide horizontal category pill bar on the POS terminal with a compact `<select name="category">` dropdown (`All Categories`, `Industrial Packaging Supplies`, etc.), saving significant horizontal space and cleanly aligning the search and catalog controls.
+    - Simplified the Sales Invoices toolbar by removing the redundant horizontal pill bar, standardizing on the unified `<select name="status">` dropdown and Reset action.
+    - Verified all 13 view and HTMX tests passing across POS and Sales modules.
+
   - POS Terminal Screen Neumorphic Redesign (Commit `36750e4`):
     - Redesigned `/pos/` (`terminal.html`, `product_grid.html`, and `terminal_no_shift.html`) into the modern neumorphic visual aesthetic.
     - Upgraded top toolbar with tactile status capsule (`Register`, `Shift`, `Cashier`), plus pill action buttons (`Parked Carts`, `Shifts`, `End Shift`).
