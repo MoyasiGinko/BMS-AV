@@ -34,6 +34,12 @@
 
 
 
+  - Dashboard Clean-up (AI Text Elimination & Header Button Relocation):
+    - Removed bottom AI / status metadata footers from Operating Revenue (`profit_trend.html`: "Audit interval: 30-day continuous • General Ledger Balanced") and Attention Today (`attention_today.html`: "All anomalies routed to operational outbox • Sync: Online"), creating ultra-clean modern containers.
+    - Relocated navigation action buttons in Cash Position and Top Selling Products to the card headers directly adjacent to the refresh button (`Reconciliation >` and `Invoices >`).
+    - Completely removed bottom footers from Cash Position and Top Selling Products (`Live Balance`, `Catalog Directory`), streamlining vertical card balance.
+    - Verified all 22 tests passing and confirmed live rendering in Chrome DevTools.
+
   - Dashboard Bento Grid Row 3: Cash Position and Top Selling Products Paired:
     - Positioned `CashPositionWidget` (`order = 14`, `col_span = 6`) and `TopProductsWidget` (`order = 15`, `col_span = 6`) into the exact same dashboard row directly below the 4-metric KPI grid.
     - Updated `templates/core/dashboard.html` and `dashboard_widgets_partial.html` so `col_span == 6` maps to `col-span-1 md:col-span-6 lg:col-span-6` for equal-width 50/50 side-by-side placement on tablet and desktop viewports.
