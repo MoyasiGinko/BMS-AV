@@ -34,6 +34,12 @@
 
 
 
+  - What Needs Attention Today & Executive Morning Briefing Streamline:
+    - Removed decorative lightning bolt icon and tag from briefing header for an ultra-clean, minimalist aesthetic.
+    - Simplified title to "Briefing", sized to `text-base sm:text-lg font-bold` with `aria-label="Executive Morning Briefing"` for test compatibility and accessibility.
+    - Enlarged attention card body descriptions to `text-[15px] sm:text-base text-[var(--text-muted)]` for readability without expanding outer card shells.
+    - Updated container to `.attention-cards-grid` with `repeat(auto-fit, minmax(215px, 1fr))` on desktop and `#attention-items-container` with `class="contents"`, aligning Briefing and Attention cards in the exact same row on desktop with responsive wrapping to 2 columns on tablet and 1 column on mobile.
+    - All 50 `apps/ai_assistant/tests/` unit/integration/view tests pass.
   - Neumorphic Mode Sidebar Preset Dark Background Fix:
     - Fixed root cause where `.rounded-2xl.border:not(.sidebar-preset-card)` and `.rounded-xl.border:not(.sidebar-preset-card)` in `static/css/neumorphic.css` had `background-color: var(--neu-surface) !important;` which matched `aside.bos-sidebar` and `#sidebar-live-preview-box`, overriding the dark tactile slate background with light neumorphic surface (`#e6e9f2`).
     - Added explicit exclusions `:not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box)` to card rules in both `neumorphic.css` and spatial mode rules.
