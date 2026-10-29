@@ -34,6 +34,17 @@
 
 
 
+  - POS Terminal White Box Shadow Removal & Proper Spacing/Padding:
+    - Fixed root cause of white border box drop shadows by removing broad `.rounded-2xl.border`, `.rounded-xl.border`, and `button.border` selectors from global card rules in `static/css/neumorphic.css`, which were indiscriminately applying `-9px -9px 18px #FFFFFF` dual extrusion shadows to inputs, steppers, total boxes, and action buttons.
+    - Added scoped rules for `.pos-terminal` ensuring zero box-shadow halos on capsules, steppers, total boxes, and buttons, with subtle inset styling on inputs.
+    - Polished padding and spacing across all terminal sections:
+      - Top toolbar: clean recessed status capsule (`px-4 py-2 bg-[var(--surface-2)]/60 border border-[var(--border)]/70`) and clean tactile action buttons.
+      - Search row: generous `p-4 sm:p-5 gap-4`, crisp `border-[var(--border)]/80` without white glow.
+      - Cart items: transformed cramped divide-y layout into distinct, spacious cards (`p-3.5 sm:p-4 rounded-xl bg-[var(--surface-1)] border border-[var(--border)]/70 space-y-3`) with generous 12px vertical breathing room.
+      - Steppers: clean tactile `- 1 +` stepper container without white outer/inner shadows.
+      - Cart totals & checkout: generous `p-5 sm:p-6 space-y-4` layout with proper breathing room between Subtotal/Tax, TOTAL DUE box (`p-4 sm:p-5`), and action buttons (`gap-3 pt-1`).
+    - Verified all 8 POS view/HTMX tests passing in `apps/pos/tests/test_views.py`, all 13 dashboard tests passing in `tests/test_dashboard.py`, and validated via live browser screenshot.
+
   - POS Terminal Accessibility & Typography Enlargement (Commit `8603dc3`):
     - Enlarged search input and category filter area (`min-h-[52px]`, `py-3.5 sm:py-4`, `text-sm sm:text-base font-medium`) with larger barcode scan icon and touch targets for effortless register scanning.
     - Scaled up typography across the terminal for accessibility and touch:

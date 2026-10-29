@@ -338,10 +338,10 @@ html[data-theme="neumorphic"],
 
 /* Neumorphic Global Cards & Dashboard Widgets (Automatic Dual Shadows) */
 [data-theme="neumorphic"] .card,
-[data-theme="neumorphic"] [class*="card"]:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
-[data-theme="neumorphic"] #dashboard-widgets-container > div > div,
-[data-theme="neumorphic"] .rounded-2xl.border:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
-[data-theme="neumorphic"] .rounded-xl.border:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box) {
+[data-theme="neumorphic"] .bos-card,
+[data-theme="neumorphic"] article.bos-card,
+[data-theme="neumorphic"] [class*="card"]:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box):not(.pos-terminal *),
+[data-theme="neumorphic"] #dashboard-widgets-container > div > div {
   background-color: var(--neu-surface) !important;
   border-radius: var(--neu-radius-card) !important;
   box-shadow: var(--neu-raise-lg) !important;
@@ -434,7 +434,6 @@ html[data-theme="neumorphic"],
 
 /* Buttons */
 [data-theme="neumorphic"] .btn-secondary,
-[data-theme="neumorphic"] button.border,
 [data-theme="neumorphic"] .btn:not(.btn-primary) {
   background-color: var(--neu-surface) !important;
   box-shadow: var(--neu-raise-xs) !important;
@@ -583,10 +582,10 @@ html[data-theme="spatial"],
 
 /* Spatial Floating Cards - High Contrast & Crisp Elevation */
 [data-theme="spatial"] .card,
-[data-theme="spatial"] [class*="card"]:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
-[data-theme="spatial"] #dashboard-widgets-container > div > div,
-[data-theme="spatial"] .rounded-2xl.border:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box),
-[data-theme="spatial"] .rounded-xl.border:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box) {
+[data-theme="spatial"] .bos-card,
+[data-theme="spatial"] article.bos-card,
+[data-theme="spatial"] [class*="card"]:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box):not(.pos-terminal *),
+[data-theme="spatial"] #dashboard-widgets-container > div > div {
   background-color: #ffffff !important;
   border-radius: 16px !important;
   border: 1px solid #cbd5e1 !important;
@@ -1079,4 +1078,22 @@ html[data-theme="spatial"],
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+
+/* ==========================================================================
+   POS Terminal: Clean, tactile controls without harsh white box drop shadows
+   ========================================================================== */
+.pos-terminal .pos-capsule,
+.pos-terminal .pos-stepper-box,
+.pos-terminal .pos-total-due-box,
+.pos-terminal .pos-action-btn,
+.pos-terminal .pos-cart-card {
+  box-shadow: none !important;
+}
+
+[data-theme="neumorphic"] .pos-terminal input,
+[data-theme="neumorphic"] .pos-terminal select {
+  box-shadow: inset 1px 1px 2px rgba(166, 175, 195, 0.3) !important;
+  border: 1px solid var(--border) !important;
 }
