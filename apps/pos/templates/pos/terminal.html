@@ -250,40 +250,85 @@
                 </template>
             </div>
 
-            <!-- Cart Totals & Checkout Actions (Sticky bottom with generous spacing) -->
-            <div class="p-5 sm:p-6 bg-[var(--surface-1)] border-t border-[var(--border)]/70 shrink-0 space-y-4">
-                <!-- Subtotal & Tax Breakdown -->
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between items-center text-muted">
-                        <span class="font-medium text-xs sm:text-sm">{% trans "Subtotal" %}</span>
-                        <span class="font-mono font-bold text-ink text-sm sm:text-base">$<span x-text="formatDec(subtotal)"></span></span>
+            <!-- Cart Totals & Checkout Actions (Sticky bottom with light gray border & generous accessibility) -->
+            <div class="pos-checkout-box mt-auto p-5 sm:p-6 bg-[var(--surface-1)] border-t border-slate-200 dark:border-slate-700/60 shrink-0 space-y-4">
+                <!-- Subtotal, Discount & Tax / VAT Breakdown (Bigger for Accessibility) -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm sm:text-base font-bold text-muted">{% trans "Subtotal" %}</span>
+                        <span class="font-mono font-black text-ink text-base sm:text-lg">$<span x-text="formatDec(grossSubtotal)"></span></span>
                     </div>
-                    <div class="flex justify-between items-center text-muted">
-                        <span class="font-medium text-xs sm:text-sm">{% trans "Tax" %}</span>
-                        <span class="font-mono font-bold text-ink text-sm sm:text-base">$<span x-text="formatDec(taxTotal)"></span></span>
+
+                    <!-- Discount Option Row -->
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm sm:text-base font-bold text-muted">{% trans "Discount" %}</span>
+                            <div class="inline-flex items-center gap-1 bg-[var(--surface-2)]/60 p-1 rounded-xl">
+                                <button type="button"
+                                        @click="applyOrderDiscount(0)"
+                                        :class="orderDiscountPercent === 0 ? 'bg-[var(--surface-1)] text-ink font-bold shadow-xs' : 'text-muted hover:text-ink'"
+                                        class="px-2 py-0.5 rounded-lg text-xs transition cursor-pointer">
+                                    0%
+                                </button>
+                                <button type="button"
+                                        @click="applyOrderDiscount(5)"
+                                        :class="orderDiscountPercent === 5 ? 'bg-amber-100 text-amber-900 font-bold dark:bg-amber-950/80 dark:text-amber-300 shadow-xs' : 'text-muted hover:text-ink'"
+                                        class="px-2 py-0.5 rounded-lg text-xs transition cursor-pointer">
+                                    5%
+                                </button>
+                                <button type="button"
+                                        @click="applyOrderDiscount(10)"
+                                        :class="orderDiscountPercent === 10 ? 'bg-amber-100 text-amber-900 font-bold dark:bg-amber-950/80 dark:text-amber-300 shadow-xs' : 'text-muted hover:text-ink'"
+                                        class="px-2 py-0.5 rounded-lg text-xs transition cursor-pointer">
+                                    10%
+                                </button>
+                                <button type="button"
+                                        @click="applyOrderDiscount(15)"
+                                        :class="orderDiscountPercent === 15 ? 'bg-amber-100 text-amber-900 font-bold dark:bg-amber-950/80 dark:text-amber-300 shadow-xs' : 'text-muted hover:text-ink'"
+                                        class="px-2 py-0.5 rounded-lg text-xs transition cursor-pointer">
+                                    15%
+                                </button>
+                                <button type="button"
+                                        @click="promptCustomDiscount()"
+                                        :class="orderDiscountPercent > 0 && ![5,10,15].includes(orderDiscountPercent) ? 'bg-indigo-100 text-indigo-900 font-bold shadow-xs' : 'text-muted hover:text-ink'"
+                                        class="px-2.5 py-0.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                                    <span x-show="orderDiscountPercent > 0 && ![5,10,15].includes(orderDiscountPercent)" x-text="orderDiscountPercent + '%'"></span>
+                                    <span x-show="orderDiscountPercent === 0 || [5,10,15].includes(orderDiscountPercent)">{% trans "Custom" %}</span>
+                                </button>
+                            </div>
+                        </div>
+                        <span class="font-mono font-black text-base sm:text-lg text-amber-600 dark:text-amber-400">
+                            -$<span x-text="formatDec(discountTotal)"></span>
+                        </span>
+                    </div>
+
+                    <!-- Tax / VAT Row -->
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm sm:text-base font-bold text-muted">{% trans "Tax (VAT)" %}</span>
+                        <span class="font-mono font-black text-ink text-base sm:text-lg">$<span x-text="formatDec(taxTotal)"></span></span>
                     </div>
                 </div>
 
-                <!-- TOTAL DUE Box (Clean border, generous padding, NO white drop shadow) -->
+                <!-- TOTAL DUE Box (Bigger & High Contrast) -->
                 <div class="pos-total-due-box p-4 sm:p-5 bg-[var(--surface-2)]/60 rounded-2xl flex items-center justify-between">
-                    <span class="text-sm sm:text-base font-black text-ink tracking-tight uppercase">{% trans "TOTAL DUE" %}</span>
-                    <span class="font-mono font-black text-2xl sm:text-3xl text-ink">
+                    <span class="text-base sm:text-lg font-black text-ink tracking-tight uppercase">{% trans "TOTAL DUE" %}</span>
+                    <span class="font-mono font-black text-2xl sm:text-3xl lg:text-4xl text-ink">
                         $<span x-text="formatDec(grandTotal)"></span>
                     </span>
                 </div>
 
-                <!-- Action Buttons -->
+                <!-- Action Buttons (Bigger for Touch & Accessibility) -->
                 <div class="grid grid-cols-4 gap-3 pt-1">
                     <button type="button"
                             @click="clearCart()"
                             :disabled="cart.length === 0"
-                            class="pos-action-btn col-span-1 py-3.5 sm:py-4 text-xs sm:text-sm font-bold rounded-xl text-muted hover:text-ink bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 disabled:opacity-40 transition-all cursor-pointer">
+                            class="pos-action-btn col-span-1 h-14 text-sm sm:text-base font-extrabold rounded-xl text-muted hover:text-ink bg-[var(--surface-2)] hover:bg-[var(--surface-2)]/80 disabled:opacity-40 transition-all cursor-pointer flex items-center justify-center">
                         {% trans "Clear" %}
                     </button>
                     <button type="button"
                             @click="openTenderModal = true; setupTenders()"
                             :disabled="cart.length === 0"
-                            class="col-span-3 py-3.5 sm:py-4 text-base sm:text-lg font-extrabold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer">
+                            class="col-span-3 h-14 text-lg sm:text-xl font-black rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center space-x-2.5 cursor-pointer">
                         <span>{% trans "Charge" %}</span>
                         <span>$<span x-text="formatDec(grandTotal)"></span></span>
                     </button>
@@ -502,6 +547,7 @@ function posTerminal(config) {
         mobileTab: 'catalog',
         cart: [],
         selectedCustomerId: '',
+        orderDiscountPercent: 0,
         heldCartsCount: {{ held_carts.count }},
         openTenderModal: false,
         openHeldCartsModal: false,
@@ -553,7 +599,7 @@ function posTerminal(config) {
                     stock_qty: item.stock_qty,
                     is_stock: item.is_stock,
                     quantity: 1,
-                    discount_percent: 0
+                    discount_percent: this.orderDiscountPercent || 0
                 });
             }
         },
@@ -579,7 +625,36 @@ function posTerminal(config) {
         clearCart() {
             if (confirm('Clear all items from the current cart?')) {
                 this.cart = [];
+                this.orderDiscountPercent = 0;
             }
+        },
+
+        applyOrderDiscount(percent) {
+            this.orderDiscountPercent = Math.max(0, Math.min(100, parseFloat(percent) || 0));
+            this.cart.forEach(item => {
+                item.discount_percent = this.orderDiscountPercent;
+            });
+        },
+
+        promptCustomDiscount() {
+            const val = prompt('Enter discount percentage (0-100):', this.orderDiscountPercent || '');
+            if (val !== null && val.trim() !== '') {
+                const p = parseFloat(val);
+                if (!isNaN(p)) {
+                    this.applyOrderDiscount(p);
+                }
+            }
+        },
+
+        get grossSubtotal() {
+            return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        },
+
+        get discountTotal() {
+            return this.cart.reduce((sum, item) => {
+                const base = item.price * item.quantity;
+                return sum + (base * ((item.discount_percent || 0) / 100));
+            }, 0);
         },
 
         getItemTotal(item) {

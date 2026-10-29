@@ -34,6 +34,22 @@
 
 
 
+  - POS Checkout Accessibility, Bottom Grounding, Light Gray Border & Discount Option:
+    - Root cause of dark/black border: Tailwind class `border-[var(--border)]/70` without an explicit compiled color class evaluated to `currentColor` (#262B45 dark ink). Replaced with `border-t border-slate-200 dark:border-slate-700/60` and explicit scoped CSS rule `[data-theme="neumorphic"] .pos-terminal .pos-checkout-box { border-top: 1px solid var(--neu-line) !important; }` guaranteeing exact light gray `#D3D8E8` (`rgb(211, 216, 232)`).
+    - Grounded checkout box firmly to the bottom: Added `mt-auto` to `.pos-checkout-box` inside the right pane flex column, eliminating empty dead space beneath the actions.
+    - Enlarged action buttons & text for touch accessibility:
+      - "Clear" button: height `h-14` (56px), text `text-sm sm:text-base font-extrabold`.
+      - "Charge" button: height `h-14` (56px), text `text-lg sm:text-xl font-black`.
+    - Enhanced typography for totals breakdown:
+      - Subtotal: `text-sm sm:text-base font-bold text-muted`, amount `text-base sm:text-lg font-black font-mono text-ink`.
+      - Tax / VAT: `text-sm sm:text-base font-bold text-muted`, amount `text-base sm:text-lg font-black font-mono text-ink`.
+      - TOTAL DUE: label `text-base sm:text-lg font-black text-ink`, amount `text-2xl sm:text-3xl lg:text-4xl font-black font-mono text-ink`.
+    - Added interactive Discount Option row:
+      - Preset quick-toggle percentage buttons (`0%`, `5%`, `10%`, `15%`) and interactive `Custom` prompt button.
+      - Displays formatted discount deduction (`-$X.XX`) in bold amber text (`text-amber-600 dark:text-amber-400 font-mono font-black`).
+      - Full Alpine.js reactivity (`orderDiscountPercent`, `grossSubtotal`, `discountTotal`, `subtotal`, `taxTotal`, `grandTotal`), propagating line discounts to all cart items and sending `discount_percent` to backend `checkout` endpoint.
+    - Verified all 22 POS unit, isolation, and idempotency tests passing (`pytest apps/pos/tests/ -v`).
+
   - POS Stock Badge Contrast & Un-Graying Polish:
     - Root cause: `dark:bg-emerald-950/60` and `dark:text-emerald-400` classes in `product_grid.html` were triggering via media query when the client OS had dark mode enabled, causing a muddy dark slate cast (`oklab(0.262 -0.0505697 0.00661094 / 0.6)`) over the light neumorphic card surface.
     - Added dedicated `.pos-stock-in` and `.pos-stock-out` semantic badge classes in `product_grid.html`.
