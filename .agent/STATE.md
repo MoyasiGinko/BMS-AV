@@ -34,12 +34,10 @@
 
 
 
-  - POS Terminal Toolbar Symmetrical Alignment & Border Removal:
-    - Symmetrically sized all 4 controls across the POS toolbar: Search barcode input, Category select dropdown, Customer select dropdown, and Hold button are now unified to the exact same 48px height (`h-12`), matching border radius (`rounded-xl`), and identical typography (`text-sm sm:text-base font-semibold`/`font-medium`).
-    - Seamless vertical alignment: Both the left search/category bar and the right customer selector bar share the exact same container height (`h-20`), surface background (`bg-[var(--surface-1)]`), and vertical centering (`flex items-center`), ensuring all 4 controls align on the exact same horizontal centerline.
-    - Embedded customer icon: Repositioned the customer avatar icon inside the customer dropdown (`pointer-events-none absolute inset-y-0 left-0 pl-4`) matching the barcode search input, eliminating loose floating SVGs.
-    - Removed bottom black border: Eliminated `border-b border-[var(--border)]/70` from both toolbar containers, seamlessly blending the toolbar into the products catalog and cart.
-    - Verified with live Chrome DevTools layout metrics and screenshot inspection; all 8 POS tests in `apps/pos/tests/test_views.py` passing.
+  - POS Terminal Toolbar Symmetrical Spacing & Bottom Border Framing:
+    - Added symmetrical vertical spacing: Configured `py-4` (16px) top and bottom padding across both toolbar containers (`px-4 sm:px-6 py-4 bg-[var(--surface-1)] border-b border-[var(--border)]/70`), ensuring exactly 16px spacing between the top border and controls, and exactly 16px spacing between the controls and the bottom border.
+    - Added unified bottom border: Re-introduced `border-b border-[var(--border)]/70` across both left and right panes on an identical 81px height baseline (`top: 140, bottom: 221`), providing a clean, level framing line dividing the toolbar from the products catalog and cart.
+    - Verified layout with Chrome DevTools bounding box metrics (`topSpace: 16px`, `bottomSpace: 17px` with 1px border, control height `48px`) and live viewport screenshot; all 8 POS tests in `apps/pos/tests/test_views.py` passing.
 
   - Pure Neumorphism Refinement (Zero White Box Shadows & Zero Border Boxes):
     - Converted `--neu-shadow-light` to `transparent` in `static/css/neumorphic.css`, completely eliminating glaring white drop shadows / halos across all neumorphic elements.
