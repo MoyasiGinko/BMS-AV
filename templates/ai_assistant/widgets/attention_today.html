@@ -24,7 +24,7 @@
   </style>
 
   <!-- Unified Clean Header -->
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-4 border-b border-[var(--border)]/70">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-5 border-b border-[var(--border)]/60">
     <div class="flex items-center gap-3">
       <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -82,7 +82,7 @@
                   onclick="updateAttentionActiveTab(this)"
                   class="attention-tab inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
             <span>{% trans "Finance" %}</span>
-            <span class="attention-badge px-1.5 py-0.2 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.finance }}</span>
+            <span class="attention-badge px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.finance }}</span>
           </button>
         {% endif %}
         {% if categories.inventory %}
@@ -92,7 +92,7 @@
                   onclick="updateAttentionActiveTab(this)"
                   class="attention-tab inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
             <span>{% trans "Inventory" %}</span>
-            <span class="attention-badge px-1.5 py-0.2 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.inventory }}</span>
+            <span class="attention-badge px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.inventory }}</span>
           </button>
         {% endif %}
         {% if categories.sales %}
@@ -102,7 +102,7 @@
                   onclick="updateAttentionActiveTab(this)"
                   class="attention-tab inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer">
             <span>{% trans "Orders" %}</span>
-            <span class="attention-badge px-1.5 py-0.2 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.sales }}</span>
+            <span class="attention-badge px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]">{{ categories.sales }}</span>
           </button>
         {% endif %}
       </div>
@@ -151,7 +151,7 @@
         t.classList.add('text-[var(--text-muted)]', 'font-medium');
         const b = t.querySelector('.attention-badge');
         if (b) {
-          b.className = 'attention-badge px-1.5 py-0.2 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]';
+          b.className = 'attention-badge px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--surface-1)] text-[var(--text-muted)]';
         }
       });
       btn.classList.add('attention-tab-active', 'btn-primary', 'text-white', 'bg-[var(--brand-600)]', 'font-semibold');
