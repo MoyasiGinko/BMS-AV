@@ -97,11 +97,14 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         )
 
     checklist_dismissed = request.session.get(f"dismiss_checklist_{org.pk}", False)
+    checklist_visible = any(w.widget_id == "onboarding_checklist" for w in visible_widgets)
+    checklist_hidden = not checklist_visible
 
     context = {
         "organization": org,
         "widgets": rendered_widgets,
-        "checklist_dismissed": checklist_dismissed,
+        "checklist_dismissed": checklist_dismissed or checklist_hidden,
+        "checklist_hidden": checklist_hidden,
     }
 
     if request.headers.get("HX-Request") and request.GET.get("partial") == "widgets":
@@ -141,6 +144,7 @@ def dismiss_onboarding_checklist_view(request: HttpRequest) -> HttpResponse:
     org = getattr(request, "organization", None) or get_current_organization()
     if org is not None:
         request.session[f"dismiss_checklist_{org.pk}"] = True
+        request.session.pop(f"show_checklist_{org.pk}", None)
 
     if request.headers.get("HX-Request"):
         return HttpResponse("")
@@ -155,6 +159,7 @@ def reset_onboarding_checklist_view(request: HttpRequest) -> HttpResponse:
     org = getattr(request, "organization", None) or get_current_organization()
     if org is not None:
         request.session.pop(f"dismiss_checklist_{org.pk}", None)
+        request.session[f"show_checklist_{org.pk}"] = True
 
     return redirect("dashboard")
 
