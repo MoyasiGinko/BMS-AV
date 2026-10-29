@@ -34,10 +34,10 @@
 
 
 
-  - POS Terminal Toolbar Symmetrical Spacing & Bottom Border Framing:
-    - Added symmetrical vertical spacing: Configured `py-4` (16px) top and bottom padding across both toolbar containers (`px-4 sm:px-6 py-4 bg-[var(--surface-1)] border-b border-[var(--border)]/70`), ensuring exactly 16px spacing between the top border and controls, and exactly 16px spacing between the controls and the bottom border.
-    - Added unified bottom border: Re-introduced `border-b border-[var(--border)]/70` across both left and right panes on an identical 81px height baseline (`top: 140, bottom: 221`), providing a clean, level framing line dividing the toolbar from the products catalog and cart.
-    - Verified layout with Chrome DevTools bounding box metrics (`topSpace: 16px`, `bottomSpace: 17px` with 1px border, control height `48px`) and live viewport screenshot; all 8 POS tests in `apps/pos/tests/test_views.py` passing.
+  - POS Terminal Toolbar Symmetrical Spacing & Light Gray Bottom Border Framing:
+    - Added symmetrical vertical spacing: Configured `py-4` (16px) top and bottom padding across both toolbar containers (`px-4 sm:px-6 py-4 bg-[var(--surface-1)] border-b border-slate-200 dark:border-slate-700/60`), ensuring exactly 16px spacing between the top border and controls, and exactly 16px spacing between the controls and the bottom border.
+    - Standardized light gray border: Added `.pos-toolbar-bar` rule in `static/css/neumorphic.css` (`border-bottom: 1px solid var(--neu-line) !important;`) matching the top header border (`#D3D8E8` / `rgb(211, 216, 232)`), eliminating default dark text color fallback and providing an exact match to the system's light gray dividing line.
+    - Verified layout with Chrome DevTools bounding box metrics (`topSpace: 16px`, `bottomSpace: 17px` with 1px border, control height `48px`, `borderBottom: 1px solid rgb(211, 216, 232)`) and live viewport screenshot; all 8 POS tests in `apps/pos/tests/test_views.py` passing.
 
   - Pure Neumorphism Refinement (Zero White Box Shadows & Zero Border Boxes):
     - Converted `--neu-shadow-light` to `transparent` in `static/css/neumorphic.css`, completely eliminating glaring white drop shadows / halos across all neumorphic elements.
