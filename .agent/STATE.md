@@ -34,6 +34,15 @@
 
 
 
+  - POS Terminal Accessibility & Typography Enlargement (Commit `8603dc3`):
+    - Enlarged search input and category filter area (`min-h-[52px]`, `py-3.5 sm:py-4`, `text-sm sm:text-base font-medium`) with larger barcode scan icon and touch targets for effortless register scanning.
+    - Scaled up typography across the terminal for accessibility and touch:
+      - Top toolbar: register status capsule and shift/cashier metadata enlarged with bold font.
+      - Product catalog grid: prominent product names (`text-sm sm:text-base font-bold`), larger SKU tags (`text-xs font-mono font-bold`), legible stock status badges, high-contrast monospace price tags (`text-base sm:text-lg font-black font-mono`), and expanded touch-friendly `+` action buttons (`w-8 h-8`).
+      - Cart pane: larger item titles, accessible quantity steppers (`w-8 h-8`), high-contrast item line totals (`text-base font-black`), larger customer selector (`text-sm font-semibold`), and prominent `TOTAL DUE` box (`text-2xl sm:text-3xl font-black font-mono`).
+      - Payment/Tender modal: larger quick cash preset buttons (`text-xs sm:text-sm font-extrabold`), large currency inputs (`text-base font-bold`), and big accessible change due readout (`text-3xl sm:text-4xl font-black`).
+    - Verified all 8 POS view/HTMX tests passing in `apps/pos/tests/test_views.py` and validated via live browser screenshot.
+
   - Category & Status Filter Simplification to Dropdowns (Commit `a01b49e`):
     - Replaced the wide horizontal category pill bar on the POS terminal with a compact `<select name="category">` dropdown (`All Categories`, `Industrial Packaging Supplies`, etc.), saving significant horizontal space and cleanly aligning the search and catalog controls.
     - Simplified the Sales Invoices toolbar by removing the redundant horizontal pill bar, standardizing on the unified `<select name="status">` dropdown and Reset action.
