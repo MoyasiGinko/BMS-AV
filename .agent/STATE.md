@@ -34,6 +34,15 @@
 
 
 
+  - POS Terminal Screen Neumorphic Redesign (Commit `36750e4`):
+    - Redesigned `/pos/` (`terminal.html`, `product_grid.html`, and `terminal_no_shift.html`) into the modern neumorphic visual aesthetic.
+    - Upgraded top toolbar with tactile status capsule (`Register`, `Shift`, `Cashier`), plus pill action buttons (`Parked Carts`, `Shifts`, `End Shift`).
+    - Styled search input into a sunken well and category navigation into a segmented control bar.
+    - Transformed product catalog cards into rounded-2xl tactile cards with SKU badges, stock indicator pills with glowing dots, formatted currency (`$599.00` instead of 4 decimals), and soft hover/active states.
+    - Redesigned cart pane with sleek quantity stepper capsule (`-` `qty` `+`), clean line totals, dedicated `TOTAL DUE` readout card, and vibrant tactile checkout button.
+    - Upgraded Tender/Payment modal, Parked Carts modal, and Close Shift modal with neumorphic bevels, quick cash tender presets, and sunken breakdown fields.
+    - Verified all 22 POS tests passing and confirmed interactions via live Chrome DevTools session.
+
   - Sales Invoices Screen Neumorphic Redesign (Commit `7f6a522`):
     - Redesigned `/sales/invoices/` following the modern neumorphic design language established on the main dashboard.
     - Upgraded navigation tabs (`apps/sales/templates/sales/partials/_navigation_tabs.html`) into a sleek sunken segmented control bar with active elevated pills across all 7 sales sub-modules.
