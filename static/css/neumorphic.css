@@ -1,3 +1,7 @@
+
+/* Micro-typography utilities */
+.text-2xs { font-size: 0.6875rem !important; line-height: 0.875rem !important; }
+.text-3xs { font-size: 0.625rem !important; line-height: 0.75rem !important; }
 /* ==========================================================================
    BMS-AV Neumorphic Style System
    Soft tactile shapes pressed from a single continuous surface.
@@ -502,27 +506,8 @@ html[data-theme="neumorphic"],
   color: #FFFFFF !important;
 }
 
-/* Executive Briefing Dropdown Popover in Neumorphic Mode */
-[data-theme="neumorphic"] #attention-briefing-dropdown-box {
-  background-color: var(--neu-surface) !important;
-  box-shadow: 10px 10px 24px rgba(166, 175, 195, 0.65), -8px -8px 20px rgba(255, 255, 255, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.85) !important;
-  border-radius: 20px !important;
-}
-
-[data-theme="neumorphic"] .briefing-dropdown-item {
-  background-color: var(--neu-surface) !important;
-  box-shadow: var(--neu-raise-xs) !important;
-  border: 1px solid rgba(255, 255, 255, 0.7) !important;
-  border-radius: 14px !important;
-}
-
-[data-theme="neumorphic"] .briefing-dropdown-item:hover {
-  box-shadow: var(--neu-raise-sm) !important;
-  transform: translateY(-1px);
-}
-
-/* Attention Today Cards in Neumorphic Mode */
+/* Attention Today & Executive Briefing Bento Cards in Neumorphic Mode */
+[data-theme="neumorphic"] #attention-briefing-banner,
 [data-theme="neumorphic"] .attention-card {
   background-color: var(--neu-surface) !important;
   box-shadow: var(--neu-raise-sm) !important;
@@ -531,9 +516,14 @@ html[data-theme="neumorphic"],
   transition: transform 160ms ease, box-shadow 160ms ease !important;
 }
 
+[data-theme="neumorphic"] #attention-briefing-banner:hover,
 [data-theme="neumorphic"] .attention-card:hover {
   box-shadow: var(--neu-raise-md) !important;
   transform: translateY(-2px);
+}
+
+[data-theme="neumorphic"] #attention-briefing-banner {
+  border-left: 4px solid var(--neu-accent-fill, #4F46E5) !important;
 }
 
 [data-theme="neumorphic"] .attention-card.attention-critical {
@@ -1055,4 +1045,38 @@ html[data-theme="spatial"],
   height: 1px;
   background-color: var(--neu-line);
   margin: 12px 0;
+}
+
+/* ==========================================================================
+   Bento Grid Layout Helpers for Attention Today Widget
+   ========================================================================== */
+.attention-bento-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (min-width: 992px) {
+  .attention-bento-grid.has-briefing {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .attention-bento-grid.has-briefing {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+}
+
+.attention-bento-hero {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.attention-bento-items {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
