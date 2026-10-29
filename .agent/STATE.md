@@ -34,6 +34,21 @@
 
 
 
+  - Dashboard Bento Grid Row 3: Cash Position and Top Selling Products Paired:
+    - Positioned `CashPositionWidget` (`order = 14`, `col_span = 6`) and `TopProductsWidget` (`order = 15`, `col_span = 6`) into the exact same dashboard row directly below the 4-metric KPI grid.
+    - Updated `templates/core/dashboard.html` and `dashboard_widgets_partial.html` so `col_span == 6` maps to `col-span-1 md:col-span-6 lg:col-span-6` for equal-width 50/50 side-by-side placement on tablet and desktop viewports.
+    - Enhanced `CashPositionWidget` (`templates/reports/widgets/cash_position.html`):
+      - Clean tactile card header with bank icon and refresh action.
+      - Total liquid balance with accounts count pill and clean formatted 30-day net liquidity change indicator.
+      - Dual liquidity flow gauge (`30-Day Liquidity Ratio`, `% Inflow` vs `% Outflow`) with sunken track.
+      - Operating bank accounts list and footer with direct reconciliation links and live status indicator.
+    - Enhanced `TopProductsWidget` (`templates/reports/widgets/top_products.html`):
+      - Neumorphic leaderboard card with trophy icon and refresh action.
+      - Top ranked catalog products with embossed rank pills (1-4), product name, SKU tags, total sales volume, units sold, and sleek progress share bar.
+      - Footer with quick navigation to Sales Invoices and Catalog Directory.
+    - Validated live layout via Chrome DevTools: identical `top: 773px`, identical `height: 412px`, and equal `width: 764.5px`.
+    - All 22 tests passing in `tests/test_dashboard.py`, `apps/reports/tests/test_widgets.py`, and `apps/ai_assistant/tests/test_attention_views.py`.
+
   - Dashboard Bento Grid Refactor (Executive Briefing, Operating Revenue Chart & 4-Metric Grid):
     - Redesigned the primary dashboard layout into a modern Bento Grid based on user specifications:
       - Top Row (12 columns on desktop):

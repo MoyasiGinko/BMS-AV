@@ -76,7 +76,7 @@ class TopProductsWidget(DashboardWidget):
     module = "sales"
     permission = "sales.view"
     col_span = 6
-    order = 25
+    order = 15
     template_name = "reports/widgets/top_products.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -147,8 +147,8 @@ class CashPositionWidget(DashboardWidget):
     description = _("Real-time balances across bank accounts, petty cash, and 30-day liquidity flows")
     module = "accounting"
     permission = "accounting.view"
-    col_span = 4
-    order = 19
+    col_span = 6
+    order = 14
     template_name = "reports/widgets/cash_position.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
