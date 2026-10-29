@@ -34,6 +34,16 @@
 
 
 
+  - POS Dual-Tier Per-Product Discount & Overall Order Discount Input:
+    - Replaced the discount button presets with an accessible input field defaulting to 0 (`orderDiscountPercent = 0`) in `.pos-checkout-box`. Typing into the order discount input optionally sets the discount across all items (`(apply all)`).
+    - Designed and implemented individual per-product discount options on each cart item card (`.pos-cart-card`):
+      - Two-tier layout: Top tier displays Product title, SKU, unit price, and Line Total (with strikethrough original total when discounted).
+      - Bottom tier contains: Quantity stepper (`[-] qty [+]`), Per-Product Discount input (`Disc: [ 0 ] %`), real-time line deduction badge (`-$X.XX` in amber), and Trash/Remove button.
+      - Each item maintains its own `item.discount_percent` independently, allowing different products in the same transaction to carry different discount rates.
+      - Alpine.js automatically calculates item-level totals, cumulative order discount deductions, subtotal, taxes, and total due in real time, passing the exact per-line `discount_percent` to the checkout backend.
+    - Added tactile styling in `static/css/neumorphic.css` for `.pos-cart-divider` and input wells (`border-top: 1px solid var(--neu-line) !important;` with sunken tactile shadow and zero border box outlines).
+    - Validated in Chrome DevTools MCP with live cart mutations (individual 20% on item 2, 0% on item 1; order discount sync) and verified all 22 POS unit, isolation, and idempotency tests passing (`22 passed`).
+
   - POS Checkout Accessibility, Bottom Grounding, Light Gray Border & Discount Option:
     - Root cause of dark/black border: Tailwind class `border-[var(--border)]/70` without an explicit compiled color class evaluated to `currentColor` (#262B45 dark ink). Replaced with `border-t border-slate-200 dark:border-slate-700/60` and explicit scoped CSS rule `[data-theme="neumorphic"] .pos-terminal .pos-checkout-box { border-top: 1px solid var(--neu-line) !important; }` guaranteeing exact light gray `#D3D8E8` (`rgb(211, 216, 232)`).
     - Grounded checkout box firmly to the bottom: Added `mt-auto` to `.pos-checkout-box` inside the right pane flex column, eliminating empty dead space beneath the actions.

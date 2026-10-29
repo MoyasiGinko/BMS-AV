@@ -1092,6 +1092,10 @@ html[data-theme="spatial"],
   border-bottom: 1px solid var(--neu-line) !important;
 }
 
+[data-theme="neumorphic"] .pos-terminal .pos-cart-divider {
+  border-top: 1px solid var(--neu-line) !important;
+}
+
 [data-theme="neumorphic"] .pos-terminal .pos-capsule {
   background-color: var(--neu-surface) !important;
   box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.5) !important;
