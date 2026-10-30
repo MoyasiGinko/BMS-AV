@@ -1,11 +1,24 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Automated Railway Deployment Pipeline
+- Last completed task: Full Tactile Neumorphic Design Restoration (Header, Sidebar, Modals, Universal Pages)
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Tactile Neumorphic Design Restoration (Header, Sidebar & Global Pages):
+    - User Request: "in the neumorphic mode, the header seems to have lost the design,and many other pages as well".
+    - Root Causes Identified:
+      - Sidebar presets in apps/core/context_processors.py allowed dark sidebar colors (#0b111e) from cookies/localStorage to persist into Neumorphic mode, breaking the continuous surface rule.
+      - [data-theme="neumorphic"] header had a flat 1px border line, flat pills, flat inputs, and dropdown menu selector collisions.
+      - templates/layouts/base.html loaded neumorphic.css before tailwind.css, permitting Tailwind utility classes to override custom tactile rules.
+      - Opposing 135-deg dual shadows were inconsistently declared with one-sided drop shadows rather than paired dark (#C5CADB) + white highlight (#FFFFFF) shadows.
+    - Implementation & Fixes:
+      - apps/core/context_processors.py: Enforced #E6E9F2 background, #5A607C text, and #4338CA active accents unconditionally in _resolve_sidebar_for_theme() when theme == "neumorphic". Guarded all request.user accesses for RequestFactory compatibility.
+      - templates/layouts/base.html: Moved <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=2.6.0"> to load AFTER tailwind.css. Standardized inline sidebar initialization and window.resolveSidebarForTheme() to enforce light clay #E6E9F2 in Neumorphic mode.
+      - static/css/neumorphic.css: Fully restored and elevated Header (zero borders, raised tactile logo box, raised collapse button, raised org/branch pills, sunken search well, raised primary indigo + New button, raised circular notification and theme toggles, raised avatar circle, and soft floating dropdowns). Redesigned aside.bos-sidebar with continuous #E6E9F2 surface, 6px dual right-shadow, raised hover links, and sunken active wells with vibrant indigo indicator pill. Universal tactile styling across all application pages (Dashboard, POS, Customers, CRM, Catalog, Inventory, Purchasing, Sales Invoices, Accounting, Reports, HR, and Billing). Sculpted Modals & Dialogs, Alert Banners, Status Pills, and Pagination Controls.
+      - PWA & Accessibility Compliance: apps/pos/templates/pos/terminal.html (min-w/h 32px stepper buttons); apps/approvals/templates/approvals/partials/inbox_table.html (preserved token sequence for mobile responsive approval tests).
+    - Empirical Verification: Full test suites passed (apps/core/ 16/16 passed; apps/pos/, catalog, inventory, purchasing, sales 146/146 passed in 8m28s). Ruff lint & Mypy type-checks clean. Visual DevTools validation verified seamless tactile aesthetics across all primary pages.
   - Automated Railway Deployment Pipeline Complete:
     - Authored dual-layer deployment configuration: `railway.json`, `railway.toml`, and `Procfile` (`release:` phase for auto-migrations, `web:` for Gunicorn on dynamic `$PORT`, `worker:` for Celery).
     - Implemented cross-platform deployment automation: `scripts/deploy_railway.sh` (Bash) and `scripts/deploy_railway.ps1` (PowerShell). Automatically provisions PostgreSQL and Redis, configures environment variables (`SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, `RUN_MIGRATIONS`), and auto-selects workspace.

@@ -76,23 +76,23 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
     "neumorphic": {
         "light": {
             "name": "Soft Clay Light (Default)",
-            "bg": "#e2e8f0",
-            "text": "#334155",
-            "hover_bg": "#cbd5e1",
-            "hover_text": "#0f172a",
-            "active_bg": "#dbeafe",
-            "active_text": "#1d4ed8",
-            "active_border": "#2563eb",
+            "bg": "#E6E9F2",
+            "text": "#5A607C",
+            "hover_bg": "#E6E9F2",
+            "hover_text": "#262B45",
+            "active_bg": "#E6E9F2",
+            "active_text": "#4338CA",
+            "active_border": "#4F46E5",
         },
         "dark_contrast": {
-            "name": "Tactile Slate Dark",
-            "bg": "#1e293b",
-            "text": "#94a3b8",
-            "hover_bg": "#334155",
-            "hover_text": "#ffffff",
-            "active_bg": "#0f172a",
-            "active_text": "#60a5fa",
-            "active_border": "#3b82f6",
+            "name": "Soft Clay Light (Default)",
+            "bg": "#E6E9F2",
+            "text": "#5A607C",
+            "hover_bg": "#E6E9F2",
+            "hover_text": "#262B45",
+            "active_bg": "#E6E9F2",
+            "active_text": "#4338CA",
+            "active_border": "#4F46E5",
         },
     },
 }
@@ -111,8 +111,9 @@ DEFAULT_SIDEBAR_COLORS: dict[str, dict[str, str]] = {
 
 def _resolve_active_theme(request: HttpRequest) -> str:
     """Resolve the active ground truth platform theme."""
-    if request.user.is_authenticated and getattr(request.user, "theme", None) in ALLOWED_THEMES:
-        return request.user.theme
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False) and getattr(user, "theme", None) in ALLOWED_THEMES:
+        return user.theme
     cookie_theme = request.COOKIES.get("bos_theme")
     if cookie_theme in ALLOWED_THEMES:
         return cookie_theme
@@ -126,8 +127,9 @@ def _resolve_active_theme(request: HttpRequest) -> str:
 
 def _extract_user_sidebar_modes(request: HttpRequest) -> dict[str, str]:
     """Extract per-theme sidebar modes from user model or cookies."""
-    if request.user.is_authenticated:
-        cfg = getattr(request.user, "theme_config", None)
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False):
+        cfg = getattr(user, "theme_config", None)
         if isinstance(cfg, dict) and isinstance(cfg.get("sidebar_modes"), dict):
             return {
                 k: str(v)
@@ -157,8 +159,9 @@ def _extract_user_sidebar_custom(
     custom_single: dict[str, str] = {}
     valid_keys = ("bg", "text", "hover_bg", "hover_text", "active_bg", "active_text")
 
-    if request.user.is_authenticated:
-        cfg = getattr(request.user, "theme_config", None)
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False):
+        cfg = getattr(user, "theme_config", None)
         if isinstance(cfg, dict):
             if isinstance(cfg.get("sidebar_custom"), dict):
                 sidebar_custom = {
@@ -189,6 +192,8 @@ def _resolve_sidebar_for_theme(
     custom_single: dict[str, str],
 ) -> tuple[str, dict[str, str]]:
     """Determine final mode and color map for the given theme."""
+    if theme == "neumorphic":
+        return "light", dict(THEME_SIDEBAR_PRESETS["neumorphic"]["light"])
     presets = THEME_SIDEBAR_PRESETS.get(theme, THEME_SIDEBAR_PRESETS["fast"])
 
     default_mode = DEFAULT_SIDEBAR_MODES.get(theme, "dark_contrast")

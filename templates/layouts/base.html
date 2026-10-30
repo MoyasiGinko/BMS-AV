@@ -51,6 +51,18 @@
           var customForTheme = customs[theme] || {};
           colors = Object.assign({}, themePresets[defaultMode] || themePresets.dark_contrast, customForTheme);
         }
+        if (theme === 'neumorphic') {
+          mode = 'light';
+          colors = (themePresets && themePresets.light) || {
+            bg: '#E6E9F2',
+            text: '#5A607C',
+            hover_bg: '#E6E9F2',
+            hover_text: '#262B45',
+            active_bg: '#E6E9F2',
+            active_text: '#4338CA',
+            active_border: '#4F46E5'
+          };
+        }
 
         var doc = document.documentElement;
         if (colors.bg) doc.style.setProperty('--sidebar-bg', colors.bg);
@@ -64,7 +76,7 @@
         }
         var isDarkBg = true;
         if (colors.bg) {
-          if (colors.bg === '#ffffff' || colors.bg === '#fff' || colors.bg.indexOf('255, 255, 255') !== -1 || colors.bg === '#f8fafc' || colors.bg === '#e2e8f0') {
+          if (colors.bg === '#ffffff' || colors.bg === '#fff' || colors.bg.indexOf('255, 255, 255') !== -1 || colors.bg === '#f8fafc' || colors.bg === '#e2e8f0' || colors.bg.toLowerCase() === '#e6e9f2') {
             isDarkBg = false;
           } else if (colors.bg.startsWith('#') && colors.bg.length >= 7) {
             var r = parseInt(colors.bg.substr(1,2), 16) || 0;
@@ -88,10 +100,10 @@
   <meta name="apple-mobile-web-app-title" content="Business OS">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
-  <!-- Calm Ledger Tokens, Neumorphic System & Tailwind 4 -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=2.5.1">
-  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=2.5.5">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=2.5.1">
+  <!-- Calm Ledger Tokens, Tailwind 4 & Neumorphic System -->
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=2.6.0">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=2.6.0">
+  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=2.6.0">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -133,6 +145,21 @@
 
     window.resolveSidebarForTheme = function(themeName) {
       themeName = themeName || document.documentElement.getAttribute('data-theme') || 'fast';
+      if (themeName === 'neumorphic') {
+        var neuPresets = (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS.neumorphic) || {};
+        return {
+          mode: 'light',
+          colors: neuPresets.light || {
+            bg: '#E6E9F2',
+            text: '#5A607C',
+            hover_bg: '#E6E9F2',
+            hover_text: '#262B45',
+            active_bg: '#E6E9F2',
+            active_text: '#4338CA',
+            active_border: '#4F46E5'
+          }
+        };
+      }
       var presets = (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS[themeName]) || (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS.fast) || {};
       var defaultMode = themeName === 'neumorphic' ? 'light' : 'dark_contrast';
       var modes = Object.assign({
@@ -181,7 +208,7 @@
       }
       var isDarkBg = true;
       if (colors.bg) {
-        if (colors.bg === '#ffffff' || colors.bg === '#fff' || colors.bg.indexOf('255, 255, 255') !== -1 || colors.bg === '#f8fafc' || colors.bg === '#e2e8f0') {
+        if (colors.bg === '#ffffff' || colors.bg === '#fff' || colors.bg.indexOf('255, 255, 255') !== -1 || colors.bg === '#f8fafc' || colors.bg === '#e2e8f0' || colors.bg.toLowerCase() === '#e6e9f2') {
           isDarkBg = false;
         } else if (colors.bg.startsWith('#') && colors.bg.length >= 7) {
           var r = parseInt(colors.bg.substr(1,2), 16) || 0;

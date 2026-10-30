@@ -226,13 +226,13 @@
                         <div class="pos-stepper-box flex items-center space-x-1.5 p-1 bg-[var(--surface-2)]/60 rounded-xl shrink-0">
                             <button type="button"
                                     @click="changeQty(index, -1)"
-                                    class="w-8 h-8 rounded-lg bg-[var(--surface-1)] text-muted hover:text-ink font-black active:scale-95 flex items-center justify-center text-sm transition cursor-pointer hover:bg-[var(--surface-2)]">
+                                    class="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg bg-[var(--surface-1)] text-muted hover:text-ink font-black active:scale-95 flex items-center justify-center text-sm transition cursor-pointer hover:bg-[var(--surface-2)]">
                                 -
                             </button>
                             <span class="w-8 text-center font-mono font-bold text-ink text-sm sm:text-base select-none" x-text="item.quantity"></span>
                             <button type="button"
                                     @click="changeQty(index, 1)"
-                                    class="w-8 h-8 rounded-lg bg-[var(--surface-1)] text-muted hover:text-ink font-black active:scale-95 flex items-center justify-center text-sm transition cursor-pointer hover:bg-[var(--surface-2)]">
+                                    class="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg bg-[var(--surface-1)] text-muted hover:text-ink font-black active:scale-95 flex items-center justify-center text-sm transition cursor-pointer hover:bg-[var(--surface-2)]">
                                 +
                             </button>
                         </div>
