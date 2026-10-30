@@ -1205,3 +1205,83 @@ html[data-theme="spatial"],
   box-shadow: inset 3px 3px 7px rgba(166, 175, 195, 0.5) !important;
   border: none !important;
 }
+
+/* ==========================================================================
+   NEUMORPHIC CUSTOMERS PAGE POLISH
+   Pure tactile shapes, zero border boxes, light gray dividers, high-contrast type
+   ========================================================================== */
+[data-theme="neumorphic"] .customers-page .neu-stat-card,
+[data-theme="neumorphic"] .customers-page .neu-filter-card,
+[data-theme="neumorphic"] .customers-page .neu-table-card {
+  background-color: var(--neu-surface) !important;
+  box-shadow: 4px 4px 14px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .customers-page .neu-btn-ghost {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: 3px 3px 8px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .customers-page .neu-btn-ghost:hover {
+  box-shadow: 4px 4px 12px rgba(166, 175, 195, 0.55) !important;
+  color: #4F46E5 !important;
+}
+
+[data-theme="neumorphic"] .customers-page .neu-btn-ghost:active {
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.5) !important;
+}
+
+[data-theme="neumorphic"] .customers-page .neu-btn-primary {
+  background-color: #4F46E5 !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 10px rgba(79, 70, 229, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .customers-page .neu-btn-primary:active {
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="neumorphic"] .customers-page .neu-input,
+[data-theme="neumorphic"] .customers-page .neu-select {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .customers-page .neu-toggle-label {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: 2px 2px 6px rgba(166, 175, 195, 0.35) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .customers-page table thead {
+  background-color: rgba(221, 226, 238, 0.5) !important;
+}
+
+[data-theme="neumorphic"] .customers-page table th {
+  color: var(--neu-text-muted) !important;
+  border-bottom: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .customers-page table td {
+  border-bottom: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .customers-page table .text-ink,
+[data-theme="neumorphic"] .customers-page table a {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .customers-page table a:hover {
+  color: #4F46E5 !important;
+}
+
+[data-theme="neumorphic"] .customers-page table tbody tr:hover {
+  background-color: rgba(197, 202, 219, 0.25) !important;
+}

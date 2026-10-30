@@ -1,105 +1,164 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Customers & Accounts" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="customers-page space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Customer Accounts" %}</h1>
-            <p class="text-sm text-muted mt-1">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Customer Accounts" %}</h1>
+            <p class="text-sm sm:text-base text-muted mt-1">
                 {% trans "Manage client accounts, credit terms, contacts, and account statements." %}
             </p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{% url 'integrations:exports_list' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex flex-wrap items-center gap-2.5">
+            <a href="{% url 'integrations:exports_list' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 {% trans "Exports" %}
             </a>
-            <a href="{% url 'integrations:import_upload' entity_type='customers' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <a href="{% url 'integrations:import_upload' entity_type='customers' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
                 {% trans "Import Customers" %}
             </a>
-            <a href="{% url 'customers:customer_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            <a href="{% url 'customers:customer_create' %}" class="neu-btn-primary inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4" />
                 </svg>
                 {% trans "New Customer" %}
             </a>
         </div>
     </div>
 
-    <!-- Summary Metrics -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5">
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Customers" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-ink">{{ metrics.total_customers }}</span>
-                <span class="text-xs text-emerald-600 font-medium">{{ metrics.active_customers }} {% trans "active" %}</span>
+    <!-- Summary Metrics Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div class="neu-stat-card bg-[var(--surface-1)] p-5 sm:p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Total Customers" %}</span>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl sm:text-3xl font-black text-ink font-mono">{{ metrics.total_customers }}</span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 dark:bg-emerald-950/80 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-300/60 shadow-2xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    {{ metrics.active_customers }} {% trans "active" %}
+                </span>
             </div>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Outstanding AR" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">${{ metrics.total_receivables }}</span>
-                <span class="text-xs text-slate-400">{% trans "Receivables due" %}</span>
+
+        <div class="neu-stat-card bg-[var(--surface-1)] p-5 sm:p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Total Outstanding AR" %}</span>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono">
+                    ${{ metrics.total_receivables|floatformat:2|intcomma }}
+                </span>
+                <span class="text-xs font-medium text-muted">{% trans "Receivables due" %}</span>
             </div>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Over Credit Limit" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold {% if metrics.over_credit_count > 0 %}text-rose-600 dark:text-rose-400{% else %}text-ink{% endif %}">
+
+        <div class="neu-stat-card bg-[var(--surface-1)] p-5 sm:p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Over Credit Limit" %}</span>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl sm:text-3xl font-black font-mono {% if metrics.over_credit_count > 0 %}text-rose-600 dark:text-rose-400{% else %}text-ink{% endif %}">
                     {{ metrics.over_credit_count }}
                 </span>
-                <span class="text-xs text-slate-400">{% trans "Accounts flagged" %}</span>
+                {% if metrics.over_credit_count > 0 %}
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-100 dark:bg-rose-950/80 dark:text-rose-300 px-2.5 py-0.5 rounded-full border border-rose-300/60 shadow-2xs">
+                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                    {% trans "Flagged" %}
+                </span>
+                {% else %}
+                <span class="text-xs font-medium text-muted">{% trans "Accounts flagged" %}</span>
+                {% endif %}
             </div>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Currency" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-ink font-mono">{{ request.organization.base_currency }}</span>
-                <span class="text-xs text-slate-400">{% trans "Base ledger" %}</span>
+
+        <div class="neu-stat-card bg-[var(--surface-1)] p-5 sm:p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Base Currency" %}</span>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl sm:text-3xl font-black text-ink font-mono">{{ request.organization.base_currency }}</span>
+                <span class="text-xs font-medium text-muted">{% trans "Base ledger" %}</span>
             </div>
         </div>
     </div>
 
     <!-- Filter Bar -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="neu-filter-card bg-[var(--surface-1)] p-4 sm:p-5 rounded-2xl transition-all">
         <form id="customer-filter-form"
               method="get"
-              class="flex flex-wrap items-center gap-4"
+              class="flex flex-wrap items-center gap-3 sm:gap-4"
               hx-get="{% url 'customers:customer_list' %}"
               hx-target="#customer-table-container"
               hx-trigger="input from:input delay:250ms, change from:select, change from:input[type=checkbox]"
               hx-indicator="#table-spinner">
-            <div class="flex-1 min-w-[220px]">
-                {{ form.query }}
+            
+            <!-- Search Input Container -->
+            <div class="relative flex-1 min-w-[240px] sm:min-w-[280px]">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted">
+                    <svg class="w-4.5 h-4.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input type="text"
+                       name="query"
+                       value="{{ query }}"
+                       placeholder="{% trans 'Search by name, code, phone, email...' %}"
+                       class="neu-input block w-full h-11 pl-10 pr-4 text-sm font-medium rounded-xl bg-[var(--surface-2)]/60 text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)] transition-all" />
             </div>
-            <div class="w-40">
-                {{ form.status }}
+
+            <!-- Status Select -->
+            <div class="w-40 sm:w-44 shrink-0">
+                <select name="status"
+                        class="neu-select block w-full h-11 px-3.5 text-sm font-semibold rounded-xl bg-[var(--surface-2)]/60 text-ink focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)] cursor-pointer transition-all">
+                    <option value="">{% trans "All Statuses" %}</option>
+                    {% for val, label in form.status.field.choices %}
+                        {% if val %}
+                        <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
             </div>
-            <div class="w-44">
-                {{ form.type }}
+
+            <!-- Type Select -->
+            <div class="w-40 sm:w-44 shrink-0">
+                <select name="type"
+                        class="neu-select block w-full h-11 px-3.5 text-sm font-semibold rounded-xl bg-[var(--surface-2)]/60 text-ink focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)] cursor-pointer transition-all">
+                    <option value="">{% trans "All Types" %}</option>
+                    {% for val, label in form.type.field.choices %}
+                        {% if val %}
+                        <option value="{{ val }}" {% if type == val %}selected{% endif %}>{{ label }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
             </div>
+
+            <!-- Toggles / Checkboxes -->
             <div class="flex items-center gap-2">
-                {{ form.has_balance_only }}
-                <label for="{{ form.has_balance_only.id_for_label }}" class="text-xs font-medium text-muted">
-                    {% trans "With Balance Only" %}
+                <label for="id_has_balance_only"
+                       class="neu-toggle-label inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--surface-2)]/50 hover:bg-[var(--surface-2)]/80 text-xs sm:text-sm font-bold text-ink cursor-pointer transition-all select-none">
+                    <input type="checkbox"
+                           name="has_balance_only"
+                           id="id_has_balance_only"
+                           {% if has_balance_only %}checked{% endif %}
+                           class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                    <span>{% trans "With Balance Only" %}</span>
+                </label>
+
+                <label for="id_over_credit_only"
+                       class="neu-toggle-label inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--surface-2)]/50 hover:bg-[var(--surface-2)]/80 text-xs sm:text-sm font-bold text-ink cursor-pointer transition-all select-none">
+                    <input type="checkbox"
+                           name="over_credit_only"
+                           id="id_over_credit_only"
+                           {% if over_credit_only %}checked{% endif %}
+                           class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                    <span>{% trans "Over Credit Limit" %}</span>
                 </label>
             </div>
-            <div class="flex items-center gap-2">
-                {{ form.over_credit_only }}
-                <label for="{{ form.over_credit_only.id_for_label }}" class="text-xs font-medium text-muted">
-                    {% trans "Over Credit Limit" %}
-                </label>
-            </div>
-            <div id="table-spinner" class="htmx-indicator">
+
+            <!-- HTMX Spinner Indicator -->
+            <div id="table-spinner" class="htmx-indicator ml-auto pr-2">
                 <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

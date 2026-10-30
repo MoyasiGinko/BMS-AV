@@ -34,6 +34,16 @@
 
 
 
+  - Customer Accounts Page Clean Neumorphic Redesign:
+    - Transformed `customer_list.html` and `partials/customer_table.html` into a pure, clean, accessible neumorphic interface:
+      - Fixed contrast issue where OS Dark Mode (`prefers-color-scheme: dark`) triggered `dark:text-slate-200` causing near-white invisible customer names on light background. Enforced deep high-contrast `var(--neu-text)` (`#262B45`) for customer names, table headers, and body typography.
+      - Removed harsh border boxes on KPI summary cards, filter bar, and table container; applied soft raised neumorphic shadows (`4px 4px 14px rgba(166, 175, 195, 0.45)`) and light gray `#D3D8E8` dividers (`var(--neu-line)`).
+      - Currency and decimal formatting: Formatted AR balance and credit limits with comma-separated 2-decimal precision (`$2,395.70`, `$15,000.00`, `$922.80`), replacing raw 4-decimal values.
+      - Sunken search & filter wells: Redesigned search input and dropdown selects with inset tactile shadows (`box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45)`), search SVG icon, and clean toggle buttons for `With Balance Only` and `Over Credit Limit`.
+      - Vibrant, un-grayed status pills: Upgraded customer status badges to vibrant emerald for Active, vibrant rose for Suspended (Credit Hold), and neutral slate for Inactive.
+      - Tactile action buttons: Styled `Exports` and `Import Customers` as tactile ghost buttons and `New Customer` as a primary indigo tactile button.
+      - Verified live in Chrome DevTools with screenshots and confirmed all 37 customer tests passing (`pytest apps/customers/tests/ -v`).
+
   - Inventory-Configured Product Discounts & POS Extra Order Discount:
     - User requirement clarification: Individual product discounts are configured when adding/editing the product in inventory, not manually typed on each line during checkout. The checkout discount input is reserved for an extra discount over the entire order.
     - Added `discount_percent` to `Product` model in `apps/catalog/models.py` (migration `0006_product_discount_percent` applied) and `effective_price` property.
