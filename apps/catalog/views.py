@@ -91,8 +91,16 @@ def product_list_view(request: HttpRequest) -> HttpResponse:
     page_obj = paginator.get_page(page_number)
 
     categories = list_categories(organization_id=org.pk)
+    all_prods = Product.all_tenants.filter(organization=org)
+    metrics = {
+        "total_products": all_prods.count(),
+        "active_products": all_prods.filter(is_active=True).count(),
+        "total_categories": len(categories),
+        "discounted_products": all_prods.filter(discount_percent__gt=0).count(),
+    }
 
     context = {
+        "metrics": metrics,
         "page_obj": page_obj,
         "products": page_obj.object_list,
         "categories": categories,

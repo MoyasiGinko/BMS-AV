@@ -4,47 +4,50 @@
 {% block title %}{% trans "Units of Measure" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="catalog-page space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2">
-                <a href="{% url 'catalog:product_list' %}" class="text-sm font-medium text-slate-500 hover:text-muted dark:hover:text-slate-200">
-                    &larr; {% trans "Back to Products" %}
-                </a>
-            </div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink mt-1">{% trans "Units of Measure" %}</h1>
-            <p class="text-sm text-muted mt-0.5">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Units of Measure" %}</h1>
+            <p class="text-sm sm:text-base text-muted mt-1">
                 {% trans "Define standard measurement units (e.g., pcs, kg, m, hrs) and decimal rounding precision." %}
             </p>
         </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'catalog:product_list' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                &larr; {% trans "Back to Products" %}
+            </a>
+        </div>
     </div>
+
+    <!-- Navigation Tabs -->
+    {% include "catalog/partials/_navigation_tabs.html" with active_tab="units" %}
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Units Table -->
-        <div class="lg:col-span-2 bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
-            <div class="p-4 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-base font-semibold text-ink">{% trans "Standard Units" %}</h3>
+        <div class="lg:col-span-2 neu-table-card bg-[var(--surface-1)] rounded-2xl overflow-hidden transition-all">
+            <div class="p-5 border-b border-[#D3D8E8] dark:border-slate-800">
+                <h3 class="text-base font-bold text-ink">{% trans "Standard Units" %}</h3>
             </div>
 
             {% if units %}
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-line text-left text-sm">
-                    <thead class="bg-app text-xs font-semibold text-muted">
+                <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800 text-left text-sm">
+                    <thead class="bg-slate-50/50 dark:bg-slate-800/40 text-xs font-bold uppercase tracking-wider text-muted">
                         <tr>
-                            <th class="px-6 py-3">{% trans "Unit Name" %}</th>
-                            <th class="px-6 py-3">{% trans "Code" %}</th>
-                            <th class="px-6 py-3">{% trans "Decimal Precision" %}</th>
-                            <th class="px-6 py-3 text-right">{% trans "Actions" %}</th>
+                            <th class="px-6 py-3.5">{% trans "Unit Name" %}</th>
+                            <th class="px-6 py-3.5">{% trans "Code" %}</th>
+                            <th class="px-6 py-3.5">{% trans "Decimal Precision" %}</th>
+                            <th class="px-6 py-3.5 text-right">{% trans "ID" %}</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-line text-muted">
+                    <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800">
                         {% for u in units %}
-                        <tr class="hover:bg-surface-2">
-                            <td class="px-6 py-3.5 font-medium text-ink">{{ u.name }}</td>
-                            <td class="px-6 py-3.5 font-mono text-xs font-semibold">{{ u.code }}</td>
-                            <td class="px-6 py-3.5 text-slate-500">{{ u.precision }} {% trans "decimals" %}</td>
-                            <td class="px-6 py-3.5 text-right font-mono text-xs text-slate-400">
+                        <tr class="hover:bg-surface-2 transition-colors">
+                            <td class="px-6 py-4 font-bold text-ink">{{ u.name }}</td>
+                            <td class="px-6 py-4 font-mono text-xs font-bold text-muted">{{ u.code }}</td>
+                            <td class="px-6 py-4 text-xs font-medium text-slate-500">{{ u.precision }} {% trans "decimals" %}</td>
+                            <td class="px-6 py-4 text-right font-mono text-xs text-slate-400">
                                 {{ u.public_id|slice:":8" }}
                             </td>
                         </tr>
@@ -53,39 +56,39 @@
                 </table>
             </div>
             {% else %}
-            <div class="p-8 text-center text-muted text-sm">
+            <div class="p-8 text-center text-muted text-sm font-medium">
                 {% trans "No units defined. Use the form to configure units of measure." %}
             </div>
             {% endif %}
         </div>
 
         <!-- Add Unit Form -->
-        <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
-            <h3 class="text-base font-semibold text-ink mb-4">{% trans "Add Unit of Measure" %}</h3>
+        <div class="neu-filter-card bg-[var(--surface-1)] rounded-2xl p-6 transition-all">
+            <h3 class="text-base font-bold text-ink mb-4">{% trans "Add Unit of Measure" %}</h3>
 
             <form method="post" class="space-y-4">
                 {% csrf_token %}
                 <div>
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Unit Name" %} *</label>
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Unit Name" %} *</label>
                     {{ form.name }}
                     {% if form.name.errors %}<p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Code / Symbol" %} *</label>
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Code / Symbol" %} *</label>
                     {{ form.code }}
                     {% if form.code.errors %}<p class="text-xs text-red-500 mt-1">{{ form.code.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Decimal Precision" %} *</label>
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Decimal Precision" %} *</label>
                     {{ form.precision }}
                     {% if form.precision.errors %}<p class="text-xs text-red-500 mt-1">{{ form.precision.errors.0 }}</p>{% endif %}
                     <p class="text-xs text-slate-400 mt-1">{% trans "0 for whole items (pcs), 2-4 for weight/volume." %}</p>
                 </div>
 
                 <div class="pt-2">
-                    <button type="submit" class="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">
+                    <button type="submit" class="neu-btn-primary w-full py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-sm active:scale-95 cursor-pointer">
                         {% trans "Create Unit" %}
                     </button>
                 </div>

@@ -34,6 +34,22 @@
 
 
 
+  - Products & Items (Catalog) Clean Tactile Neumorphic Redesign:
+    - User request: "likewise cleanly design the products &items page".
+    - Followed pure tactile neumorphic design language across the entire Catalog module:
+      - Product List & Directory (`product_list.html` & `partials/product_table.html`):
+        - Removed all harsh 1px border boxes, replacing them with soft raised containers (`.neu-table-card`, `.neu-stat-card`, `.neu-filter-card`) with dark-only shadows (`4px 4px 14px rgba(166, 175, 195, 0.45)`).
+        - Added 4 live KPI summary cards: Total Items registered, Active in Catalog (ready-to-sell pill), Promotional Deals (active discount pill), and Product Categories.
+        - Redesigned search & filter bar into a sunken inset well (`.neu-input`, `.neu-select`) with centered magnifying glass icon and instant HTMX debounced search.
+        - Elevated table typography: Deep ink `#262B45` (`var(--neu-text)`) for product names, light indigo tactile avatar initials, and formatted costs & prices (`|floatformat:2|intcomma`).
+        - Integrated product-level promotional discount badge (`15% OFF` amber badge) and dynamic strikethrough price (`$509.15` effective with `$599.00` strikethrough).
+        - Crisp, un-grayed status badges: Emerald pill with glowing dot for Active items, slate pill for Archived.
+        - Soft sunken empty well (`.neu-empty-well`) and tactile pagination controls.
+      - Catalog Sub-Navigation Tabs (`apps/catalog/templates/catalog/partials/_navigation_tabs.html`):
+        - Segmented pill navigation bar across Products & Items, Categories, Price Lists, and Units of Measure.
+      - Unified sub-views: `category_list.html`, `pricelist_list.html`, and `unit_list.html` upgraded with `.catalog-page`, navigation tabs, tactile table cards, and primary buttons.
+      - Tests & Verification: All 20 catalog tests passed (`uv run pytest apps/catalog/tests/ -v`). Verified live in Chrome DevTools with screenshots and HTMX search.
+
   - CRM & Pipeline Clean Tactile Neumorphic Redesign:
     - User request: "likewise design the crm & pipeline page cleanly".
     - Followed the pure tactile neumorphic design language established for POS and Customer Accounts:

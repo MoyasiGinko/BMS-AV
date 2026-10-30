@@ -4,61 +4,70 @@
 {% block title %}{% trans "Price Lists" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="catalog-page space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2">
-                <a href="{% url 'catalog:product_list' %}" class="text-sm font-medium text-slate-500 hover:text-muted dark:hover:text-slate-200">
-                    &larr; {% trans "Back to Products" %}
-                </a>
-            </div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink mt-1">{% trans "Price Lists" %}</h1>
-            <p class="text-sm text-muted mt-0.5">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Price Lists" %}</h1>
+            <p class="text-sm sm:text-base text-muted mt-1">
                 {% trans "Manage customer tiers, wholesale pricing schedules, and currency-specific rate cards." %}
             </p>
         </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'catalog:product_list' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                &larr; {% trans "Back to Products" %}
+            </a>
+        </div>
     </div>
+
+    <!-- Navigation Tabs -->
+    {% include "catalog/partials/_navigation_tabs.html" with active_tab="pricelists" %}
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Price Lists Table -->
-        <div class="lg:col-span-2 bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
-            <div class="p-4 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-base font-semibold text-ink">{% trans "Configured Price Lists" %}</h3>
+        <div class="lg:col-span-2 neu-table-card bg-[var(--surface-1)] rounded-2xl overflow-hidden transition-all">
+            <div class="p-5 border-b border-[#D3D8E8] dark:border-slate-800">
+                <h3 class="text-base font-bold text-ink">{% trans "Configured Price Lists" %}</h3>
             </div>
 
             {% if price_lists %}
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-line text-left text-sm">
-                    <thead class="bg-app text-xs font-semibold text-muted">
+                <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800 text-left text-sm">
+                    <thead class="bg-slate-50/50 dark:bg-slate-800/40 text-xs font-bold uppercase tracking-wider text-muted">
                         <tr>
-                            <th class="px-6 py-3">{% trans "Price List Name" %}</th>
-                            <th class="px-6 py-3">{% trans "Currency" %}</th>
-                            <th class="px-6 py-3">{% trans "Scope" %}</th>
-                            <th class="px-6 py-3 text-right">{% trans "Actions" %}</th>
+                            <th class="px-6 py-3.5">{% trans "Price List Name" %}</th>
+                            <th class="px-6 py-3.5">{% trans "Currency" %}</th>
+                            <th class="px-6 py-3.5">{% trans "Scope" %}</th>
+                            <th class="px-6 py-3.5 text-right">{% trans "Actions" %}</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-line text-muted">
+                    <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800">
                         {% for pl in price_lists %}
-                        <tr class="hover:bg-surface-2">
-                            <td class="px-6 py-3.5">
-                                <a href="{% url 'catalog:pricelist_detail' pk=pl.pk %}" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                        <tr class="hover:bg-surface-2 transition-colors">
+                            <td class="px-6 py-4">
+                                <a href="{% url 'catalog:pricelist_detail' pk=pl.pk %}" class="font-bold text-ink hover:text-indigo-600 transition-colors">
                                     {{ pl.name }}
                                 </a>
                                 {% if pl.description %}
-                                <p class="text-xs text-muted mt-0.5 truncate max-w-xs">{{ pl.description }}</p>
+                                <p class="text-xs text-muted mt-0.5 truncate max-w-xs font-medium">{{ pl.description }}</p>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-3.5 font-mono text-xs font-semibold">{{ pl.currency }}</td>
-                            <td class="px-6 py-3.5">
+                            <td class="px-6 py-4 font-mono text-xs font-bold text-muted">{{ pl.currency }}</td>
+                            <td class="px-6 py-4">
                                 {% if pl.is_default %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">{% trans "Default" %}</span>
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold text-emerald-800 bg-emerald-100 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 shadow-2xs">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                        {% trans "Default" %}
+                                    </span>
                                 {% else %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{% trans "Custom" %}</span>
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold text-slate-700 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60 shadow-2xs">
+                                        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                        {% trans "Custom" %}
+                                    </span>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-3.5 text-right">
-                                <a href="{% url 'catalog:pricelist_detail' pk=pl.pk %}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                            <td class="px-6 py-4 text-right">
+                                <a href="{% url 'catalog:pricelist_detail' pk=pl.pk %}" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 transition-colors">
                                     {% trans "Manage Items" %} &rarr;
                                 </a>
                             </td>
@@ -68,42 +77,42 @@
                 </table>
             </div>
             {% else %}
-            <div class="p-8 text-center text-muted text-sm">
+            <div class="p-8 text-center text-muted text-sm font-medium">
                 {% trans "No custom price lists configured. Default catalog pricing is currently active." %}
             </div>
             {% endif %}
         </div>
 
         <!-- Add Price List Form -->
-        <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
-            <h3 class="text-base font-semibold text-ink mb-4">{% trans "New Price List" %}</h3>
+        <div class="neu-filter-card bg-[var(--surface-1)] rounded-2xl p-6 transition-all">
+            <h3 class="text-base font-bold text-ink mb-4">{% trans "New Price List" %}</h3>
 
             <form method="post" class="space-y-4">
                 {% csrf_token %}
                 <div>
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Name" %} *</label>
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Name" %} *</label>
                     {{ form.name }}
                     {% if form.name.errors %}<p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Currency (ISO 3-Letter)" %} *</label>
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Currency (ISO 3-Letter)" %} *</label>
                     {{ form.currency }}
                     {% if form.currency.errors %}<p class="text-xs text-red-500 mt-1">{{ form.currency.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Description" %}</label>
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Description" %}</label>
                     {{ form.description }}
                 </div>
 
                 <div class="flex items-center gap-2 pt-1">
                     {{ form.is_default }}
-                    <label class="text-sm text-muted">{% trans "Make Default for Organization" %}</label>
+                    <label class="text-sm font-medium text-muted">{% trans "Make Default for Organization" %}</label>
                 </div>
 
                 <div class="pt-2">
-                    <button type="submit" class="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">
+                    <button type="submit" class="neu-btn-primary w-full py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-sm active:scale-95 cursor-pointer">
                         {% trans "Create Price List" %}
                     </button>
                 </div>

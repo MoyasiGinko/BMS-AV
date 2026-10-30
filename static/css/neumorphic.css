@@ -1462,3 +1462,120 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] .crm-page table tbody tr:hover {
   background-color: rgba(197, 202, 219, 0.25) !important;
 }
+
+
+/* ==========================================================================
+   NEUMORPHIC PRODUCT CATALOG POLISH
+   Pure tactile shapes, zero border boxes, soft raised/sunken cards, high contrast
+   ========================================================================== */
+[data-theme="neumorphic"] .catalog-page .neu-stat-card,
+[data-theme="neumorphic"] .catalog-page .neu-filter-card,
+[data-theme="neumorphic"] .catalog-page .neu-table-card {
+  background-color: var(--neu-surface) !important;
+  box-shadow: 4px 4px 14px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-btn-ghost {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: 3px 3px 8px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-btn-ghost:hover {
+  box-shadow: 4px 4px 12px rgba(166, 175, 195, 0.55) !important;
+  color: #4F46E5 !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-btn-ghost:active {
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.5) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-btn-primary {
+  background-color: #4F46E5 !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 10px rgba(79, 70, 229, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-btn-primary:active {
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-input,
+[data-theme="neumorphic"] .catalog-page .neu-select {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-initial-avatar {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 1px 1px 3px rgba(166, 175, 195, 0.5) !important;
+  color: #4F46E5 !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-empty-well {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2px 2px 6px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .product-title {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .product-title:hover {
+  color: #4F46E5 !important;
+}
+
+[data-theme="neumorphic"] .catalog-page table thead {
+  background-color: rgba(221, 226, 238, 0.5) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page table th {
+  color: var(--neu-text-muted) !important;
+  border-bottom: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page table td {
+  border-bottom: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page table .text-ink,
+[data-theme="neumorphic"] .catalog-page table a {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page table tbody tr:hover {
+  background-color: rgba(197, 202, 219, 0.25) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-nav-track {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  padding: 4px !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-nav-tab {
+  color: var(--neu-text-muted) !important;
+  border-radius: 12px !important;
+  border: none !important;
+  transition: all 140ms ease !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-nav-tab:hover:not(.neu-nav-tab-active) {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .catalog-page .neu-nav-tab.neu-nav-tab-active {
+  background-color: var(--neu-surface) !important;
+  color: #4F46E5 !important;
+  box-shadow: 2px 2px 6px rgba(166, 175, 195, 0.4) !important;
+  font-weight: 700 !important;
+}

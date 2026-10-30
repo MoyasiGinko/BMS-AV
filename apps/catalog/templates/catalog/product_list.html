@@ -1,42 +1,91 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
-{% block title %}{% trans "Product Catalog" %} | {{ request.organization.name }}{% endblock %}
+{% block title %}{% trans "Products & Catalog" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6" x-data="{ showImportModal: false }">
+<div class="catalog-page space-y-6" x-data="{ showImportModal: false }">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Products & Catalog" %}</h1>
-            <p class="text-sm text-muted mt-1">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Products & Catalog" %}</h1>
+            <p class="text-sm sm:text-base text-muted mt-1">
                 {% trans "Manage items, SKU numbers, pricing rules, categories, and inventory metrics." %}
             </p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{% url 'catalog:export_csv' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex flex-wrap items-center gap-2.5">
+            <a href="{% url 'catalog:export_csv' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 {% trans "Export CSV" %}
             </a>
-            <a href="{% url 'integrations:import_upload' entity_type='products' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <a href="{% url 'integrations:import_upload' entity_type='products' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
                 {% trans "Import Products" %}
             </a>
-            <a href="{% url 'catalog:product_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            <a href="{% url 'catalog:product_create' %}" class="neu-btn-primary inline-flex items-center px-4.5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4" />
                 </svg>
                 {% trans "Add Product" %}
             </a>
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    {% include "catalog/partials/_navigation_tabs.html" with active_tab="products" %}
+
+    <!-- Summary Metrics Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div class="neu-stat-card bg-[var(--surface-1)] p-5 sm:p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Total Catalog Items" %}</span>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl sm:text-3xl font-black text-ink font-mono">{{ metrics.total_products }}</span>
+                <span class="text-xs font-medium text-muted">{% trans "SKU registered" %}</span>
+            </div>
+        </div>
+
+        <div class="neu-stat-card bg-[var(--surface-1)] p-5 sm:p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Active in Catalog" %}</span>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                    {{ metrics.active_products }}
+                </span>
+                <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 dark:bg-emerald-950/80 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-300/60 shadow-2xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    {% trans "Ready to sell" %}
+                </span>
+            </div>
+        </div>
+
+        <div class="neu-stat-card bg-[var(--surface-1)] p-5 sm:p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Promotional Deals" %}</span>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 font-mono">
+                    {{ metrics.discounted_products }}
+                </span>
+                <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-800 bg-amber-100 dark:bg-amber-950/80 dark:text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/60 shadow-2xs">
+                    {% trans "Discount active" %}
+                </span>
+            </div>
+        </div>
+
+        <div class="neu-stat-card bg-[var(--surface-1)] p-5 sm:p-6 rounded-2xl flex flex-col justify-between transition-all">
+            <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Product Categories" %}</span>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono">
+                    {{ metrics.total_categories }}
+                </span>
+                <span class="text-xs font-medium text-muted">{% trans "Taxonomy nodes" %}</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Filters Bar -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="neu-filter-card bg-[var(--surface-1)] rounded-2xl p-4 sm:p-5 transition-all">
         <form method="get"
               hx-get="{% url 'catalog:product_list' %}"
               hx-target="#product-table-container"
@@ -44,20 +93,20 @@
               class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Search -->
             <div>
-                <label class="block text-xs font-medium text-muted mb-1">{% trans "Search" %}</label>
-                <div class="relative">
-                    <input type="text" name="q" value="{{ search }}" placeholder="{% trans 'Search by SKU, barcode, name...' %}"
-                           class="w-full text-sm pl-9 pr-3 py-2 border border-line rounded-lg bg-surface text-ink focus:outline-hidden focus:ring-2 focus:ring-indigo-500" />
-                    <svg class="w-4 h-4 absolute left-3 top-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Search Items" %}</label>
+                <div class="relative flex items-center">
+                    <svg class="w-4 h-4 absolute left-3 text-slate-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
+                    <input type="text" name="q" value="{{ search }}" placeholder="{% trans 'Search by SKU, barcode, name...' %}"
+                           class="neu-input w-full text-sm pl-9 pr-3 py-2.5 font-medium rounded-xl" />
                 </div>
             </div>
 
             <!-- Category -->
             <div>
-                <label class="block text-xs font-medium text-muted mb-1">{% trans "Category" %}</label>
-                <select name="category" class="w-full text-sm py-2 px-3 border border-line rounded-lg bg-surface text-ink focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Category" %}</label>
+                <select name="category" class="neu-select w-full text-sm py-2.5 px-3.5 font-medium rounded-xl cursor-pointer">
                     <option value="">{% trans "All Categories" %}</option>
                     {% for c in categories %}
                     <option value="{{ c.pk }}" {% if selected_category == c.pk %}selected{% endif %}>{{ c.name }}</option>
@@ -67,8 +116,8 @@
 
             <!-- Type -->
             <div>
-                <label class="block text-xs font-medium text-muted mb-1">{% trans "Item Type" %}</label>
-                <select name="type" class="w-full text-sm py-2 px-3 border border-line rounded-lg bg-surface text-ink focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Item Type" %}</label>
+                <select name="type" class="neu-select w-full text-sm py-2.5 px-3.5 font-medium rounded-xl cursor-pointer">
                     <option value="">{% trans "All Types" %}</option>
                     <option value="stock" {% if selected_type == 'stock' %}selected{% endif %}>{% trans "Physical Stock" %}</option>
                     <option value="service" {% if selected_type == 'service' %}selected{% endif %}>{% trans "Service" %}</option>
@@ -78,8 +127,8 @@
 
             <!-- Status -->
             <div>
-                <label class="block text-xs font-medium text-muted mb-1">{% trans "Status" %}</label>
-                <select name="status" class="w-full text-sm py-2 px-3 border border-line rounded-lg bg-surface text-ink focus:outline-hidden focus:ring-2 focus:ring-indigo-500">
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Status" %}</label>
+                <select name="status" class="neu-select w-full text-sm py-2.5 px-3.5 font-medium rounded-xl cursor-pointer">
                     <option value="">{% trans "All Statuses" %}</option>
                     <option value="active" {% if selected_status == 'active' %}selected{% endif %}>{% trans "Active Only" %}</option>
                     <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>{% trans "Archived" %}</option>
@@ -95,45 +144,26 @@
     <div x-show="showImportModal"
          class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
          x-cloak>
-        <div class="bg-surface border border-line rounded-2xl max-w-lg w-full p-6 shadow-xl"
+        <div class="neu-filter-card bg-surface rounded-2xl max-w-lg w-full p-6 shadow-xl"
              @click.away="showImportModal = false">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-                <h3 class="text-lg font-bold text-ink">{% trans "Import Products from CSV" %}</h3>
-                <button type="button" @click="showImportModal = false" class="text-slate-400 hover:text-slate-600">
-                    <span class="sr-only">{% trans "Close" %}</span>
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+            <div class="flex items-center justify-between pb-4 border-b border-[#D3D8E8] dark:border-slate-800">
+                <h3 class="text-base font-bold text-ink">{% trans "Import Catalog Items" %}</h3>
+                <button type="button" @click="showImportModal = false" class="text-muted hover:text-ink cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-
             <form method="post" action="{% url 'catalog:import_csv' %}" enctype="multipart/form-data" class="mt-4 space-y-4">
                 {% csrf_token %}
-                <div>
-                    <label class="block text-sm font-medium text-muted mb-1">
-                        {% trans "Choose CSV File" %}
-                    </label>
-                    <input type="file" name="csv_file" accept=".csv" required
-                           class="w-full text-sm py-2 px-3 border border-line rounded-lg bg-app file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
-                    <p class="text-xs text-slate-500 mt-1.5">
-                        {% trans "Expected columns: sku, barcode, name, category, unit, type, cost_price, selling_price, tax_code." %}
-                    </p>
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider">{% trans "CSV File" %}</label>
+                    {{ import_form.file }}
                 </div>
-
-                <div class="flex items-center space-x-2 pt-2">
-                    <input type="checkbox" name="update_existing" id="update_existing" value="1" checked
-                           class="w-4 h-4 text-indigo-600 rounded border-slate-300" />
-                    <label for="update_existing" class="text-sm text-muted">
-                        {% trans "Update existing products if SKU matches" %}
-                    </label>
-                </div>
-
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button type="button" @click="showImportModal = false" class="px-4 py-2 border border-line rounded-lg text-sm text-muted hover:bg-slate-50">
+                <div class="flex items-center justify-end gap-3 pt-3">
+                    <button type="button" @click="showImportModal = false" class="neu-btn-ghost px-4 py-2 rounded-xl text-sm font-bold text-ink cursor-pointer">
                         {% trans "Cancel" %}
                     </button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm">
-                        {% trans "Upload & Process" %}
+                    <button type="submit" class="neu-btn-primary px-4 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer">
+                        {% trans "Upload & Import" %}
                     </button>
                 </div>
             </form>
