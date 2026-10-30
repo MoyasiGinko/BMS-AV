@@ -4,31 +4,40 @@
 {% block title %}{% trans "CRM Tasks" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="crm-page space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Tasks & Follow-ups" %}</h1>
-            <p class="text-sm text-muted mt-1">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Tasks & Follow-ups" %}</h1>
+            <p class="text-sm sm:text-base text-muted mt-1">
                 {% trans "Manage action items, client deadlines, and scheduled sales touchpoints." %}
             </p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'crm:pipeline_kanban' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50">
-                {% trans "Pipeline" %}
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'crm:pipeline_kanban' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
+                {% trans "Kanban Pipeline" %}
             </a>
-            <a href="{% url 'crm:lead_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50">
+            <a href="{% url 'crm:lead_list' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
                 {% trans "Leads" %}
             </a>
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    {% include "crm/partials/_navigation_tabs.html" with active_tab="tasks" %}
+
     <!-- Filter Bar -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="neu-filter-card bg-[var(--surface-1)] rounded-2xl p-4 transition-all">
         <form method="get" class="flex items-center gap-4">
-            <label class="text-sm font-medium text-muted">{% trans "Status" %}:</label>
-            <div class="w-48">
-                <select name="status" onchange="this.form.submit()" class="w-full text-sm rounded-lg border-line bg-surface text-ink px-3 py-2">
+            <label class="text-sm font-bold text-muted uppercase tracking-wider">{% trans "Filter Status" %}:</label>
+            <div class="w-52">
+                <select name="status" onchange="this.form.submit()" class="neu-select w-full text-sm rounded-xl px-3.5 py-2.5 font-medium cursor-pointer">
                     <option value="">{% trans "All Tasks" %}</option>
                     <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>{% trans "Pending" %}</option>
                     <option value="in_progress" {% if status_filter == "in_progress" %}selected{% endif %}>{% trans "In Progress" %}</option>
@@ -39,12 +48,12 @@
     </div>
 
     <!-- Tasks List Container -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-4">
+    <div class="neu-table-card bg-[var(--surface-1)] rounded-2xl p-6 transition-all space-y-4">
         <div class="space-y-3">
             {% for t in tasks %}
                 {% include "crm/partials/task_item.html" with task=t %}
             {% empty %}
-            <p class="text-sm text-slate-400 py-8 text-center">{% trans "No tasks found." %}</p>
+            <p class="text-sm text-muted py-8 text-center font-medium">{% trans "No tasks found." %}</p>
             {% endfor %}
         </div>
     </div>

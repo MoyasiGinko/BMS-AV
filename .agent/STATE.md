@@ -34,6 +34,25 @@
 
 
 
+  - CRM & Pipeline Clean Tactile Neumorphic Redesign:
+    - User request: "likewise design the crm & pipeline page cleanly".
+    - Followed the pure tactile neumorphic design language established for POS and Customer Accounts:
+      - Kanban Board (`pipeline_kanban.html` & `kanban_board_inner.html`):
+        - Removed harsh, dark 1px border boxes from Kanban columns and deal cards.
+        - Implemented soft raised columns (`neu-kanban-col`) with `rounded-2xl`, dark-only shadow (`4px 4px 14px rgba(166, 175, 195, 0.45)`), and clean `#D3D8E8` dividers.
+        - Floating tactile deal cards (`neu-deal-card`) with hover elevation, high-contrast deep ink titles (`var(--neu-text)`), customer attribution with office building icon, formatted values (`$85,000.00`), and win probability pill badges (`75% win`).
+        - Replaced dashed empty state with an inset tactile empty well (`neu-empty-well`).
+        - Formatted raw 4-decimal currency amounts (`$266000.0000`, `$170000.0000`) into clean 2-decimal comma-separated figures (`$266,000.00`, `$170,000.00`, `$85,000.00`).
+        - Tactile stage move dropdown menu (`Move ▾`) triggering instant out-of-band updates via HTMX without page reloads.
+      - CRM Navigation Tabs (`apps/crm/templates/crm/partials/_navigation_tabs.html`):
+        - Added segmented pill navigation bar: Pipeline Kanban, Leads & Prospects, Customer 360, Tasks, Inactive Segments.
+        - Tactile inset track with raised active tab with brand accent.
+      - Applied cohesive redesign across all CRM sub-views:
+        - `lead_list.html` & `lead_table_rows.html`: Clean tactile table card, sunken filter inputs, formatted `$42,000.00` estimated values, vibrant status badges.
+        - `customer_360_index.html` & `customer_360.html`: Neumorphic stat cards, formatted AR & pipeline values, tactile action buttons, clean interaction feed.
+        - `task_list.html` & `inactive_customers.html`: Consistent header, tabs, and tactile cards.
+      - Verified visually in Chrome DevTools with screenshots and confirmed all 29 CRM tests passing (`uv run pytest apps/crm/tests/ -v`).
+
   - Customer Accounts Page Clean Neumorphic Redesign:
     - Transformed `customer_list.html` and `partials/customer_table.html` into a pure, clean, accessible neumorphic interface:
       - Fixed contrast issue where OS Dark Mode (`prefers-color-scheme: dark`) triggered `dark:text-slate-200` causing near-white invisible customer names on light background. Enforced deep high-contrast `var(--neu-text)` (`#262B45`) for customer names, table headers, and body typography.

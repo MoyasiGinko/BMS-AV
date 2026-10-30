@@ -4,36 +4,42 @@
 {% block title %}{% trans "Leads & Prospects" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="crm-page space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Leads & Prospects" %}</h1>
-            <p class="text-sm text-muted mt-1">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Leads & Prospects" %}</h1>
+            <p class="text-sm sm:text-base text-muted mt-1">
                 {% trans "Track inbound inquiries, qualify prospects, and convert them to customers." %}
             </p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'crm:pipeline_kanban' %}" class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'crm:pipeline_kanban' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
                 {% trans "Kanban Pipeline" %}
             </a>
-            <a href="{% url 'crm:lead_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            <a href="{% url 'crm:lead_create' %}" class="neu-btn-primary inline-flex items-center px-4.5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4" />
                 </svg>
                 {% trans "New Lead" %}
             </a>
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    {% include "crm/partials/_navigation_tabs.html" with active_tab="leads" %}
+
     <!-- Filters & Search -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="neu-filter-card bg-[var(--surface-1)] rounded-2xl p-4 transition-all">
         <form method="get" class="flex flex-wrap items-center gap-4" hx-get="{% url 'crm:lead_list' %}" hx-target="#lead-tbody" hx-trigger="input from:input delay:250ms, change from:select">
             <div class="flex-1 min-w-[240px]">
-                <input type="text" name="search" value="{{ search }}" placeholder="{% trans 'Search by name, company, email...' %}" class="w-full text-sm rounded-lg border-line bg-surface text-ink focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2">
+                <input type="text" name="search" value="{{ search }}" placeholder="{% trans 'Search by name, company, email...' %}" class="neu-input w-full text-sm rounded-xl px-4 py-2.5 font-medium">
             </div>
             <div class="w-48">
-                <select name="status" class="w-full text-sm rounded-lg border-line bg-surface text-ink focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2">
+                <select name="status" class="neu-select w-full text-sm rounded-xl px-3.5 py-2.5 font-medium cursor-pointer">
                     <option value="">{% trans "All Statuses" %}</option>
                     {% for code, label in status_choices %}
                     <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
@@ -41,7 +47,7 @@
                 </select>
             </div>
             <div class="w-48">
-                <select name="source" class="w-full text-sm rounded-lg border-line bg-surface text-ink focus:ring-indigo-500 focus:border-indigo-500 px-3 py-2">
+                <select name="source" class="neu-select w-full text-sm rounded-xl px-3.5 py-2.5 font-medium cursor-pointer">
                     <option value="">{% trans "All Sources" %}</option>
                     <option value="website" {% if source_filter == "website" %}selected{% endif %}>Website</option>
                     <option value="referral" {% if source_filter == "referral" %}selected{% endif %}>Referral</option>
@@ -55,22 +61,22 @@
     </div>
 
     <!-- Table -->
-    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+    <div class="neu-table-card bg-[var(--surface-1)] rounded-2xl overflow-hidden transition-all">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-line">
-                <thead class="bg-app">
+            <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800">
+                <thead class="bg-slate-50/50 dark:bg-slate-800/40">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Lead Name" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Company" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Contact" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Source" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Status" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Est. Value" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Assigned To" %}</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Actions" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Lead Name" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Company" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Contact" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Source" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Status" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Est. Value" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Assigned To" %}</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold text-muted uppercase tracking-wider">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
-                <tbody id="lead-tbody" class="divide-y divide-line">
+                <tbody id="lead-tbody" class="divide-y divide-[#D3D8E8] dark:divide-slate-800">
                     {% include "crm/partials/lead_table_rows.html" %}
                 </tbody>
             </table>
