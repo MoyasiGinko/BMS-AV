@@ -1143,6 +1143,33 @@ html[data-theme="spatial"],
   border: 1px solid rgba(244, 63, 94, 0.3) !important;
 }
 
+/* POS Product Cards - Responsive at least 3 per row on desktop & locked aspect ratio */
+.pos-catalog-card {
+  aspect-ratio: 4 / 3;
+  min-height: 175px;
+}
+
+#product-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+@media (min-width: 480px) {
+  #product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 900px) {
+  #product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1950px) {
+  #product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 [data-theme="neumorphic"] .pos-terminal .pos-catalog-card {
   background-color: var(--neu-surface) !important;
   box-shadow: 4px 4px 12px rgba(166, 175, 195, 0.45) !important;
