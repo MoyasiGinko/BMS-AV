@@ -1,33 +1,33 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Purchase Orders" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="purchasing-page space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Purchase Orders" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Order stock and supplies from vendors with approval and receipt tracking." %}
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Purchase Orders" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                {% trans "Order stock and supplies from vendors with approval workflows and receipt tracking." %}
             </p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{% url 'purchasing:goods_receipt_list' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                {% trans "Goods Receipts" %}
-            </a>
-            <a href="{% url 'purchasing:purchase_order_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        <div class="flex items-center gap-2.5">
+            <a href="{% url 'purchasing:purchase_order_create' %}" class="neu-primary-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
                 {% trans "New Purchase Order" %}
             </a>
         </div>
     </div>
 
+    <!-- Navigation Sub-tabs -->
+    {% include "purchasing/partials/_navigation_tabs.html" with active_tab="orders" %}
+
     <!-- Filters -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="neu-filter-card p-4 sm:p-5">
         <form method="get" class="flex flex-col sm:flex-row gap-3" hx-get="{% url 'purchasing:purchase_order_list' %}" hx-target="#po-table-container" hx-push-url="true">
             <div class="flex-1">
                 {{ filter_form.search }}
@@ -35,14 +35,17 @@
             <div class="w-full sm:w-48">
                 {{ filter_form.status }}
             </div>
-            <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-surface-2 hover:bg-surface-2 text-muted text-sm font-medium rounded-lg transition-colors">
+            <button type="submit" class="neu-primary-btn px-4 py-2 text-sm font-bold rounded-xl transition cursor-pointer">
                 {% trans "Filter" %}
             </button>
+            <a href="{% url 'purchasing:purchase_order_list' %}" class="neu-btn-ghost px-3 py-2 text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center">
+                {% trans "Clear" %}
+            </a>
         </form>
     </div>
 
     <!-- Table Container -->
-    <div id="po-table-container" class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div id="po-table-container" class="neu-table-card">
         {% include "purchasing/partials/po_table.html" %}
     </div>
 </div>

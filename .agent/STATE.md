@@ -34,6 +34,24 @@
 
 
 
+  - Purchasing & Bills Clean Tactile Neumorphic Redesign:
+    - User request: "likewise cleanly design the [Purchasing & Bills] page".
+    - Followed pure tactile neumorphic design language across the entire Purchasing & Bills module:
+      - Suppliers & Vendors Directory (`supplier_list.html` & `partials/supplier_table.html`):
+        - Removed all harsh, dark 1px border boxes, replacing them with soft raised surfaces (`.neu-stat-card`, `.neu-filter-card`, `.neu-table-card`, `.neu-raised-card`) with dark-only shadows (`4px 4px 14px rgba(166, 175, 195, 0.45)`), zero white halos, and light gray `#D3D8E8` dividers.
+        - Formatted AP balances and metrics (`$0.00` formatted currency with commas) using `|floatformat:2|intcomma`.
+        - High-contrast typography: deep ink text (`#262B45` / `var(--neu-text)`) that never washes out under dark mode.
+        - Segmented sub-navigation tab bar (`apps/purchasing/templates/purchasing/partials/_navigation_tabs.html`) across Suppliers & Vendors, Purchase Orders, Goods Receipts (GRN), Vendor Bills, Payments & Disbursements, and Purchase Returns.
+        - Upgraded status pills with crisp un-grayed badges and glowing indicators (`Active` emerald, `Inactive` slate).
+        - Upgraded filter controls with sunken wells (`.neu-select`, `.neu-input`).
+      - Purchase Orders (`purchase_order_list.html` & `partials/po_table.html`):
+        - Upgraded with navigation tabs, soft raised filter card, formatted grand totals (`$3,500.00`), and glowing status badges (`Approved` emerald, `Submitted` blue, `Received` brand purple, `Draft` amber).
+      - Vendor Bills (`bill_list.html` & `partials/bill_table.html`):
+        - Formatted total amounts and balance due (`$3,500.00`, `$0.00`), glowing status badges (`Paid` emerald, `Posted` blue, `Partially Paid` amber), and tactile view buttons.
+      - Goods Receipts (`goods_receipt_list.html`), Disbursements (`payment_list.html`), and Purchase Returns (`return_list.html`):
+        - Unified under `.purchasing-page` with sub-navigation tabs, tactile table cards, formatted costs and currency amounts, and primary action buttons.
+    - Verified: All 28 purchasing tests passed (`uv run pytest apps/purchasing/tests/ -v`). Verified live visually in Chrome DevTools.
+
   - Inventory & Stock Clean Tactile Neumorphic Redesign:
     - User request: "likewise cleanly design the [Inventory & Stock] page".
     - Followed pure tactile neumorphic design language across the entire Inventory module:

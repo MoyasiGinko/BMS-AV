@@ -1,72 +1,83 @@
-{% load i18n %}
+{% load i18n humanize %}
 <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-line text-sm">
-        <thead class="bg-app text-muted">
-            <tr>
-                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "PO Number" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Date" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Warehouse" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Grand Total" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-center font-semibold">{% trans "Status" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
+    <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800 text-sm">
+        <thead>
+            <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
+                <th scope="col" class="px-6 py-3.5 text-left font-bold">{% trans "PO Number" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-bold">{% trans "Supplier" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-bold">{% trans "Date" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-bold">{% trans "Warehouse" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-right font-bold">{% trans "Grand Total" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-center font-bold">{% trans "Status" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-right font-bold">{% trans "Actions" %}</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
+        <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800 text-slate-800 dark:text-slate-200">
             {% for po in orders %}
-            <tr class="hover:bg-surface-2 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap font-medium text-indigo-600 dark:text-indigo-400">
-                    <a href="{% url 'purchasing:purchase_order_detail' pk=po.pk %}" class="hover:underline">
+            <tr class="neu-table-row transition-colors">
+                <td class="px-6 py-4 whitespace-nowrap font-mono font-bold">
+                    <a href="{% url 'purchasing:purchase_order_detail' pk=po.pk %}" class="text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline">
                         {{ po.order_number }}
                     </a>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap font-medium">
-                    <a href="{% url 'purchasing:supplier_detail' pk=po.supplier.pk %}" class="hover:underline text-slate-800 dark:text-slate-200">
+                <td class="px-6 py-4 whitespace-nowrap font-bold">
+                    <a href="{% url 'purchasing:supplier_detail' pk=po.supplier.pk %}" class="hover:underline text-[var(--neu-text,#262B45)]">
                         {{ po.supplier.name }}
                     </a>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">
-                    {{ po.order_date }}
+                <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs font-mono font-medium">
+                    {{ po.order_date|date:"Y-m-d" }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs">
+                <td class="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 text-xs font-medium">
                     {{ po.warehouse.name|default:"-" }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-semibold">
-                    ${{ po.grand_total }}
+                <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-black text-[var(--neu-text,#262B45)]">
+                    ${{ po.grand_total|floatformat:2|intcomma }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                     {% if po.status == 'approved' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         {% trans "Approved" %}
                     </span>
                     {% elif po.status == 'submitted' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200/80">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                         {% trans "Submitted" %}
                     </span>
                     {% elif po.status == 'received' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200/80">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                         {% trans "Received" %}
                     </span>
                     {% elif po.status == 'cancelled' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/80">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                         {% trans "Cancelled" %}
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200/80">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                         {% trans "Draft" %}
                     </span>
                     {% endif %}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-xs">
-                    <a href="{% url 'purchasing:purchase_order_detail' pk=po.pk %}" class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-                        {% trans "View" %}
+                    <a href="{% url 'purchasing:purchase_order_detail' pk=po.pk %}" class="neu-action-btn text-xs font-bold py-1.5 px-3 rounded-lg text-slate-700 hover:text-slate-900 transition inline-flex items-center gap-1">
+                        {% trans "View" %} &rarr;
                     </a>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7" class="px-6 py-12 text-center text-muted">
-                    <p class="text-sm font-medium">{% trans "No purchase orders found" %}</p>
+                <td colspan="7" class="px-6 py-12 text-center">
+                    <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                        <svg class="mx-auto h-10 w-10 text-slate-400 mb-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "No purchase orders found" %}</p>
+                        <p class="text-xs text-slate-500 mt-1">{% trans "Create your first order or clear search filters." %}</p>
+                    </div>
                 </td>
             </tr>
             {% endfor %}

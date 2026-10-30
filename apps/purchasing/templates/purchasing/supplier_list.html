@@ -1,61 +1,58 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Suppliers & Vendors" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="purchasing-page space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Suppliers & Vendors" %}</h1>
-            <p class="text-sm text-muted mt-1">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Suppliers & Vendors" %}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
                 {% trans "Manage vendor master data, purchasing terms, accounts payable balances, and orders." %}
             </p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{% url 'purchasing:purchase_order_list' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                {% trans "Purchase Orders" %}
-            </a>
-            <a href="{% url 'purchasing:supplier_bill_list' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                {% trans "Vendor Bills" %}
-            </a>
-            <a href="{% url 'purchasing:supplier_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        <div class="flex items-center gap-2.5">
+            <a href="{% url 'purchasing:supplier_create' %}" class="neu-primary-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
                 {% trans "New Supplier" %}
             </a>
         </div>
     </div>
 
+    <!-- Navigation Sub-tabs -->
+    {% include "purchasing/partials/_navigation_tabs.html" with active_tab="suppliers" %}
+
     <!-- Summary Metrics -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Accounts Payable Owed" %}</span>
+        <div class="neu-stat-card p-5">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{% trans "Accounts Payable Owed" %}</span>
             <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono">${{ summary.total_ap_balance|default:"0.00" }}</span>
-                <span class="text-xs text-slate-400">{% trans "Current supplier balance" %}</span>
+                <span class="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 font-mono">${{ summary.total_ap_balance|default:0|floatformat:2|intcomma }}</span>
+                <span class="text-xs text-slate-400 font-medium">{% trans "Current supplier balance" %}</span>
             </div>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Pending Bills Due" %}</span>
+        <div class="neu-stat-card p-5">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{% trans "Pending Bills Due" %}</span>
             <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-amber-600 dark:text-amber-400 font-mono">${{ summary.pending_bills_due|default:"0.00" }}</span>
-                <span class="text-xs text-slate-400">{% trans "Unpaid posted bills" %}</span>
+                <span class="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 font-mono">${{ summary.pending_bills_due|default:0|floatformat:2|intcomma }}</span>
+                <span class="text-xs text-slate-400 font-medium">{% trans "Unpaid posted bills" %}</span>
             </div>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Active Purchase Orders" %}</span>
+        <div class="neu-stat-card p-5">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{% trans "Active Purchase Orders" %}</span>
             <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-ink">{{ summary.active_pos_count }}</span>
-                <span class="text-xs text-emerald-600 font-medium">{% trans "In progress" %}</span>
+                <span class="text-2xl sm:text-3xl font-black text-[var(--neu-text,#262B45)]">{{ summary.active_pos_count }}</span>
+                <span class="text-xs text-emerald-600 dark:text-emerald-400 font-bold">{% trans "In progress" %}</span>
             </div>
         </div>
     </div>
 
     <!-- Filter & Search Bar -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="neu-filter-card p-4 sm:p-5">
         <form method="get" class="flex flex-col sm:flex-row gap-3" hx-get="{% url 'purchasing:supplier_list' %}" hx-target="#supplier-table-container" hx-push-url="true">
             <div class="flex-1">
                 {{ filter_form.search }}
@@ -63,14 +60,17 @@
             <div class="w-full sm:w-48">
                 {{ filter_form.is_active }}
             </div>
-            <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-surface-2 hover:bg-surface-2 text-muted text-sm font-medium rounded-lg transition-colors">
+            <button type="submit" class="neu-primary-btn px-4 py-2 text-sm font-bold rounded-xl transition cursor-pointer">
                 {% trans "Filter" %}
             </button>
+            <a href="{% url 'purchasing:supplier_list' %}" class="neu-btn-ghost px-3 py-2 text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center">
+                {% trans "Clear" %}
+            </a>
         </form>
     </div>
 
     <!-- Supplier Table Container -->
-    <div id="supplier-table-container" class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div id="supplier-table-container" class="neu-table-card">
         {% include "purchasing/partials/supplier_table.html" %}
     </div>
 </div>

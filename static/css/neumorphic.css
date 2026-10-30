@@ -1689,3 +1689,212 @@ html[data-theme="spatial"],
   box-shadow: 2px 2px 6px rgba(166, 175, 195, 0.4) !important;
   font-weight: 700 !important;
 }
+
+
+/* ==========================================================================
+   NEUMORPHIC INVENTORY & STOCK POLISH
+   Pure tactile shapes, zero border boxes, soft raised/sunken cards, high contrast
+   ========================================================================== */
+[data-theme="neumorphic"] .inventory-page .neu-stat-card,
+[data-theme="neumorphic"] .inventory-page .neu-filter-card,
+[data-theme="neumorphic"] .inventory-page .neu-table-card {
+  background-color: var(--neu-surface) !important;
+  box-shadow: 4px 4px 14px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-btn-ghost {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: 3px 3px 8px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-btn-ghost:hover {
+  box-shadow: 4px 4px 12px rgba(166, 175, 195, 0.55) !important;
+  color: #4F46E5 !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-btn-ghost:active {
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.5) !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-btn-primary {
+  background-color: #4F46E5 !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 10px rgba(79, 70, 229, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-btn-primary:active {
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-input,
+[data-theme="neumorphic"] .inventory-page .neu-select,
+[data-theme="neumorphic"] .inventory-page .form-input,
+[data-theme="neumorphic"] .inventory-page .form-select {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-empty-well {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2px 2px 6px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .inventory-page table thead {
+  background-color: rgba(221, 226, 238, 0.5) !important;
+}
+
+[data-theme="neumorphic"] .inventory-page table th {
+  color: var(--neu-text-muted) !important;
+  border-bottom: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .inventory-page table td {
+  border-bottom: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .inventory-page table .text-ink,
+[data-theme="neumorphic"] .inventory-page table a {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .inventory-page table a:hover {
+  color: #4F46E5 !important;
+}
+
+[data-theme="neumorphic"] .inventory-page table tbody tr:hover {
+  background-color: rgba(197, 202, 219, 0.25) !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-nav-track {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  padding: 4px !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-nav-tab {
+  color: var(--neu-text-muted) !important;
+  border-radius: 12px !important;
+  border: none !important;
+  transition: all 140ms ease !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-nav-tab:hover:not(.neu-nav-tab-active) {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .inventory-page .neu-nav-tab.neu-nav-tab-active {
+  background-color: var(--neu-surface) !important;
+  color: #4F46E5 !important;
+  box-shadow: 2px 2px 6px rgba(166, 175, 195, 0.4) !important;
+  font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   NEUMORPHIC PURCHASING & BILLS POLISH
+   Pure tactile shapes, zero border boxes, soft raised/sunken cards, high contrast
+   ========================================================================== */
+[data-theme="neumorphic"] .purchasing-page .neu-stat-card,
+[data-theme="neumorphic"] .purchasing-page .neu-filter-card,
+[data-theme="neumorphic"] .purchasing-page .neu-table-card,
+[data-theme="neumorphic"] .purchasing-page .neu-raised-card {
+  background-color: var(--neu-surface) !important;
+  box-shadow: 4px 4px 14px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+  border-radius: 16px !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-btn-ghost {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: 3px 3px 8px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-btn-ghost:hover {
+  box-shadow: 4px 4px 12px rgba(166, 175, 195, 0.55) !important;
+  color: #4F46E5 !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-btn-primary {
+  background-color: #4F46E5 !important;
+  color: #FFFFFF !important;
+  box-shadow: 3px 3px 10px rgba(79, 70, 229, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-input,
+[data-theme="neumorphic"] .purchasing-page .neu-select,
+[data-theme="neumorphic"] .purchasing-page .form-input,
+[data-theme="neumorphic"] .purchasing-page .form-select {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-empty-well {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2px 2px 6px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page table thead {
+  background-color: rgba(221, 226, 238, 0.5) !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page table th {
+  color: var(--neu-text-muted) !important;
+  border-bottom: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page table td {
+  border-bottom: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page table .text-ink,
+[data-theme="neumorphic"] .purchasing-page table a {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page table a:hover {
+  color: #4F46E5 !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page table tbody tr:hover {
+  background-color: rgba(197, 202, 219, 0.25) !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-nav-track {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2px 2px 5px rgba(166, 175, 195, 0.45) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  padding: 4px !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-nav-tab {
+  color: var(--neu-text-muted) !important;
+  border-radius: 12px !important;
+  border: none !important;
+  transition: all 140ms ease !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-nav-tab:hover:not(.neu-nav-tab-active) {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .purchasing-page .neu-nav-tab.neu-nav-tab-active {
+  background-color: var(--neu-surface) !important;
+  color: #4F46E5 !important;
+  box-shadow: 2px 2px 6px rgba(166, 175, 195, 0.4) !important;
+  font-weight: 700 !important;
+}
