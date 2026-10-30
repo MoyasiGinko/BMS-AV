@@ -1,75 +1,87 @@
-{% load i18n %}
-<div id="stock-level-table-container" class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+{% load i18n humanize %}
+<div id="stock-level-table-container" class="neu-table-card overflow-x-auto bg-[var(--surface-1)] rounded-2xl transition-all">
     <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-sm">
-            <thead>
-                <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
-                    <th class="py-3.5 px-4">{% trans "Product / SKU" %}</th>
-                    <th class="py-3.5 px-4">{% trans "Warehouse" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "On Hand" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "Reserved" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "Available" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "Avg Cost" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "Total Valuation" %}</th>
-                    <th class="py-3.5 px-4 text-center">{% trans "Status" %}</th>
+        <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800 text-left text-sm">
+            <thead class="bg-slate-50/50 dark:bg-slate-800/40 text-xs font-bold uppercase tracking-wider text-muted">
+                <tr>
+                    <th class="py-3.5 px-6 font-bold">{% trans "Product / SKU" %}</th>
+                    <th class="py-3.5 px-4 font-bold">{% trans "Warehouse" %}</th>
+                    <th class="py-3.5 px-4 font-bold text-right">{% trans "On Hand" %}</th>
+                    <th class="py-3.5 px-4 font-bold text-right">{% trans "Reserved" %}</th>
+                    <th class="py-3.5 px-4 font-bold text-right">{% trans "Available" %}</th>
+                    <th class="py-3.5 px-4 font-bold text-right">{% trans "Avg Cost" %}</th>
+                    <th class="py-3.5 px-4 font-bold text-right">{% trans "Total Valuation" %}</th>
+                    <th class="py-3.5 px-6 font-bold text-center">{% trans "Status" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-line/60">
+            <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800">
                 {% for item in page_obj %}
                 <tr class="hover:bg-surface-2 transition-colors">
-                    <td class="py-3.5 px-4">
-                        <div class="font-medium text-ink">
-                            {{ item.product.name }}
+                    <td class="py-4 px-6">
+                        <div class="font-bold text-ink">
+                            <a href="{% url 'catalog:product_detail' item.product.pk %}" class="hover:text-indigo-600 transition-colors">
+                                {{ item.product.name }}
+                            </a>
                             {% if item.variant %}
-                            <span class="text-xs text-indigo-600 dark:text-indigo-400 font-normal">({{ item.variant.name }})</span>
+                            <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">({{ item.variant.name }})</span>
                             {% endif %}
                         </div>
-                        <div class="text-xs text-muted font-mono mt-0.5">
+                        <div class="text-xs text-muted font-mono mt-0.5 font-semibold">
                             {{ item.variant.sku|default:item.product.sku }}
                         </div>
                     </td>
-                    <td class="py-3.5 px-4 text-muted">
-                        {{ item.warehouse.name }}
+                    <td class="py-4 px-4 text-muted font-medium">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 opacity-60 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span>{{ item.warehouse.name }}</span>
+                        </div>
                     </td>
-                    <td class="py-3.5 px-4 text-right font-medium text-ink">
-                        {{ item.on_hand }}
+                    <td class="py-4 px-4 text-right font-mono font-bold text-ink">
+                        {{ item.on_hand|floatformat:"-2"|intcomma }}
                     </td>
-                    <td class="py-3.5 px-4 text-right text-muted">
-                        {{ item.reserved }}
+                    <td class="py-4 px-4 text-right font-mono text-muted font-semibold">
+                        {{ item.reserved|floatformat:"-2"|intcomma }}
                     </td>
-                    <td class="py-3.5 px-4 text-right font-semibold {% if item.available <= 0 %}text-rose-600 dark:text-rose-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
-                        {{ item.available }}
+                    <td class="py-4 px-4 text-right font-mono font-black {% if item.available <= 0 %}text-rose-600 dark:text-rose-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                        {{ item.available|floatformat:"-2"|intcomma }}
                     </td>
-                    <td class="py-3.5 px-4 text-right text-muted font-mono">
-                        ${{ item.avg_cost }}
+                    <td class="py-4 px-4 text-right text-muted font-mono text-xs font-bold">
+                        ${{ item.avg_cost|floatformat:2|intcomma }}
                     </td>
-                    <td class="py-3.5 px-4 text-right font-medium text-ink font-mono">
-                        ${{ item.total_value }}
+                    <td class="py-4 px-4 text-right font-black text-ink font-mono text-sm">
+                        ${{ item.total_value|floatformat:2|intcomma }}
                     </td>
-                    <td class="py-3.5 px-4 text-center">
+                    <td class="py-4 px-6 text-center">
                         {% if item.available <= 0 %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold text-rose-800 bg-rose-100 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300/60 shadow-2xs">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                             {% trans "Out of Stock" %}
                         </span>
                         {% elif item.is_low_stock %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold text-amber-800 bg-amber-100 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60 shadow-2xs">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                             {% trans "Low Stock" %}
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                            {% trans "Adequate" %}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold text-emerald-800 bg-emerald-100 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 shadow-2xs">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            {% trans "In Stock" %}
                         </span>
                         {% endif %}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="py-12 text-center text-muted">
-                        <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                        <p class="text-base font-medium text-ink">{% trans "No inventory records found" %}</p>
-                        <p class="text-xs text-slate-400 mt-1">{% trans "Receive items, create transfers, or adjust stock levels." %}</p>
+                    <td colspan="8" class="py-14 text-center text-muted">
+                        <div class="neu-empty-well py-10 px-4 text-center rounded-2xl flex flex-col items-center justify-center max-w-md mx-auto">
+                            <svg class="w-10 h-10 text-slate-400 mb-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            <p class="text-base font-bold text-ink">{% trans "No inventory records found" %}</p>
+                            <p class="text-xs text-muted mt-1">{% trans "Receive items, create transfers, or adjust stock levels." %}</p>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -79,21 +91,21 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="px-4 py-3 border-t border-line flex items-center justify-between text-xs text-muted">
-        <div>
+    <div class="px-6 py-4 border-t border-[#D3D8E8] dark:border-slate-800 flex items-center justify-between text-xs text-muted">
+        <div class="font-medium">
             {% trans "Showing" %} {{ page_obj.start_index }} - {{ page_obj.end_index }} {% trans "of" %} {{ page_obj.paginator.count }}
         </div>
         <div class="flex items-center space-x-2">
             {% if page_obj.has_previous %}
             <a href="?page={{ page_obj.previous_page_number }}{% if query %}&query={{ query }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if low_stock_only %}&low_stock_only=1{% endif %}"
-               class="px-2.5 py-1.5 border border-line rounded-md hover:bg-surface-2 text-muted">
+               class="neu-btn-ghost px-3.5 py-1.5 rounded-xl font-bold text-ink cursor-pointer">
                 {% trans "Previous" %}
             </a>
             {% endif %}
-            <span class="font-medium text-muted">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            <span class="font-mono font-bold text-ink px-2">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
             <a href="?page={{ page_obj.next_page_number }}{% if query %}&query={{ query }}{% endif %}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if low_stock_only %}&low_stock_only=1{% endif %}"
-               class="px-2.5 py-1.5 border border-line rounded-md hover:bg-surface-2 text-muted">
+               class="neu-btn-ghost px-3.5 py-1.5 rounded-xl font-bold text-ink cursor-pointer">
                 {% trans "Next" %}
             </a>
             {% endif %}

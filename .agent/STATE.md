@@ -34,6 +34,24 @@
 
 
 
+  - Inventory & Stock Clean Tactile Neumorphic Redesign:
+    - User request: "likewise cleanly design the [Inventory & Stock] page".
+    - Followed pure tactile neumorphic design language across the entire Inventory module:
+      - Stock Levels & Inventory Directory (`stock_level_list.html` & `partials/stock_level_table.html`):
+        - Removed all harsh, dark 1px border boxes, replacing them with soft raised surfaces (`.neu-stat-card`, `.neu-filter-card`, `.neu-table-card`, `.neu-raised-card`) with dark-only shadows (`4px 4px 14px rgba(166, 175, 195, 0.45)`), zero white halos, and light gray `#D3D8E8` dividers.
+        - Formatted all raw 4-decimal quantities (`231.0000` -> `231`) and currency values (`$7420.0000` -> `$7,420.00`) using `|floatformat:"-2"|intcomma` and `|floatformat:2|intcomma`.
+        - High-contrast typography: deep ink text (`#262B45` / `var(--neu-text)`) that never washes out under dark mode.
+        - Segmented sub-navigation tab bar (`apps/inventory/templates/inventory/partials/_navigation_tabs.html`) across Stock Levels, Movement Ledger, Transfers, Adjustments, Stock Counts, Reorder Suggestions, Batches, Serials, and Reconciliation.
+        - Upgraded status pills with crisp un-grayed badges and glowing indicators (`In Stock` mint/emerald, `Low Stock` amber, `Out of Stock` rose).
+        - Upgraded filter controls with sunken wells (`.neu-select`, `.neu-input`).
+      - Movement Ledger (`movement_list.html` & `partials/movement_table.html`):
+        - Upgraded with navigation tabs, soft raised filter card, formatted quantity deltas and costs, and glowing type badges.
+      - Stock Transfers (`transfer_list.html`), Adjustments (`adjustment_list.html`), and Cycle Counts (`count_list.html`):
+        - Unified under `.inventory-page` with sub-navigation tabs, tactile table cards, and primary action buttons.
+      - Reorder Suggestions (`reorder_suggestions.html`), Batches (`batch_list.html`), Serials (`serial_list.html`), and Reconciliation Audit (`reconcile.html`):
+        - Upgraded with navigation tabs, tactile KPI cards, formatted numbers, and sunken filter wells.
+    - Verified: All 23 inventory tests passed (`uv run pytest apps/inventory/tests/ -v`). Verified live visually in Chrome DevTools.
+
   - Products & Items (Catalog) Clean Tactile Neumorphic Redesign:
     - User request: "likewise cleanly design the products &items page".
     - Followed pure tactile neumorphic design language across the entire Catalog module:
