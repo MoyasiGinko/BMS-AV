@@ -43,10 +43,11 @@
       - Added product carries its inventory `discount_percent` into the cart.
     - Refactored POS Cart & Checkout (`terminal.html`):
       - Cleaned cart row markup: removed clumsy per-product inputs, restored clean stepper and remove actions.
-      - Cart Item Label Cleanup:
-        - Per user instruction ("$599.00 ea this area remove it. and in that place, put the 15%OFF label tag; its for all even if they have discount or not"), completely removed the unit price label (`$xx.xx ea`) across all cart lines.
-        - Next to the item SKU badge, discounted products show the `X% OFF` tag; non-discounted items show only the SKU.
-        - Verified cleanly in browser via Chrome DevTools viewport screenshot. All 22 POS tests passing.
+      - POS Touch Product Cards Redesign:
+        - Moved promotional discount tag (`X% OFF`) to the top-right header of each product card, directly replacing the barcode number.
+        - Redesigned the price section: effective price tag is displayed prominently, with the original price written with strikethrough directly below it.
+        - Enlarged product cards: adjusted grid layout (`lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`), increased minimum height (`min-h-[190px]`), added generous padding (`p-5 sm:p-6`), enhanced typography and touch targets.
+        - Verified live in Chrome DevTools with viewport screenshots and confirmed all 22 POS tests passing cleanly.
       - In checkout box: Extra Discount input defaults to `0` (`[ 0 ] %`). Applying an extra order discount calculates on top of any existing inventory item discounts across the whole order.
     - Verified all 22 POS tests and 6 catalog tests passing (`pytest apps/pos/tests/ apps/catalog/tests/ -v`).
 
