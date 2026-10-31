@@ -358,6 +358,16 @@ def list_exchange_rates(
     return qs.order_by("-effective_date", "from_currency", "to_currency")
 
 
+def format_currency(val: Decimal | float | int | None) -> str:
+    """Format numeric values to standard human financial format, e.g. $46,500.00 or -$82,272.85."""
+    if val is None:
+        return "$0.00"
+    v = Decimal(str(val))
+    if v < DECIMAL_ZERO:
+        return f"-${abs(v):,.2f}"
+    return f"${v:,.2f}"
+
+
 def _calculate_gl_kpi_totals(*, organization_id: int) -> dict[str, Decimal]:
     lines_qs = JournalLine.all_tenants.filter(
         organization_id=organization_id,
@@ -378,6 +388,7 @@ def _calculate_gl_kpi_totals(*, organization_id: int) -> dict[str, Decimal]:
         "expense": DECIMAL_ZERO,
         "ar": DECIMAL_ZERO,
         "ap": DECIMAL_ZERO,
+        "cash": DECIMAL_ZERO,
     }
 
     key_map = {
@@ -402,6 +413,8 @@ def _calculate_gl_kpi_totals(*, organization_id: int) -> dict[str, Decimal]:
 
         if t == AccountType.ASSET and (code == "1100" or "receivable" in name_lower):
             totals["ar"] += bal
+        elif t == AccountType.ASSET and (code == "1010" or "cash" in name_lower):
+            totals["cash"] += bal
         elif t == AccountType.LIABILITY and (code == "2000" or "payable" in name_lower):
             totals["ap"] += bal
 
@@ -462,8 +475,13 @@ def get_accounting_summary(
         organization_id=organization_id, is_reconciled=False
     ).count()
 
+    cash_on_hand = gl_totals.get("cash", DECIMAL_ZERO)
+    total_cash_and_bank = bank_balance + cash_on_hand
+
     return {
         "bank_balance": bank_balance,
+        "cash_on_hand": cash_on_hand,
+        "total_cash_and_bank": total_cash_and_bank,
         "total_assets": effective_assets,
         "total_liabilities": total_liabilities_sum,
         "total_equity": total_equity_sum,
@@ -478,6 +496,18 @@ def get_accounting_summary(
         "month_expenses": month_expenses,
         "accounts_count": accounts_count,
         "unreconciled_tx_count": unreconciled_tx_count,
+        "fmt_bank_balance": format_currency(bank_balance),
+        "fmt_cash_on_hand": format_currency(cash_on_hand),
+        "fmt_total_cash": format_currency(total_cash_and_bank),
+        "fmt_total_assets": format_currency(effective_assets),
+        "fmt_total_liabilities": format_currency(total_liabilities_sum),
+        "fmt_total_equity": format_currency(total_equity_sum),
+        "fmt_revenue_ytd": format_currency(revenue_sum),
+        "fmt_expense_ytd": format_currency(expense_sum),
+        "fmt_net_income": format_currency(net_income),
+        "fmt_working_capital": format_currency(working_capital),
+        "fmt_ar_balance": format_currency(ar_balance),
+        "fmt_ap_balance": format_currency(ap_balance),
     }
 
 
@@ -552,6 +582,9 @@ def get_monthly_financial_trends(
         "total_expenses": float(round(tot_exp, 2)),
         "total_net": float(round(tot_net, 2)),
         "margin_percentage": margin_pct,
+        "fmt_total_revenue": format_currency(tot_rev),
+        "fmt_total_expenses": format_currency(tot_exp),
+        "fmt_total_net": format_currency(tot_net),
     }
 
 
@@ -609,9 +642,11 @@ def get_expense_category_breakdown(
         cat["percentage"] = pct
         cat["color"] = palette[idx % len(palette)]["bg"]
         cat["light_color"] = palette[idx % len(palette)]["light"]
+        cat["fmt_amount"] = f"${round(cat['amount']):,}"
 
     return {
         "total_amount": tot_float,
+        "fmt_total_amount": f"${round(tot_float):,}",
         "categories": top_categories,
         "labels": [c["name"] for c in top_categories],
         "data": [c["amount"] for c in top_categories],

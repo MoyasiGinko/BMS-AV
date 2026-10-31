@@ -65,7 +65,7 @@ def accounting_dashboard(request: HttpRequest) -> HttpResponse:
     summary = selectors.get_accounting_summary(organization_id=org.pk)
     financial_trends = selectors.get_monthly_financial_trends(organization_id=org.pk, months=6)
     expense_breakdown = selectors.get_expense_category_breakdown(organization_id=org.pk, limit=5)
-    recent_journals = selectors.list_journal_entries(organization_id=org.pk)[:6]
+    recent_journals = selectors.list_journal_entries(organization_id=org.pk)[:4]
     recent_expenses = selectors.list_expenses(organization_id=org.pk)[:5]
     bank_accounts = selectors.list_bank_accounts(organization_id=org.pk, is_active=True)
 

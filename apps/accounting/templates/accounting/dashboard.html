@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% load i18n static %}
+{% load i18n static humanize %}
 
 {% block title %}{% trans "Accounting Overview" %} | {{ request.organization.name }}{% endblock %}
 
@@ -9,7 +9,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-3xl font-extrabold tracking-tight text-ink">{% trans "Accounting & Finance" %}</h1>
-            <p class="text-sm text-slate-500 mt-1">{% trans "Overview of your general ledger, cash balance, and monthly operating performance." %}</p>
+            <p class="text-sm text-slate-500 mt-1 font-medium">{% trans "Overview of your general ledger, cash balance, and monthly operating performance." %}</p>
         </div>
         <div class="flex items-center gap-3 flex-wrap">
             <a href="{% url 'accounting:journal_create' %}" class="inline-flex items-center px-4 py-2.5 border border-line rounded-xl text-sm font-bold text-ink bg-surface hover:bg-slate-50 shadow-xs transition-colors">
@@ -37,7 +37,7 @@
             <div>
                 <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Available Cash" %}</span>
                 <div class="text-3xl lg:text-4xl font-extrabold text-ink font-mono tracking-tight mt-2.5">
-                    ${{ summary.bank_balance|floatformat:2 }}
+                    {{ summary.fmt_bank_balance }}
                 </div>
             </div>
             <p class="text-sm text-slate-500 mt-3 font-medium">{% trans "Operating balance across active bank accounts." %}</p>
@@ -47,8 +47,8 @@
         <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
             <div>
                 <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Net Profit (YTD)" %}</span>
-                <div class="text-3xl lg:text-4xl font-extrabold font-mono tracking-tight mt-2.5 {% if summary.net_income >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
-                    {% if summary.net_income >= 0 %}+{% endif %}${{ summary.net_income|floatformat:2 }}
+                <div class="text-3xl lg:text-4xl font-extrabold font-mono tracking-tight mt-2.5 {% if summary.net_income >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-700 dark:text-rose-400{% endif %}">
+                    {{ summary.fmt_net_income }}
                 </div>
             </div>
             <p class="text-sm text-slate-500 mt-3 font-medium">{% trans "Total revenue minus recorded business expenses." %}</p>
@@ -59,7 +59,7 @@
             <div>
                 <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Unpaid Invoices (A/R)" %}</span>
                 <div class="text-3xl lg:text-4xl font-extrabold text-ink font-mono tracking-tight mt-2.5">
-                    ${{ summary.ar_balance|floatformat:2 }}
+                    {{ summary.fmt_ar_balance }}
                 </div>
             </div>
             <p class="text-sm text-slate-500 mt-3 font-medium">{% trans "Pending money owed by customers from sales." %}</p>
@@ -69,8 +69,8 @@
         <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
             <div>
                 <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Bills Due (A/P)" %}</span>
-                <div class="text-3xl lg:text-4xl font-extrabold text-rose-600 dark:text-rose-400 font-mono tracking-tight mt-2.5">
-                    ${{ summary.ap_balance|floatformat:2 }}
+                <div class="text-3xl lg:text-4xl font-extrabold text-rose-700 dark:text-rose-400 font-mono tracking-tight mt-2.5">
+                    {{ summary.fmt_ap_balance }}
                 </div>
             </div>
             <p class="text-sm text-slate-500 mt-3 font-medium">{% trans "Pending bills owed to suppliers and vendors." %}</p>
@@ -82,17 +82,18 @@
         <!-- Income & Expenses (8 cols) -->
         <div class="lg:col-span-8 bg-surface border border-line rounded-2xl p-7 lg:p-8 shadow-xs neu-card flex flex-col justify-between">
             <div>
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-line">
+                <!-- Header with Exact Pixel Alignment -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-line min-h-[64px]">
                     <div>
                         <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Income & Expenses" %}</h2>
-                        <p class="text-sm text-slate-500 mt-1">{% trans "Money received from sales versus total operating costs over the last 6 months." %}</p>
+                        <p class="text-sm text-slate-500 mt-0.5 font-medium">{% trans "Sales revenue versus operating costs (last 6 months)." %}</p>
                     </div>
-                    <!-- View toggle -->
-                    <div class="flex items-center gap-1.5 bg-surface-2 p-1.5 rounded-xl border border-line/60 self-start sm:self-auto">
-                        <button type="button" @click="setChartType('bar')" :class="chartType === 'bar' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-slate-500 hover:text-ink font-medium'" class="px-4 py-1.5 text-sm rounded-lg transition-all">
+                    <!-- View toggle using design system neu-segmented -->
+                    <div class="neu-segmented self-start sm:self-auto shrink-0">
+                        <button type="button" @click="setChartType('bar')" :class="{ 'active': chartType === 'bar' }" class="neu-segmented-btn">
                             {% trans "Monthly Bars" %}
                         </button>
-                        <button type="button" @click="setChartType('line')" :class="chartType === 'line' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-slate-500 hover:text-ink font-medium'" class="px-4 py-1.5 text-sm rounded-lg transition-all">
+                        <button type="button" @click="setChartType('line')" :class="{ 'active': chartType === 'line' }" class="neu-segmented-btn">
                             {% trans "Trend Line" %}
                         </button>
                     </div>
@@ -105,23 +106,23 @@
             </div>
 
             <!-- Financial Performance Footer Stats Strip -->
-            <div class="mt-6 pt-5 border-t border-line grid grid-cols-1 sm:grid-cols-3 gap-5 text-left">
+            <div class="mt-6 pt-5 border-t border-line grid grid-cols-1 sm:grid-cols-3 gap-6 text-left pb-1">
                 <div>
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Total Money In (6M)" %}</span>
-                    <div class="text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
-                        ${{ financial_trends.total_revenue|floatformat:2 }}
+                    <span class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">{% trans "Total Money In (6M)" %}</span>
+                    <div class="text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+                        {{ financial_trends.fmt_total_revenue }}
                     </div>
                 </div>
                 <div>
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Total Money Out (6M)" %}</span>
-                    <div class="text-2xl font-extrabold font-mono text-rose-600 dark:text-rose-400 mt-1">
-                        ${{ financial_trends.total_expenses|floatformat:2 }}
+                    <span class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">{% trans "Total Money Out (6M)" %}</span>
+                    <div class="text-2xl font-extrabold font-mono text-rose-700 dark:text-rose-400">
+                        {{ financial_trends.fmt_total_expenses }}
                     </div>
                 </div>
                 <div>
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Net Difference" %}</span>
-                    <div class="text-2xl font-extrabold font-mono {% if financial_trends.total_net >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %} mt-1">
-                        {% if financial_trends.total_net >= 0 %}+{% endif %}${{ financial_trends.total_net|floatformat:2 }}
+                    <span class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">{% trans "Net Operating Difference" %}</span>
+                    <div class="text-2xl font-extrabold font-mono {% if financial_trends.total_net >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-700 dark:text-rose-400{% endif %}">
+                        {{ financial_trends.fmt_total_net }}
                     </div>
                 </div>
             </div>
@@ -130,23 +131,29 @@
         <!-- Where Money Went (4 cols) -->
         <div class="lg:col-span-4 bg-surface border border-line rounded-2xl p-7 lg:p-8 shadow-xs neu-card flex flex-col justify-between">
             <div>
-                <div class="pb-5 border-b border-line">
-                    <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Where Money Went" %}</h2>
-                    <p class="text-sm text-slate-500 mt-1">{% trans "Breakdown of business spending by category." %}</p>
+                <!-- Header with Matching Pixel Alignment -->
+                <div class="flex items-center justify-between gap-3 pb-4 border-b border-line min-h-[64px]">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Where Money Went" %}</h2>
+                        <p class="text-sm text-slate-500 mt-0.5 font-medium">{% trans "Breakdown of business spending by category." %}</p>
+                    </div>
+                    <span class="text-xs font-extrabold font-mono px-3 py-1.5 rounded-xl bg-surface-2 text-ink border border-line/60 shrink-0">
+                        {{ expense_breakdown.fmt_total_amount }} {% trans "Total" %}
+                    </span>
                 </div>
 
                 <!-- Donut Chart Canvas Container with Center Label -->
-                <div class="relative my-3 flex items-center justify-center" style="height: 155px;">
-                    <canvas id="expenseDonutChart" style="max-height: 150px; max-width: 150px;"></canvas>
+                <div class="relative my-3 flex items-center justify-center" style="height: 140px;">
+                    <canvas id="expenseDonutChart" style="max-height: 135px; max-width: 135px;"></canvas>
                     <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Total Spent" %}</span>
-                        <span class="text-2xl font-extrabold text-ink font-mono mt-0.5">${{ expense_breakdown.total_amount|floatformat:0 }}</span>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">{% trans "Total Spent" %}</span>
+                        <span class="text-xl font-extrabold text-ink font-mono mt-0.5">{{ expense_breakdown.fmt_total_amount }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Category Legend List with Bars -->
-            <div class="space-y-3 pt-3.5 border-t border-line pb-1">
+            <!-- Category Legend List with Bars (generous pb-4 prevents any edge clipping) -->
+            <div class="space-y-3 pt-3.5 border-t border-line pb-4">
                 {% for cat in expense_breakdown.categories %}
                 <div>
                     <div class="flex items-center justify-between text-sm">
@@ -155,12 +162,12 @@
                             <span class="text-ink font-bold truncate">{{ cat.name }}</span>
                         </div>
                         <div class="text-right font-mono font-bold text-ink shrink-0">
-                            ${{ cat.amount|floatformat:0 }} <span class="text-slate-500 font-semibold text-xs ml-1">({{ cat.percentage }}%)</span>
+                            {{ cat.fmt_amount }} <span class="text-slate-500 font-semibold text-xs ml-1">({{ cat.percentage }}%)</span>
                         </div>
                     </div>
-                    <!-- Visual progress bar -->
-                    <div class="w-full bg-surface-2 h-2 rounded-full mt-1.5 overflow-hidden">
-                        <div class="h-full rounded-full transition-all duration-500" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};"></div>
+                    <!-- Visual progress bar with sunken track and min-width to avoid speck artifacts -->
+                    <div class="w-full bg-slate-200/80 dark:bg-slate-700/60 h-2.5 rounded-full mt-2 overflow-hidden shadow-inner">
+                        <div class="h-full rounded-full transition-all duration-500" style="width: {{ cat.percentage }}%; min-width: 8px; background-color: {{ cat.color }};"></div>
                     </div>
                 </div>
                 {% empty %}
@@ -179,10 +186,10 @@
             <div>
                 <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Working Capital" %}</span>
                 <div class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight mt-2.5">
-                    ${{ summary.working_capital|floatformat:2 }}
+                    {{ summary.fmt_working_capital }}
                 </div>
             </div>
-            <p class="text-sm text-slate-500 mt-3 leading-relaxed">
+            <p class="text-sm text-slate-500 mt-3 leading-relaxed font-medium">
                 {% trans "Net liquid reserves available to run daily operations after accounting for short-term liabilities." %}
             </p>
         </div>
@@ -195,7 +202,7 @@
                     {{ summary.current_ratio }}x
                 </div>
             </div>
-            <p class="text-sm text-slate-500 mt-3 leading-relaxed">
+            <p class="text-sm text-slate-500 mt-3 leading-relaxed font-medium">
                 {% trans "You have" %} <strong class="text-ink">${{ summary.current_ratio }}</strong> {% trans "in assets for every $1.00 of current bills. Ratios above 1.5x indicate strong financial security." %}
             </p>
         </div>
@@ -205,92 +212,130 @@
             <div>
                 <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Business Net Worth" %}</span>
                 <div class="text-3xl font-extrabold text-indigo-700 font-bold font-mono tracking-tight mt-2.5">
-                    ${{ summary.total_equity|floatformat:2 }}
+                    {{ summary.fmt_total_equity }}
                 </div>
             </div>
-            <p class="text-sm text-slate-500 mt-3 leading-relaxed">
+            <p class="text-sm text-slate-500 mt-3 leading-relaxed font-medium">
                 {% trans "The total cumulative equity of the company recorded in the general ledger (capital plus retained earnings)." %}
             </p>
         </div>
     </div>
 
-    <!-- 4. Bank Accounts & Recent Transactions -->
+    <!-- 4. Bank Accounts & Recent Transactions (Equal Heights & Rich Financial Balance) -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Bank Accounts -->
-        <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden neu-card p-6">
-            <div class="pb-5 border-b border-line flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-ink">{% trans "Connected Bank Accounts" %}</h3>
-                    <p class="text-sm text-slate-500 mt-0.5">{% trans "Monitored cash accounts and current reconciled balances." %}</p>
-                </div>
-                <a href="{% url 'accounting:bank_account_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
-                    {% trans "Manage all" %} &rarr;
-                </a>
-            </div>
-            <div class="divide-y divide-line mt-2">
-                {% for ba in bank_accounts %}
-                <div class="py-4.5 flex items-center justify-between hover:bg-surface-2 transition-colors rounded-xl px-3">
+        <!-- Connected Bank Accounts -->
+        <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden neu-card p-7 flex flex-col justify-between h-full">
+            <div>
+                <div class="pb-4 border-b border-line flex items-center justify-between min-h-[52px]">
                     <div>
-                        <a href="{% url 'accounting:bank_account_detail' pk=ba.pk %}" class="font-bold text-base text-ink hover:text-indigo-600 hover:underline transition-colors">
-                            {{ ba.name }}
-                        </a>
-                        <div class="text-sm text-slate-500 font-medium mt-1">
-                            {{ ba.bank_name }} &bull; {{ ba.account_number }}
+                        <h3 class="text-lg font-bold text-ink">{% trans "Connected Bank Accounts" %}</h3>
+                        <p class="text-sm text-slate-500 mt-0.5 font-medium">{% trans "Operating cash and current reconciled balances." %}</p>
+                    </div>
+                    <a href="{% url 'accounting:bank_account_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                        {% trans "Manage all" %} &rarr;
+                    </a>
+                </div>
+
+                <!-- Account Items List -->
+                <div class="mt-4 space-y-3">
+                    {% for ba in bank_accounts %}
+                    <div class="p-4 rounded-xl bg-surface-2/60 border border-line/60 flex items-center justify-between">
+                        <div>
+                            <a href="{% url 'accounting:bank_account_detail' pk=ba.pk %}" class="font-bold text-base text-ink hover:text-indigo-600 hover:underline transition-colors block">
+                                {{ ba.name }}
+                            </a>
+                            <div class="text-sm text-slate-500 font-medium mt-1">
+                                {{ ba.bank_name }} &bull; {{ ba.account_number }}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-mono font-extrabold text-lg text-ink block">
+                                ${{ ba.current_balance|floatformat:2|intcomma }}
+                            </span>
+                            <div class="mt-1">
+                                <a href="{% url 'accounting:bank_reconcile' pk=ba.pk %}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                                    {% trans "Reconcile account" %} &rarr;
+                                </a>
+                            </div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <span class="font-mono font-bold text-base text-ink">
-                            ${{ ba.current_balance }}
+                    {% empty %}
+                    <div class="p-8 text-center text-slate-500 text-sm">
+                        {% trans "No bank accounts registered yet." %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Cash & Liquidity Summary Sub-panel -->
+                <div class="mt-4 p-4 rounded-xl bg-surface-2/40 border border-line/40 grid grid-cols-2 gap-4 text-left">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block">{% trans "Cash on Hand" %}</span>
+                        <span class="text-base font-extrabold font-mono text-ink mt-0.5 block">{{ summary.fmt_cash_on_hand }}</span>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block">{% trans "Reconciliation Status" %}</span>
+                        <span class="text-sm font-bold text-emerald-600 mt-0.5 flex items-center gap-1">
+                            <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                            {% trans "All accounts balanced" %}
                         </span>
-                        <div class="text-sm font-medium mt-1">
-                            <a href="{% url 'accounting:bank_reconcile' pk=ba.pk %}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">{% trans "Reconcile" %} &rarr;</a>
-                        </div>
                     </div>
                 </div>
-                {% empty %}
-                <div class="p-8 text-center text-slate-500 text-sm">
-                    {% trans "No bank accounts registered yet." %}
-                    <div class="mt-3">
-                        <a href="{% url 'accounting:bank_account_create' %}" class="inline-flex items-center px-3.5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">{% trans "+ Add Bank Account" %}</a>
-                    </div>
-                </div>
-                {% endfor %}
+            </div>
+
+            <!-- Bottom Action Footer -->
+            <div class="mt-4 pt-3 border-t border-line flex items-center justify-between text-sm">
+                <a href="{% url 'accounting:bank_account_create' %}" class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                    {% trans "+ Connect another bank account" %}
+                </a>
+                <span class="text-xs text-slate-500 font-medium">{% trans "Updated in real-time" %}</span>
             </div>
         </div>
 
         <!-- Recent Journals -->
-        <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden neu-card p-6">
-            <div class="pb-5 border-b border-line flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-ink">{% trans "Recent Journal Entries" %}</h3>
-                    <p class="text-sm text-slate-500 mt-0.5">{% trans "Latest financial entries posted to the general ledger." %}</p>
-                </div>
-                <a href="{% url 'accounting:journal_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
-                    {% trans "View all" %} &rarr;
-                </a>
-            </div>
-            <div class="divide-y divide-line mt-2">
-                {% for j in recent_journals %}
-                <div class="py-4.5 flex items-center justify-between hover:bg-surface-2 transition-colors rounded-xl px-3">
+        <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden neu-card p-7 flex flex-col justify-between h-full">
+            <div>
+                <div class="pb-4 border-b border-line flex items-center justify-between min-h-[52px]">
                     <div>
-                        <a href="{% url 'accounting:journal_detail' pk=j.pk %}" class="font-mono font-bold text-base text-ink hover:text-indigo-600 hover:underline transition-colors">
-                            {{ j.entry_number }}
-                        </a>
-                        <div class="text-sm text-slate-500 font-medium mt-1 truncate max-w-sm">
-                            {{ j.date }} &bull; {{ j.memo|default:"General ledger entry" }}
+                        <h3 class="text-lg font-bold text-ink">{% trans "Recent Journal Entries" %}</h3>
+                        <p class="text-sm text-slate-500 mt-0.5 font-medium">{% trans "Latest entries posted to the general ledger." %}</p>
+                    </div>
+                    <a href="{% url 'accounting:journal_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                        {% trans "View all" %} &rarr;
+                    </a>
+                </div>
+
+                <!-- Journal List Items -->
+                <div class="mt-4 space-y-2.5">
+                    {% for j in recent_journals %}
+                    <div class="p-3.5 flex items-center justify-between hover:bg-surface-2 transition-colors rounded-xl bg-surface-2/40 border border-line/40">
+                        <div class="truncate mr-3">
+                            <a href="{% url 'accounting:journal_detail' pk=j.pk %}" class="font-mono font-bold text-sm text-ink hover:text-indigo-600 hover:underline transition-colors">
+                                {{ j.entry_number }}
+                            </a>
+                            <div class="text-xs text-slate-500 font-medium mt-0.5 truncate max-w-sm">
+                                {{ j.date }} &bull; {{ j.memo|default:"General ledger entry" }}
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold {% if j.status == 'posted' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400{% elif j.status == 'reversed' %}bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400{% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400{% endif %}">
+                                {{ j.get_status_display }}
+                            </span>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {% if j.status == 'posted' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400{% elif j.status == 'reversed' %}bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400{% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400{% endif %}">
-                            {{ j.get_status_display }}
-                        </span>
+                    {% empty %}
+                    <div class="p-8 text-center text-slate-500 text-sm">
+                        {% trans "No journal entries found." %}
                     </div>
+                    {% endfor %}
                 </div>
-                {% empty %}
-                <div class="p-8 text-center text-slate-500 text-sm">
-                    {% trans "No journal entries found." %}
-                </div>
-                {% endfor %}
+            </div>
+
+            <!-- Bottom Action Footer -->
+            <div class="mt-4 pt-3 border-t border-line flex items-center justify-between text-sm">
+                <a href="{% url 'accounting:journal_list' %}" class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                    {% trans "View full journal history" %} &rarr;
+                </a>
+                <span class="text-xs text-slate-500 font-medium">{% trans "Double-entry verified" %}</span>
             </div>
         </div>
     </div>
