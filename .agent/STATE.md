@@ -1,9 +1,20 @@
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Pixel-Perfect Header Alignment, Bottom Padding & Standard Financial Formatting in Accounting
+- Last completed task: Remove Redundant Tax Summary Button from Accounting Header Actions
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Header Action Bar Cleanup (Removed Redundant Tax Summary Button):
+    - User Request: "remore the ta summary name from here" with screenshot of the header actions `[+ New Journal Entry]` `[+ Record Expense]` `[Tax Summary]`.
+    - Root Cause Analysis:
+      - The header actions included a third button linking to `accounting:tax_summary`. Directly below this header, the primary sub-navigation tab bar (`apps/accounting/templates/accounting/partials/_navigation_tabs.html`) already includes an explicit "Tax Summary" tab with icon and route, making the header action button redundant and visually cluttered.
+    - Resolution Implemented:
+      - Removed the redundant "Tax Summary" anchor button from `apps/accounting/templates/accounting/dashboard.html` (lines 23-26).
+      - Header actions now cleanly showcase the two primary record creation actions: `+ New Journal Entry` and `+ Record Expense`.
+    - Empirical Verification:
+      - Navigated to `http://127.0.0.1:8000/accounting/` in Chrome DevTools; captured viewport screenshot confirming only `+ New Journal Entry` and `+ Record Expense` appear in the action group, while `Tax Summary` remains accessible in the navigation tabs.
+      - 35/35 pytest accounting tests passed in 70s.
+
   - High-Contrast Journal Entry Status Badges:
     - User Request: "this isnt higlighted properly" with screenshot of the muddy grey-green "Posted" badge.
     - Root Cause Analysis:
