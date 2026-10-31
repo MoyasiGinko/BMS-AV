@@ -1,9 +1,21 @@
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Fix HR Calendar Empty Query ValueError and Payroll My Payslips NoReverseMatch
+- Last completed task: Fix Sidebar Active Highlighting & Dedicated URLs for Employee Salaries
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Sidebar Active Highlighting & Dedicated URLs for Employee Salaries:
+    - User Request: "employee salaies doesnt have a dedicated url view so that's why its showing inconsistent" with screenshot showing both "Payroll Runs" and "Employee Salaries" simultaneously highlighted with the active inset pill.
+    - Root Cause Analysis:
+      - In `templates/layouts/app.html`, the "Payroll Runs" nav item used the prefix condition `{% if '/payroll/' in request.path %}`. Because "Employee Salaries" resides at `/payroll/assignments/`, both "Payroll Runs" and "Employee Salaries" evaluated to true on `/payroll/assignments/`, causing duplicate active styling.
+      - In addition, `/payroll/` root had no index view route, resulting in 404 when navigating directly to `/payroll/`.
+    - Resolution Implemented:
+      - Refined sidebar active conditions in `templates/layouts/app.html` so "Payroll Runs" is active on `/payroll/` only when not on salaries/assignments (`and '/payroll/assignments/' not in request.path and '/payroll/salaries/' not in request.path`), and "Employee Salaries" is active on `/payroll/assignments/` or `/payroll/salaries/`.
+      - Added dedicated `salaries/` routes (`payroll:salary_list` and `payroll:salary_create`) and root `""` index route (`payroll:index` pointing to `payroll_run_list_view`) in `apps/payroll/urls.py`.
+    - Empirical Verification:
+      - Verified in Chrome DevTools: on `/payroll/assignments/`, only "Employee Salaries" is active; on `/payroll/runs/`, only "Payroll Runs" is active; on `/payroll/salaries/`, only "Employee Salaries" is active; on `/payroll/`, loads Payroll Runs with only "Payroll Runs" active.
+      - 16/16 pytest payroll tests pass.
+
   - HR Calendar Query Parameter Hardening & Today Link Fix:
     - User Request: `ValueError at /hr/calendar/` with `invalid literal for int() with base 10: ''` on `GET /hr/calendar/?month=&year=`.
     - Root Cause Analysis:
