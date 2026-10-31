@@ -327,12 +327,15 @@
 
         <!-- Symmetrical Bottom Footer Action Bar -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
-            <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
-                &larr; {% trans "Cancel and Return" %}
+            <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="neu-btn-ghost inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface hover:bg-surface-2 transition-all cursor-pointer">
+                &larr; {% trans "Back to Catalog" %}
             </a>
-            <div class="flex items-center gap-4">
-                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
-                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="flex items-center gap-3">
+                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="neu-btn-ghost inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-ink bg-surface hover:bg-surface-2 transition-all cursor-pointer">
+                    {% trans "Cancel" %}
+                </a>
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-7 py-2.5 rounded-xl text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                     </svg>
                     {% if is_new %}{% trans "Create Product" %}{% else %}{% trans "Save Changes" %}{% endif %}

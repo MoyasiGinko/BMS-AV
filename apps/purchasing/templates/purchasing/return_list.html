@@ -44,13 +44,11 @@
                         <td class="px-6 py-4 text-right font-mono font-bold text-[var(--neu-text,#262B45)]">${{ ret.total_amount|floatformat:2|intcomma }}</td>
                         <td class="px-6 py-4 text-center">
                             {% if ret.status == 'posted' %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
                                 {% trans "Posted" %}
                             </span>
                             {% else %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200/80">
-                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-600 text-white shadow-2xs">
                                 {% trans "Draft" %}
                             </span>
                             {% endif %}

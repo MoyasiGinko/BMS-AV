@@ -394,17 +394,18 @@ html[data-theme="neumorphic"],
 }
 
 /* Ensure container cards have generous internal padding (min 24px per design guide) */
-[data-theme="neumorphic"] .card,
-[data-theme="neumorphic"] .bos-card,
-[data-theme="neumorphic"] .neu-card,
-[data-theme="neumorphic"] [class*="neu-card"]:not(.pos-terminal *),
+[data-theme="neumorphic"] div.card,
+[data-theme="neumorphic"] div.bos-card,
+[data-theme="neumorphic"] div.neu-card,
+[data-theme="neumorphic"] div[class*="neu-card"]:not(.pos-terminal *),
 [data-theme="neumorphic"] article.bos-card,
-[data-theme="neumorphic"] main .bg-surface.rounded-2xl,
-[data-theme="neumorphic"] main .bg-surface.rounded-xl,
-[data-theme="neumorphic"] .neu-stat-card,
-[data-theme="neumorphic"] .neu-filter-card,
-[data-theme="neumorphic"] .neu-table-card,
-[data-theme="neumorphic"] .neu-raised-card,
+[data-theme="neumorphic"] main div.bg-surface.rounded-2xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn),
+[data-theme="neumorphic"] main div.bg-surface.rounded-xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn),
+[data-theme="neumorphic"] main section.bg-surface,
+[data-theme="neumorphic"] div.neu-stat-card,
+[data-theme="neumorphic"] div.neu-filter-card,
+[data-theme="neumorphic"] div.neu-table-card,
+[data-theme="neumorphic"] div.neu-raised-card,
 [data-theme="neumorphic"] #dashboard-widgets-container > div > div {
   padding: 24px 28px !important;
 }
@@ -619,18 +620,24 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] .neu-subnav-btn,
 [data-theme="neumorphic"] nav[aria-label*="Tabs"] a,
 [data-theme="neumorphic"] nav[aria-label*="tabs"] a,
-[data-theme="neumorphic"] nav[aria-label="Settings Tabs"] a {
+[data-theme="neumorphic"] nav[aria-label="Settings Tabs"] a,
+[data-theme="neumorphic"] main nav a.neu-subnav-btn {
   display: inline-flex !important;
   align-items: center !important;
+  justify-content: center !important;
   gap: 8px !important;
-  padding: 8px 16px !important;
+  padding: 7px 16px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  line-height: 1 !important;
   border-radius: 12px !important;
   border: 1px solid rgba(255, 255, 255, 0.45) !important;
   font-size: 13.5px !important;
   font-weight: 600 !important;
   color: var(--neu-text, #262B45) !important;
   background-color: var(--neu-surface, #E6E9F2) !important;
-  box-shadow: 4px 4px 8px var(--neu-shadow-dark), -3px -3px 7px var(--neu-shadow-light) !important;
+  box-shadow: 3px 3px 7px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
   transition: all 140ms ease !important;
   white-space: nowrap !important;
   text-decoration: none !important;
@@ -953,16 +960,18 @@ html[data-theme="spatial"],
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: var(--neu-accent-fill);
+  background-color: var(--neu-accent-fill, #4F46E5);
   color: #FFFFFF !important;
-  border-radius: var(--neu-radius-btn);
-  box-shadow: var(--neu-raise-md);
+  border-radius: 12px;
+  box-shadow: 3px 3px 8px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light);
   font-family: var(--neu-font);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  padding: 12px 24px;
-  min-height: var(--neu-tap);
-  border: none;
+  padding: 10px 22px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  border: 1px solid transparent;
   cursor: pointer;
   user-select: none;
   text-decoration: none;
@@ -971,12 +980,12 @@ html[data-theme="spatial"],
 
 .neu-btn-primary:active {
   box-shadow: var(--neu-inset-sm);
-  background-color: var(--neu-accent-text);
+  background-color: #3730A3;
   transform: translateY(1px);
 }
 
 .neu-btn-primary:focus-visible {
-  outline: 2px solid var(--neu-accent-text);
+  outline: 2px solid #4F46E5;
   outline-offset: 3px;
 }
 
@@ -985,16 +994,18 @@ html[data-theme="spatial"],
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: var(--neu-surface);
-  color: var(--neu-accent-text) !important;
-  border-radius: var(--neu-radius-pill-btn);
-  box-shadow: var(--neu-raise-sm);
+  background-color: var(--neu-surface, #E6E9F2);
+  color: var(--neu-text, #1E293B) !important;
+  border-radius: 12px;
+  box-shadow: 3px 3px 7px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light);
   font-family: var(--neu-font);
   font-size: 14px;
   font-weight: 700;
   padding: 10px 20px;
-  min-height: var(--neu-tap);
-  border: none;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
   cursor: pointer;
   user-select: none;
   text-decoration: none;
@@ -1425,18 +1436,24 @@ html[data-theme="spatial"],
 
 [data-theme="neumorphic"] .neu-subnav-btn,
 [data-theme="neumorphic"] nav[aria-label*="Tabs"] a,
-[data-theme="neumorphic"] nav[aria-label*="tabs"] a {
+[data-theme="neumorphic"] nav[aria-label*="tabs"] a,
+[data-theme="neumorphic"] main nav a.neu-subnav-btn {
   display: inline-flex !important;
   align-items: center !important;
+  justify-content: center !important;
   gap: 8px !important;
-  padding: 8px 16px !important;
+  padding: 7px 16px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  line-height: 1 !important;
   border-radius: 12px !important;
   border: 1px solid rgba(255, 255, 255, 0.45) !important;
   font-size: 13.5px !important;
   font-weight: 600 !important;
   color: var(--neu-text, #262B45) !important;
   background-color: var(--neu-surface, #E6E9F2) !important;
-  box-shadow: 4px 4px 8px var(--neu-shadow-dark), -3px -3px 7px var(--neu-shadow-light) !important;
+  box-shadow: 3px 3px 7px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
   transition: all 140ms ease !important;
   white-space: nowrap !important;
   text-decoration: none !important;
@@ -1463,11 +1480,18 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] nav[aria-label*="Tabs"] a[class*="border-indigo"],
 [data-theme="neumorphic"] nav[aria-label*="Tabs"] a[class*="text-[var(--brand-600)]"],
 [data-theme="neumorphic"] nav[aria-label*="tabs"] a[class*="text-[var(--brand-600)]"],
-[data-theme="neumorphic"] nav[aria-label*="tabs"] a[class*="border-indigo"] {
+[data-theme="neumorphic"] nav[aria-label*="tabs"] a[class*="border-indigo"],
+[data-theme="neumorphic"] main nav a.neu-subnav-btn-active,
+[data-theme="neumorphic"] main nav a[class*="bg-indigo-600"] {
   background-color: #4F46E5 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 4px 4px 10px var(--neu-shadow-dark), -3px -3px 8px var(--neu-shadow-light) !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 7px 16px !important;
+  border-radius: 12px !important;
+  box-shadow: 3px 3px 8px rgba(79, 70, 229, 0.45), -2px -2px 6px var(--neu-shadow-light) !important;
   transform: translateY(0) !important;
   border: 1px solid transparent !important;
 }
@@ -1535,70 +1559,137 @@ html[data-theme="spatial"],
    ========================================================================== */
 [data-theme="neumorphic"] span[class*="bg-emerald-"],
 [data-theme="neumorphic"] span[class*="bg-green-"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="emerald"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="green"],
 [data-theme="neumorphic"] .badge-success,
 [data-theme="neumorphic"] .status-pill-success {
   background-color: #059669 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
-  border: none !important;
+  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 9999px !important;
-  padding: 4px 10px !important;
+  padding: 3px 10px !important;
+}
+[data-theme="neumorphic"] span[class*="bg-emerald-"] *,
+[data-theme="neumorphic"] span[class*="bg-green-"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="emerald"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="green"] * {
+  color: #FFFFFF !important;
 }
 
 [data-theme="neumorphic"] span[class*="bg-rose-"],
 [data-theme="neumorphic"] span[class*="bg-red-"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="rose"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="red"],
 [data-theme="neumorphic"] .badge-danger,
 [data-theme="neumorphic"] .status-pill-danger {
   background-color: #E11D48 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
-  border: none !important;
+  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 9999px !important;
-  padding: 4px 10px !important;
+  padding: 3px 10px !important;
+}
+[data-theme="neumorphic"] span[class*="bg-rose-"] *,
+[data-theme="neumorphic"] span[class*="bg-red-"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="rose"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="red"] * {
+  color: #FFFFFF !important;
 }
 
 [data-theme="neumorphic"] span[class*="bg-amber-"],
 [data-theme="neumorphic"] span[class*="bg-yellow-"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="amber"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="yellow"],
 [data-theme="neumorphic"] .badge-warning,
 [data-theme="neumorphic"] .status-pill-warning {
   background-color: #D97706 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
-  border: none !important;
+  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 9999px !important;
-  padding: 4px 10px !important;
+  padding: 3px 10px !important;
+}
+[data-theme="neumorphic"] span[class*="bg-amber-"] *,
+[data-theme="neumorphic"] span[class*="bg-yellow-"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="amber"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="yellow"] * {
+  color: #FFFFFF !important;
 }
 
 [data-theme="neumorphic"] span[class*="bg-blue-"],
+[data-theme="neumorphic"] span[class*="bg-sky-"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="blue"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="sky"],
 [data-theme="neumorphic"] span[class*="bg-indigo-600"]:not(a):not(button):not(.neu-subnav-btn):not(.sidebar-brand-icon-box),
 [data-theme="neumorphic"] .badge-info,
 [data-theme="neumorphic"] .status-pill-info {
   background-color: #2563EB !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
-  border: none !important;
+  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 9999px !important;
-  padding: 4px 10px !important;
+  padding: 3px 10px !important;
+}
+[data-theme="neumorphic"] span[class*="bg-blue-"] *,
+[data-theme="neumorphic"] span[class*="bg-sky-"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="blue"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="sky"] * {
+  color: #FFFFFF !important;
 }
 
 [data-theme="neumorphic"] span[class*="bg-slate-"],
 [data-theme="neumorphic"] span[class*="bg-gray-"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="slate"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="gray"],
 [data-theme="neumorphic"] .badge-neutral,
 [data-theme="neumorphic"] .status-pill-neutral {
   background-color: #475569 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
-  border: none !important;
+  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
   border-radius: 9999px !important;
-  padding: 4px 10px !important;
+  padding: 3px 10px !important;
+}
+[data-theme="neumorphic"] span[class*="bg-slate-"] *,
+[data-theme="neumorphic"] span[class*="bg-gray-"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="slate"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="gray"] * {
+  color: #FFFFFF !important;
 }
 
 /* Remove stray indicator dots inside badge pills */
 [data-theme="neumorphic"] span[class*="rounded-full"] > span[class*="rounded-full"]:empty {
   display: none !important;
+}
+
+/* ==========================================================================
+   Universal Button Ergonomics Guarantee (Neumorphic Mode)
+   Buttons must look like sleek interactive controls, NEVER like medium cards
+   ========================================================================== */
+[data-theme="neumorphic"] main button:not(.neu-card):not(.card):not(.bos-card),
+[data-theme="neumorphic"] main a[class*="btn"],
+[data-theme="neumorphic"] main a[class*="px-"][class*="py-"]:not(.card):not(.bos-card):not(.neu-card):not([class*="neu-well"]):not([class*="rounded-2xl"]),
+[data-theme="neumorphic"] .neu-action-btn,
+[data-theme="neumorphic"] .neu-primary-btn {
+  max-height: 48px;
+}
+
+[data-theme="neumorphic"] nav[aria-label*="Tabs"] a,
+[data-theme="neumorphic"] nav[aria-label*="tabs"] a,
+[data-theme="neumorphic"] .neu-subnav-btn,
+[data-theme="neumorphic"] main nav a.neu-subnav-btn {
+  padding: 7px 16px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  font-size: 13.5px !important;
+  line-height: 1 !important;
+  border-radius: 12px !important;
+  box-shadow: 3px 3px 7px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
 }

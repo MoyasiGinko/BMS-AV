@@ -1,18 +1,15 @@
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Comprehensive ERP Fullwidth Bento Redesign & Container Text Padding Harmonization
+- Last completed task: Comprehensive UI & Neumorphic Design Ergonomics Fix (Badges, Subnav Tabs, Form Buttons, Sidebar Highlight)
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
-  - Fullwidth Bento Layouts & Universal Container Text Padding:
-    - User Request: "product add,edit pages need to redesigned, bigger input fields,texts and also fullwidth not centered. and also much more cleaner, proper padding and alignments", "remove it from the top", "remove the dots", "this isnt higlighted properly", "i dont know why but you miss proper padding of texts with containers, please review and fix".
-    - Standardized 80+ templates across all ERP modules (Sales, Purchasing, Accounting, Inventory, HR, Payroll, CRM, POS, Approvals, Automation, Integrations, Reports, Help):
-      1. Eliminated all cramped `max-w-xl mx-auto`, `max-w-2xl mx-auto`, `max-w-3xl mx-auto`, `max-w-4xl mx-auto`, and `max-w-5xl mx-auto` containers in favor of fullwidth `w-full pb-16 space-y-8`.
-      2. Replaced duplicate action buttons in top headers with grounded symmetrical bottom action bars (`[Cancel] [Primary Action]`).
-      3. Raised input and form control heights to 48px with generous `padding: 12px 18px !important;` and readable `0.9375rem` font size.
-      4. Universal table cells guaranteed comfortable ERP row spacing via `padding: 14px 20px !important;` for `th` and `td`.
-      5. Upgraded all status badges from low-contrast murky washes (`bg-*-100 text-*-800 dark:bg-*-950`) to solid, high-contrast, accessible badges (`bg-emerald-600 text-white font-bold`, `bg-rose-600 text-white font-bold`, `bg-amber-600 text-white font-bold`, `bg-blue-600 text-white font-bold`, `bg-slate-600 text-white font-bold`).
-      6. Removed stray indicator dots from status badges and widgets across the system.
-    - Test Suites Verified:
-      - Core ERP test suite: 194 passed in 291s.
-      - UI theme manager & styleguide smoke suite: 5 passed in 44s.
+  - Addressed 5 visual defect feedback points:
+    1. Status Badges ("Posted" pill): Eliminated murky pastel backgrounds and neon text (`dark:bg-emerald-950/70 dark:text-emerald-300`). Standardized on solid, high-contrast, universally accessible status pills (`bg-emerald-600 text-white font-bold`, `bg-rose-600 text-white`, `bg-amber-600 text-white`, `bg-slate-600 text-white`) across bills, returns, invoices, journals, and neumorphic CSS.
+    2. Redundant Actions: Removed extraneous "Tax Summary" button from accounting top action bar; preserved proper dedicated tab in navigation.
+    3. Sidebar Navigation: Fixed dual-active highlighting under "PEOPLE & PAYROLL" between "Payroll Runs" and "Employee Salaries" by dedicating the `/payroll/salaries/` route and enforcing mutually exclusive active state matching.
+    4. Form Actions ("Cancel" & "Create Product"): Unified button ergonomics with matching 44px height, 12px rounded corners, matching padding, and clean visual hierarchy for `.neu-btn-primary` and `.neu-btn-ghost`.
+    5. Subnav Tabs vs Medium Cards: Scoped container card padding selectors to avoid inflating interactive controls; constrained all module subnav tabs (`.neu-subnav-btn`, `nav[aria-label*="Tabs"] a`) to sleek, uniform 38px height and 7px 16px padding.
+    6. Cache Busting: Bumped static stylesheet version to `?v=4.1.0` in `base.html`.
+  - Test Suites Verified:
+    - UI theme manager & styleguide smoke suite: 5 passed in 51s.

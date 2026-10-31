@@ -599,7 +599,7 @@
               <span x-show="!sidebarCollapsed" class="truncate">Payroll Runs</span>
             </a>
             <a
-              href="{% url 'payroll:assignment_list' %}"
+              href="{% url 'payroll:salary_list' %}"
               class="flex items-center gap-3.5 px-3 py-2.5 text-[15px] font-medium rounded-xl transition-colors {% if '/payroll/assignments/' in request.path or '/payroll/salaries/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
               title="Employee Salaries"
             >
