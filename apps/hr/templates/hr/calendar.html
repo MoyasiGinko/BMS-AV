@@ -36,7 +36,7 @@
             <a href="?month={{ prev_month }}&year={{ prev_year }}" class="p-2 rounded-lg border border-line hover:bg-surface-2 text-muted">
                 &larr; {% trans "Prev" %}
             </a>
-            <a href="?month={{ now.month }}&year={{ now.year }}" class="px-3 py-1.5 rounded-lg border border-line text-xs font-medium hover:bg-surface-2 text-muted">
+            <a href="{% url 'hr:calendar' %}" class="px-3 py-1.5 rounded-lg border border-line text-xs font-medium hover:bg-surface-2 text-muted">
                 {% trans "Today" %}
             </a>
             <a href="?month={{ next_month }}&year={{ next_year }}" class="p-2 rounded-lg border border-line hover:bg-surface-2 text-muted">

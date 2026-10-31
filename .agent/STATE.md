@@ -1,9 +1,27 @@
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Remove Redundant Tax Summary Button from Accounting Header Actions
+- Last completed task: Fix HR Calendar Empty Query ValueError and Payroll My Payslips NoReverseMatch
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - HR Calendar Query Parameter Hardening & Today Link Fix:
+    - User Request: `ValueError at /hr/calendar/` with `invalid literal for int() with base 10: ''` on `GET /hr/calendar/?month=&year=`.
+    - Root Cause Analysis:
+      - `hr_calendar_view` parsed query parameters with `int(request.GET.get("year", now.year))`. When empty parameters like `?month=&year=` were supplied, `dict.get` returned empty string `""`, crashing `int("")`.
+      - In `apps/hr/templates/hr/calendar.html`, the "Today" button was referencing `?month={{ now.month }}&year={{ now.year }}` while `now` was not provided in the view context, rendering `<a href="?month=&year=">`.
+    - Resolution Implemented:
+      - Added safe integer parsing with bounds validation (`1900 <= year <= 2100`, `1 <= month <= 12`) and fallback to current date on any error or blank input in `hr_calendar_view`.
+      - Provided `today: now` and `total_events` in the view context, and updated the "Today" button to point cleanly to `{% url 'hr:calendar' %}`.
+      - Added unit tests in `apps/hr/tests/test_views.py` testing blank query strings (`?month=&year=`) and invalid strings.
+
+  - Payroll Self-Service My Payslips Graceful Fallback & NoReverseMatch Fix:
+    - User Request: `NoReverseMatch at /payroll/my-payslips/` with `Reverse for 'dashboard' not found`.
+    - Root Cause Analysis:
+      - `apps/payroll/views.py:303` executed `return redirect("tenancy:dashboard")` when an authenticated user had no linked `Employee` model. The `tenancy` namespace has no view named `dashboard`, causing `NoReverseMatch`. Furthermore, redirecting kicked administrators and managers out of the payroll module.
+    - Resolution Implemented:
+      - Replaced the redirect with graceful in-page rendering of `payroll/my_payslips.html`, presenting an informative message (`messages.info`), displaying the user's account name with "No linked employee profile", and rendering an empty state while keeping the payroll sub-navigation tabs intact and accessible.
+      - Added unit tests in `apps/payroll/tests/test_views.py` covering both scenarios (unlinked user and employee-linked user).
+
   - Header Action Bar Cleanup (Removed Redundant Tax Summary Button):
     - User Request: "remore the ta summary name from here" with screenshot of the header actions `[+ New Journal Entry]` `[+ Record Expense]` `[Tax Summary]`.
     - Root Cause Analysis:

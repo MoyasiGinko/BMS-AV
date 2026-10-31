@@ -385,3 +385,10 @@ class TestAttendanceAndLeaveViews:
         cal_resp = client.get(cal_url)
         assert cal_resp.status_code == 200
         assert "Attendance Calendar" in cal_resp.content.decode()
+
+        # Test empty query params and invalid strings
+        cal_resp_empty = client.get(f"{cal_url}?month=&year=")
+        assert cal_resp_empty.status_code == 200
+
+        cal_resp_invalid = client.get(f"{cal_url}?month=invalid&year=invalid")
+        assert cal_resp_invalid.status_code == 200

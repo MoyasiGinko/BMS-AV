@@ -833,8 +833,21 @@ def hr_calendar_view(request: HttpRequest) -> HttpResponse:
     """Visual monthly calendar view of attendance and scheduled leaves."""
     org = _get_org(request)
     now = timezone.now().date()
-    year = int(request.GET.get("year", now.year))
-    month = int(request.GET.get("month", now.month))
+    try:
+        raw_year = request.GET.get("year")
+        year = int(raw_year) if raw_year and raw_year.strip() else now.year
+        if not (1900 <= year <= 2100):
+            year = now.year
+    except (ValueError, TypeError):
+        year = now.year
+
+    try:
+        raw_month = request.GET.get("month")
+        month = int(raw_month) if raw_month and raw_month.strip() else now.month
+        if not (1 <= month <= 12):
+            month = now.month
+    except (ValueError, TypeError):
+        month = now.month
 
     num_days = calendar.monthrange(year, month)[1]
     start_date = datetime.date(year, month, 1)
@@ -870,6 +883,7 @@ def hr_calendar_view(request: HttpRequest) -> HttpResponse:
         "next_month": next_month,
         "next_year": next_year,
         "total_events": len(events),
+        "today": now,
     }
 
     return render(request, "hr/calendar.html", context)

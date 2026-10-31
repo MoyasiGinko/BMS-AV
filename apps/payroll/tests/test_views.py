@@ -173,3 +173,30 @@ def test_structure_component_and_assignment_views(
         },
     )
     assert resp.status_code == 302
+
+@pytest.mark.django_db
+def test_my_payslips_view_without_and_with_employee(
+    auth_client: Client,
+    org: Organization,
+    employee: Employee,
+    user: Any,
+) -> None:
+    url = reverse("payroll:my_payslips")
+
+    # Case 1: user has no linked Employee record (employee fixture links user by default)
+    employee.user = None
+    employee.save()
+
+    resp = auth_client.get(url)
+    assert resp.status_code == 200
+    assert "No employee record is currently linked to your user account." in resp.content.decode()
+
+    # Case 2: user linked to employee
+    employee.user = user
+    employee.save()
+
+    resp = auth_client.get(url)
+    assert resp.status_code == 200
+    assert employee.full_name in resp.content.decode()
+    assert "No payslips issued yet for your employee account." in resp.content.decode()
+
