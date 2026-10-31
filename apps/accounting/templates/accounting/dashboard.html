@@ -4,23 +4,24 @@
 {% block title %}{% trans "Accounting Overview" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6 accounting-page pb-8">
+<div class="space-y-8 pb-12 accounting-page">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Accounting & Finance" %}</h1>
+            <h1 class="text-3xl font-extrabold tracking-tight text-ink">{% trans "Accounting & Finance" %}</h1>
+            <p class="text-sm text-slate-500 mt-1">{% trans "Overview of your general ledger, cash balance, and monthly operating performance." %}</p>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
-            <a href="{% url 'accounting:journal_create' %}" class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-sm font-semibold text-ink bg-surface hover:bg-slate-50 shadow-xs transition-colors">
-                <svg class="w-4 h-4 mr-1.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+        <div class="flex items-center gap-3 flex-wrap">
+            <a href="{% url 'accounting:journal_create' %}" class="inline-flex items-center px-4 py-2.5 border border-line rounded-xl text-sm font-bold text-ink bg-surface hover:bg-slate-50 shadow-xs transition-colors">
+                <svg class="w-4 h-4 mr-2 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 {% trans "New Journal Entry" %}
             </a>
-            <a href="{% url 'accounting:expense_create' %}" class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-sm font-semibold text-ink bg-surface hover:bg-slate-50 shadow-xs transition-colors">
-                <svg class="w-4 h-4 mr-1.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            <a href="{% url 'accounting:expense_create' %}" class="inline-flex items-center px-4 py-2.5 border border-line rounded-xl text-sm font-bold text-ink bg-surface hover:bg-slate-50 shadow-xs transition-colors">
+                <svg class="w-4 h-4 mr-2 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 {% trans "Record Expense" %}
             </a>
-            <a href="{% url 'accounting:tax_summary' %}" class="inline-flex items-center px-3.5 py-2 border border-transparent rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <a href="{% url 'accounting:tax_summary' %}" class="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+                <svg class="w-4 h-4 mr-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 {% trans "Tax Summary" %}
             </a>
         </div>
@@ -29,141 +30,141 @@
     <!-- Sub-navigation Tabs -->
     {% include "accounting/partials/_navigation_tabs.html" with active_tab="dashboard" %}
 
-    <!-- Top KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs neu-card-stat">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Assets" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-ink font-mono">${{ summary.total_assets|floatformat:2 }}</span>
-                <span class="text-xs text-emerald-600 font-semibold">{% trans "Resources owned" %}</span>
+    <!-- 1. Key Business Metrics (4 Hero Stat Cards with Big Readable Numbers) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Cash in Bank -->
+        <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
+            <div>
+                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Available Cash" %}</span>
+                <div class="text-3xl lg:text-4xl font-extrabold text-ink font-mono tracking-tight mt-2.5">
+                    ${{ summary.bank_balance|floatformat:2 }}
+                </div>
             </div>
-            <div class="text-[11px] text-muted font-medium mt-1">{% trans "Cash, Bank, AR & Inventory" %}</div>
+            <p class="text-sm text-slate-500 mt-3 font-medium">{% trans "Operating balance across active bank accounts." %}</p>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs neu-card-stat">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Liabilities" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-rose-600 dark:text-rose-400 font-mono">${{ summary.total_liabilities|floatformat:2 }}</span>
-                <span class="text-xs text-rose-500 font-semibold">{% trans "Obligations" %}</span>
+
+        <!-- Net Profit YTD -->
+        <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
+            <div>
+                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Net Profit (YTD)" %}</span>
+                <div class="text-3xl lg:text-4xl font-extrabold font-mono tracking-tight mt-2.5 {% if summary.net_income >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                    {% if summary.net_income >= 0 %}+{% endif %}${{ summary.net_income|floatformat:2 }}
+                </div>
             </div>
-            <div class="text-[11px] text-muted font-medium mt-1">{% trans "Payables, VAT & Payroll" %}</div>
+            <p class="text-sm text-slate-500 mt-3 font-medium">{% trans "Total revenue minus recorded business expenses." %}</p>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs neu-card-stat">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Equity" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-indigo-700 font-bold font-mono">${{ summary.total_equity|floatformat:2 }}</span>
-                <span class="text-xs text-muted font-semibold">{% trans "Net worth" %}</span>
+
+        <!-- Unpaid Customer Invoices -->
+        <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
+            <div>
+                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Unpaid Invoices (A/R)" %}</span>
+                <div class="text-3xl lg:text-4xl font-extrabold text-ink font-mono tracking-tight mt-2.5">
+                    ${{ summary.ar_balance|floatformat:2 }}
+                </div>
             </div>
-            <div class="text-[11px] text-muted font-medium mt-1">{% trans "Capital & retained earnings" %}</div>
+            <p class="text-sm text-slate-500 mt-3 font-medium">{% trans "Pending money owed by customers from sales." %}</p>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs neu-card-stat">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Net Income (YTD)" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold font-mono {% if summary.net_income >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
-                    ${{ summary.net_income|floatformat:2 }}
-                </span>
-                <span class="text-xs text-muted font-semibold">{% trans "Rev - Exp" %}</span>
+
+        <!-- Unpaid Vendor Bills -->
+        <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
+            <div>
+                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Bills Due (A/P)" %}</span>
+                <div class="text-3xl lg:text-4xl font-extrabold text-rose-600 dark:text-rose-400 font-mono tracking-tight mt-2.5">
+                    ${{ summary.ap_balance|floatformat:2 }}
+                </div>
             </div>
-            <div class="text-[11px] text-muted font-medium mt-1">{% trans "Net operating performance" %}</div>
+            <p class="text-sm text-slate-500 mt-3 font-medium">{% trans "Pending bills owed to suppliers and vendors." %}</p>
         </div>
     </div>
 
-    <!-- Executive Financial Visualizers (Graphs & Charts) -->
+    <!-- 2. Visual Charts Section (Cash Flow & Expense Breakdown) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6" x-data="accountingCharts()">
-        <!-- Chart 1: Revenue vs Operating Expenses (8 cols) -->
-        <div class="lg:col-span-8 bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card flex flex-col justify-between">
+        <!-- Income & Expenses (8 cols) -->
+        <div class="lg:col-span-8 bg-surface border border-line rounded-2xl p-7 lg:p-8 shadow-xs neu-card flex flex-col justify-between">
             <div>
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-line">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-line">
                     <div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
-                            <h2 class="text-base font-bold text-ink tracking-tight">{% trans "Operating Performance & Cash Flow" %}</h2>
-                        </div>
-                        <p class="text-xs text-muted mt-0.5">{% trans "Monthly revenue versus operating expenditures across the general ledger" %}</p>
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Income & Expenses" %}</h2>
+                        <p class="text-sm text-slate-500 mt-1">{% trans "Money received from sales versus total operating costs over the last 6 months." %}</p>
                     </div>
-                    <!-- Mode switch: Bar vs Area Curve -->
-                    <div class="flex items-center gap-1.5 bg-surface-2 p-1 rounded-xl border border-line/60">
-                        <button type="button" @click="setChartType('bar')" :class="chartType === 'bar' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-muted hover:text-ink'" class="px-3 py-1 text-xs rounded-lg transition-all">
-                            {% trans "Bars" %}
+                    <!-- View toggle -->
+                    <div class="flex items-center gap-1.5 bg-surface-2 p-1.5 rounded-xl border border-line/60 self-start sm:self-auto">
+                        <button type="button" @click="setChartType('bar')" :class="chartType === 'bar' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-slate-500 hover:text-ink font-medium'" class="px-4 py-1.5 text-sm rounded-lg transition-all">
+                            {% trans "Monthly Bars" %}
                         </button>
-                        <button type="button" @click="setChartType('line')" :class="chartType === 'line' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-muted hover:text-ink'" class="px-3 py-1 text-xs rounded-lg transition-all">
+                        <button type="button" @click="setChartType('line')" :class="chartType === 'line' ? 'bg-surface text-ink shadow-xs font-bold' : 'text-slate-500 hover:text-ink font-medium'" class="px-4 py-1.5 text-sm rounded-lg transition-all">
                             {% trans "Trend Line" %}
                         </button>
                     </div>
                 </div>
 
                 <!-- Sunken Well for Chart -->
-                <div class="mt-4 p-4 rounded-xl bg-surface-2/60 neu-well relative overflow-hidden" style="min-height: 250px;">
-                    <canvas id="financialTrendsChart" class="w-full" style="max-height: 230px;"></canvas>
+                <div class="mt-6 p-5 rounded-2xl bg-surface-2/60 neu-well relative overflow-hidden" style="min-height: 290px;">
+                    <canvas id="financialTrendsChart" class="w-full" style="max-height: 270px;"></canvas>
                 </div>
             </div>
 
             <!-- Financial Performance Footer Stats Strip -->
-            <div class="mt-4 pt-4 border-t border-line grid grid-cols-3 gap-4 text-center sm:text-left">
+            <div class="mt-6 pt-5 border-t border-line grid grid-cols-1 sm:grid-cols-3 gap-5 text-left">
                 <div>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Total Revenue (6M)" %}</span>
-                    <div class="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Total Money In (6M)" %}</span>
+                    <div class="text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
                         ${{ financial_trends.total_revenue|floatformat:2 }}
                     </div>
                 </div>
                 <div>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Total Expenses (6M)" %}</span>
-                    <div class="text-lg font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Total Money Out (6M)" %}</span>
+                    <div class="text-2xl font-extrabold font-mono text-rose-600 dark:text-rose-400 mt-1">
                         ${{ financial_trends.total_expenses|floatformat:2 }}
                     </div>
                 </div>
                 <div>
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Net Operating Spread" %}</span>
-                    <div class="text-lg font-bold font-mono {% if financial_trends.total_net >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %} mt-0.5 flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
-                        <span>{% if financial_trends.total_net >= 0 %}+{% endif %}${{ financial_trends.total_net|floatformat:2 }}</span>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">GL Balanced</span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Net Difference" %}</span>
+                    <div class="text-2xl font-extrabold font-mono {% if financial_trends.total_net >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %} mt-1">
+                        {% if financial_trends.total_net >= 0 %}+{% endif %}${{ financial_trends.total_net|floatformat:2 }}
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Chart 2: Cost Structure & Expense Breakdown (4 cols) -->
-        <div class="lg:col-span-4 bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card flex flex-col justify-between">
+        <!-- Where Money Went (4 cols) -->
+        <div class="lg:col-span-4 bg-surface border border-line rounded-2xl p-7 lg:p-8 shadow-xs neu-card flex flex-col justify-between">
             <div>
-                <div class="pb-3 border-b border-line flex items-center justify-between">
-                    <div>
-                        <h2 class="text-base font-bold text-ink tracking-tight">{% trans "Expense Distribution" %}</h2>
-                        <p class="text-xs text-muted mt-0.5">{% trans "Cost breakdown by GL category" %}</p>
-                    </div>
-                    <span class="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        ${{ expense_breakdown.total_amount|floatformat:0 }}
-                    </span>
+                <div class="pb-5 border-b border-line">
+                    <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Where Money Went" %}</h2>
+                    <p class="text-sm text-slate-500 mt-1">{% trans "Breakdown of business spending by category." %}</p>
                 </div>
 
                 <!-- Donut Chart Canvas Container with Center Label -->
-                <div class="relative my-3 flex items-center justify-center" style="height: 145px;">
-                    <canvas id="expenseDonutChart" style="max-height: 140px; max-width: 140px;"></canvas>
+                <div class="relative my-3 flex items-center justify-center" style="height: 155px;">
+                    <canvas id="expenseDonutChart" style="max-height: 150px; max-width: 150px;"></canvas>
                     <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-muted">{% trans "Total Spent" %}</span>
-                        <span class="text-base font-extrabold text-ink font-mono">${{ expense_breakdown.total_amount|floatformat:0 }}</span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{% trans "Total Spent" %}</span>
+                        <span class="text-2xl font-extrabold text-ink font-mono mt-0.5">${{ expense_breakdown.total_amount|floatformat:0 }}</span>
                     </div>
                 </div>
             </div>
 
             <!-- Category Legend List with Bars -->
-            <div class="space-y-2 pt-2 border-t border-line pb-1">
+            <div class="space-y-3 pt-3.5 border-t border-line pb-1">
                 {% for cat in expense_breakdown.categories %}
-                <div class="text-xs">
-                    <div class="flex items-center justify-between font-medium">
-                        <div class="flex items-center gap-1.5 truncate max-w-[170px]">
-                            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ cat.color }};"></span>
-                            <span class="text-ink truncate font-semibold">{{ cat.name }}</span>
+                <div>
+                    <div class="flex items-center justify-between text-sm">
+                        <div class="flex items-center gap-2.5 truncate max-w-[210px]">
+                            <span class="w-3 h-3 rounded-full shrink-0" style="background-color: {{ cat.color }};"></span>
+                            <span class="text-ink font-bold truncate">{{ cat.name }}</span>
                         </div>
                         <div class="text-right font-mono font-bold text-ink shrink-0">
-                            ${{ cat.amount|floatformat:0 }} <span class="text-muted font-normal text-[11px]">({{ cat.percentage }}%)</span>
+                            ${{ cat.amount|floatformat:0 }} <span class="text-slate-500 font-semibold text-xs ml-1">({{ cat.percentage }}%)</span>
                         </div>
                     </div>
                     <!-- Visual progress bar -->
-                    <div class="w-full bg-surface-2 h-1.5 rounded-full mt-1 overflow-hidden">
+                    <div class="w-full bg-surface-2 h-2 rounded-full mt-1.5 overflow-hidden">
                         <div class="h-full rounded-full transition-all duration-500" style="width: {{ cat.percentage }}%; background-color: {{ cat.color }};"></div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="text-center py-6 text-xs text-muted">
+                <div class="text-center py-8 text-sm text-slate-500">
                     {% trans "No recorded expenses in this period." %}
                 </div>
                 {% endfor %}
@@ -171,82 +172,86 @@
         </div>
     </div>
 
-    <!-- Row 2: Four Key Financial Health & Liquidity Stat Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="neu-card-stat bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Current Ratio" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-ink font-mono">{{ summary.current_ratio }}x</span>
-                <span class="text-xs font-bold {% if summary.current_ratio >= 1.5 %}text-emerald-600{% else %}text-amber-600{% endif %}">
-                    {% if summary.current_ratio >= 1.5 %}&check; {% trans "Healthy (>1.5x)" %}{% else %}&excl; {% trans "Monitor" %}{% endif %}
-                </span>
+    <!-- 3. Financial Solvency & Balance Sheet Summary (3 Clear, Accessible Health Cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Working Capital -->
+        <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
+            <div>
+                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Working Capital" %}</span>
+                <div class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight mt-2.5">
+                    ${{ summary.working_capital|floatformat:2 }}
+                </div>
             </div>
-            <p class="text-[11px] text-muted mt-1.5">{% trans "Current Assets to Short-term Liabilities" %}</p>
+            <p class="text-sm text-slate-500 mt-3 leading-relaxed">
+                {% trans "Net liquid reserves available to run daily operations after accounting for short-term liabilities." %}
+            </p>
         </div>
 
-        <div class="neu-card-stat bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Quick Ratio (Acid-Test)" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-ink font-mono">{{ summary.quick_ratio }}x</span>
-                <span class="text-xs font-bold text-indigo-700">{% trans "Liquid Cover" %}</span>
+        <!-- Financial Cushion -->
+        <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
+            <div>
+                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Financial Cushion" %}</span>
+                <div class="text-3xl font-extrabold text-ink font-mono tracking-tight mt-2.5">
+                    {{ summary.current_ratio }}x
+                </div>
             </div>
-            <p class="text-[11px] text-muted mt-1.5">{% trans "Cash & Receivables vs Obligations" %}</p>
+            <p class="text-sm text-slate-500 mt-3 leading-relaxed">
+                {% trans "You have" %} <strong class="text-ink">${{ summary.current_ratio }}</strong> {% trans "in assets for every $1.00 of current bills. Ratios above 1.5x indicate strong financial security." %}
+            </p>
         </div>
 
-        <div class="neu-card-stat bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Working Capital" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">${{ summary.working_capital|floatformat:2 }}</span>
-                <span class="text-xs font-semibold text-emerald-600">{% trans "Operational Net" %}</span>
+        <!-- Total Business Net Worth -->
+        <div class="bg-surface border border-line rounded-2xl p-6 shadow-xs neu-card-stat flex flex-col justify-between">
+            <div>
+                <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">{% trans "Business Net Worth" %}</span>
+                <div class="text-3xl font-extrabold text-indigo-700 font-bold font-mono tracking-tight mt-2.5">
+                    ${{ summary.total_equity|floatformat:2 }}
+                </div>
             </div>
-            <p class="text-[11px] text-muted mt-1.5">{% trans "Net liquid reserves for operations" %}</p>
-        </div>
-
-        <div class="neu-card-stat bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "AR vs AP Position" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-lg font-bold text-ink font-mono">${{ summary.ar_balance|floatformat:0 }} <span class="text-muted text-xs font-normal">AR</span> / ${{ summary.ap_balance|floatformat:0 }} <span class="text-muted text-xs font-normal">AP</span></span>
-                <span class="text-xs font-medium text-muted">{% trans "Balance spread" %}</span>
-            </div>
-            <p class="text-[11px] text-muted mt-1.5">{% trans "Customer Receivables vs Vendor Payables" %}</p>
+            <p class="text-sm text-slate-500 mt-3 leading-relaxed">
+                {% trans "The total cumulative equity of the company recorded in the general ledger (capital plus retained earnings)." %}
+            </p>
         </div>
     </div>
 
-    <!-- Main Grid: Bank Accounts & Recent Journals -->
+    <!-- 4. Bank Accounts & Recent Transactions -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Bank Accounts -->
-        <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden neu-card">
-            <div class="p-5 border-b border-line flex items-center justify-between">
-                <h3 class="font-semibold text-ink">{% trans "Bank Accounts" %}</h3>
-                <a href="{% url 'accounting:bank_account_list' %}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+        <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden neu-card p-6">
+            <div class="pb-5 border-b border-line flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-ink">{% trans "Connected Bank Accounts" %}</h3>
+                    <p class="text-sm text-slate-500 mt-0.5">{% trans "Monitored cash accounts and current reconciled balances." %}</p>
+                </div>
+                <a href="{% url 'accounting:bank_account_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
                     {% trans "Manage all" %} &rarr;
                 </a>
             </div>
-            <div class="divide-y divide-line">
+            <div class="divide-y divide-line mt-2">
                 {% for ba in bank_accounts %}
-                <div class="p-4 flex items-center justify-between hover:bg-surface-2 transition-colors">
+                <div class="py-4.5 flex items-center justify-between hover:bg-surface-2 transition-colors rounded-xl px-3">
                     <div>
-                        <a href="{% url 'accounting:bank_account_detail' pk=ba.pk %}" class="font-bold text-sm text-ink hover:text-indigo-600 hover:underline transition-colors">
+                        <a href="{% url 'accounting:bank_account_detail' pk=ba.pk %}" class="font-bold text-base text-ink hover:text-indigo-600 hover:underline transition-colors">
                             {{ ba.name }}
                         </a>
-                        <div class="text-xs text-muted font-medium mt-0.5">
+                        <div class="text-sm text-slate-500 font-medium mt-1">
                             {{ ba.bank_name }} &bull; {{ ba.account_number }}
                         </div>
                     </div>
                     <div class="text-right">
-                        <span class="font-mono font-semibold text-sm text-ink">
+                        <span class="font-mono font-bold text-base text-ink">
                             ${{ ba.current_balance }}
                         </span>
-                        <div class="text-xs text-muted font-medium mt-0.5">
-                            <a href="{% url 'accounting:bank_reconcile' pk=ba.pk %}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">{% trans "Reconcile" %}</a>
+                        <div class="text-sm font-medium mt-1">
+                            <a href="{% url 'accounting:bank_reconcile' pk=ba.pk %}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">{% trans "Reconcile" %} &rarr;</a>
                         </div>
                     </div>
                 </div>
                 {% empty %}
-                <div class="p-6 text-center text-slate-400 text-sm">
+                <div class="p-8 text-center text-slate-500 text-sm">
                     {% trans "No bank accounts registered yet." %}
-                    <div class="mt-2">
-                        <a href="{% url 'accounting:bank_account_create' %}" class="text-xs text-indigo-600 hover:underline">{% trans "+ Add Bank Account" %}</a>
+                    <div class="mt-3">
+                        <a href="{% url 'accounting:bank_account_create' %}" class="inline-flex items-center px-3.5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700">{% trans "+ Add Bank Account" %}</a>
                     </div>
                 </div>
                 {% endfor %}
@@ -254,32 +259,35 @@
         </div>
 
         <!-- Recent Journals -->
-        <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden neu-card">
-            <div class="p-5 border-b border-line flex items-center justify-between">
-                <h3 class="font-semibold text-ink">{% trans "Recent Journal Entries" %}</h3>
-                <a href="{% url 'accounting:journal_list' %}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+        <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden neu-card p-6">
+            <div class="pb-5 border-b border-line flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-ink">{% trans "Recent Journal Entries" %}</h3>
+                    <p class="text-sm text-slate-500 mt-0.5">{% trans "Latest financial entries posted to the general ledger." %}</p>
+                </div>
+                <a href="{% url 'accounting:journal_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
                     {% trans "View all" %} &rarr;
                 </a>
             </div>
-            <div class="divide-y divide-line">
+            <div class="divide-y divide-line mt-2">
                 {% for j in recent_journals %}
-                <div class="p-4 flex items-center justify-between hover:bg-surface-2 transition-colors">
+                <div class="py-4.5 flex items-center justify-between hover:bg-surface-2 transition-colors rounded-xl px-3">
                     <div>
-                        <a href="{% url 'accounting:journal_detail' pk=j.pk %}" class="font-mono font-bold text-sm text-ink hover:text-indigo-600 hover:underline transition-colors">
+                        <a href="{% url 'accounting:journal_detail' pk=j.pk %}" class="font-mono font-bold text-base text-ink hover:text-indigo-600 hover:underline transition-colors">
                             {{ j.entry_number }}
                         </a>
-                        <div class="text-xs text-muted mt-0.5 truncate max-w-xs">
-                            {{ j.date }} &bull; {{ j.memo|default:"Journal entry" }}
+                        <div class="text-sm text-slate-500 font-medium mt-1 truncate max-w-sm">
+                            {{ j.date }} &bull; {{ j.memo|default:"General ledger entry" }}
                         </div>
                     </div>
                     <div class="text-right">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if j.status == 'posted' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400{% elif j.status == 'reversed' %}bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400{% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400{% endif %}">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {% if j.status == 'posted' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400{% elif j.status == 'reversed' %}bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400{% else %}bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400{% endif %}">
                             {{ j.get_status_display }}
                         </span>
                     </div>
                 </div>
                 {% empty %}
-                <div class="p-6 text-center text-slate-400 text-sm">
+                <div class="p-8 text-center text-slate-500 text-sm">
                     {% trans "No journal entries found." %}
                 </div>
                 {% endfor %}
@@ -321,63 +329,63 @@ document.addEventListener('alpine:init', () => {
 
             const isDark = document.documentElement.classList.contains('dark');
             const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
-            const textColor = isDark ? '#94A3B8' : '#64748B';
+            const textColor = isDark ? '#94A3B8' : '#475569';
 
             const datasets = this.chartType === 'bar' ? [
                 {
-                    label: 'Revenue',
+                    label: 'Income (Revenue)',
                     data: this.trendsData.revenue,
-                    backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.88)',
                     borderColor: '#10B981',
-                    borderWidth: 1.5,
-                    borderRadius: 6,
-                    maxBarThickness: 36,
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    maxBarThickness: 42,
                 },
                 {
                     label: 'Expenses',
                     data: this.trendsData.expenses,
-                    backgroundColor: 'rgba(244, 63, 94, 0.75)',
+                    backgroundColor: 'rgba(244, 63, 94, 0.82)',
                     borderColor: '#F43F5E',
-                    borderWidth: 1.5,
-                    borderRadius: 6,
-                    maxBarThickness: 36,
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    maxBarThickness: 42,
                 }
             ] : [
                 {
                     type: 'line',
-                    label: 'Revenue',
+                    label: 'Income (Revenue)',
                     data: this.trendsData.revenue,
                     borderColor: '#10B981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.15)',
                     fill: true,
                     tension: 0.35,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    borderWidth: 2.5,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 3,
                 },
                 {
                     type: 'line',
                     label: 'Expenses',
                     data: this.trendsData.expenses,
                     borderColor: '#F43F5E',
-                    backgroundColor: 'rgba(244, 63, 94, 0.08)',
+                    backgroundColor: 'rgba(244, 63, 94, 0.10)',
                     fill: true,
                     tension: 0.35,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    borderWidth: 2.5,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 3,
                 },
                 {
                     type: 'line',
-                    label: 'Net Margin',
+                    label: 'Net Difference',
                     data: this.trendsData.net,
                     borderColor: '#4F46E5',
                     backgroundColor: 'transparent',
-                    borderDash: [5, 5],
+                    borderDash: [6, 6],
                     tension: 0.35,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    borderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 2.5,
                 }
             ];
 
@@ -401,18 +409,21 @@ document.addEventListener('alpine:init', () => {
                             align: 'end',
                             labels: {
                                 color: textColor,
-                                font: { size: 12, weight: 600 },
-                                boxWidth: 12,
-                                boxHeight: 12,
+                                font: { size: 13, weight: 600, family: 'system-ui, -apple-system, sans-serif' },
+                                boxWidth: 14,
+                                boxHeight: 14,
                                 usePointStyle: true,
+                                padding: 16,
                             }
                         },
                         tooltip: {
                             backgroundColor: isDark ? '#1E293B' : '#0F172A',
                             titleColor: '#F8FAFC',
                             bodyColor: '#F8FAFC',
-                            padding: 12,
-                            cornerRadius: 8,
+                            titleFont: { size: 14, weight: 700 },
+                            bodyFont: { size: 13, weight: 500 },
+                            padding: 14,
+                            cornerRadius: 10,
                             callbacks: {
                                 label: function(context) {
                                     return ' ' + context.dataset.label + ': $' + Number(context.parsed.y).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -425,14 +436,16 @@ document.addEventListener('alpine:init', () => {
                             grid: { display: false },
                             ticks: {
                                 color: textColor,
-                                font: { size: 11, weight: 500 },
+                                font: { size: 13, weight: 600 },
+                                padding: 8,
                             }
                         },
                         y: {
                             grid: { color: gridColor },
                             ticks: {
                                 color: textColor,
-                                font: { size: 11, weight: 500 },
+                                font: { size: 13, weight: 600 },
+                                padding: 8,
                                 callback: function(value) {
                                     if (Math.abs(value) >= 1000) {
                                         return '$' + (value / 1000).toFixed(0) + 'k';
@@ -465,23 +478,25 @@ document.addEventListener('alpine:init', () => {
                     datasets: [{
                         data: dataValues,
                         backgroundColor: bgColors,
-                        borderWidth: 2,
+                        borderWidth: 3,
                         borderColor: isDark ? '#1E293B' : '#FFFFFF',
-                        hoverOffset: 4,
+                        hoverOffset: 6,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '72%',
+                    cutout: '70%',
                     plugins: {
                         legend: { display: false },
                         tooltip: {
                             backgroundColor: isDark ? '#1E293B' : '#0F172A',
                             titleColor: '#F8FAFC',
                             bodyColor: '#F8FAFC',
-                            padding: 10,
-                            cornerRadius: 8,
+                            titleFont: { size: 14, weight: 700 },
+                            bodyFont: { size: 13, weight: 500 },
+                            padding: 12,
+                            cornerRadius: 10,
                             callbacks: {
                                 label: function(context) {
                                     const val = Number(context.parsed).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
