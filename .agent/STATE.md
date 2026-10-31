@@ -4,6 +4,17 @@
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Symmetrical Bottom Action Footers Padding in Accounting:
+    - User Request: "also this" with screenshot of the Connected Bank Accounts and Recent Journal Entries bottom action footers showing text jammed right against the container rounded curve.
+    - Root Cause Analysis:
+      - The footer row had `mt-4 pt-3 border-t border-line` with zero horizontal padding (`px-0`) and zero bottom padding (`pb-0`). Under neumorphic CSS, `border-line` turned this row into an elevated container box, causing `+ Connect another bank account` and `View full journal history ->` to collide with the curved bottom-left corners, while status badges touched the right curves.
+    - Resolution Implemented:
+      - Upgraded both footer containers to `mt-4 p-4 sm:px-6 sm:py-3.5 rounded-xl border border-line flex items-center justify-between text-sm`.
+      - Provides 24px left/right horizontal padding (`sm:px-6`) and 14px vertical padding (`sm:py-3.5`), ensuring links and status badges are cleanly centered with generous breathing room.
+    - Empirical Verification:
+      - Live inspection on Chrome DevTools confirmed identical horizontal baseline alignment and 24px clearance.
+      - 35/35 pytest accounting tests passed in 35s.
+
   - Category Breakdown Legend Container Padding in Accounting:
     - User Request: Screenshot of the "Where Money Went" category breakdown list showing zero horizontal padding (dots/percentages touching rounded edges) and Utilities Expense pink bar clipped by the bottom rounded corner.
     - Root Cause Analysis:
