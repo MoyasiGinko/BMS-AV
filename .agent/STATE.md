@@ -4,6 +4,15 @@
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Clean Category Breakdown List (Removed Redundant Color Dots):
+    - User Request: "remove the dots" with screenshot of the category breakdown list items.
+    - Resolution Implemented:
+      - Removed the redundant color dot `<span class="w-3 h-3 rounded-full shrink-0"></span>` from each category row in `apps/accounting/templates/accounting/dashboard.html`.
+      - Text now aligns flush with the start of each category's progress bar track, creating a clean typographic hierarchy and eliminating visual clutter.
+    - Empirical Verification:
+      - Live inspection on Chrome DevTools confirmed clean flush alignment.
+      - 35/35 pytest accounting tests passed in 44s.
+
   - Symmetrical Bottom Action Footers Padding in Accounting:
     - User Request: "also this" with screenshot of the Connected Bank Accounts and Recent Journal Entries bottom action footers showing text jammed right against the container rounded curve.
     - Root Cause Analysis:
