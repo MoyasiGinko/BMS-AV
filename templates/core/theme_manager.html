@@ -13,7 +13,7 @@
       <svg class="w-3.5 h-3.5 text-[var(--text-subtle)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
       <span class="font-medium text-[var(--text)]">Theme Manager</span>
     </nav>
-    <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Theme Manager</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{% if active_tab == 'styleguide' or from_styleguide %}Calm Ledger Styleguide & Component Library{% else %}Theme Manager{% endif %}</h1>
   </div>
 
   <div class="flex items-center gap-2.5 shrink-0">
@@ -450,7 +450,7 @@
               @click="selectSidebarPreset('dark_contrast')"
               :style="currentTheme === 'neumorphic' ? 'order: 2 !important;' : 'order: 1 !important;'"
               :data-active="getActiveMode() === 'dark_contrast' ? 'true' : 'false'"
-              class="sidebar-preset-card relative flex flex-col p-3 rounded-xl border cursor-pointer transition-all hover:shadow-2xs"
+              class="sidebar-preset-card relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all hover:shadow-2xs"
               :class="getActiveMode() === 'dark_contrast' ? 'is-active border-[var(--brand-600)] bg-[var(--brand-50)]/30 ring-2 ring-[var(--brand-600)] shadow-2xs' : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--surface)]'"
             >
               <div class="w-full h-10 rounded-lg px-2.5 mb-2 flex items-center justify-between border border-black/15" :style="`background-color: ${themePresets[currentTheme]?.dark_contrast.bg || '#0f172a'}`">
@@ -521,7 +521,7 @@
           <div class="pt-2">
             <div
               x-show="getActiveMode() !== 'custom'"
-              class="px-3.5 py-2.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-between text-xs"
+              class="px-4.5 py-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-between text-xs"
             >
               <span class="text-[var(--text-muted)]">Preset Colors are Locked (Read-Only)</span>
               <button
@@ -807,7 +807,7 @@
       <div class="lg:col-span-5 sticky top-20 space-y-4">
         <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xs">
           <div class="flex items-center justify-between mb-3 pb-2 border-b border-[var(--border)]">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">{% trans "Sidebar Preview" %}</h3>            
+            <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text)]">{% trans "Live Sidebar Preview" %}</h3>            
           </div>
           
           <!-- Mock Navigation Container -->

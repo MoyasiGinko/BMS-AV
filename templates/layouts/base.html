@@ -145,21 +145,6 @@
 
     window.resolveSidebarForTheme = function(themeName) {
       themeName = themeName || document.documentElement.getAttribute('data-theme') || 'fast';
-      if (themeName === 'neumorphic') {
-        var neuPresets = (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS.neumorphic) || {};
-        return {
-          mode: 'light',
-          colors: neuPresets.light || {
-            bg: '#E6E9F2',
-            text: '#5A607C',
-            hover_bg: '#E6E9F2',
-            hover_text: '#262B45',
-            active_bg: '#E6E9F2',
-            active_text: '#4338CA',
-            active_border: '#4F46E5'
-          }
-        };
-      }
       var presets = (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS[themeName]) || (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS.fast) || {};
       var defaultMode = themeName === 'neumorphic' ? 'light' : 'dark_contrast';
       var modes = Object.assign({

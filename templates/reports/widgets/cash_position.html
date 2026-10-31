@@ -74,7 +74,7 @@
     </div>
 
     <!-- Dual Liquidity Flow Gauge -->
-    <div class="mb-5 p-3 rounded-xl bg-[var(--surface-2)]/40 border border-[var(--border)]/50">
+    <div class="mb-5 p-4 sm:px-5 sm:py-4 rounded-2xl bg-[var(--surface-2)]/40 border border-[var(--border)]/50">
       <div class="text-2xs uppercase font-bold text-[var(--text-muted)] tracking-wider mb-2 flex items-center justify-between">
         <span>{% trans "30-Day Liquidity Ratio" %}</span>
         <span class="font-mono text-2xs">
@@ -91,7 +91,7 @@
     {% if cash_position_kpi.bank_accounts %}
     <div class="space-y-2">
       {% for acc in cash_position_kpi.bank_accounts|slice:":2" %}
-      <div class="p-2.5 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50 flex items-center justify-between hover:bg-[var(--surface-2)]/50 transition-colors">
+      <div class="p-3.5 sm:px-4.5 sm:py-3.5 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50 flex items-center justify-between hover:bg-[var(--surface-2)]/50 transition-colors">
         <div class="min-w-0">
           <div class="text-xs font-bold text-[var(--text)] truncate">{{ acc.name }}</div>
           <div class="text-2xs text-[var(--text-muted)] truncate">{{ acc.bank_name }} {% if acc.account_number %}&bull; *{{ acc.account_number|slice:"-4:" }}{% endif %}</div>

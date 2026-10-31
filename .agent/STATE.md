@@ -1,9 +1,27 @@
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Remove Redundant Top Action Buttons from Product Form
+- Last completed task: Fix Container Text Padding & Neumorphic Box Shadow Isolation
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Fix Container Text Padding & Neumorphic Box Shadow Isolation:
+    - User Request: "i dont know why but you miss proper padding of texts with containers, please review and fix"
+    - Root Causes Identified:
+      1. Widget items across Dashboard, Reports, and AI Copilot widgets had tight `p-2` (8px), `p-2.5` (10px), or `px-2` (-mx-2) padding, causing text to hug container boundaries.
+      2. In `static/css/neumorphic.css`, broad selectors `div[class*="border-line"]` and `div[class*="border-[var(--border)]"]` inadvertently matched border dividers (`border-t`, `border-b`), turning flat separator lines into extruded 20px-radius card containers without internal padding.
+      3. Attention items list (`attention_items_list.html`) had `px-2 -mx-2` which cramped avatars and action buttons against the card perimeter.
+      4. Theme Manager sidebar preset cards and custom notices had tight `p-3` and `px-3.5 py-2.5` padding.
+    - Systematic Fixes Implemented:
+      - AI Assistant: Upgraded `.attention-card` to `p-4 sm:px-5 sm:py-3.5 rounded-xl border border-[var(--border)]/50 bg-[var(--surface-1)]/60 shadow-2xs` with `space-y-2.5 pt-3` container spacing. Upgraded briefing banner container to `p-6 sm:p-7` and item bullets to `p-3.5 sm:px-4 sm:py-3 rounded-xl`.
+      - Dashboard & Reports Widgets: Upgraded item rows across `cash_position`, `branch_performance`, `top_products`, `recent_activity`, `attendance`, `employee_performance`, `quick_actions`, and `expense_trend` to comfortable `p-3.5 sm:px-4.5 sm:py-3.5 rounded-xl`. Standardized stat card outer container padding to `p-6` (24px per design guide).
+      - Neumorphic CSS: Constrained container card matching to exclude simple dividers (`:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"])`) and explicitly reset border dividers to flat non-shadowed separator lines. Added explicit padding guarantees for cards (`24px`), attention cards (`16px 20px`), and select wells (`12px 18px`).
+      - Theme Manager & Layouts: Removed hardcoded neumorphic light overrides in `apps/core/context_processors.py` and `templates/layouts/base.html`, restored `Live Sidebar Preview` title, and ensured `--sidebar-bg` is respected.
+    - Empirical Verification:
+      - Verified in Chrome DevTools on `/`, `/accounting/`, `/catalog/products/new/`, and `/settings/theme/#sidebar`.
+      - All 4 Playwright UI Theme Manager tests passed (`tests/test_ui_theme_manager.py`).
+      - Styleguide smoke test passed (`tests/test_ui_smoke_styleguide.py`).
+      - 35/35 accounting tests and 16/16 core tests passed.
+
   - Remove Redundant Top Action Buttons from Product Form:
     - User Request: "remove it from the top" with screenshot of top action buttons ([Cancel] and [✓ Create Product]).
     - Resolution:

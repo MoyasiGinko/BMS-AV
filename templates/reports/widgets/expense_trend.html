@@ -147,7 +147,7 @@
         <!-- Category Legend List -->
         <div class="sm:col-span-7 space-y-1.5">
           {% for cat in expense_trend_kpi.categories|slice:":3" %}
-          <div class="p-1.5 rounded-lg border border-transparent hover:bg-[var(--surface-2)]/40 transition-colors flex items-center justify-between text-xs">
+          <div class="p-2.5 sm:px-3.5 sm:py-2.5 rounded-xl border border-transparent hover:bg-[var(--surface-2)]/40 transition-colors flex items-center justify-between text-xs">
             <div class="flex items-center gap-2 min-w-0">
               <span class="w-2 h-2 rounded-full shrink-0 bg-fuchsia-500"></span>
               <span class="truncate font-medium text-[var(--text)] text-xs">{{ cat.name }}</span>

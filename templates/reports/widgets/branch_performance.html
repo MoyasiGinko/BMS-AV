@@ -57,7 +57,7 @@
     <div class="pt-3 border-t border-[var(--border)]/60">
       <div class="space-y-2.5">
         {% for br in branch_performance_kpi.branches|slice:":3" %}
-        <div class="p-2.5 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50 hover:bg-[var(--surface-2)]/60 transition-colors">
+        <div class="p-3.5 sm:px-4.5 sm:py-3.5 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50 hover:bg-[var(--surface-2)]/60 transition-colors">
           <div class="flex items-center justify-between text-xs mb-1.5">
             <div class="flex items-center gap-2 min-w-0">
               <span class="font-bold text-[var(--text)] truncate">{{ br.name }}</span>

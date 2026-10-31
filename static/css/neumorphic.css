@@ -80,7 +80,7 @@ html[data-theme="neumorphic"],
    Single continuous surface (#E6E9F2), extruded raised container, sunken active wells
    ========================================================================== */
 [data-theme="neumorphic"] aside.bos-sidebar {
-  background-color: var(--neu-surface) !important;
+  background-color: var(--sidebar-bg, var(--neu-surface)) !important;
   color: var(--neu-text-muted) !important;
   border: none !important;
   border-right: none !important;
@@ -374,12 +374,12 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] .card,
 [data-theme="neumorphic"] .bos-card,
 [data-theme="neumorphic"] article.bos-card,
-[data-theme="neumorphic"] main .bg-surface,
+[data-theme="neumorphic"] main .bg-surface:not(button):not(a):not(input):not(select):not(span):not(td):not(th),
 [data-theme="neumorphic"] main [class*="bg-surface"]:not(button):not(a):not(input):not(select):not(span):not(td):not(th),
 [data-theme="neumorphic"] main div[class*="border border-line"],
-[data-theme="neumorphic"] main div[class*="border-line"],
-[data-theme="neumorphic"] main div[class*="border-[var(--border)]"],
-[data-theme="neumorphic"] main div[class*="border-slate-200"],
+[data-theme="neumorphic"] main div[class*="border-line"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]),
+[data-theme="neumorphic"] main div[class*="border-[var(--border)]"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]),
+[data-theme="neumorphic"] main div[class*="border-slate-200"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]),
 [data-theme="neumorphic"] main div[class*="shadow-xs"]:not(button):not(a):not(input):not(select),
 [data-theme="neumorphic"] main div[class*="shadow-sm"]:not(button):not(a):not(input):not(select),
 [data-theme="neumorphic"] main div[class*="shadow-md"]:not(button):not(a):not(input):not(select),
@@ -391,6 +391,25 @@ html[data-theme="neumorphic"],
   box-shadow: 6px 6px 16px var(--neu-shadow-dark), -5px -5px 12px var(--neu-shadow-light) !important;
   border: none !important;
   color: var(--neu-text) !important;
+}
+
+/* Ensure container cards have generous internal padding (min 24px per design guide) */
+[data-theme="neumorphic"] .card,
+[data-theme="neumorphic"] .bos-card,
+[data-theme="neumorphic"] article.bos-card,
+[data-theme="neumorphic"] #dashboard-widgets-container > div > div {
+  padding: 24px !important;
+}
+
+/* Dividers must remain flat divider lines with no card shadow */
+[data-theme="neumorphic"] div[class*="border-t"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]),
+[data-theme="neumorphic"] div[class*="border-b"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]),
+[data-theme="neumorphic"] div[class*="border-l"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]),
+[data-theme="neumorphic"] div[class*="border-r"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]) {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  border-color: var(--neu-line) !important;
+  background-color: transparent !important;
 }
 
 /* Universal Sunken Filter Bars & Toolbars */
@@ -715,9 +734,11 @@ html[data-theme="neumorphic"],
 /* Attention Today Bento Cards */
 [data-theme="neumorphic"] .attention-card {
   background-color: var(--neu-surface) !important;
-  box-shadow: 5px 5px 14px var(--neu-shadow-dark), -4px -4px 10px var(--neu-shadow-light) !important;
+  box-shadow: 4px 4px 10px var(--neu-shadow-dark), -3px -3px 8px var(--neu-shadow-light) !important;
   border: none !important;
-  border-radius: 18px !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  margin-bottom: 10px !important;
 }
 
 [data-theme="neumorphic"] .attention-card.attention-danger {

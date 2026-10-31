@@ -55,7 +55,7 @@
     <div class="space-y-2 pt-3 border-t border-[var(--border)]/60">
       <div class="space-y-1.5">
         {% for emp in performance_kpi.top_punctual_employees|slice:":3" %}
-        <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/40">
+        <div class="flex items-center justify-between text-xs p-3 sm:px-4.5 sm:py-3 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/40">
           <div class="flex items-center gap-2 truncate">
             <span class="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-3xs border border-indigo-500/20">
               {{ emp.name|slice:":1" }}

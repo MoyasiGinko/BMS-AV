@@ -22,7 +22,7 @@
 
     <div class="space-y-2.5">
       {% for log in audit_logs|slice:":4" %}
-      <div class="flex items-start gap-3 p-2.5 rounded-xl border border-[var(--border)]/50 bg-[var(--surface-2)]/30 hover:bg-[var(--surface-2)]/60 transition-colors">
+      <div class="flex items-start gap-3.5 p-3.5 sm:px-4.5 sm:py-3.5 rounded-xl border border-[var(--border)]/50 bg-[var(--surface-2)]/30 hover:bg-[var(--surface-2)]/60 transition-colors">
         <div class="w-7 h-7 rounded-lg bg-[var(--brand-50)] text-[var(--brand-700)] dark:bg-[var(--brand-950)] dark:text-[var(--brand-300)] flex items-center justify-center shrink-0 font-bold text-xs uppercase border border-[var(--brand-200)]/40">
           {% if log.actor and log.actor.email %}
             {{ log.actor.email|slice:":1" }}

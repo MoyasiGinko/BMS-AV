@@ -37,7 +37,7 @@
     {% if top_products_kpi.has_sales %}
       <div class="space-y-2.5">
         {% for prod in top_products_kpi.products|slice:":4" %}
-        <div class="p-2.5 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50 hover:bg-[var(--surface-2)]/60 transition-colors">
+        <div class="p-3.5 sm:px-4.5 sm:py-3.5 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50 hover:bg-[var(--surface-2)]/60 transition-colors">
           <div class="flex items-center justify-between text-xs mb-1.5">
             <div class="flex items-center gap-2 min-w-0">
               <span class="w-5 h-5 rounded-md flex items-center justify-center font-bold text-3xs shrink-0

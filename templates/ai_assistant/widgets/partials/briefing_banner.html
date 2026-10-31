@@ -1,6 +1,6 @@
 {% load i18n %}
 <div id="attention-briefing-banner"
-     class="h-full flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface-1)] to-[var(--surface-2)]/40 p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+     class="h-full flex flex-col justify-between rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface-1)] to-[var(--surface-2)]/40 p-6 sm:p-7 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
   
   <div>
     <!-- Bento Card Header (No Icon, Clear Title & Actions) -->
@@ -46,7 +46,7 @@
     <div class="mt-4 flex flex-col gap-3">
       {% for line in briefing_lines %}
         {% if line.strip %}
-          <div class="flex items-start gap-2.5">
+          <div class="flex items-start gap-3 p-3.5 sm:px-4 sm:py-3 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/40">
             <span class="w-2 h-2 rounded-full bg-[var(--brand-600)] mt-2 shrink-0"></span>
             <p class="text-base text-[var(--text)] leading-relaxed font-normal">
               {{ line|cut:"• "|cut:"* "|cut:"- " }}
@@ -54,7 +54,7 @@
           </div>
         {% endif %}
       {% empty %}
-        <div class="text-base text-[var(--text-muted)] p-2">
+        <div class="text-base text-[var(--text-muted)] p-4 sm:p-5 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/40">
           {{ briefing }}
         </div>
       {% endfor %}

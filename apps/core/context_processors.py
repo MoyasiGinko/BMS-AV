@@ -76,23 +76,23 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
     "neumorphic": {
         "light": {
             "name": "Soft Clay Light (Default)",
-            "bg": "#E6E9F2",
-            "text": "#5A607C",
-            "hover_bg": "#E6E9F2",
-            "hover_text": "#262B45",
-            "active_bg": "#E6E9F2",
-            "active_text": "#4338CA",
-            "active_border": "#4F46E5",
+            "bg": "#e2e8f0",
+            "text": "#334155",
+            "hover_bg": "#cbd5e1",
+            "hover_text": "#0f172a",
+            "active_bg": "#dbeafe",
+            "active_text": "#1d4ed8",
+            "active_border": "#2563eb",
         },
         "dark_contrast": {
-            "name": "Soft Clay Light (Default)",
-            "bg": "#E6E9F2",
-            "text": "#5A607C",
-            "hover_bg": "#E6E9F2",
-            "hover_text": "#262B45",
-            "active_bg": "#E6E9F2",
-            "active_text": "#4338CA",
-            "active_border": "#4F46E5",
+            "name": "Tactile Slate Dark",
+            "bg": "#1e293b",
+            "text": "#94a3b8",
+            "hover_bg": "#334155",
+            "hover_text": "#ffffff",
+            "active_bg": "#0f172a",
+            "active_text": "#60a5fa",
+            "active_border": "#3b82f6",
         },
     },
 }
@@ -192,8 +192,7 @@ def _resolve_sidebar_for_theme(
     custom_single: dict[str, str],
 ) -> tuple[str, dict[str, str]]:
     """Determine final mode and color map for the given theme."""
-    if theme == "neumorphic":
-        return "light", dict(THEME_SIDEBAR_PRESETS["neumorphic"]["light"])
+
     presets = THEME_SIDEBAR_PRESETS.get(theme, THEME_SIDEBAR_PRESETS["fast"])
 
     default_mode = DEFAULT_SIDEBAR_MODES.get(theme, "dark_contrast")
