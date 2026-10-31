@@ -4,6 +4,19 @@
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - High-Contrast Journal Entry Status Badges:
+    - User Request: "this isnt higlighted properly" with screenshot of the muddy grey-green "Posted" badge.
+    - Root Cause Analysis:
+      - The badge used `bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400`. Because Tailwind 4 media query matched OS dark preference, `dark:bg-emerald-900/30` applied a translucent 30% dark green over the light grey neumorphic surface, resulting in a muddy grey sludge background with pale neon green text that lacked contrast.
+    - Resolution Implemented:
+      - Upgraded the status badges in `apps/accounting/templates/accounting/dashboard.html` to crisp, solid, high-contrast pills:
+        * Posted: `bg-emerald-600 text-white font-bold px-3 py-1 rounded-full text-xs shadow-xs` (vibrant emerald with crisp white text, WCAG AAA compliant).
+        * Reversed: `bg-rose-600 text-white font-bold px-3 py-1 rounded-full text-xs shadow-xs`.
+        * Other: `bg-slate-600 text-white font-bold px-3 py-1 rounded-full text-xs shadow-xs`.
+    - Empirical Verification:
+      - Live preview in Chrome DevTools confirmed the badge is vividly highlighted with pristine readability.
+      - 35/35 pytest accounting tests passed in 60s.
+
   - Clean Category Breakdown List (Removed Redundant Color Dots):
     - User Request: "remove the dots" with screenshot of the category breakdown list items.
     - Resolution Implemented:
