@@ -282,12 +282,12 @@
                 </div>
             </div>
 
-            <!-- Bottom Action Footer -->
-            <div class="mt-4 pt-3 border-t border-line flex items-center justify-between text-sm">
+            <!-- Bottom Action Footer with Symmetrical Padding -->
+            <div class="mt-4 p-4 sm:px-6 sm:py-3.5 rounded-xl border border-line flex items-center justify-between text-sm">
                 <a href="{% url 'accounting:bank_account_create' %}" class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
                     {% trans "+ Connect another bank account" %}
                 </a>
-                <span class="text-xs text-slate-500 font-medium">{% trans "Updated in real-time" %}</span>
+                <span class="text-xs text-slate-500 font-semibold">{% trans "Updated in real-time" %}</span>
             </div>
         </div>
 
@@ -330,12 +330,12 @@
                 </div>
             </div>
 
-            <!-- Bottom Action Footer -->
-            <div class="mt-4 pt-3 border-t border-line flex items-center justify-between text-sm">
+            <!-- Bottom Action Footer with Symmetrical Padding -->
+            <div class="mt-4 p-4 sm:px-6 sm:py-3.5 rounded-xl border border-line flex items-center justify-between text-sm">
                 <a href="{% url 'accounting:journal_list' %}" class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
                     {% trans "View full journal history" %} &rarr;
                 </a>
-                <span class="text-xs text-slate-500 font-medium">{% trans "Double-entry verified" %}</span>
+                <span class="text-xs text-slate-500 font-semibold">{% trans "Double-entry verified" %}</span>
             </div>
         </div>
     </div>
