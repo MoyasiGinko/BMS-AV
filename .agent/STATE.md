@@ -1,9 +1,18 @@
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Redesign Product Add & Edit Form (Full-width, Roomy Inputs, Clean Bento Layout)
+- Last completed task: Remove Redundant Top Action Buttons from Product Form
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Remove Redundant Top Action Buttons from Product Form:
+    - User Request: "remove it from the top" with screenshot of top action buttons ([Cancel] and [✓ Create Product]).
+    - Resolution:
+      - Removed duplicate action button group from top header in `apps/catalog/templates/catalog/product_form.html`.
+      - Actions are now cleanly consolidated in the grounded bottom footer card.
+    - Empirical Verification:
+      - Verified in Chrome DevTools on `/catalog/products/new/` and `/catalog/products/35/edit/`.
+      - 20/20 pytest catalog tests passed.
+
   - Redesign Product Add & Edit Form (Full-Width, Roomy Inputs, Proper Padding & Alignments):
     - User Request: "product add,edit pages need to redesigned, bigger input fields,texts and also fullwidth not centered. and also much more cleaner, proper padding and alignments"
     - Root Cause & Deficiencies Addressed:
