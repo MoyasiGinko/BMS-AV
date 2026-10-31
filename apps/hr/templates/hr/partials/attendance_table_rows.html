@@ -21,7 +21,7 @@
         {% if record.check_out %}
             {{ record.check_out|time:"H:i:s" }}
         {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 animate-pulse">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500 text-white font-bold shadow-2xs animate-pulse">
                 {% trans "Active Clock-in" %}
             </span>
         {% endif %}
@@ -31,23 +31,23 @@
     </td>
     <td class="px-6 py-4">
         {% if record.status == "present" %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">
                 {% trans "Present" %}
             </span>
         {% elif record.status == "late" %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500 text-white font-bold shadow-2xs">
                 {% trans "Late Arrival" %}
             </span>
         {% elif record.status == "half_day" %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500 text-white font-bold shadow-2xs">
                 {% trans "Half Day" %}
             </span>
         {% elif record.status == "on_leave" %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-indigo-600 text-white font-bold shadow-2xs">
                 {% trans "On Leave" %}
             </span>
         {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-rose-600 text-white font-bold shadow-2xs">
                 {{ record.get_status_display }}
             </span>
         {% endif %}

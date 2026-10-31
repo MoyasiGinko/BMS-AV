@@ -7,9 +7,9 @@
 <div class="space-y-6 accounting-page">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Fiscal Periods & Period Closing" %}</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Fiscal Periods & Period Closing" %}</h1>
         </div>
-        <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
+        <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
             &larr; {% trans "Dashboard" %}
         </a>
     </div>
@@ -18,7 +18,7 @@
     {% include "accounting/partials/_navigation_tabs.html" with active_tab="periods" %}
 
 
-    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
         <div class="p-4 border-b border-line font-semibold text-ink text-sm">
             {% trans "Fiscal Periods" %}
         </div>
@@ -47,11 +47,11 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             {% if p.is_closed %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-rose-600 text-white font-bold shadow-2xs">
                                 {% trans "Closed / Locked" %}
                             </span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">
                                 {% trans "Open" %}
                             </span>
                             {% endif %}

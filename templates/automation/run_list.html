@@ -14,7 +14,7 @@
         <span>/</span>
         <span class="text-ink">{% trans "Run History" %}</span>
       </div>
-      <h1 class="text-2xl font-bold tracking-tight text-ink">
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
         {% trans "Automation Execution Logs" %}
       </h1>
       <p class="mt-1 text-sm text-muted">
@@ -84,19 +84,19 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 {% if run.status == 'success' %}
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">
                     Success
                   </span>
                 {% elif run.status == 'failed' %}
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-rose-600 text-white font-bold shadow-2xs">
                     Failed
                   </span>
                 {% elif run.status == 'partial' %}
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-amber-500 text-white font-bold shadow-2xs">
                     Partial
                   </span>
                 {% else %}
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs">
                     Skipped
                   </span>
                 {% endif %}

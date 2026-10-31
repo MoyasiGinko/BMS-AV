@@ -10,8 +10,8 @@
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[var(--border)]">
     <div>
       <div class="flex items-center gap-2">
-        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{% trans "Operations Control Plane" %}</h1>
-        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Operations Control Plane" %}</h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500 text-white font-bold shadow-2xs">
           {% trans "Internal Staff Only" %}
         </span>
       </div>
@@ -94,7 +94,7 @@
         <div class="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1.5">
           <span>{% trans "pending" %}</span>
           {% if metrics.failed_outbox > 0 %}
-            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-3xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-3xs bg-rose-600 text-white font-bold shadow-2xs">
               {{ metrics.failed_outbox }} {% trans "failed" %}
             </span>
           {% else %}

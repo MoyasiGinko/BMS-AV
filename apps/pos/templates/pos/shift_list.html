@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Cashier Shifts & Cash Reconciliations" %}</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Cashier Shifts & Cash Reconciliations" %}</h1>
             <p class="text-sm text-muted mt-1">
                 {% trans "Audit register cash drawers, shifts, and cash variance journal entries." %}
             </p>
@@ -81,12 +81,12 @@
                         </td>
                         <td class="px-6 py-4">
                             {% if shift.status == "OPEN" %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">
                                 <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 {% trans "Open" %}
                             </span>
                             {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs">
                                 {% trans "Closed" %}
                             </span>
                             {% endif %}

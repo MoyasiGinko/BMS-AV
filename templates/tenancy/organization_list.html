@@ -12,7 +12,7 @@
   </nav>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--border)]">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{% trans "Organizations & Workspaces" %}</h1>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Organizations & Workspaces" %}</h1>
     </div>
     <div class="flex items-center gap-3">
       <a
@@ -75,7 +75,7 @@
               </div>
 
               {% if card.is_current %}
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs border border-emerald-200 shrink-0">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   {% trans "Active" %}
                 </span>

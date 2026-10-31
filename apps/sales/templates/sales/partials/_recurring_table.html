@@ -30,7 +30,7 @@
                         <span class="block text-xs text-slate-400">{{ prof.customer.code }}</span>
                     </td>
                     <td class="py-3.5 px-4">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-600 text-white font-bold shadow-2xs">
                             {{ prof.get_frequency_display }}
                             {% if prof.interval > 1 %}(x{{ prof.interval }}){% endif %}
                         </span>
@@ -43,13 +43,13 @@
                     </td>
                     <td class="py-3.5 px-4">
                         {% if prof.status == 'active' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Active" %}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">{% trans "Active" %}</span>
                         {% elif prof.status == 'paused' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400">{% trans "Paused" %}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-500 text-white font-bold shadow-2xs">{% trans "Paused" %}</span>
                         {% elif prof.status == 'expired' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">{% trans "Expired" %}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs">{% trans "Expired" %}</span>
                         {% elif prof.status == 'cancelled' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Cancelled" %}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-rose-600 text-white font-bold shadow-2xs">{% trans "Cancelled" %}</span>
                         {% endif %}
                     </td>
                     <td class="py-3.5 px-4 text-center font-mono text-xs text-muted">

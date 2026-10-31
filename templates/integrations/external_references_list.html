@@ -13,7 +13,7 @@
                 <span>&rsaquo;</span>
                 <span class="text-muted font-medium">{% trans "External References" %}</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "External Entity Mappings" %}</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "External Entity Mappings" %}</h1>
             <p class="text-xs text-slate-500 mt-1">{% trans "Bidirectional mapping records linking internal ERP documents and master data to external remote systems." %}</p>
         </div>
 
@@ -25,7 +25,7 @@
     </div>
 
     <!-- References Table -->
-    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
         <div class="px-6 py-4 border-b border-line flex items-center justify-between">
             <h2 class="text-base font-bold text-ink">{% trans "All Mapped References" %}</h2>
             <span class="text-xs text-slate-500">{{ references|length }} {% trans "mappings listed" %}</span>
@@ -53,7 +53,7 @@
                             <div class="text-[11px] text-slate-400">{{ ref.connection.get_connector_type_display }}</div>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-600 text-white font-bold shadow-2xs dark:bg-slate-800 dark:text-slate-200">
                                 {{ ref.entity_type|upper }}
                             </span>
                         </td>

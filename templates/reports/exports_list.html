@@ -13,7 +13,7 @@
                 <span>&rsaquo;</span>
                 <span class="text-muted font-medium">{% trans "Export History" %}</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Export History" %}</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Export History" %}</h1>
         </div>
         <div>
             <a href="{% url 'reports:index' %}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-xs transition-colors">
@@ -23,7 +23,7 @@
     </div>
 
     <!-- Exports Table -->
-    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
@@ -51,15 +51,15 @@
                         </td>
                         <td class="py-3 px-4">
                             {% if job.status == 'completed' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-emerald-600 text-white font-bold shadow-2xs">
                                 {% trans "Completed" %}
                             </span>
                             {% elif job.status == 'failed' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400" title="{{ job.error_message }}">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-rose-600 text-white font-bold shadow-2xs" title="{{ job.error_message }}">
                                 {% trans "Failed" %}
                             </span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500 text-white font-bold shadow-2xs">
                                 {{ job.get_status_display }}
                             </span>
                             {% endif %}

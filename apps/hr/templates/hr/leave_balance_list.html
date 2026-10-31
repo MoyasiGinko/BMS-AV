@@ -8,13 +8,13 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Leave Balances & Quotas" %}</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Leave Balances & Quotas" %}</h1>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{% url 'hr:leave_request_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 transition-colors">
+            <a href="{% url 'hr:leave_request_list' %}" class="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
                 {% trans "Requests" %}
             </a>
-            <a href="{% url 'hr:leave_type_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 transition-colors">
+            <a href="{% url 'hr:leave_type_list' %}" class="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
                 {% trans "Policies" %}
             </a>
         </div>
@@ -27,7 +27,7 @@
     <!-- Allocation Form & Year Filter -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Quick Quota Allocation Form -->
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
+        <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all">
             <h2 class="text-base font-semibold text-ink mb-3">{% trans "Allocate Leave Quota" %}</h2>
             <form method="post" action="{% url 'hr:leave_balance_allocate' %}" class="space-y-4">
                 {% csrf_token %}
@@ -56,7 +56,7 @@
         </div>
 
         <!-- Balances Table -->
-        <div class="lg:col-span-2 bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+        <div class="lg:col-span-2 bg-surface border border-line rounded-2xl overflow-hidden shadow-xs">
             <div class="p-4 border-b border-line flex items-center justify-between">
                 <span class="font-semibold text-sm text-ink">{% trans "Ledger for Year" %} {{ year }}</span>
                 <form method="get" class="flex items-center gap-2">

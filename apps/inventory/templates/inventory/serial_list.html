@@ -91,7 +91,7 @@
                     </td>
                     <td class="py-3.5 px-4">
                         {% if s.status == 'in_stock' %}
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             {{ s.get_status_display }}
                         </span>
@@ -106,7 +106,7 @@
                             {{ s.get_status_display }}
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs border border-slate-200/60">
                             {{ s.get_status_display }}
                         </span>
                         {% endif %}
