@@ -1,9 +1,28 @@
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Modernize All List Pages with Standard Neumorphic Design System & Solid Badges
+- Last completed task: Redesign Product Add & Edit Form (Full-width, Roomy Inputs, Clean Bento Layout)
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Redesign Product Add & Edit Form (Full-Width, Roomy Inputs, Proper Padding & Alignments):
+    - User Request: "product add,edit pages need to redesigned, bigger input fields,texts and also fullwidth not centered. and also much more cleaner, proper padding and alignments"
+    - Root Cause & Deficiencies Addressed:
+      - Previously, `product_form.html` was constrained inside a narrow centered container (`max-w-4xl mx-auto`), wasting wide screen space.
+      - Input widgets had default small styling (`form-input`), small typography (`text-xs` labels, `text-sm` inputs), and tight `py-2` padding.
+      - Checkboxes were displayed as plain unstyled inputs stuck under form sections with minimal spacing.
+    - Systematic Redesign:
+      - Made the layout full-width (`w-full space-y-8 pb-16`) removing `max-w-4xl mx-auto`.
+      - Built a clean 12-column responsive Bento architecture:
+        * Left (8 cols): General Information (Name, SKU, Barcode, Category, Type), Pricing & Financials (Cost Price, Selling Price, Discount, Unit of Measure, Tax Code), Description & Operational Notes (4-row textarea).
+        * Right (4 cols): Catalog Visibility (interactive setting card for `is_active`), Inventory Management (Reorder level, Target quantity, Batch/Lot tracking, Serial number tracking option cards).
+      - Significantly enlarged inputs and text: `py-3.5 px-4 text-base font-medium rounded-xl` with clear focus ring, `text-sm font-bold text-ink uppercase tracking-wider` labels, and `text-3xl sm:text-4xl font-extrabold tracking-tight` header.
+      - Elevated checkboxes into interactive option cards with bold titles, icons, and explanatory subtitles.
+      - Dual action controls: added quick-action Save and Cancel buttons in the top header, plus a symmetrical full-width footer action card.
+    - Empirical Verification:
+      - Filled out and submitted the redesigned creation form in Chrome DevTools to create product "Heavy Duty Hydraulic Lift 5000" (PK=35).
+      - Verified successful redirection and subsequent editing on `/catalog/products/35/edit/`.
+      - 20/20 pytest catalog tests passed in 11.87s.
+
   - Modernize All 72 List & Dashboard Pages (Design System Uniformity):
     - User Request: "list all the html template pages, edit, create, modals, etc... so fro m the list pages thosebstill havent been modified, please fix them"
     - Catalog & Audit:
