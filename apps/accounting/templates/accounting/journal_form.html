@@ -4,7 +4,7 @@
 {% block title %}{% trans "New Journal Entry" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6" x-data="{
+<div class="w-full space-y-8 pb-16" x-data="{
     lines: [
         { account_id: '', debit: '0.00', credit: '0.00', memo: '' },
         { account_id: '', debit: '0.00', credit: '0.00', memo: '' }
@@ -27,111 +27,176 @@
         return Math.abs(parseFloat(this.totalDebits) - parseFloat(this.totalCredits)) < 0.001 && parseFloat(this.totalDebits) > 0;
     }
 }">
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "New Journal Entry" %}</h1>
-        </div>
-        <a href="{% url 'accounting:journal_list' %}" class="text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
-            &larr; {% trans "Back to Journals" %}
-        </a>
+    <!-- Breadcrumb & Header -->
+    <div class="space-y-2">
+        <nav class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <a href="{% url 'accounting:journal_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Manual Journals" %}</a>
+            <span>/</span>
+            <span class="text-ink font-semibold">{% trans "New Journal Entry" %}</span>
+        </nav>
+        <h1 class="text-3xl font-extrabold tracking-tight text-ink">{% trans "New Journal Voucher" %}</h1>
+        <p class="text-sm text-slate-500 font-medium max-w-3xl">
+            {% trans "Post a verified double-entry manual journal with balanced debit and credit allocations across general ledger accounts." %}
+        </p>
     </div>
 
-    <form method="post" class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-6">
+    <!-- Main Fullwidth Form -->
+    <form id="journal-form" method="post" class="space-y-8 w-full">
         {% csrf_token %}
+
         {% if form.non_field_errors %}
-        <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-sm">
-            {{ form.non_field_errors }}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span>{{ form.non_field_errors }}</span>
+            </div>
         </div>
         {% endif %}
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-                <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
-                    {% trans "Posting Date" %} *
-                </label>
-                {{ form.date }}
-                {% if form.date.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.date.errors.0 }}</p>{% endif %}
+        <!-- Bento 12-Column Responsive Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+            <!-- Left Main Column (8 cols): Primary details & Table -->
+            <div class="lg:col-span-8 space-y-8">
+                <!-- Card 1: Header Parameters -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Journal Header" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Effective accounting date and primary business memo." %}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div>
+                            <label for="{{ form.date.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.date.label }} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label for="{{ form.memo.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.memo.label }} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.memo }}
+                            {% if form.memo.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.memo.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Interactive Debit / Credit Lines -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="flex items-center justify-between border-b border-line pb-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Journal Lines" %}</h2>
+                            <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Balanced multi-leg distribution across accounts." %}</p>
+                        </div>
+                        <button type="button" @click="addLine()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-line bg-surface hover:bg-surface-2 text-sm font-bold text-indigo-600 transition-colors shadow-2xs cursor-pointer">
+                            <span>+</span> {% trans "Add Line" %}
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-line">
+                        <table class="min-w-full divide-y divide-line text-sm">
+                            <thead class="bg-surface-2/60 text-muted text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th scope="col" class="text-left font-bold" style="padding: 14px 20px;">{% trans "Account" %}</th>
+                                    <th scope="col" class="text-left font-bold" style="padding: 14px 20px;">{% trans "Line Memo" %}</th>
+                                    <th scope="col" class="text-right font-bold w-36" style="padding: 14px 20px;">{% trans "Debit" %}</th>
+                                    <th scope="col" class="text-right font-bold w-36" style="padding: 14px 20px;">{% trans "Credit" %}</th>
+                                    <th scope="col" class="text-center font-bold w-14" style="padding: 14px 20px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-line">
+                                <template x-for="(line, index) in lines" :key="index">
+                                    <tr>
+                                        <td class="p-3">
+                                            <select name="account_id[]" x-model="line.account_id" required class="w-full text-base font-medium border border-line rounded-xl px-3 py-2 bg-surface text-ink">
+                                                <option value="">{% trans "Select Account..." %}</option>
+                                                {% for acct in accounts %}
+                                                <option value="{{ acct.pk }}">{{ acct.code }} - {{ acct.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td class="p-3">
+                                            <input type="text" name="line_memo[]" x-model="line.memo" placeholder="{% trans 'Optional line memo' %}" class="w-full text-base font-medium border border-line rounded-xl px-3 py-2 bg-surface text-ink">
+                                        </td>
+                                        <td class="p-3">
+                                            <input type="number" step="0.01" min="0" name="debit[]" x-model="line.debit" class="w-full text-right font-mono text-base font-bold border border-line rounded-xl px-3 py-2 bg-surface text-ink">
+                                        </td>
+                                        <td class="p-3">
+                                            <input type="number" step="0.01" min="0" name="credit[]" x-model="line.credit" class="w-full text-right font-mono text-base font-bold border border-line rounded-xl px-3 py-2 bg-surface text-ink">
+                                        </td>
+                                        <td class="p-3 text-center">
+                                            <button type="button" @click="removeLine(index)" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer" title="{% trans 'Remove line' %}">
+                                                &times;
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                            <tfoot class="bg-surface-2/60 font-mono font-extrabold text-base border-t border-line">
+                                <tr>
+                                    <td colspan="2" class="p-4 text-right uppercase text-xs tracking-wider font-sans">
+                                        <span x-show="isBalanced" class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold mr-4">
+                                            &#10003; {% trans "Balanced" %}
+                                        </span>
+                                        <span x-show="!isBalanced" class="inline-flex items-center gap-1 text-rose-500 font-bold mr-4">
+                                            &#9888; {% trans "Out of Balance" %}
+                                        </span>
+                                        <span class="text-ink">{% trans "Totals:" %}</span>
+                                    </td>
+                                    <td class="p-4 text-right text-ink" x-text="'$' + totalDebits"></td>
+                                    <td class="p-4 text-right text-ink" x-text="'$' + totalCredits"></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold uppercase text-muted tracking-wider mb-1">
-                    {% trans "Description / Memo" %} *
-                </label>
-                {{ form.memo }}
-                {% if form.memo.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.memo.errors.0 }}</p>{% endif %}
+
+            <!-- Right Column (4 cols): Information & Governance -->
+            <div class="lg:col-span-4 space-y-8">
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Posting Invariants" %}</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Platform ledger integrity safeguards." %}</p>
+                    </div>
+
+                    <div class="space-y-4 text-xs text-slate-500 leading-relaxed font-medium">
+                        <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60">
+                            <span class="block font-bold text-ink mb-1">{% trans "Zero Imbalance Rule" %}</span>
+                            {% trans "Total debits must strictly equal total credits. The transaction will fail validation if unbalance exceeds $0.00." %}
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60">
+                            <span class="block font-bold text-ink mb-1">{% trans "Immutable Postings" %}</span>
+                            {% trans "Once posted to the General Ledger, journal records cannot be edited or deleted. Adjustments require an official reversal entry." %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Lines Entry Section -->
-        <div>
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-semibold uppercase tracking-wider text-muted">{% trans "Journal Lines" %}</h3>
-                <button type="button" @click="addLine()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
-                    + {% trans "Add Line" %}
+        <!-- Symmetrical Bottom Footer Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'accounting:journal_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" :disabled="!isBalanced" :class="{ 'opacity-50 cursor-not-allowed': !isBalanced }" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {% trans "Post Journal Entry" %}
                 </button>
             </div>
-
-            <div class="overflow-x-auto border border-line rounded-lg">
-                <table class="min-w-full divide-y divide-line text-sm">
-                    <thead class="bg-app text-muted text-xs">
-                        <tr>
-                            <th scope="col" class="px-4 py-3 text-left font-semibold">{% trans "Account" %}</th>
-                            <th scope="col" class="px-4 py-3 text-left font-semibold">{% trans "Line Memo" %}</th>
-                            <th scope="col" class="px-4 py-3 text-right font-semibold w-32">{% trans "Debit" %}</th>
-                            <th scope="col" class="px-4 py-3 text-right font-semibold w-32">{% trans "Credit" %}</th>
-                            <th scope="col" class="px-4 py-3 text-center w-12"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-line">
-                        <template x-for="(line, index) in lines" :key="index">
-                            <tr>
-                                <td class="px-4 py-2">
-                                    <select name="account_id[]" x-model="line.account_id" required class="w-full text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                        <option value="">{% trans "Select Account..." %}</option>
-                                        {% for acct in accounts %}
-                                        <option value="{{ acct.pk }}">{{ acct.code }} - {{ acct.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </td>
-                                <td class="px-4 py-2">
-                                    <input type="text" name="line_memo[]" x-model="line.memo" placeholder="{% trans 'Optional memo' %}" class="w-full text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                </td>
-                                <td class="px-4 py-2">
-                                    <input type="number" step="0.01" min="0" name="debit[]" x-model="line.debit" class="w-full text-right font-mono text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                </td>
-                                <td class="px-4 py-2">
-                                    <input type="number" step="0.01" min="0" name="credit[]" x-model="line.credit" class="w-full text-right font-mono text-sm border border-line rounded-lg px-2.5 py-1.5 bg-surface text-ink focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                                </td>
-                                <td class="px-4 py-2 text-center">
-                                    <button type="button" @click="removeLine(index)" class="text-slate-400 hover:text-rose-600 transition-colors" title="{% trans 'Remove' %}">
-                                        &times;
-                                    </button>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                    <tfoot class="bg-app font-mono font-bold text-sm border-t border-line">
-                        <tr>
-                            <td colspan="2" class="px-4 py-3 text-right uppercase text-xs tracking-wider">
-                                <span x-show="isBalanced" class="text-emerald-600 dark:text-emerald-400 font-sans font-medium mr-4">&#10003; {% trans "Balanced" %}</span>
-                                <span x-show="!isBalanced" class="text-rose-500 font-sans font-medium mr-4">&#9888; {% trans "Out of Balance" %}</span>
-                                {% trans "Totals:" %}
-                            </td>
-                            <td class="px-4 py-3 text-right" x-text="'$' + totalDebits"></td>
-                            <td class="px-4 py-3 text-right" x-text="'$' + totalCredits"></td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-
-        <div class="pt-4 border-t border-line flex justify-end gap-3">
-            <a href="{% url 'accounting:journal_list' %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50 transition-colors">
-                {% trans "Cancel" %}
-            </a>
-            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
-                {% trans "Post Journal Entry" %}
-            </button>
         </div>
     </form>
 </div>

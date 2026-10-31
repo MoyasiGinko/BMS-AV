@@ -4,89 +4,123 @@
 {% block title %}{% trans "Batch" %} {{ batch.batch_number }} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <a href="{% url 'inventory:batch_list' %}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-                &larr; {% trans "Back to Batches" %}
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'inventory:batch_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "All Batches" %}
             </a>
-            <h1 class="text-2xl font-bold tracking-tight text-ink mt-1">
-                {{ batch.batch_number }}
-            </h1>
         </div>
-        {% if batch.is_expired %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-            {% trans "Expired" %}
-        </span>
-        {% elif batch.expiry_date %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-            {% trans "Active" %}
-        </span>
-        {% else %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-            {% trans "No Expiry" %}
-        </span>
-        {% endif %}
-    </div>
-
-    <!-- Metadata Card -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-6">
-        <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Product" %}</span>
-            <div class="mt-1 font-medium text-ink">{{ batch.product.name }}</div>
-            <div class="text-xs text-slate-400 font-mono">{{ batch.product.sku }}</div>
-        </div>
-        <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Expiry Date" %}</span>
-            <div class="mt-1 font-mono text-ink">{{ batch.expiry_date|date:"Y-m-d"|default:"N/A" }}</div>
-        </div>
-        <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Created Date" %}</span>
-            <div class="mt-1 text-muted">{{ batch.created_at|date:"Y-m-d H:i" }}</div>
-        </div>
-        <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Registered By" %}</span>
-            <div class="mt-1 text-muted">
-                {% if batch.created_by %}{{ batch.created_by.get_full_name|default:batch.created_by.email }}{% else %}{% trans "System" %}{% endif %}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink font-mono">
+                        {{ batch.batch_number }}
+                    </h1>
+                    {% if batch.is_expired %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-600 text-white shadow-2xs">
+                        {% trans "Expired" %}
+                    </span>
+                    {% elif batch.expiry_date %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
+                        {% trans "Active" %}
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-600 text-white shadow-2xs">
+                        {% trans "No Expiry" %}
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+                    {{ batch.product.name }} &bull; SKU: {{ batch.product.sku }}
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- Warehouse Stock Breakdown -->
-    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
-        <div class="px-5 py-4 border-b border-line">
-            <h3 class="font-semibold text-ink text-sm">{% trans "Stock Balances by Warehouse" %}</h3>
+    <!-- Bento 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left 8 cols: Warehouse Stock Breakdown -->
+        <div class="col-span-12 lg:col-span-8 space-y-8">
+            <div class="rounded-2xl border border-line bg-surface shadow-xs overflow-hidden">
+                <div class="p-7 sm:p-8 border-b border-line">
+                    <h2 class="text-lg font-bold text-ink">{% trans "Stock Balances by Warehouse" %}</h2>
+                    <p class="text-xs text-muted mt-0.5">{% trans "On-hand quantities allocated to this lot batch across facilities." %}</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-line text-sm">
+                        <thead class="bg-surface-2 text-muted">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left font-bold uppercase text-2xs tracking-wider">{% trans "Warehouse" %}</th>
+                                <th scope="col" class="px-6 py-4 text-left font-bold uppercase text-2xs tracking-wider">{% trans "Branch" %}</th>
+                                <th scope="col" class="px-6 py-4 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Quantity on Hand" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-line text-ink">
+                            {% for st in stocks %}
+                            <tr class="hover:bg-surface-2/60 transition-colors">
+                                <td class="px-6 py-4 font-bold text-ink text-base">
+                                    {{ st.warehouse.name }}
+                                </td>
+                                <td class="px-6 py-4 text-muted text-sm font-medium">
+                                    {{ st.warehouse.branch.name|default:"Main" }}
+                                </td>
+                                <td class="px-6 py-4 text-right font-mono font-extrabold text-indigo-600 dark:text-indigo-400 text-base">
+                                    {{ st.quantity }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="px-6 py-12 text-center text-slate-400 text-sm">
+                                    {% trans "No stock currently recorded for this batch in any warehouse." %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <table class="w-full text-left border-collapse text-sm">
-            <thead>
-                <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
-                    <th class="py-3 px-4">{% trans "Warehouse" %}</th>
-                    <th class="py-3 px-4">{% trans "Branch" %}</th>
-                    <th class="py-3 px-4 text-right">{% trans "Quantity on Hand" %}</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-line/60 font-mono text-xs">
-                {% for st in stocks %}
-                <tr>
-                    <td class="py-3 px-4 font-sans text-sm font-medium text-ink">
-                        {{ st.warehouse.name }}
-                    </td>
-                    <td class="py-3 px-4 font-sans text-xs text-slate-500">
-                        {{ st.warehouse.branch.name|default:"Main" }}
-                    </td>
-                    <td class="py-3 px-4 text-right font-semibold text-ink text-sm">
-                        {{ st.quantity }}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3" class="py-8 text-center text-muted font-sans">
-                        {% trans "No stock currently recorded for this batch in any warehouse." %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+        <!-- Right 4 cols: Batch Attributes & Expiry Timeline -->
+        <div class="col-span-12 lg:col-span-4 space-y-8">
+            <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-5">
+                <div class="border-b border-line pb-3">
+                    <h3 class="text-base font-bold text-ink">{% trans "Batch Coordinates" %}</h3>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Lifecycle dates and catalog link." %}</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Catalog Product" %}</span>
+                        <div class="text-base font-bold text-ink">{{ batch.product.name }}</div>
+                        <div class="text-xs text-slate-400 font-mono mt-0.5">{{ batch.product.sku }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Expiry Date" %}</span>
+                        <div class="text-sm font-mono font-bold text-ink">{{ batch.expiry_date|date:"Y-m-d"|default:"N/A" }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Registered Date" %}</span>
+                        <div class="text-sm font-mono text-muted">{{ batch.created_at|date:"Y-m-d H:i" }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Registered By" %}</span>
+                        <div class="text-sm font-semibold text-muted">
+                            {% if batch.created_by %}{{ batch.created_by.get_full_name|default:batch.created_by.email }}{% else %}{% trans "System" %}{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

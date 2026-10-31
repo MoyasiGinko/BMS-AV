@@ -4,67 +4,115 @@
 {% block title %}{% trans "Open Shift" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-xl mx-auto py-8">
-    <div class="mb-4">
-        <a href="{% url 'pos:shift_list' %}" class="text-sm text-slate-500 hover:text-slate-700">
-            &larr; {% trans "Back to Shifts" %}
-        </a>
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'pos:shift_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Shifts" %}
+            </a>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+            {% trans "Open Cashier Work Shift" %}
+        </h1>
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% trans "Declare opening physical cash drawer float, link active terminal register, and commence checkout operations." %}
+        </p>
     </div>
 
-    <div class="bg-surface border border-line rounded-2xl shadow-xl overflow-hidden">
-        <div class="p-6 bg-indigo-600 text-white">
-            <h1 class="text-xl font-bold">{% trans "Open Cashier Shift" %}</h1>
-            <p class="text-xs text-indigo-100 mt-1">{% trans "Declare opening float and register" %}</p>
+    <!-- Form -->
+    <form method="post" class="space-y-8 w-full">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <div>{{ form.non_field_errors }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: Register & Float -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Shift Parameters" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Designated POS terminal and initial cash float count." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="id_register" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "POS Register" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.register }}
+                            {% if form.register.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.register.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="id_opening_cash" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Opening Cash Float ($)" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.opening_cash }}
+                            {% if form.opening_cash.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.opening_cash.errors.0 }}</p>
+                            {% endif %}
+                            <p class="text-2xs text-slate-400 mt-1">{% trans "Starting currency physically present in the cash till." %}</p>
+                        </div>
+
+                        <div>
+                            <label for="id_notes" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Shift Opening Notes" %}
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.notes.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 4 cols: Shift Governance & Rules -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {% trans "Cash Reconciliation" %}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {% trans "Opening float is compared against end-of-shift drawer count to automatically audit cash overages or shortages when closing the shift." %}
+                    </p>
+                </div>
+            </div>
         </div>
 
-        <form method="post" class="p-6 space-y-6">
-            {% csrf_token %}
-
-            <div>
-                <label for="id_register" class="block text-sm font-semibold text-muted">
-                    {% trans "POS Register" %}
-                </label>
-                <div class="mt-2">
-                    {{ form.register }}
-                </div>
-                {% if form.register.errors %}
-                <p class="mt-1 text-xs text-rose-500">{{ form.register.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <div>
-                <label for="id_opening_cash" class="block text-sm font-semibold text-muted">
-                    {% trans "Opening Cash Float ($)" %}
-                </label>
-                <div class="mt-2">
-                    {{ form.opening_cash }}
-                </div>
-                {% if form.opening_cash.errors %}
-                <p class="mt-1 text-xs text-rose-500">{{ form.opening_cash.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <div>
-                <label for="id_notes" class="block text-sm font-semibold text-muted">
-                    {% trans "Notes" %}
-                </label>
-                <div class="mt-2">
-                    {{ form.notes }}
-                </div>
-                {% if form.notes.errors %}
-                <p class="mt-1 text-xs text-rose-500">{{ form.notes.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end space-x-3">
-                <a href="{% url 'pos:shift_list' %}" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800">
-                    {% trans "Cancel" %}
-                </a>
-                <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'pos:shift_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                     {% trans "Open Shift" %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

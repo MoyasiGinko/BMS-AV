@@ -4,115 +4,149 @@
 {% block title %}{% trans "Payslip" %}: {{ payslip.employee.full_name }} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <!-- Breadcrumb & Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center gap-2 mb-2">
             {% if is_owner %}
-                <a href="{% url 'payroll:my_payslips' %}" class="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 inline-flex items-center gap-1">
-                    &larr; {% trans "Back to My Payslips" %}
+                <a href="{% url 'payroll:my_payslips' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    {% trans "My Payslips" %}
                 </a>
             {% else %}
-                <a href="{% url 'payroll:run_detail' public_id=payslip.payroll_run.public_id %}" class="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 inline-flex items-center gap-1">
-                    &larr; {% trans "Back to Run" %} {{ payslip.payroll_run.number }}
+                <a href="{% url 'payroll:run_detail' public_id=payslip.payroll_run.public_id %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    {% trans "Back to Run" %} {{ payslip.payroll_run.number }}
                 </a>
             {% endif %}
-            <h1 class="text-2xl font-bold tracking-tight text-ink mt-1">
-                {% trans "Employee Payslip" %}
-            </h1>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'payroll:payslip_pdf' public_id=payslip.public_id %}" target="_blank" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors inline-flex items-center gap-1.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                {% trans "Download Official PDF" %}
-            </a>
-        </div>
-    </div>
-
-    <!-- Employee Summary Card -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <span class="text-xs font-semibold uppercase text-slate-400">{% trans "Employee" %}</span>
-                <p class="text-base font-bold text-ink mt-0.5">{{ payslip.employee.full_name }}</p>
-                <p class="text-xs font-mono text-slate-500">{{ payslip.employee.code }}</p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+                        {% trans "Employee Payslip" %}: <span class="text-indigo-600 dark:text-indigo-400">{{ payslip.employee.full_name }}</span>
+                    </h1>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
+                        {{ payslip.get_status_display }}
+                    </span>
+                </div>
+                <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+                    {{ payslip.payroll_run.period_start|date:"M d, Y" }} &mdash; {{ payslip.payroll_run.period_end|date:"M d, Y" }}
+                </p>
             </div>
-            <div>
-                <span class="text-xs font-semibold uppercase text-slate-400">{% trans "Department & Role" %}</span>
-                <p class="text-sm font-medium text-ink mt-0.5">{{ payslip.employee.department.name|default:"—" }}</p>
-                <p class="text-xs text-slate-500">{{ payslip.employee.position.title|default:"—" }}</p>
-            </div>
-            <div>
-                <span class="text-xs font-semibold uppercase text-slate-400">{% trans "Payment Method" %}</span>
-                <p class="text-sm font-medium text-ink mt-0.5">{{ payslip.get_payment_method_display }}</p>
-                <p class="text-xs font-mono text-slate-500">{{ payslip.bank_name }} ({{ payslip.bank_account_number|default:"—" }})</p>
-            </div>
-            <div>
-                <span class="text-xs font-semibold uppercase text-slate-400">{% trans "Attendance Metrics" %}</span>
-                <p class="text-sm font-medium text-ink mt-0.5">{{ payslip.working_days }} {% trans "Period Days" %}</p>
-                <p class="text-xs text-rose-600 dark:text-rose-400">{{ payslip.unpaid_leave_days }} {% trans "Unpaid Leave Days" %}</p>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'payroll:payslip_pdf' public_id=payslip.public_id %}" target="_blank" class="neu-btn-primary inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    {% trans "Download Official PDF" %}
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- Itemized Earnings & Deductions Breakdown -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Earnings -->
-        <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
-            <div class="px-6 py-4 bg-app border-b border-line flex justify-between items-center">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-muted">{% trans "Earnings & Allowances" %}</h3>
+    <!-- Bento 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Top Full Width Bento Stats: Net Take-Home Banner -->
+        <div class="col-span-12 p-8 rounded-2xl border border-line bg-surface shadow-xs flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Final Net Take-Home Pay" %}</span>
+                <p class="text-sm text-slate-500 font-medium mt-1">
+                    {% trans "Calculated as Gross Pay minus all authorized deductions & unpaid leave adjustments." %}
+                </p>
             </div>
-            <div class="divide-y divide-line text-sm">
-                {% for item in earnings %}
-                <div class="px-6 py-3.5 flex items-center justify-between">
-                    <span class="text-muted">{{ item.name }}</span>
-                    <span class="font-mono font-medium text-ink">${{ item.amount|floatformat:2 }}</span>
+            <div class="text-right">
+                <span class="text-4xl sm:text-5xl font-black font-mono text-indigo-600 dark:text-indigo-400">
+                    ${{ payslip.net_pay|floatformat:2 }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Left 8 cols: Itemized Earnings & Deductions Breakdown -->
+        <div class="col-span-12 lg:col-span-8 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Earnings Card -->
+                <div class="rounded-2xl border border-line bg-surface shadow-xs overflow-hidden">
+                    <div class="p-6 border-b border-line">
+                        <h2 class="text-base font-bold text-ink">{% trans "Earnings & Allowances" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Base compensation and earnings components." %}</p>
+                    </div>
+                    <div class="divide-y divide-line text-sm">
+                        {% for item in earnings %}
+                        <div class="px-6 py-4 flex items-center justify-between">
+                            <span class="font-bold text-ink text-sm">{{ item.name }}</span>
+                            <span class="font-mono font-extrabold text-ink text-base">${{ item.amount|floatformat:2 }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="px-6 py-8 text-center text-slate-400 text-xs">{% trans "No earning lines" %}</div>
+                        {% endfor %}
+                        <div class="px-6 py-5 bg-surface-2 flex items-center justify-between font-black text-ink text-base">
+                            <span class="uppercase text-xs tracking-wider text-muted font-bold">{% trans "Total Gross Pay" %}</span>
+                            <span class="font-mono text-lg font-black">${{ payslip.gross_pay|floatformat:2 }}</span>
+                        </div>
+                    </div>
                 </div>
-                {% empty %}
-                <div class="px-6 py-4 text-center text-slate-400 text-xs">{% trans "No earning lines" %}</div>
-                {% endfor %}
-                <div class="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between font-bold text-ink">
-                    <span>{% trans "Total Gross Pay" %}</span>
-                    <span class="font-mono text-base">${{ payslip.gross_pay|floatformat:2 }}</span>
+
+                <!-- Deductions Card -->
+                <div class="rounded-2xl border border-line bg-surface shadow-xs overflow-hidden">
+                    <div class="p-6 border-b border-line">
+                        <h2 class="text-base font-bold text-ink">{% trans "Deductions & Withholdings" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Statutory taxes, benefits, and unpaid leaves." %}</p>
+                    </div>
+                    <div class="divide-y divide-line text-sm">
+                        {% for item in deductions %}
+                        <div class="px-6 py-4 flex items-center justify-between">
+                            <span class="font-bold text-ink text-sm">{{ item.name }}</span>
+                            <span class="font-mono font-extrabold text-rose-600 dark:text-rose-400 text-base">-${{ item.amount|floatformat:2 }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="px-6 py-8 text-center text-slate-400 text-xs">{% trans "No deductions recorded" %}</div>
+                        {% endfor %}
+                        <div class="px-6 py-5 bg-surface-2 flex items-center justify-between font-black text-ink text-base">
+                            <span class="uppercase text-xs tracking-wider text-muted font-bold">{% trans "Total Deductions" %}</span>
+                            <span class="font-mono text-lg font-black text-rose-600 dark:text-rose-400">-${{ payslip.total_deductions|floatformat:2 }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Deductions -->
-        <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
-            <div class="px-6 py-4 bg-app border-b border-line flex justify-between items-center">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-muted">{% trans "Deductions & Withholdings" %}</h3>
-            </div>
-            <div class="divide-y divide-line text-sm">
-                {% for item in deductions %}
-                <div class="px-6 py-3.5 flex items-center justify-between">
-                    <span class="text-muted">{{ item.name }}</span>
-                    <span class="font-mono font-medium text-rose-600 dark:text-rose-400">-${{ item.amount|floatformat:2 }}</span>
+        <!-- Right 4 cols: Employee Profile & Banking Parameters -->
+        <div class="col-span-12 lg:col-span-4 space-y-8">
+            <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-5">
+                <div class="border-b border-line pb-3">
+                    <h3 class="text-base font-bold text-ink">{% trans "Employee Coordinates" %}</h3>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Organizational assignment and payment details." %}</p>
                 </div>
-                {% empty %}
-                <div class="px-6 py-4 text-center text-slate-400 text-xs">{% trans "No deductions recorded" %}</div>
-                {% endfor %}
-                <div class="px-6 py-4 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between font-bold text-ink">
-                    <span>{% trans "Total Deductions" %}</span>
-                    <span class="font-mono text-base text-rose-600 dark:text-rose-400">-${{ payslip.total_deductions|floatformat:2 }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Net Take-Home Pay Banner -->
-    <div class="bg-gradient-to-r from-indigo-500/10 via-sky-500/10 to-emerald-500/10 border border-indigo-200 dark:border-indigo-900/50 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-            <span class="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">{% trans "Final Net Take-Home Pay" %}</span>
-            <p class="text-sm text-muted mt-0.5">
-                {% trans "Calculated as Gross Pay minus all authorized deductions & unpaid leave adjustments." %}
-            </p>
-        </div>
-        <div class="text-right">
-            <span class="text-3xl font-extrabold font-mono text-indigo-600 dark:text-indigo-400">
-                ${{ payslip.net_pay|floatformat:2 }}
-            </span>
-            <div class="text-xs text-slate-400">{% trans "Status" %}: {{ payslip.get_status_display }}</div>
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Employee" %}</span>
+                        <p class="text-base font-bold text-ink">{{ payslip.employee.full_name }}</p>
+                        <p class="text-xs font-mono text-slate-400">{{ payslip.employee.code }}</p>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Department & Position" %}</span>
+                        <p class="text-sm font-semibold text-ink">{{ payslip.employee.department.name|default:"—" }}</p>
+                        <p class="text-xs text-slate-400">{{ payslip.employee.position.title|default:"—" }}</p>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Payment Method" %}</span>
+                        <p class="text-sm font-semibold text-ink">{{ payslip.get_payment_method_display }}</p>
+                        <p class="text-xs font-mono text-slate-400">{{ payslip.bank_name }} ({{ payslip.bank_account_number|default:"—" }})</p>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Attendance Metrics" %}</span>
+                        <p class="text-sm font-semibold text-ink">{{ payslip.working_days }} {% trans "Period Days" %}</p>
+                        <p class="text-xs font-semibold text-rose-600 dark:text-rose-400">{{ payslip.unpaid_leave_days }} {% trans "Unpaid Leave Days" %}</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

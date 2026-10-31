@@ -4,108 +4,168 @@
 {% block title %}{% trans "New Register" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto py-6">
-    <div class="mb-4">
-        <a href="{% url 'pos:register_list' %}" class="text-sm text-slate-500 hover:text-slate-700">
-            &larr; {% trans "Back to Registers" %}
-        </a>
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'pos:register_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Registers" %}
+            </a>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+            {% trans "Configure POS Terminal Register" %}
+        </h1>
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% trans "Configure register code, retail branch allocation, stock deduction warehouse, and printed receipt branding." %}
+        </p>
     </div>
 
-    <div class="bg-surface border border-line rounded-2xl shadow-xl overflow-hidden">
-        <div class="p-6 bg-indigo-600 text-white">
-            <h1 class="text-xl font-bold">{% trans "Create POS Terminal" %}</h1>
-            <p class="text-xs text-indigo-100 mt-1">{% trans "Configure register code, location, warehouse, and receipt header/footer." %}</p>
+    <!-- Form -->
+    <form method="post" class="space-y-8 w-full">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <div>{{ form.non_field_errors }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: Terminal Identification & Location -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <!-- Card 1: Identification & Location -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Register Identification & Logistics" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Terminal name, code identifier, and inventory sourcing branch/warehouse." %}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label for="id_name" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Register Name" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="id_code" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Register Code" %}
+                            </label>
+                            {{ form.code }}
+                            {% if form.code.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.code.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="id_branch" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Branch" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.branch }}
+                            {% if form.branch.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.branch.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="id_warehouse" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Stock Deduction Warehouse" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.warehouse }}
+                            {% if form.warehouse.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.warehouse.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Receipt Customization -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Thermal Receipt Customization" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Header business details and promotional footer messages printed on thermal slips." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="id_receipt_header" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Receipt Header Text" %}
+                            </label>
+                            {{ form.receipt_header }}
+                        </div>
+
+                        <div>
+                            <label for="id_receipt_footer" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Receipt Footer Text" %}
+                            </label>
+                            {{ form.receipt_footer }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 4 cols: Terminal Governance & Status -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <!-- Card 3: Terminal Status -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Terminal Status" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Shift authorization availability." %}</p>
+                    </div>
+
+                    <label class="flex items-start gap-3.5 p-3.5 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                        <div class="pt-0.5 shrink-0">
+                            {{ form.is_active }}
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-xs font-bold text-ink">{% trans "Register Active" %}</span>
+                            <span class="block text-[11px] text-slate-400 mt-0.5">{% trans "Available for cashiers to open work shifts and record sales." %}</span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Guidance Box -->
+                <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        {% trans "Realtime Inventory" %}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {% trans "POS checkouts deduct stock instantaneously from the designated warehouse, triggering automatic reorder alerts if balance dips below safety threshold." %}
+                    </p>
+                </div>
+            </div>
         </div>
 
-        <form method="post" class="p-6 space-y-6">
-            {% csrf_token %}
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label for="id_name" class="block text-xs font-semibold text-muted">
-                        {% trans "Register Name" %} *
-                    </label>
-                    <div class="mt-1">
-                        {{ form.name }}
-                    </div>
-                    {% if form.name.errors %}
-                    <p class="mt-1 text-xs text-rose-500">{{ form.name.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="id_code" class="block text-xs font-semibold text-muted">
-                        {% trans "Register Code (e.g. POS-01)" %}
-                    </label>
-                    <div class="mt-1">
-                        {{ form.code }}
-                    </div>
-                    {% if form.code.errors %}
-                    <p class="mt-1 text-xs text-rose-500">{{ form.code.errors.0 }}</p>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label for="id_branch" class="block text-xs font-semibold text-muted">
-                        {% trans "Branch" %} *
-                    </label>
-                    <div class="mt-1">
-                        {{ form.branch }}
-                    </div>
-                    {% if form.branch.errors %}
-                    <p class="mt-1 text-xs text-rose-500">{{ form.branch.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="id_warehouse" class="block text-xs font-semibold text-muted">
-                        {% trans "Stock Deduction Warehouse" %} *
-                    </label>
-                    <div class="mt-1">
-                        {{ form.warehouse }}
-                    </div>
-                    {% if form.warehouse.errors %}
-                    <p class="mt-1 text-xs text-rose-500">{{ form.warehouse.errors.0 }}</p>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div>
-                <label for="id_receipt_header" class="block text-xs font-semibold text-muted">
-                    {% trans "Receipt Header Text" %}
-                </label>
-                <div class="mt-1">
-                    {{ form.receipt_header }}
-                </div>
-            </div>
-
-            <div>
-                <label for="id_receipt_footer" class="block text-xs font-semibold text-muted">
-                    {% trans "Receipt Footer Text" %}
-                </label>
-                <div class="mt-1">
-                    {{ form.receipt_footer }}
-                </div>
-            </div>
-
-            <div class="flex items-center space-x-2">
-                {{ form.is_active }}
-                <label for="id_is_active" class="text-xs font-medium text-muted">
-                    {% trans "Register is active and available for shifts" %}
-                </label>
-            </div>
-
-            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end space-x-3">
-                <a href="{% url 'pos:register_list' %}" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800">
-                    {% trans "Cancel" %}
-                </a>
-                <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'pos:register_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                     {% trans "Save Register" %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

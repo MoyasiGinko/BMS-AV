@@ -6,150 +6,256 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">
-                {% if is_new %}{% trans "New Customer Account" %}{% else %}{% trans "Edit Customer" %}: {{ customer.name }}{% endif %}
-            </h1>
-        </div>
-        <a href="{% if is_new %}{% url 'customers:customer_list' %}{% else %}{% url 'customers:customer_detail' customer.pk %}{% endif %}"
-           class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50">
-            {% trans "Cancel" %}
-        </a>
+<div class="w-full space-y-8 pb-16">
+    <!-- Breadcrumb & Page Header (Clean, Roomy & Grounded) -->
+    <div class="space-y-2">
+        <nav class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <a href="{% url 'customers:customer_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Customers" %}</a>
+            <span>/</span>
+            <span class="text-ink font-semibold">{% if is_new %}{% trans "New Customer Account" %}{% else %}{{ customer.name }}{% endif %}</span>
+        </nav>
+        <h1 class="text-3xl font-extrabold tracking-tight text-ink">
+            {% if is_new %}{% trans "New Customer Account" %}{% else %}{% trans "Edit Customer Profile" %}{% endif %}
+        </h1>
+        <p class="text-sm text-slate-500 font-medium max-w-3xl">
+            {% if is_new %}
+                {% trans "Register a new client or trading partner account with contact information, payment terms, and credit limits." %}
+            {% else %}
+                {% trans "Update customer contact coordinates, billing rules, payment terms, and commercial credit limits." %}
+            {% endif %}
+        </p>
     </div>
 
-    <!-- Form Card -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
-        <form method="post" class="space-y-6">
-            {% csrf_token %}
+    <!-- Main Fullwidth Form -->
+    <form id="customer-form" method="post" class="space-y-8 w-full">
+        {% csrf_token %}
 
-            {% if form.non_field_errors %}
-            <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 text-sm">
-                {{ form.non_field_errors }}
+        {% if form.non_field_errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span>{{ form.non_field_errors }}</span>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            <!-- Basic Identification -->
-            <div class="border-b border-line pb-5">
-                <h2 class="text-base font-semibold text-ink mb-4">{% trans "Identification" %}</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.name.label }} <span class="text-rose-500">*</span>
-                        </label>
-                        {{ form.name }}
-                        {% if form.name.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+        <!-- Bento 12-Column Responsive Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+            <!-- Left Main Column (8 cols): Primary specifications -->
+            <div class="lg:col-span-8 space-y-8">
+                <!-- Card 1: Core Identification -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Identification & Profile" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Legal business name, trading code, and entity classification." %}</p>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.code.label }}
-                        </label>
-                        {{ form.code }}
-                        <p class="text-[11px] text-slate-400 mt-1">{% trans "Unique reference code (leave blank for automatic sequence)." %}</p>
-                        {% if form.code.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.code.errors.0 }}</p>{% endif %}
+
+                    <div class="space-y-6">
+                        <!-- Customer Name (Full width in card) -->
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.name.label }} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.name.errors.0 }}</p>
+                            {% else %}
+                            <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Official company name or individual billing name." %}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Code and Type (2 Columns) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.code.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {{ form.code.label }}
+                                </label>
+                                {{ form.code }}
+                                {% if form.code.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.code.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Unique reference code (leave blank for automatic sequence)." %}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.type.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {{ form.type.label }} <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.type }}
+                                {% if form.type.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.type.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.type.label }}
-                        </label>
-                        {{ form.type }}
+                </div>
+
+                <!-- Card 2: Contact Coordinates & Tax -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Contact & Tax Registration" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Billing communication channels and official tax credentials." %}</p>
                     </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div>
+                            <label for="{{ form.email.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.email.label }}
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.phone.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.phone.label }}
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.phone.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.tax_id.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.tax_id.label }}
+                            </label>
+                            {{ form.tax_id }}
+                            {% if form.tax_id.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.tax_id.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Notes & Operational Directives -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Notes & Operational Instructions" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Special handling instructions, delivery directives, or internal account history." %}</p>
+                    </div>
+
                     <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.status.label }}
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                            {{ form.notes.label }}
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.notes.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side Column (4 cols): Status, Pricing & Credit Terms -->
+            <div class="lg:col-span-4 space-y-8">
+                <!-- Card 4: Account Status & Governance -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Account Status" %}</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Control customer operational standing." %}</p>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                            {{ form.status.label }} <span class="text-rose-600 font-black">*</span>
                         </label>
                         {{ form.status }}
+                        {% if form.status.errors %}
+                        <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.status.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Card 5: Commercial Terms & Credit Control -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Commercial & Credit Rules" %}</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Assigned price list, net terms, and credit exposure." %}</p>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label for="{{ form.price_list.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.price_list.label }}
+                            </label>
+                            {{ form.price_list }}
+                            {% if form.price_list.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.price_list.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.credit_limit.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.credit_limit.label }}
+                            </label>
+                            {{ form.credit_limit }}
+                            {% if form.credit_limit.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.credit_limit.errors.0 }}</p>
+                            {% else %}
+                            <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Maximum approved balance (0.00 = Cash on delivery)." %}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.payment_terms_days.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.payment_terms_days.label }}
+                            </label>
+                            {{ form.payment_terms_days }}
+                            {% if form.payment_terms_days.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.payment_terms_days.errors.0 }}</p>
+                            {% else %}
+                            <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Net invoice due days (e.g. 0, 15, 30)." %}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.currency.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.currency.label }}
+                            </label>
+                            {{ form.currency }}
+                            {% if form.currency.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.currency.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        {% if is_new and form.opening_balance %}
+                        <div class="pt-3 border-t border-line">
+                            <label for="{{ form.opening_balance.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.opening_balance.label }}
+                            </label>
+                            {{ form.opening_balance }}
+                            {% if form.opening_balance.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.opening_balance.errors.0 }}</p>
+                            {% else %}
+                            <p class="text-xs text-slate-400 mt-1.5 font-medium">{{ form.opening_balance.help_text }}</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Contact & Tax -->
-            <div class="border-b border-line pb-5">
-                <h2 class="text-base font-semibold text-ink mb-4">{% trans "Contact & Tax Registration" %}</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.email.label }}
-                        </label>
-                        {{ form.email }}
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.phone.label }}
-                        </label>
-                        {{ form.phone }}
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.tax_id.label }}
-                        </label>
-                        {{ form.tax_id }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pricing & Credit Terms -->
-            <div class="border-b border-line pb-5">
-                <h2 class="text-base font-semibold text-ink mb-4">{% trans "Commercial & Credit Terms" %}</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.price_list.label }}
-                        </label>
-                        {{ form.price_list }}
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.credit_limit.label }}
-                        </label>
-                        {{ form.credit_limit }}
-                        <p class="text-[11px] text-slate-400 mt-1">{% trans "Maximum approved receivable balance (0.00 = Cash only)." %}</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.payment_terms_days.label }}
-                        </label>
-                        {{ form.payment_terms_days }}
-                        <p class="text-[11px] text-slate-400 mt-1">{% trans "Net terms in days (e.g. 0, 15, 30)." %}</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.currency.label }}
-                        </label>
-                        {{ form.currency }}
-                    </div>
-                    {% if is_new and form.opening_balance %}
-                    <div>
-                        <label class="block text-xs font-semibold text-muted mb-1">
-                            {{ form.opening_balance.label }}
-                        </label>
-                        {{ form.opening_balance }}
-                        <p class="text-[11px] text-slate-400 mt-1">{{ form.opening_balance.help_text }}</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Notes -->
-            <div>
-                <label class="block text-xs font-semibold text-muted mb-1">
-                    {{ form.notes.label }}
-                </label>
-                {{ form.notes }}
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-4">
-                <a href="{% if is_new %}{% url 'customers:customer_list' %}{% else %}{% url 'customers:customer_detail' customer.pk %}{% endif %}"
-                   class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50">
-                    {% trans "Cancel" %}
-                </a>
-                <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+        <!-- Symmetrical Bottom Footer Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% if is_new %}{% url 'customers:customer_list' %}{% else %}{% url 'customers:customer_detail' customer.pk %}{% endif %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                     {% if is_new %}{% trans "Create Customer" %}{% else %}{% trans "Save Changes" %}{% endif %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

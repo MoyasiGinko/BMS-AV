@@ -4,11 +4,12 @@
 {% block title %}{% trans "Inventory Reconciliation" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="inventory-page max-w-5xl mx-auto space-y-6">
+<div class="inventory-page w-full pb-16 space-y-8">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Inventory Reconciliation Audit" %}</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Inventory Reconciliation Audit" %}</h1>
+            <p class="text-sm text-muted mt-1 font-medium">{% trans "Verify stock level cache integrity against immutable ledger entries." %}</p>
         </div>
     </div>
 
@@ -16,26 +17,26 @@
     {% include "inventory/partials/_navigation_tabs.html" with active_tab="reconcile" %}
 
     <!-- Controls -->
-    <div class="neu-raised-card p-5 sm:p-6">
-        <form method="post" class="space-y-4">
+    <div class="neu-raised-card p-7 sm:p-8 rounded-2xl">
+        <form method="post" class="space-y-6">
             {% csrf_token %}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-end">
+                <div class="sm:col-span-6">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                         {% trans "Warehouse Scope" %}
                     </label>
-                    <select name="warehouse_id" class="neu-select w-full text-sm py-2 px-3">
+                    <select name="warehouse_id" class="neu-select w-full text-sm py-3 px-4 rounded-xl border border-line bg-surface">
                         <option value="">{% trans "All Warehouses" %}</option>
                         {% for w in warehouses %}
                         <option value="{{ w.pk }}">{{ w.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button type="submit" name="fix" value="0" class="neu-action-btn flex-1 px-4 py-2 text-sm font-bold rounded-xl transition cursor-pointer">
+                <div class="sm:col-span-6 flex items-center gap-4">
+                    <button type="submit" name="fix" value="0" class="neu-action-btn flex-1 min-h-[48px] px-6 py-3 text-sm font-bold rounded-xl transition cursor-pointer">
                         {% trans "Run Audit Check" %}
                     </button>
-                    <button type="submit" name="fix" value="1" class="neu-primary-btn flex-1 px-4 py-2 rounded-xl text-sm font-bold transition cursor-pointer">
+                    <button type="submit" name="fix" value="1" class="neu-primary-btn flex-1 min-h-[48px] px-6 py-3 rounded-xl text-sm font-bold transition cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700 shadow-md">
                         {% trans "Audit & Auto-Repair" %}
                     </button>
                 </div>
@@ -45,20 +46,18 @@
 
     <!-- Results Display -->
     {% if result %}
-    <div class="neu-table-card">
-        <div class="p-6 border-b border-[#D3D8E8] dark:border-slate-800 flex items-center justify-between">
+    <div class="neu-table-card rounded-2xl overflow-hidden border border-line">
+        <div class="p-6 sm:p-8 border-b border-line flex items-center justify-between">
             <div>
-                <h3 class="font-bold text-[var(--neu-text,#262B45)] text-base">{% trans "Reconciliation Audit Report" %}</h3>
-                <p class="text-xs text-slate-400 mt-0.5 font-medium">{% trans "Checked" %} {{ result.total_checked }} {% trans "stock level records" %}</p>
+                <h3 class="font-bold text-ink text-lg">{% trans "Reconciliation Audit Report" %}</h3>
+                <p class="text-xs text-muted mt-1 font-medium">{% trans "Checked" %} {{ result.total_checked }} {% trans "stock level records" %}</p>
             </div>
             {% if result.is_consistent %}
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span class="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
                 {% trans "100% In Sync" %}
             </span>
             {% else %}
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/80">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            <span class="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-bold bg-rose-600 text-white shadow-2xs">
                 {{ result.discrepancies_count }} {% trans "Discrepancies Detected" %}
             </span>
             {% endif %}
@@ -68,42 +67,40 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
-                        <th class="py-3 px-4">{% trans "Product" %}</th>
-                        <th class="py-3 px-4">{% trans "Warehouse" %}</th>
-                        <th class="py-3 px-4 text-right">{% trans "Cached Level" %}</th>
-                        <th class="py-3 px-4 text-right">{% trans "Ledger Sum" %}</th>
-                        <th class="py-3 px-4 text-right">{% trans "Delta" %}</th>
-                        <th class="py-3 px-4 text-center">{% trans "Status" %}</th>
+                    <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500 bg-surface-2">
+                        <th class="py-3.5 px-6">{% trans "Product" %}</th>
+                        <th class="py-3.5 px-6">{% trans "Warehouse" %}</th>
+                        <th class="py-3.5 px-6 text-right">{% trans "Cached Level" %}</th>
+                        <th class="py-3.5 px-6 text-right">{% trans "Ledger Sum" %}</th>
+                        <th class="py-3.5 px-6 text-right">{% trans "Delta" %}</th>
+                        <th class="py-3.5 px-6 text-center">{% trans "Status" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800 font-mono text-xs">
+                <tbody class="divide-y divide-line font-mono text-xs">
                     {% for d in result.discrepancies %}
-                    <tr class="neu-table-row transition-colors">
-                        <td class="py-3 px-4 font-sans text-sm font-bold text-[var(--neu-text,#262B45)]">
+                    <tr class="neu-table-row transition-colors hover:bg-surface-2/40">
+                        <td class="py-4 px-6 font-sans text-sm font-bold text-ink">
                             {{ d.product_name }}
                         </td>
-                        <td class="py-3 px-4 font-sans text-slate-600 dark:text-slate-400 font-medium">
+                        <td class="py-4 px-6 font-sans text-muted font-medium">
                             {{ d.warehouse_name }}
                         </td>
-                        <td class="py-3 px-4 text-right text-slate-500 font-medium">
+                        <td class="py-4 px-6 text-right text-muted font-medium">
                             {{ d.cached_on_hand|floatformat:"-2"|intcomma }}
                         </td>
-                        <td class="py-3 px-4 text-right text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold">
+                        <td class="py-4 px-6 text-right text-indigo-600 dark:text-indigo-400 font-bold">
                             {{ d.ledger_sum|floatformat:"-2"|intcomma }}
                         </td>
-                        <td class="py-3 px-4 text-right font-black text-rose-600 dark:text-rose-400">
+                        <td class="py-4 px-6 text-right font-black text-rose-600 dark:text-rose-400">
                             {{ d.delta|floatformat:"-2"|intcomma }}
                         </td>
-                        <td class="py-3 px-4 text-center font-sans">
+                        <td class="py-4 px-6 text-center font-sans">
                             {% if d.fixed %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
                                 {% trans "Repaired" %}
                             </span>
                             {% else %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/80">
-                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-600 text-white shadow-2xs">
                                 {% trans "Unresolved" %}
                             </span>
                             {% endif %}
@@ -114,13 +111,13 @@
             </table>
         </div>
         {% else %}
-        <div class="p-8 text-center">
-            <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
-                <svg class="w-12 h-12 text-emerald-500 mb-2 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="p-12 text-center">
+            <div class="neu-empty-well max-w-md mx-auto p-8 rounded-2xl flex flex-col items-center">
+                <svg class="w-12 h-12 text-emerald-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "Audit Clean" %}</p>
-                <p class="text-xs text-slate-500 mt-1">{% trans "All cached stock levels precisely match their underlying ledger movement sums." %}</p>
+                <p class="text-base font-bold text-ink">{% trans "Audit Clean" %}</p>
+                <p class="text-xs text-muted mt-1 leading-relaxed">{% trans "All cached stock levels precisely match their underlying ledger movement sums." %}</p>
             </div>
         </div>
         {% endif %}

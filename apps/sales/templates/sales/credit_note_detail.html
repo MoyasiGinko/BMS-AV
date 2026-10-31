@@ -16,11 +16,11 @@
                 </a>
                 <h1 class="text-2xl font-bold tracking-tight text-ink font-mono">{{ credit_note.credit_note_number }}</h1>
                 {% if credit_note.status == 'posted' %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Posted" %}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-600 text-white font-bold shadow-2xs">{% trans "Posted" %}</span>
                 {% elif credit_note.status == 'draft' %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{% trans "Draft" %}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-600 text-white font-bold shadow-2xs">{% trans "Draft" %}</span>
                 {% elif credit_note.status == 'void' %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Void" %}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-600 text-white font-bold shadow-2xs">{% trans "Void" %}</span>
                 {% endif %}
             </div>
             <p class="text-sm text-muted mt-1">
@@ -112,7 +112,7 @@
                         <td class="py-3 px-4 text-right font-mono">${{ line.unit_price }}</td>
                         <td class="py-3 px-4 text-center">
                             {% if line.restock %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Yes" %}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-600 text-white font-bold shadow-2xs">{% trans "Yes" %}</span>
                             {% else %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{% trans "No" %}</span>
                             {% endif %}

@@ -396,9 +396,23 @@ html[data-theme="neumorphic"],
 /* Ensure container cards have generous internal padding (min 24px per design guide) */
 [data-theme="neumorphic"] .card,
 [data-theme="neumorphic"] .bos-card,
+[data-theme="neumorphic"] .neu-card,
+[data-theme="neumorphic"] [class*="neu-card"]:not(.pos-terminal *),
 [data-theme="neumorphic"] article.bos-card,
+[data-theme="neumorphic"] main .bg-surface.rounded-2xl,
+[data-theme="neumorphic"] main .bg-surface.rounded-xl,
+[data-theme="neumorphic"] .neu-stat-card,
+[data-theme="neumorphic"] .neu-filter-card,
+[data-theme="neumorphic"] .neu-table-card,
+[data-theme="neumorphic"] .neu-raised-card,
 [data-theme="neumorphic"] #dashboard-widgets-container > div > div {
-  padding: 24px !important;
+  padding: 24px 28px !important;
+}
+
+[data-theme="neumorphic"] .neu-well,
+[data-theme="neumorphic"] [class*="neu-well"] {
+  padding: 18px 24px !important;
+  border-radius: 20px !important;
 }
 
 /* Dividers must remain flat divider lines with no card shadow */
@@ -437,6 +451,7 @@ html[data-theme="neumorphic"],
 }
 
 [data-theme="neumorphic"] table th {
+  padding: 14px 20px !important;
   color: var(--neu-text-muted) !important;
   font-weight: 700 !important;
   border-bottom: 1px solid var(--neu-line) !important;
@@ -446,6 +461,7 @@ html[data-theme="neumorphic"],
 }
 
 [data-theme="neumorphic"] table td {
+  padding: 14px 20px !important;
   border-bottom: 1px solid var(--neu-line) !important;
   border-top: none !important;
   border-left: none !important;
@@ -536,7 +552,7 @@ html[data-theme="neumorphic"],
   transform: translateY(0) !important;
 }
 
-/* Universal Form Controls: Inset sculpted wells */
+/* Universal Form Controls: Inset sculpted wells with roomy text padding */
 [data-theme="neumorphic"] main input[type="text"],
 [data-theme="neumorphic"] main input[type="number"],
 [data-theme="neumorphic"] main input[type="email"],
@@ -547,13 +563,25 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] main input[type="tel"],
 [data-theme="neumorphic"] main input[type="url"],
 [data-theme="neumorphic"] main select,
-[data-theme="neumorphic"] main textarea {
+[data-theme="neumorphic"] main textarea,
+.form-input,
+.form-select,
+.form-textarea {
   background-color: var(--neu-surface) !important;
   box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light) !important;
-  border: none !important;
+  border: 1px solid var(--neu-line) !important;
   border-radius: 14px !important;
   color: var(--neu-text) !important;
   font-family: var(--neu-font) !important;
+  padding: 12px 18px !important;
+  min-height: 48px;
+  font-size: 0.9375rem !important;
+  line-height: 1.375rem !important;
+}
+
+[data-theme="neumorphic"] main textarea,
+.form-textarea {
+  min-height: 110px;
 }
 
 [data-theme="neumorphic"] main input:focus,
@@ -1500,4 +1528,77 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] h3,
 [data-theme="neumorphic"] h4 {
   color: #1E293B !important; /* Deepest Ink (11.2:1 contrast on #E6E9F2) */
+}
+
+/* ==========================================================================
+   Universal High-Contrast Accessible Badges & Status Pills
+   ========================================================================== */
+[data-theme="neumorphic"] span[class*="bg-emerald-"],
+[data-theme="neumorphic"] span[class*="bg-green-"],
+[data-theme="neumorphic"] .badge-success,
+[data-theme="neumorphic"] .status-pill-success {
+  background-color: #059669 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  padding: 4px 10px !important;
+}
+
+[data-theme="neumorphic"] span[class*="bg-rose-"],
+[data-theme="neumorphic"] span[class*="bg-red-"],
+[data-theme="neumorphic"] .badge-danger,
+[data-theme="neumorphic"] .status-pill-danger {
+  background-color: #E11D48 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  padding: 4px 10px !important;
+}
+
+[data-theme="neumorphic"] span[class*="bg-amber-"],
+[data-theme="neumorphic"] span[class*="bg-yellow-"],
+[data-theme="neumorphic"] .badge-warning,
+[data-theme="neumorphic"] .status-pill-warning {
+  background-color: #D97706 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  padding: 4px 10px !important;
+}
+
+[data-theme="neumorphic"] span[class*="bg-blue-"],
+[data-theme="neumorphic"] span[class*="bg-indigo-600"]:not(a):not(button):not(.neu-subnav-btn):not(.sidebar-brand-icon-box),
+[data-theme="neumorphic"] .badge-info,
+[data-theme="neumorphic"] .status-pill-info {
+  background-color: #2563EB !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  padding: 4px 10px !important;
+}
+
+[data-theme="neumorphic"] span[class*="bg-slate-"],
+[data-theme="neumorphic"] span[class*="bg-gray-"],
+[data-theme="neumorphic"] .badge-neutral,
+[data-theme="neumorphic"] .status-pill-neutral {
+  background-color: #475569 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 2px 2px 6px var(--neu-shadow-dark), -2px -2px 6px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  padding: 4px 10px !important;
+}
+
+/* Remove stray indicator dots inside badge pills */
+[data-theme="neumorphic"] span[class*="rounded-full"] > span[class*="rounded-full"]:empty {
+  display: none !important;
 }

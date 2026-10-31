@@ -4,109 +4,152 @@
 {% block title %}{% trans "Submit Data Subject Request" %} - Business OS{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-  <div>
-    <a href="{% url 'integrations:privacy_requests_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-      &larr; {% trans "Back to Privacy Requests" %}
-    </a>
-    <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
-      {% trans "Submit Data Subject Request" %}
-    </h1>
-    <p class="mt-1 text-sm text-muted">
-      {% trans "Register a GDPR Subject Access Request (SAR export) or Right to Erasure (anonymization) on behalf of a customer, lead, or contact." %}
-    </p>
-  </div>
-
-  <form method="post" class="bg-surface rounded-2xl shadow-sm border border-line p-6 space-y-6">
-    {% csrf_token %}
-
-    {% if form.non_field_errors %}
-      <div class="p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-xl text-sm text-rose-700 dark:rose-300">
-        {{ form.non_field_errors }}
-      </div>
-    {% endif %}
-
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
     <div>
-      <label for="{{ form.request_type.id_for_label }}" class="block text-sm font-medium text-muted">
-        {{ form.request_type.label }}
-      </label>
-      <div class="mt-1">
-        {{ form.request_type }}
-      </div>
-      {% if form.request_type.errors %}
-        <p class="mt-1 text-xs text-rose-600 dark:text-rose-400">{{ form.request_type.errors.0 }}</p>
-      {% endif %}
-    </div>
-
-    <div>
-      <label for="{{ form.subject_email.id_for_label }}" class="block text-sm font-medium text-muted">
-        {{ form.subject_email.label }}
-      </label>
-      <div class="mt-1">
-        {{ form.subject_email }}
-      </div>
-      {% if form.subject_email.help_text %}
-        <p class="mt-1 text-xs text-slate-500">{{ form.subject_email.help_text }}</p>
-      {% endif %}
-      {% if form.subject_email.errors %}
-        <p class="mt-1 text-xs text-rose-600 dark:text-rose-400">{{ form.subject_email.errors.0 }}</p>
-      {% endif %}
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label for="{{ form.subject_name.id_for_label }}" class="block text-sm font-medium text-muted">
-          {{ form.subject_name.label }}
-        </label>
-        <div class="mt-1">
-          {{ form.subject_name }}
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'integrations:privacy_requests_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Privacy Requests" %}
+            </a>
         </div>
-      </div>
-      <div>
-        <label for="{{ form.subject_type.id_for_label }}" class="block text-sm font-medium text-muted">
-          {{ form.subject_type.label }}
-        </label>
-        <div class="mt-1">
-          {{ form.subject_type }}
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+            {% trans "Submit Data Subject Request" %}
+        </h1>
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% trans "Register a GDPR Subject Access Request (SAR export) or Right to Erasure (anonymization) on behalf of a customer, lead, or contact." %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-8 w-full">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <div>{{ form.non_field_errors }}</div>
+            </div>
         </div>
-      </div>
-    </div>
+        {% endif %}
 
-    <div>
-      <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-muted">
-        {{ form.reason.label }}
-      </label>
-      <div class="mt-1">
-        {{ form.reason }}
-      </div>
-    </div>
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: Subject Identification & Request Details -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <!-- Card 1: Request Type & Subject -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Subject Identification" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Type of GDPR action and data subject contact coordinates." %}</p>
+                    </div>
 
-    <div>
-      <label for="{{ form.verification_notes.id_for_label }}" class="block text-sm font-medium text-muted">
-        {{ form.verification_notes.label }}
-      </label>
-      <div class="mt-1">
-        {{ form.verification_notes }}
-      </div>
-      {% if form.verification_notes.help_text %}
-        <p class="mt-1 text-xs text-slate-500">{{ form.verification_notes.help_text }}</p>
-      {% endif %}
-    </div>
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.request_type.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {{ form.request_type.label }} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.request_type }}
+                            {% if form.request_type.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.request_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
 
-    <div class="pt-4 border-t border-line flex items-center justify-end space-x-3">
-      <a
-        href="{% url 'integrations:privacy_requests_list' %}"
-        class="px-4 py-2 border border-line rounded-xl text-sm font-medium text-muted bg-surface hover:bg-surface-2 hover:text-ink transition"
-      >
-        {% trans "Cancel" %}
-      </a>
-      <button
-        type="submit"
-        class="px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
-      >
-        {% trans "Register Request" %}
-      </button>
-    </div>
-  </form>
+                        <div>
+                            <label for="{{ form.subject_email.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {{ form.subject_email.label }} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.subject_email }}
+                            {% if form.subject_email.help_text %}
+                            <p class="mt-1 text-2xs text-slate-400">{{ form.subject_email.help_text }}</p>
+                            {% endif %}
+                            {% if form.subject_email.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.subject_email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.subject_name.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                    {{ form.subject_name.label }}
+                                </label>
+                                {{ form.subject_name }}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.subject_type.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                    {{ form.subject_type.label }}
+                                </label>
+                                {{ form.subject_type }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Reason & Verification -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Reason & Audit Verification" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Verification method used to authenticate data subject identity." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.reason.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {{ form.reason.label }}
+                            </label>
+                            {{ form.reason }}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.verification_notes.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {{ form.verification_notes.label }}
+                            </label>
+                            {{ form.verification_notes }}
+                            {% if form.verification_notes.help_text %}
+                            <p class="mt-1 text-2xs text-slate-400">{{ form.verification_notes.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 4 cols: Compliance & Governance -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <!-- Guidance Box -->
+                <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        {% trans "GDPR Article 17 & 15" %}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {% trans "Right to Erasure replaces PII with pseudonymized tokens while retaining required statutory financial transaction history for accounting compliance." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'integrations:privacy_requests_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {% trans "Register Request" %}
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

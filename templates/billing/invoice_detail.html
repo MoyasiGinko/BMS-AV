@@ -1,118 +1,131 @@
 {% extends "layouts/app.html" %}
 {% load i18n %}
 
-{% block page_title %}{% trans "Invoice" %} {{ invoice.invoice_number }} - Business OS{% endblock %}
-
-{% block page_header %}
-<div class="mb-6 flex items-center justify-between">
-  <div>
-    <div class="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-1">
-      <a href="{% url 'billing:dashboard' %}" class="hover:underline text-[var(--brand-600)]">&larr; {% trans "Back to Billing" %}</a>
-    </div>
-    <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">
-      {% trans "Invoice" %} {{ invoice.invoice_number }}
-    </h1>
-  </div>
-  <div class="flex items-center gap-3">
-    {% if invoice.hosted_invoice_url %}
-      <a
-        href="{{ invoice.hosted_invoice_url }}"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs inline-flex items-center gap-1.5"
-      >
-        <span>{% trans "View in Portal" %}</span>
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-      </a>
-    {% endif %}
-  </div>
-</div>
-{% endblock %}
+{% block title %}{% trans "Invoice" %} {{ invoice.invoice_number }} - Business OS{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-xs space-y-6">
-  <!-- Invoice Header -->
-  <div class="flex justify-between items-start border-b border-[var(--border)] pb-6">
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
     <div>
-      <div class="text-xl font-bold text-[var(--text)]">Business OS</div>
-      <div class="text-xs text-[var(--text-muted)] mt-0.5">Platform Subscription Receipt</div>
-    </div>
-    <div class="text-right">
-      {% if invoice.status == 'paid' %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-          {% trans "PAID" %}
-        </span>
-      {% elif invoice.status == 'open' %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-          {% trans "OPEN" %}
-        </span>
-      {% else %}
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-500/10 text-muted border border-gray-500/20">
-          {{ invoice.status|upper }}
-        </span>
-      {% endif %}
-      <div class="text-xs text-[var(--text-muted)] mt-2 font-mono">
-        {{ invoice.invoice_number }}
-      </div>
-    </div>
-  </div>
-
-  <!-- Meta Info -->
-  <div class="grid grid-cols-2 gap-6 text-xs sm:text-sm">
-    <div>
-      <div class="font-semibold text-[var(--text-muted)] uppercase text-[11px]">{% trans "Billed To" %}</div>
-      <div class="font-bold text-[var(--text)] mt-1">{{ organization.name }}</div>
-      <div class="text-[var(--text-muted)]">{{ organization.slug }}.bos</div>
-    </div>
-    <div class="text-right space-y-1">
-      <div>
-        <span class="text-[var(--text-muted)]">{% trans "Invoice Date" %}:</span>
-        <span class="font-medium text-[var(--text)]">{{ invoice.created_at|date:"M d, Y" }}</span>
-      </div>
-      <div>
-        <span class="text-[var(--text-muted)]">{% trans "Coverage Period" %}:</span>
-        <span class="font-medium text-[var(--text)]">{{ invoice.period_start|date:"M d, Y" }} &ndash; {{ invoice.period_end|date:"M d, Y" }}</span>
-      </div>
-      {% if invoice.paid_at %}
-        <div>
-          <span class="text-[var(--text-muted)]">{% trans "Paid On" %}:</span>
-          <span class="font-medium text-[var(--text)]">{{ invoice.paid_at|date:"M d, Y H:i" }}</span>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'billing:dashboard' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Billing" %}
+            </a>
         </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Line Item -->
-  <div class="border border-[var(--border)] rounded-lg overflow-hidden">
-    <table class="w-full text-left text-xs sm:text-sm">
-      <thead class="bg-[var(--surface-2)] text-[var(--text-muted)] uppercase text-[11px] font-semibold">
-        <tr>
-          <th class="py-2.5 px-4">{% trans "Description" %}</th>
-          <th class="py-2.5 px-4 text-right">{% trans "Amount" %}</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-[var(--border)]">
-        <tr>
-          <td class="py-4 px-4">
-            <div class="font-semibold text-[var(--text)]">Business OS Subscription</div>
-            <div class="text-xs text-[var(--text-muted)]">
-              Coverage for {{ invoice.period_start|date:"M d, Y" }} to {{ invoice.period_end|date:"M d, Y" }}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink font-mono">
+                        {{ invoice.invoice_number }}
+                    </h1>
+                    {% if invoice.status == 'paid' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
+                        {% trans "PAID" %}
+                    </span>
+                    {% elif invoice.status == 'open' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-600 text-white shadow-2xs">
+                        {% trans "OPEN" %}
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-600 text-white shadow-2xs">
+                        {{ invoice.status|upper }}
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+                    Platform Subscription Receipt &bull; {{ invoice.created_at|date:"M d, Y" }}
+                </p>
             </div>
-          </td>
-          <td class="py-4 px-4 text-right font-mono font-bold text-[var(--text)]">
-            ${{ invoice.amount }} {{ invoice.currency }}
-          </td>
-        </tr>
-      </tbody>
-      <tfoot class="bg-[var(--surface-2)] border-t border-[var(--border)]">
-        <tr>
-          <th class="py-3 px-4 font-bold text-[var(--text)]">{% trans "Total Amount" %}</th>
-          <th class="py-3 px-4 text-right font-mono font-extrabold text-[var(--text)] text-base">
-            ${{ invoice.amount }} {{ invoice.currency }}
-          </th>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
+            {% if invoice.hosted_invoice_url %}
+            <div>
+                <a href="{{ invoice.hosted_invoice_url }}" target="_blank" rel="noopener noreferrer" class="neu-btn-primary inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <span>{% trans "View in Stripe Portal" %}</span>
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Bento 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left 8 cols: Invoice Lines -->
+        <div class="col-span-12 lg:col-span-8 space-y-8">
+            <div class="rounded-2xl border border-line bg-surface shadow-xs overflow-hidden">
+                <div class="p-7 sm:p-8 border-b border-line">
+                    <h2 class="text-lg font-bold text-ink">{% trans "Subscription Services" %}</h2>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Itemized billing coverage." %}</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-line text-sm">
+                        <thead class="bg-surface-2 text-muted">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left font-bold uppercase text-2xs tracking-wider">{% trans "Description" %}</th>
+                                <th scope="col" class="px-6 py-4 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Amount" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-line text-ink">
+                            <tr class="hover:bg-surface-2/60 transition-colors">
+                                <td class="px-6 py-6">
+                                    <div class="font-extrabold text-ink text-base">Business OS Platform Subscription</div>
+                                    <div class="text-xs text-slate-400 mt-1 font-medium">
+                                        Coverage for {{ invoice.period_start|date:"M d, Y" }} &mdash; {{ invoice.period_end|date:"M d, Y" }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-6 text-right font-mono font-extrabold text-ink text-lg">
+                                    ${{ invoice.amount }} {{ invoice.currency }}
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-surface-2 font-black font-mono text-ink border-t border-line text-lg">
+                            <tr>
+                                <td class="px-6 py-4 text-right uppercase text-xs tracking-wider font-extrabold text-muted">{% trans "Total Amount" %}</td>
+                                <td class="px-6 py-4 text-right">${{ invoice.amount }} {{ invoice.currency }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right 4 cols: Billed To & Dates -->
+        <div class="col-span-12 lg:col-span-4 space-y-8">
+            <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-5">
+                <div class="border-b border-line pb-3">
+                    <h3 class="text-base font-bold text-ink">{% trans "Billing Details" %}</h3>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Customer account and payment confirmation." %}</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Billed To" %}</span>
+                        <div class="text-base font-extrabold text-ink">{{ organization.name }}</div>
+                        <div class="text-xs text-slate-400 font-mono mt-0.5">{{ organization.slug }}.bos</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Invoice Date" %}</span>
+                        <div class="text-sm font-semibold text-ink">{{ invoice.created_at|date:"M d, Y" }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Coverage Period" %}</span>
+                        <div class="text-sm font-semibold text-muted">{{ invoice.period_start|date:"M d, Y" }} &ndash; {{ invoice.period_end|date:"M d, Y" }}</div>
+                    </div>
+
+                    {% if invoice.paid_at %}
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Paid On" %}</span>
+                        <div class="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ invoice.paid_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

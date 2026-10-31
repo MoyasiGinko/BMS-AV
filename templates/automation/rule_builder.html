@@ -6,53 +6,49 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+<div class="w-full pb-16 space-y-8">
 
   <!-- Breadcrumbs & Header -->
-  <div>
-    <div class="flex items-center space-x-2 text-sm text-muted mb-1">
-      <a href="{% url 'automation:rule_list' %}" class="hover:text-slate-700 dark:hover:text-slate-200">{% trans "Automation" %}</a>
-      <span>/</span>
-      <span class="text-ink">{% if is_new %}{% trans "New Rule" %}{% else %}{% trans "Edit" %}{% endif %}</span>
-    </div>
-    <div class="sm:flex sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">
-          {% if is_new %}{% trans "Create Automation Rule" %}{% else %}{% trans "Edit Automation Rule" %}{% endif %}
-        </h1>
-        <p class="mt-1 text-sm text-muted">
-          {% trans "Define trigger events, declarative condition logic, and parameterized actions." %}
-        </p>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <div class="flex items-center space-x-2 text-sm text-muted mb-1">
+        <a href="{% url 'automation:rule_list' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{% trans "Automation" %}</a>
+        <span>/</span>
+        <span class="text-ink font-semibold">{% if is_new %}{% trans "New Rule" %}{% else %}{% trans "Edit" %}{% endif %}</span>
       </div>
-      {% if not is_new %}
-        <div class="mt-4 sm:mt-0 flex space-x-3">
-          <a href="{% url 'automation:rule_test' rule.public_id %}" class="inline-flex items-center px-3.5 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-sm font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors">
-            <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {% trans "Test Run Rule" %}
-          </a>
-        </div>
-      {% endif %}
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+        {% if is_new %}{% trans "Create Automation Rule" %}{% else %}{% trans "Edit Automation Rule" %}{% endif %}
+      </h1>
+      <p class="mt-1 text-sm text-muted font-medium">
+        {% trans "Define trigger events, declarative condition logic, and parameterized actions." %}
+      </p>
     </div>
+    {% if not is_new %}
+      <div class="flex items-center gap-3">
+        <a href="{% url 'automation:rule_test' rule.public_id %}" class="inline-flex items-center px-4 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-sm font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-500/20 transition-colors">
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {% trans "Test Run Rule" %}
+        </a>
+      </div>
+    {% endif %}
   </div>
 
-  <!-- Form Card -->
-  <form method="post" class="space-y-6">
+  <!-- Form Bento Layout -->
+  <form method="post" class="space-y-8">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
-      <div class="rounded-lg bg-rose-50 dark:bg-rose-950/50 p-4 border border-rose-200 dark:border-rose-800">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-rose-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-rose-800 dark:text-rose-200">{% trans "Error saving rule" %}</h3>
-            <div class="mt-1 text-xs text-rose-700 dark:text-rose-300">
+      <div class="rounded-2xl bg-rose-500/10 p-5 border border-rose-500/20">
+        <div class="flex items-center gap-3">
+          <svg class="h-5 w-5 text-rose-600 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+          <div>
+            <h3 class="text-sm font-bold text-rose-700 dark:text-rose-400">{% trans "Error saving rule" %}</h3>
+            <div class="mt-0.5 text-xs text-rose-600 font-medium">
               {{ form.non_field_errors }}
             </div>
           </div>
@@ -60,134 +56,148 @@
       </div>
     {% endif %}
 
-    <!-- General Settings -->
-    <div class="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-4">
-      <h2 class="text-base font-semibold text-ink border-b border-slate-100 dark:border-slate-800 pb-3">
-        {% trans "General Configuration" %}
-      </h2>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-            {{ form.name.label }}
-          </label>
-          {{ form.name }}
-          {% if form.name.errors %}<p class="mt-1 text-xs text-rose-600">{{ form.name.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-            {{ form.description.label }}
-          </label>
-          {{ form.description }}
-          {% if form.description.errors %}<p class="mt-1 text-xs text-rose-600">{{ form.description.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-            {{ form.trigger_type.label }}
-          </label>
-          {{ form.trigger_type }}
-          {% if form.trigger_type.errors %}<p class="mt-1 text-xs text-rose-600">{{ form.trigger_type.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-muted uppercase tracking-wider mb-1">
-            {{ form.trigger_event.label }}
-          </label>
-          {{ form.trigger_event }}
-          <p class="mt-1 text-[11px] text-slate-400">e.g. stock.low, invoice.overdue, customer.inactive, order.confirmed</p>
-          {% if form.trigger_event.errors %}<p class="mt-1 text-xs text-rose-600">{{ form.trigger_event.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div class="sm:col-span-2 flex items-center pt-2">
-          <label class="flex items-center space-x-2 cursor-pointer">
-            {{ form.is_active }}
-            <span class="text-sm font-medium text-ink">{{ form.is_active.label }}</span>
-          </label>
-          <span class="ml-2 text-xs text-slate-400">({% trans "Active rules evaluate on incoming events" %})</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Conditions Configuration -->
-    <div class="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-        <div>
-          <h2 class="text-base font-semibold text-ink">
-            {% trans "Condition Rules (Filter Criteria)" %}
+    <!-- 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Main Configuration Column (8 cols) -->
+      <div class="lg:col-span-8 space-y-8">
+        <!-- General Configuration Card -->
+        <div class="card p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+          <h2 class="text-lg font-bold text-ink border-b border-line pb-4">
+            {% trans "General Configuration" %}
           </h2>
-          <p class="text-xs text-muted mt-0.5">
-            {% trans "Declarative conditions checked against event data before running actions." %}
-          </p>
-        </div>
-        <span class="text-xs font-mono bg-surface-2 px-2 py-0.5 rounded text-muted">
-          JSON Array
-        </span>
-      </div>
 
-      <div>
-        {{ form.conditions_json }}
-        {% if form.conditions_json.errors %}<p class="mt-1 text-xs text-rose-600">{{ form.conditions_json.errors.0 }}</p>{% endif %}
-      </div>
-
-      <div class="bg-slate-50 dark:bg-slate-950/40 rounded-xl p-3 border border-slate-100 dark:border-slate-800/80">
-        <span class="text-xs font-semibold text-muted">Supported Operators:</span>
-        <div class="mt-1 flex flex-wrap gap-1 text-[11px] font-mono text-muted">
-          <span class="bg-surface px-1.5 py-0.5 rounded border border-line">equals</span>
-          <span class="bg-surface px-1.5 py-0.5 rounded border border-line">not_equals</span>
-          <span class="bg-surface px-1.5 py-0.5 rounded border border-line">greater_than</span>
-          <span class="bg-surface px-1.5 py-0.5 rounded border border-line">less_than</span>
-          <span class="bg-surface px-1.5 py-0.5 rounded border border-line">in</span>
-          <span class="bg-surface px-1.5 py-0.5 rounded border border-line">contains</span>
-          <span class="bg-surface px-1.5 py-0.5 rounded border border-line">is_empty</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Actions Configuration -->
-    <div class="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-        <div>
-          <h2 class="text-base font-semibold text-ink">
-            {% trans "Actions (Execution Sequence)" %}
-          </h2>
-          <p class="text-xs text-muted mt-0.5">
-            {% trans "Operations to trigger sequentially when conditions evaluate to True." %}
-          </p>
-        </div>
-        <span class="text-xs font-mono bg-surface-2 px-2 py-0.5 rounded text-muted">
-          JSON Array
-        </span>
-      </div>
-
-      <div>
-        {{ form.actions_json }}
-        {% if form.actions_json.errors %}<p class="mt-1 text-xs text-rose-600">{{ form.actions_json.errors.0 }}</p>{% endif %}
-      </div>
-
-      <!-- Action Catalog chips -->
-      <div>
-        <span class="text-xs font-semibold text-muted">Available Action Handlers:</span>
-        <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {% for action in available_actions %}
-            <div class="rounded-lg border border-line p-2.5 bg-surface-2/50 text-xs">
-              <span class="font-semibold text-ink">{{ action.label }}</span>
-              <span class="font-mono text-indigo-600 dark:text-indigo-400 ml-1">({{ action.key }})</span>
-              <p class="text-[11px] text-muted mt-0.5">{{ action.description }}</p>
+          <div class="space-y-6">
+            <div>
+              <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                {{ form.name.label }} <span class="text-rose-500">*</span>
+              </label>
+              {{ form.name }}
+              {% if form.name.errors %}<p class="mt-1 text-xs text-rose-600 font-medium">{{ form.name.errors.0 }}</p>{% endif %}
             </div>
-          {% endfor %}
+
+            <div>
+              <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                {{ form.description.label }}
+              </label>
+              {{ form.description }}
+              {% if form.description.errors %}<p class="mt-1 text-xs text-rose-600 font-medium">{{ form.description.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div>
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                  {{ form.trigger_type.label }} <span class="text-rose-500">*</span>
+                </label>
+                {{ form.trigger_type }}
+                {% if form.trigger_type.errors %}<p class="mt-1 text-xs text-rose-600 font-medium">{{ form.trigger_type.errors.0 }}</p>{% endif %}
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                  {{ form.trigger_event.label }} <span class="text-rose-500">*</span>
+                </label>
+                {{ form.trigger_event }}
+                <p class="mt-1 text-2xs text-muted font-medium">e.g. stock.low, invoice.overdue, customer.inactive, order.confirmed</p>
+                {% if form.trigger_event.errors %}<p class="mt-1 text-xs text-rose-600 font-medium">{{ form.trigger_event.errors.0 }}</p>{% endif %}
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60 flex items-center">
+              <label class="flex items-center space-x-3 cursor-pointer">
+                {{ form.is_active }}
+                <span class="text-sm font-bold text-ink">{{ form.is_active.label }}</span>
+              </label>
+              <span class="ml-3 text-xs text-muted font-medium">({% trans "Active rules evaluate continuously on incoming events" %})</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conditions Configuration -->
+        <div class="card p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+          <div class="flex items-center justify-between border-b border-line pb-4">
+            <div>
+              <h2 class="text-lg font-bold text-ink">
+                {% trans "Condition Rules (Filter Criteria)" %}
+              </h2>
+              <p class="text-xs text-muted mt-1 font-medium">
+                {% trans "Declarative conditions checked against event data before running actions." %}
+              </p>
+            </div>
+            <span class="text-xs font-mono font-bold bg-surface-2 px-3 py-1 rounded-lg text-ink border border-line">
+              JSON Array
+            </span>
+          </div>
+
+          <div>
+            {{ form.conditions_json }}
+            {% if form.conditions_json.errors %}<p class="mt-1 text-xs text-rose-600 font-medium">{{ form.conditions_json.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div class="neu-well p-5 rounded-xl border border-line/60 bg-surface-2/40">
+            <span class="text-xs font-bold uppercase tracking-wider text-muted block mb-2">{% trans "Supported Operators:" %}</span>
+            <div class="flex flex-wrap gap-2 text-xs font-mono">
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-line text-ink font-semibold">equals</span>
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-line text-ink font-semibold">not_equals</span>
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-line text-ink font-semibold">greater_than</span>
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-line text-ink font-semibold">less_than</span>
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-line text-ink font-semibold">in</span>
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-line text-ink font-semibold">contains</span>
+              <span class="bg-surface px-2.5 py-1 rounded-lg border border-line text-ink font-semibold">is_empty</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions Configuration -->
+        <div class="card p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+          <div class="flex items-center justify-between border-b border-line pb-4">
+            <div>
+              <h2 class="text-lg font-bold text-ink">
+                {% trans "Actions (Execution Sequence)" %}
+              </h2>
+              <p class="text-xs text-muted mt-1 font-medium">
+                {% trans "Operations to trigger sequentially when conditions evaluate to True." %}
+              </p>
+            </div>
+            <span class="text-xs font-mono font-bold bg-surface-2 px-3 py-1 rounded-lg text-ink border border-line">
+              JSON Array
+            </span>
+          </div>
+
+          <div>
+            {{ form.actions_json }}
+            {% if form.actions_json.errors %}<p class="mt-1 text-xs text-rose-600 font-medium">{{ form.actions_json.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Catalog Sidebar Column (4 cols) -->
+      <div class="lg:col-span-4 space-y-8">
+        <div class="card p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-4">
+          <h2 class="text-lg font-bold text-ink border-b border-line pb-4">
+            {% trans "Available Handlers" %}
+          </h2>
+          <div class="space-y-3">
+            {% for action in available_actions %}
+              <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40 text-xs space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-ink text-sm">{{ action.label }}</span>
+                  <span class="font-mono text-xs text-indigo-600 dark:text-indigo-400 font-bold">{{ action.key }}</span>
+                </div>
+                <p class="text-muted leading-relaxed font-medium">{{ action.description }}</p>
+              </div>
+            {% endfor %}
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Submit bar -->
-    <div class="flex items-center justify-end space-x-3 pt-2">
-      <a href="{% url 'automation:rule_list' %}" class="px-4 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-muted hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
+    <!-- Grounded Bottom Action Bar (Symmetrical & Clean) -->
+    <div class="card p-5 sm:p-6 rounded-2xl border border-line bg-surface shadow-xs flex items-center justify-between gap-4 mt-8">
+      <a href="{% url 'automation:rule_list' %}" class="min-h-[48px] inline-flex items-center justify-center px-6 py-3 rounded-xl border border-line bg-surface-2/60 hover:bg-surface-2 text-sm font-bold text-muted hover:text-ink transition-colors cursor-pointer">
         {% trans "Cancel" %}
       </a>
-      <button type="submit" class="px-5 py-2 rounded-lg bg-indigo-600 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 transition-colors">
-        {% if is_new %}{% trans "Create Rule" %}{% else %}{% trans "Save Changes" %}{% endif %}
+      <button type="submit" class="min-h-[48px] inline-flex items-center justify-center px-8 py-3 rounded-xl bg-indigo-600 text-sm font-bold text-white shadow-md hover:bg-indigo-700 active:scale-95 transition-all cursor-pointer">
+        {% if is_new %}{% trans "Create Automation Rule" %}{% else %}{% trans "Save Changes" %}{% endif %}
       </button>
     </div>
   </form>
