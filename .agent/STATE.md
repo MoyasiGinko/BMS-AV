@@ -4,6 +4,19 @@
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Symmetrical Header Container Padding in Accounting:
+    - User Request: "you didnt fix the padding" with screenshot of the "Income & Expenses" header container showing zero top/horizontal padding.
+    - Root Cause Analysis:
+      - The header row had `pb-4 border-b border-line` with no top or horizontal padding (`pt-0 px-0`). Under neumorphic theme styling, `div[class*="border-line"]` turned it into an extruded container box, causing content to be crammed flush against the top and left edges.
+    - Resolutions Implemented:
+      - Upgraded "Income & Expenses" and "Where Money Went" headers to `p-5 sm:px-6 sm:py-4 rounded-2xl border border-line min-h-[84px] mb-6`, establishing generous 20px vertical and 24px horizontal padding on all sides.
+      - Standardized "Where Money Went" subtitle copy to a concise single line (`Recorded spending by category.`) ensuring exact 84px height parity with "Income & Expenses".
+      - Added full symmetric padding (`p-5 sm:p-6 rounded-2xl border border-line`) to the financial performance footer stats strip.
+      - Added symmetric padding (`p-4 sm:px-5 sm:py-3.5 rounded-xl border border-line min-h-[58px] mb-4`) to Connected Bank Accounts and Recent Journal Entries headers.
+    - Empirical Verification:
+      - Validated live on Chrome DevTools (`http://127.0.0.1:8000/accounting/`).
+      - All 35 pytest accounting tests passing in 28s.
+
   - Pixel-Perfect Header Alignment, Bottom Padding & Standard Financial Formatting in Accounting:
     - User Request: "some contents and texts visibility issues, and the properalignment and padding issues, please fix them all" accompanied by 4 screenshots highlighting:
       1. Header baseline alignment mismatch between "Income & Expenses" and "Where Money Went".
