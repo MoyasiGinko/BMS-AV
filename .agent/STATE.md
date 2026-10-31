@@ -1,11 +1,32 @@
-# Build State (updated by the agent after every task)
-
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Clean Human-Centered Accounting Dashboard & Accessible Typography
+- Last completed task: Pixel-Perfect Header Alignment, Bottom Padding & Standard Financial Formatting in Accounting
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Pixel-Perfect Header Alignment, Bottom Padding & Standard Financial Formatting in Accounting:
+    - User Request: "some contents and texts visibility issues, and the properalignment and padding issues, please fix them all" accompanied by 4 screenshots highlighting:
+      1. Header baseline alignment mismatch between "Income & Expenses" and "Where Money Went".
+      2. Bottom progress bar clipping on the "Utilities Expense" category inside "Where Money Went".
+      3. Stats footer label spacing flush with divider, unformatted numbers without commas ($7152.15, $89425.00), and negative currency formatted awkwardly as $-82272.85.
+      4. Mismatched vertical heights between Connected Bank Accounts (1 account) and Recent Journal Entries (6 entries), plus raw unformatted decimal $46500.0000.
+    - Resolutions Implemented:
+      1. Header Baseline Alignment:
+         - Standardized both "Income & Expenses" and "Where Money Went" cards with `min-h-[64px]`, `p-7 lg:p-8`, `flex items-center justify-between pb-4 border-b border-line`, guaranteeing identical horizontal baseline alignment.
+      2. Progress Bar Visibility & Padding:
+         - Added visible sunken tracks (`bg-slate-200/80 dark:bg-slate-700/60 shadow-inner h-2.5 rounded-full mt-2`) with `min-width: 8px` on bars so low percentages (0.6% on Utilities) render as clean, distinct pills instead of floating 2px specks.
+         - Provided generous bottom padding (`pb-4`) preventing any clipping against the card's 20px rounded corners.
+         - Reduced donut center typography from `text-2xl` to `text-xl font-extrabold font-mono` to prevent text brushing against the donut arc.
+      3. Human Financial Currency Formatting:
+         - Implemented `format_currency` helper in `apps/accounting/selectors.py` guaranteeing standard negative accounting format `-$82,272.85` (minus sign preceding dollar sign) and comma-separated thousands (`$7,152.15`, `$89,425.00`, `$46,500.00`).
+         - Added `mb-1.5` to footer stats labels to prevent flush contact with top divider lines.
+      4. Balanced Bottom Grid Symmetry:
+         - Formatted bank account balances to standard 2-decimal format (`$46,500.00`).
+         - Enhanced Connected Bank Accounts with cash-on-hand liquidity indicator and real-time reconciliation badge, matching 4 recent journal entries in a symmetrical 495px height layout with shared bottom action footers.
+    - Verification:
+      - Empirically inspected and verified in Chrome DevTools on `http://127.0.0.1:8000/accounting/` across all viewports.
+      - 35/35 pytest tests passed in 32s.
+      - Ruff lint passed with 0 errors.
   - Clean Human-Centered Accounting Dashboard & Accessible Typography:
     - User Request: "make the accounting dashboard much more clean and less ai like, and use good easy sentence and proopper spacing and padding, also bigger texts for accessibility".
     - Improvements Implemented:
