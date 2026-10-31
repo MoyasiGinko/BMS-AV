@@ -1,11 +1,22 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Lean Navigation Tabs & Header Subtitles Removal
+- Last completed task: Individual Standalone Navigation Buttons & Zero Clustered Background Container
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Individual Standalone Navigation Buttons & Zero Clustered Background Container:
+    - User Request: "i told you each buttons to be an individual buttoon not under one clustered bg" and "no need for subtties and also the button's bg container color and shadow effect not needed".
+    - Eliminated Clustered Background Container:
+      - Stripped all background container colors, borders, and shadows from wrapping containers (div:has(> nav[aria-label*="Tabs"]), nav[aria-label*="Tabs"], .neu-nav-track), ensuring tabs sit directly on the page background without any surrounding card or tray.
+    - True Standalone Individual Buttons:
+      - Transformed navigation tabs into independent tactile buttons (.neu-subnav-btn) with 10px spacing (gap: 10px / gap-2.5 sm:gap-3), smooth rounded corners (12px), and individual shadows.
+      - Active tab renders as an individual highlighted button with solid indigo background (#4F46E5), bold white text, and crisp white SVG icon.
+      - Inactive tabs render as standalone raised buttons with tactile surface (var(--neu-surface)), dark slate ink text (#262B45), and subtle dual shadows (4px 4px 8px var(--neu-shadow-dark), -3px -3px 7px var(--neu-shadow-light)).
+      - Applied across Accounting, Purchasing, Inventory, Sales Invoices, Sales Orders, Catalog, CRM, HR, Payroll, Reports, Settings, and POS.
+    - Recompiled production Tailwind CSS and bumped static cache-buster to ?v=3.1.0 in templates/layouts/base.html.
+    - Empirical Verification: Tested and visually verified across Accounting Overview, Purchasing Suppliers, Inventory Stock Levels, Sales Invoices, Sales Orders, Catalog Products, CRM Pipeline, and Settings General using Chrome DevTools. All 51/51 pytest tests passed cleanly.
   - Lean Navigation Tabs & Subtitle Elimination:
     - User Request: "no need for subtties and also the button's bg container color and shadow effect not needed".
     - Removed Descriptive Subtitles: Stripped generic `<p class="text-sm ... mt-1">...</p>` subtitle headers across 79 templates (Accounting, HR, Payroll, Reports, Purchasing, Inventory, Customers, CRM, Catalog, Settings, Billing, Help), giving headers a compact, clean, executive appearance.

@@ -1,0 +1,29 @@
+{% load i18n %}
+<div class="overflow-x-auto no-scrollbar py-2">
+    <nav class="flex items-center gap-2.5 sm:gap-3 flex-wrap" aria-label="POS Navigation Tabs">
+        <!-- Terminal -->
+        <a href="{% url 'pos:terminal' %}"
+           class="neu-subnav-btn {% if active_tab == 'terminal' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            {% trans "Terminal" %}
+        </a>
+        <!-- Cashier Shifts -->
+        <a href="{% url 'pos:shift_list' %}"
+           class="neu-subnav-btn {% if active_tab == 'shifts' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {% trans "Cashier Shifts" %}
+        </a>
+        <!-- Registers -->
+        <a href="{% url 'pos:register_list' %}"
+           class="neu-subnav-btn {% if active_tab == 'registers' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            {% trans "Registers" %}
+        </a>
+    </nav>
+</div>

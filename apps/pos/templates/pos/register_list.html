@@ -24,19 +24,7 @@
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="border-b border-line">
-        <nav class="flex space-x-8" aria-label="Tabs">
-            <a href="{% url 'pos:terminal' %}" class="border-transparent text-slate-500 hover:text-slate-700 py-3 px-1 border-b-2 font-medium text-sm">
-                {% trans "Terminal" %}
-            </a>
-            <a href="{% url 'pos:shift_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 py-3 px-1 border-b-2 font-medium text-sm">
-                {% trans "Cashier Shifts" %}
-            </a>
-            <a href="{% url 'pos:register_list' %}" class="border-indigo-500 text-indigo-600 dark:text-indigo-400 py-3 px-1 border-b-2 font-medium text-sm">
-                {% trans "Registers" %}
-            </a>
-        </nav>
-    </div>
+    {% include "pos/partials/_navigation_tabs.html" with active_tab="registers" %}
 
     <!-- Registers Table -->
     <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
