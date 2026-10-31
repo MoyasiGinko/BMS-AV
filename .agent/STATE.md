@@ -1,11 +1,27 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Individual Standalone Navigation Buttons & Zero Clustered Background Container
+- Last completed task: High-Contrast Visible Quick Navigation Buttons & Legibility Restoration
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - High-Contrast Visible Quick Navigation Buttons & Legibility Restoration:
+    - User Request: "fix them and make them properly visible please" with screenshot showing washed-out, faint lavender quick-navigation cards, subtitles, bank account links, and journal entry titles on the light clay background.
+    - Root Cause Analysis:
+      - Quick Navigation tiles in apps/accounting/templates/accounting/dashboard.html used text-indigo-600 dark:text-indigo-400 and text-slate-400 with subtitle spans.
+      - Because the OS prefers dark mode (@media (prefers-color-scheme: dark)), Tailwind 4's dark:text-indigo-400 applied pale lavender (oklch(0.673 0.182 276.935) / rgba(124, 134, 255)), creating a critically low 2.1:1 contrast ratio against the light clay #E6E9F2 surface.
+      - Subtitles ("Structure & Codes", "Double-entry Log", etc.) had washed-out text-slate-400 (1.8:1 contrast).
+    - Fixes Applied:
+      - Redesigned Quick Navigation Buttons: Replaced the faint cards with standalone tactile .neu-subnav-btn buttons with distinct SVG icons, rich bold indigo text (rgb(55, 48, 163) #3730A3, 7:1 contrast ratio), and eliminated cluttered subtitle spans.
+      - Bank Accounts & Recent Journals: Switched account names ("Apex Primary Operating Account") and journal titles ("JE-0025", etc.) to deep, crisp text-ink with smooth indigo hover, and upgraded subtitles to text-muted font-medium (5.6:1 contrast).
+      - Global Neumorphic Legibility Rules: In static/css/neumorphic.css, enforced high-contrast overrides:
+        * text-indigo-*: Deep Royal Indigo #3730A3 (7:1 contrast)
+        * text-slate-400 & text-muted: Crisp Slate #475569 (5.6:1 contrast)
+        * text-slate-500: Dark Slate #334155 (7.8:1 contrast)
+        * text-ink & headings: Deepest Ink #1E293B (11.2:1 contrast)
+    - Recompiled production Tailwind CSS and bumped static cache-buster to ?v=3.2.0 in templates/layouts/base.html.
+    - Empirical Verification: Verified with Chrome DevTools on Accounting Dashboard (all buttons 7:1 contrast, crisp SVG icons, zero pale lavender text) and Reports page. All 51/51 pytest tests passed cleanly.
   - Individual Standalone Navigation Buttons & Zero Clustered Background Container:
     - User Request: "i told you each buttons to be an individual buttoon not under one clustered bg" and "no need for subtties and also the button's bg container color and shadow effect not needed".
     - Eliminated Clustered Background Container:

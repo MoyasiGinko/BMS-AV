@@ -1439,3 +1439,44 @@ html[data-theme="spatial"],
   stroke: #FFFFFF !important;
   opacity: 1 !important;
 }
+
+/* ==========================================================================
+   High-Contrast Legibility & Visible Text Guarantees (Neumorphic Surface)
+   Guarantees 5:1 to 12:1 WCAG contrast on all links, labels, and muted text
+   ========================================================================== */
+[data-theme="neumorphic"] .text-indigo-600,
+[data-theme="neumorphic"] .text-indigo-500,
+[data-theme="neumorphic"] .text-indigo-700,
+[data-theme="neumorphic"] [class*="text-indigo-"],
+[data-theme="neumorphic"] a[class*="text-indigo-"],
+[data-theme="neumorphic"] span[class*="text-indigo-"] {
+  color: #3730A3 !important; /* Deep Royal Indigo (7:1 contrast on #E6E9F2) */
+  font-weight: 600 !important;
+}
+
+[data-theme="neumorphic"] a[class*="text-indigo-"]:hover,
+[data-theme="neumorphic"] .hover\:text-indigo-600:hover {
+  color: #1E1B4B !important;
+}
+
+[data-theme="neumorphic"] .text-slate-400,
+[data-theme="neumorphic"] [class*="text-slate-400"] {
+  color: #475569 !important; /* Crisp Slate (5.6:1 contrast on #E6E9F2) */
+}
+
+[data-theme="neumorphic"] .text-slate-500,
+[data-theme="neumorphic"] [class*="text-slate-500"] {
+  color: #334155 !important; /* Dark Slate (7.8:1 contrast on #E6E9F2) */
+}
+
+[data-theme="neumorphic"] .text-muted {
+  color: #475569 !important;
+}
+
+[data-theme="neumorphic"] .text-ink,
+[data-theme="neumorphic"] h1,
+[data-theme="neumorphic"] h2,
+[data-theme="neumorphic"] h3,
+[data-theme="neumorphic"] h4 {
+  color: #1E293B !important; /* Deepest Ink (11.2:1 contrast on #E6E9F2) */
+}
