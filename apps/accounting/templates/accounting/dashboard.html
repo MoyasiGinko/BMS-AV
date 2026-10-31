@@ -82,11 +82,11 @@
         <!-- Income & Expenses (8 cols) -->
         <div class="lg:col-span-8 bg-surface border border-line rounded-2xl p-7 lg:p-8 shadow-xs neu-card flex flex-col justify-between">
             <div>
-                <!-- Header with Exact Pixel Alignment -->
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-line min-h-[64px]">
+                <!-- Header with Symmetrical Padding and Exact Pixel Alignment -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 sm:px-6 sm:py-4 rounded-2xl border border-line min-h-[84px] mb-6">
                     <div>
                         <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Income & Expenses" %}</h2>
-                        <p class="text-sm text-slate-500 mt-0.5 font-medium">{% trans "Sales revenue versus operating costs (last 6 months)." %}</p>
+                        <p class="text-sm text-slate-500 mt-1 font-medium">{% trans "Sales revenue versus operating costs (last 6 months)." %}</p>
                     </div>
                     <!-- View toggle using design system neu-segmented -->
                     <div class="neu-segmented self-start sm:self-auto shrink-0">
@@ -105,8 +105,8 @@
                 </div>
             </div>
 
-            <!-- Financial Performance Footer Stats Strip -->
-            <div class="mt-6 pt-5 border-t border-line grid grid-cols-1 sm:grid-cols-3 gap-6 text-left pb-1">
+            <!-- Financial Performance Footer Stats Strip with Proper Padding -->
+            <div class="mt-6 p-5 sm:p-6 rounded-2xl border border-line grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
                 <div>
                     <span class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">{% trans "Total Money In (6M)" %}</span>
                     <div class="text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
@@ -131,11 +131,11 @@
         <!-- Where Money Went (4 cols) -->
         <div class="lg:col-span-4 bg-surface border border-line rounded-2xl p-7 lg:p-8 shadow-xs neu-card flex flex-col justify-between">
             <div>
-                <!-- Header with Matching Pixel Alignment -->
-                <div class="flex items-center justify-between gap-3 pb-4 border-b border-line min-h-[64px]">
+                <!-- Header with Matching Pixel Alignment & Padding -->
+                <div class="flex items-center justify-between gap-3 p-5 sm:px-6 sm:py-4 rounded-2xl border border-line min-h-[84px] mb-6">
                     <div>
                         <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Where Money Went" %}</h2>
-                        <p class="text-sm text-slate-500 mt-0.5 font-medium">{% trans "Breakdown of business spending by category." %}</p>
+                        <p class="text-sm text-slate-500 mt-1 font-medium">{% trans "Recorded spending by category." %}</p>
                     </div>
                     <span class="text-xs font-extrabold font-mono px-3 py-1.5 rounded-xl bg-surface-2 text-ink border border-line/60 shrink-0">
                         {{ expense_breakdown.fmt_total_amount }} {% trans "Total" %}
@@ -226,10 +226,10 @@
         <!-- Connected Bank Accounts -->
         <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden neu-card p-7 flex flex-col justify-between h-full">
             <div>
-                <div class="pb-4 border-b border-line flex items-center justify-between min-h-[52px]">
+                <div class="p-4 sm:px-5 sm:py-3.5 rounded-xl border border-line flex items-center justify-between min-h-[58px] mb-4">
                     <div>
                         <h3 class="text-lg font-bold text-ink">{% trans "Connected Bank Accounts" %}</h3>
-                        <p class="text-sm text-slate-500 mt-0.5 font-medium">{% trans "Operating cash and current reconciled balances." %}</p>
+                        <p class="text-xs text-slate-500 mt-0.5 font-medium">{% trans "Operating cash and current reconciled balances." %}</p>
                     </div>
                     <a href="{% url 'accounting:bank_account_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
                         {% trans "Manage all" %} &rarr;
@@ -294,10 +294,10 @@
         <!-- Recent Journals -->
         <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden neu-card p-7 flex flex-col justify-between h-full">
             <div>
-                <div class="pb-4 border-b border-line flex items-center justify-between min-h-[52px]">
+                <div class="p-4 sm:px-5 sm:py-3.5 rounded-xl border border-line flex items-center justify-between min-h-[58px] mb-4">
                     <div>
                         <h3 class="text-lg font-bold text-ink">{% trans "Recent Journal Entries" %}</h3>
-                        <p class="text-sm text-slate-500 mt-0.5 font-medium">{% trans "Latest entries posted to the general ledger." %}</p>
+                        <p class="text-xs text-slate-500 mt-0.5 font-medium">{% trans "Latest entries posted to the general ledger." %}</p>
                     </div>
                     <a href="{% url 'accounting:journal_list' %}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
                         {% trans "View all" %} &rarr;
