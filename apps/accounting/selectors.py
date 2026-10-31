@@ -11,6 +11,7 @@ from django.db.models import QuerySet, Sum
 from apps.accounting.models import (
     Account,
     AccountMapping,
+    AccountType,
     BankAccount,
     BankReconciliation,
     BankTransaction,
@@ -357,17 +358,92 @@ def list_exchange_rates(
     return qs.order_by("-effective_date", "from_currency", "to_currency")
 
 
+def _calculate_gl_kpi_totals(*, organization_id: int) -> dict[str, Decimal]:
+    lines_qs = JournalLine.all_tenants.filter(
+        organization_id=organization_id,
+        entry__status=JournalEntry.STATUS_POSTED,
+    )
+    acc_totals = lines_qs.values(
+        "account_id", "account__type", "account__name", "account__code"
+    ).annotate(
+        tot_debit=Sum("debit"),
+        tot_credit=Sum("credit"),
+    )
+
+    totals = {
+        "assets": DECIMAL_ZERO,
+        "liabilities": DECIMAL_ZERO,
+        "equity": DECIMAL_ZERO,
+        "revenue": DECIMAL_ZERO,
+        "expense": DECIMAL_ZERO,
+        "ar": DECIMAL_ZERO,
+        "ap": DECIMAL_ZERO,
+    }
+
+    key_map = {
+        AccountType.ASSET: "assets",
+        AccountType.LIABILITY: "liabilities",
+        AccountType.EQUITY: "equity",
+        AccountType.REVENUE: "revenue",
+        AccountType.EXPENSE: "expense",
+    }
+
+    for row in acc_totals:
+        t = row["account__type"]
+        d = row["tot_debit"] or DECIMAL_ZERO
+        c = row["tot_credit"] or DECIMAL_ZERO
+        code = row["account__code"]
+        name_lower = (row["account__name"] or "").lower()
+
+        is_debit = t in (AccountType.ASSET, AccountType.EXPENSE)
+        bal = (d - c) if is_debit else (c - d)
+        if bal > 0 and (key := key_map.get(t)):
+            totals[key] += bal
+
+        if t == AccountType.ASSET and (code == "1100" or "receivable" in name_lower):
+            totals["ar"] += bal
+        elif t == AccountType.LIABILITY and (code == "2000" or "payable" in name_lower):
+            totals["ap"] += bal
+
+    return totals
+
+
 def get_accounting_summary(
     *,
     organization_id: int,
 ) -> dict[str, Any]:
-    """Summary metrics for the accounting overview screen."""
+    """Comprehensive summary metrics and accounting KPIs for the overview screen."""
     bank_balance = (
         BankAccount.all_tenants.filter(organization_id=organization_id, is_active=True).aggregate(
             tot=Sum("current_balance")
         )["tot"]
         or DECIMAL_ZERO
     )
+
+    gl_totals = _calculate_gl_kpi_totals(organization_id=organization_id)
+    total_assets_sum = gl_totals["assets"]
+    total_liabilities_sum = gl_totals["liabilities"]
+    total_equity_sum = gl_totals["equity"]
+    revenue_sum = gl_totals["revenue"]
+    expense_sum = gl_totals["expense"]
+    ar_balance = gl_totals["ar"]
+    ap_balance = gl_totals["ap"]
+
+    effective_assets = total_assets_sum + (bank_balance if bank_balance > 0 else DECIMAL_ZERO)
+    working_capital = effective_assets - total_liabilities_sum
+    current_ratio = (
+        round(effective_assets / total_liabilities_sum, 2)
+        if total_liabilities_sum > 0
+        else Decimal("0.00")
+    )
+    quick_assets = ar_balance + bank_balance
+    quick_ratio = (
+        round(quick_assets / total_liabilities_sum, 2)
+        if total_liabilities_sum > 0
+        else Decimal("0.00")
+    )
+    net_income = revenue_sum - expense_sum
+
     today = datetime.date.today()
     first_of_month = today.replace(day=1)
     month_expenses = (
@@ -379,14 +455,166 @@ def get_accounting_summary(
         ).aggregate(tot=Sum("total_amount"))["tot"]
         or DECIMAL_ZERO
     )
-    accounts_count = Account.all_tenants.filter(organization_id=organization_id, is_active=True).count()
+    accounts_count = Account.all_tenants.filter(
+        organization_id=organization_id, is_active=True
+    ).count()
     unreconciled_tx_count = BankTransaction.all_tenants.filter(
         organization_id=organization_id, is_reconciled=False
     ).count()
 
     return {
         "bank_balance": bank_balance,
+        "total_assets": effective_assets,
+        "total_liabilities": total_liabilities_sum,
+        "total_equity": total_equity_sum,
+        "revenue_ytd": revenue_sum,
+        "expense_ytd": expense_sum,
+        "net_income": net_income,
+        "working_capital": working_capital,
+        "current_ratio": current_ratio,
+        "quick_ratio": quick_ratio,
+        "ar_balance": ar_balance,
+        "ap_balance": ap_balance,
         "month_expenses": month_expenses,
         "accounts_count": accounts_count,
         "unreconciled_tx_count": unreconciled_tx_count,
     }
+
+
+def get_monthly_financial_trends(
+    *,
+    organization_id: int,
+    months: int = 6,
+) -> dict[str, Any]:
+    """Calculate monthly revenue, expense, and net margin series for the last N months."""
+    today = datetime.date.today()
+    months_data: list[tuple[int, int]] = []
+    cur_year = today.year
+    cur_month = today.month
+
+    for i in range(months - 1, -1, -1):
+        m = cur_month - i
+        y = cur_year
+        while m <= 0:
+            m += 12
+            y -= 1
+        months_data.append((y, m))
+
+    labels: list[str] = []
+    revenue_series: list[float] = []
+    expense_series: list[float] = []
+    net_series: list[float] = []
+    tot_rev = DECIMAL_ZERO
+    tot_exp = DECIMAL_ZERO
+
+    for y, m in months_data:
+        month_name = datetime.date(y, m, 1).strftime("%b %Y")
+        labels.append(month_name)
+
+        rev_agg = JournalLine.all_tenants.filter(
+            organization_id=organization_id,
+            entry__status=JournalEntry.STATUS_POSTED,
+            entry__date__year=y,
+            entry__date__month=m,
+            account__type=AccountType.REVENUE,
+        ).aggregate(d=Sum("debit"), c=Sum("credit"))
+
+        exp_agg = JournalLine.all_tenants.filter(
+            organization_id=organization_id,
+            entry__status=JournalEntry.STATUS_POSTED,
+            entry__date__year=y,
+            entry__date__month=m,
+            account__type=AccountType.EXPENSE,
+        ).aggregate(d=Sum("debit"), c=Sum("credit"))
+
+        rev = (rev_agg["c"] or DECIMAL_ZERO) - (rev_agg["d"] or DECIMAL_ZERO)
+        exp = (exp_agg["d"] or DECIMAL_ZERO) - (exp_agg["c"] or DECIMAL_ZERO)
+        rev = max(DECIMAL_ZERO, rev)
+        exp = max(DECIMAL_ZERO, exp)
+        net = rev - exp
+
+        tot_rev += rev
+        tot_exp += exp
+
+        revenue_series.append(float(round(rev, 2)))
+        expense_series.append(float(round(exp, 2)))
+        net_series.append(float(round(net, 2)))
+
+    tot_net = tot_rev - tot_exp
+    margin_pct = round(float((tot_net / tot_rev) * 100), 1) if tot_rev > 0 else 0.0
+
+    return {
+        "labels": labels,
+        "revenue": revenue_series,
+        "expenses": expense_series,
+        "net": net_series,
+        "total_revenue": float(round(tot_rev, 2)),
+        "total_expenses": float(round(tot_exp, 2)),
+        "total_net": float(round(tot_net, 2)),
+        "margin_percentage": margin_pct,
+    }
+
+
+def get_expense_category_breakdown(
+    *,
+    organization_id: int,
+    limit: int = 5,
+) -> dict[str, Any]:
+    """Calculate expense distribution by account category with amounts and percentages."""
+    lines_qs = JournalLine.all_tenants.filter(
+        organization_id=organization_id,
+        entry__status=JournalEntry.STATUS_POSTED,
+        account__type=AccountType.EXPENSE,
+    )
+
+    cat_totals = lines_qs.values("account__name", "account__code").annotate(
+        tot_debit=Sum("debit"),
+        tot_credit=Sum("credit"),
+    ).order_by("-tot_debit")
+
+    total_expenses = DECIMAL_ZERO
+    categories: list[dict[str, Any]] = []
+
+    palette = [
+        {"bg": "#4F46E5", "light": "rgba(79, 70, 229, 0.15)"},
+        {"bg": "#0E6B42", "light": "rgba(14, 107, 66, 0.15)"},
+        {"bg": "#F59E0B", "light": "rgba(245, 158, 11, 0.15)"},
+        {"bg": "#EC4899", "light": "rgba(236, 72, 153, 0.15)"},
+        {"bg": "#8B5CF6", "light": "rgba(139, 92, 246, 0.15)"},
+        {"bg": "#06B6D4", "light": "rgba(6, 182, 212, 0.15)"},
+    ]
+
+    for c in cat_totals:
+        net = (c["tot_debit"] or DECIMAL_ZERO) - (c["tot_credit"] or DECIMAL_ZERO)
+        if net > DECIMAL_ZERO:
+            total_expenses += net
+            categories.append({
+                "name": c["account__name"],
+                "code": c["account__code"],
+                "amount": float(round(net, 2)),
+            })
+
+    top_categories = categories[:limit]
+    if len(categories) > limit:
+        other_amount = round(sum(c["amount"] for c in categories[limit:]), 2)
+        top_categories.append({
+            "name": "Other Expenses",
+            "code": "9999",
+            "amount": other_amount,
+        })
+
+    tot_float = float(round(total_expenses, 2))
+    for idx, cat in enumerate(top_categories):
+        pct = round((cat["amount"] / tot_float * 100), 1) if tot_float > 0 else 0.0
+        cat["percentage"] = pct
+        cat["color"] = palette[idx % len(palette)]["bg"]
+        cat["light_color"] = palette[idx % len(palette)]["light"]
+
+    return {
+        "total_amount": tot_float,
+        "categories": top_categories,
+        "labels": [c["name"] for c in top_categories],
+        "data": [c["amount"] for c in top_categories],
+        "colors": [c["color"] for c in top_categories],
+    }
+
