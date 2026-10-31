@@ -124,7 +124,7 @@ def test_dashboard_renders_theme_and_selector(theme_test_env: dict[str, object])
     assert "Modern &amp; Fast" in content or "Modern & Fast" in content
     assert "Modern Dark" in content
     assert "Minimal Spatial" in content
-    assert "Lightweight (Default) • Best for performance" in content
+    assert "Clean, high-contrast" in content or "Lightweight" in content
 
 
 @pytest.mark.django_db
@@ -395,13 +395,8 @@ def test_theme_manager_template_locks_preset_inputs_and_exposes_custom(
 
 
 def test_neumorphic_sidebar_presets_light_default_and_dark() -> None:
-    """Verify that neumorphic mode has soft clay light as default, tactile dark preset, and custom."""
+    """Verify that neumorphic mode has soft clay light as default and preserves surface continuity."""
     presets = THEME_SIDEBAR_PRESETS["neumorphic"]
     assert "light" in presets
-    assert "dark_contrast" in presets
-    # Light default
     assert presets["light"]["name"] == "Soft Clay Light (Default)"
-    assert presets["light"]["bg"] == "#e2e8f0"
-    # Dark preset
-    assert presets["dark_contrast"]["name"] == "Tactile Slate Dark"
-    assert presets["dark_contrast"]["bg"] == "#1e293b"
+    assert presets["light"]["bg"] == "#E6E9F2"

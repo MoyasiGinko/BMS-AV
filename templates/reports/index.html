@@ -4,7 +4,7 @@
 {% block title %}{% trans "Operational & Financial Reports" %} | {{ organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
+<div class="space-y-8 reports-page">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -52,6 +52,10 @@
             </a>
         </div>
     </div>
+
+    <!-- Sub-navigation Tabs -->
+    {% include "reports/partials/_navigation_tabs.html" with active_tab="all" %}
+
 
     <!-- Featured Engine Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

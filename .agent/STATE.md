@@ -1,11 +1,27 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Full Tactile Neumorphic Design Restoration (Header, Sidebar, Modals, Universal Pages)
+- Last completed task: Full Tactile Neumorphic Design Restoration across All Sidebar Modules & Sub-pages
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Universal Tactile Neumorphic Restoration Across All Sidebar Modules & Sub-pages:
+    - User Request: "design the rest of the pages from the sidebar and all their side pages properly and leanly and professionally".
+    - Scope Executed:
+      - Accounting & Finance: Dashboard, Chart of Accounts, Manual Journals, Banking & Reconciliation, Expenses, Currencies & FX, Fiscal Periods, and Tax Summary.
+      - HR & People: Employee Directory, Attendance & Clocks, Leave Requests, Leave Balances, Shifts & Rosters, Positions & Roles, and Team Calendar.
+      - Payroll: Payroll Runs, Employee Salaries, Salary Structures, Salary Components, and My Payslips.
+      - Reports & Analytics: Reports Directory, Profit & Loss, Balance Sheet, Cash Flow, Trial Balance, Aged Receivables, Aged Payables, Report Builder, and Schedules.
+      - Workspace Settings: Base Settings Layout with elevated sub-nav track across General, Branches, Warehouses, Users, Roles, Numbering, Tax Codes, and Notifications.
+      - Tenancy & Workspaces: Organizations & Workspaces Directory.
+      - Subscription & Billing: Plan tiers, usage progress bars, and invoice history cards.
+      - Help Center & Documentation: Knowledge base hero, sunken search well, and FAQ guide cards.
+    - Implementation Details:
+      - Modular Sub-Navigation Systems: Introduced unified `.neu-nav-track` inset wells with `.neu-nav-tab` raised active pill navigation across Accounting (8 tabs), HR (7 tabs), Payroll (5 tabs), and Reports (9 tabs).
+      - CSS Sculpting: Universal card, panel, and article sculpting for `.accounting-page`, `.hr-page`, `.payroll-page`, `.reports-page`, `.settings-page`, `.tenancy-page`, `.billing-page`, and `.help-page` in `static/css/neumorphic.css` with 135-deg opposing dual shadows (`6px 6px 16px var(--neu-shadow-dark), -5px -5px 12px var(--neu-shadow-light)`), zero 1px borders, sunken form controls, and elevated primary buttons.
+      - Production Tailwind Rebuild: Recompiled `static/css/tailwind.css` cleanly.
+      - Test Suite Validations: 35/35 Accounting tests passed, 39/39 HR tests passed, 15/15 Payroll tests passed, 19/19 Financial Reports tests passed, and 16/16 Theme Selector tests passed. DevTools visual inspection verified seamless surface continuity across all screens.
   - Tactile Neumorphic Design Restoration (Header, Sidebar & Global Pages):
     - User Request: "in the neumorphic mode, the header seems to have lost the design,and many other pages as well".
     - Root Causes Identified:

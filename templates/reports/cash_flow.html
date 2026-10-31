@@ -4,7 +4,7 @@
 {% block title %}{{ title }} | {{ organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 reports-page">
     <!-- Breadcrumb / Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -42,6 +42,10 @@
             </div>
         </div>
     </div>
+
+    <!-- Sub-navigation Tabs -->
+    {% include "reports/partials/_navigation_tabs.html" with active_tab="cash_flow" %}
+
 
     <!-- Export Container -->
     <div id="export-container"></div>

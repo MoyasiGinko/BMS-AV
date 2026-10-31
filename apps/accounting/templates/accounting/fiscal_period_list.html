@@ -4,7 +4,7 @@
 {% block title %}{% trans "Fiscal Periods & Closing" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 accounting-page">
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Fiscal Periods & Period Closing" %}</h1>
@@ -16,6 +16,10 @@
             &larr; {% trans "Dashboard" %}
         </a>
     </div>
+
+    <!-- Sub-navigation Tabs -->
+    {% include "accounting/partials/_navigation_tabs.html" with active_tab="periods" %}
+
 
     <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
         <div class="p-4 border-b border-line font-semibold text-ink text-sm">

@@ -1,0 +1,46 @@
+{% load i18n %}
+<div class="overflow-x-auto no-scrollbar py-1">
+    <nav class="neu-nav-track inline-flex items-center p-1.5 bg-[var(--surface-2)]/60 rounded-2xl border border-[var(--border)]/50 shadow-inner gap-1" aria-label="Payroll Navigation Tabs">
+        <!-- Payroll Runs -->
+        <a href="{% url 'payroll:run_list' %}"
+           class="neu-nav-tab {% if active_tab == 'runs' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {% trans "Payroll Runs" %}
+        </a>
+        <!-- Employee Salaries -->
+        <a href="{% url 'payroll:assignment_list' %}"
+           class="neu-nav-tab {% if active_tab == 'assignments' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            {% trans "Employee Salaries" %}
+        </a>
+        <!-- Salary Structures -->
+        <a href="{% url 'payroll:structure_list' %}"
+           class="neu-nav-tab {% if active_tab == 'structures' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            {% trans "Salary Structures" %}
+        </a>
+        <!-- Salary Components -->
+        <a href="{% url 'payroll:component_list' %}"
+           class="neu-nav-tab {% if active_tab == 'components' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            {% trans "Components & Rules" %}
+        </a>
+        <!-- My Payslips -->
+        <a href="{% url 'payroll:my_payslips' %}"
+           class="neu-nav-tab {% if active_tab == 'my_payslips' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {% trans "My Payslips" %}
+        </a>
+    </nav>
+</div>
+

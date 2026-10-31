@@ -17,11 +17,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 settings-page">
 
   <!-- Settings Secondary Navigation Tab Bar -->
   <div class="border-b border-[var(--border)] overflow-x-auto no-scrollbar">
-    <nav class="flex space-x-2 sm:space-x-4 min-w-max pb-px" aria-label="Settings Tabs">
+    <nav class="neu-nav-track flex space-x-2 sm:space-x-4 min-w-max pb-px" aria-label="Settings Tabs">
       <a
         href="{% url 'settings:general' %}"
         class="px-3 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors {% if active_tab == 'general' %}border-[var(--brand-600)] text-[var(--brand-600)] bg-[var(--surface-2)]{% else %}border-transparent text-[var(--text-muted)] hover:text-[var(--text)] hover:border-[var(--border)] hover:bg-[var(--surface-2)]{% endif %}"

@@ -29,6 +29,10 @@
         </div>
     </div>
 
+    <!-- Sub-navigation Tabs -->
+    {% include "reports/partials/_navigation_tabs.html" with active_tab="builder" %}
+
+
     <!-- Builder Configuration Form -->
     <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-6">
         <form id="builder-form" hx-post="{% url 'reports:builder_preview' %}" hx-target="#preview-container" hx-indicator="#loading-spinner">

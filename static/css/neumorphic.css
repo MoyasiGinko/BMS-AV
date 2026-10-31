@@ -1117,3 +1117,175 @@ html[data-theme="spatial"],
   border: none !important;
   border-radius: 16px !important;
 }
+
+
+/* ==========================================================================
+   REST OF SIDEBAR & UNIVERSAL SUB-PAGES
+   Accounting, Reports, HR, Payroll, Settings, Tenancy, Billing, Help
+   ========================================================================== */
+
+/* 1. Module-Level Card & Container Sculpting */
+[data-theme="neumorphic"] .accounting-page .bg-surface,
+[data-theme="neumorphic"] .reports-page .bg-surface,
+[data-theme="neumorphic"] .hr-page .bg-surface,
+[data-theme="neumorphic"] .payroll-page .bg-surface,
+[data-theme="neumorphic"] .tenancy-page .bg-surface,
+[data-theme="neumorphic"] .settings-page .bg-surface,
+[data-theme="neumorphic"] .billing-page .bg-surface,
+[data-theme="neumorphic"] .help-page .bg-surface,
+[data-theme="neumorphic"] .accounting-page div[class*="rounded-xl"][class*="border"],
+[data-theme="neumorphic"] .reports-page div[class*="rounded-xl"][class*="border"],
+[data-theme="neumorphic"] .hr-page div[class*="rounded-xl"][class*="border"],
+[data-theme="neumorphic"] .payroll-page div[class*="rounded-xl"][class*="border"],
+[data-theme="neumorphic"] .tenancy-page div[class*="rounded-xl"][class*="border"],
+[data-theme="neumorphic"] .settings-page div[class*="rounded-xl"][class*="border"],
+[data-theme="neumorphic"] .billing-page div[class*="rounded-xl"][class*="border"],
+[data-theme="neumorphic"] .help-page div[class*="rounded-xl"][class*="border"],
+[data-theme="neumorphic"] .accounting-page div[class*="rounded-2xl"][class*="border"],
+[data-theme="neumorphic"] .reports-page div[class*="rounded-2xl"][class*="border"],
+[data-theme="neumorphic"] .hr-page div[class*="rounded-2xl"][class*="border"],
+[data-theme="neumorphic"] .payroll-page div[class*="rounded-2xl"][class*="border"],
+[data-theme="neumorphic"] .tenancy-page div[class*="rounded-2xl"][class*="border"],
+[data-theme="neumorphic"] .settings-page div[class*="rounded-2xl"][class*="border"],
+[data-theme="neumorphic"] .billing-page div[class*="rounded-2xl"][class*="border"],
+[data-theme="neumorphic"] .help-page div[class*="rounded-2xl"][class*="border"],
+[data-theme="neumorphic"] .accounting-page article,
+[data-theme="neumorphic"] .reports-page article,
+[data-theme="neumorphic"] .hr-page article,
+[data-theme="neumorphic"] .payroll-page article {
+  background-color: var(--neu-surface) !important;
+  box-shadow: 6px 6px 16px var(--neu-shadow-dark), -5px -5px 12px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 20px !important;
+  color: var(--neu-text) !important;
+}
+
+/* 2. Sub-Navigation Tabs in Settings & Modules */
+[data-theme="neumorphic"] nav[aria-label="Settings Tabs"],
+[data-theme="neumorphic"] nav[aria-label="Accounting Navigation Tabs"],
+[data-theme="neumorphic"] nav[aria-label="HR Navigation Tabs"],
+[data-theme="neumorphic"] nav[aria-label="Payroll Navigation Tabs"],
+[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 18px !important;
+  padding: 5px !important;
+}
+
+[data-theme="neumorphic"] nav[aria-label="Settings Tabs"] a,
+[data-theme="neumorphic"] nav[aria-label="Accounting Navigation Tabs"] a,
+[data-theme="neumorphic"] nav[aria-label="HR Navigation Tabs"] a,
+[data-theme="neumorphic"] nav[aria-label="Payroll Navigation Tabs"] a,
+[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] a {
+  border: none !important;
+  border-radius: 12px !important;
+  color: var(--neu-text-muted) !important;
+  transition: all 120ms ease !important;
+}
+
+[data-theme="neumorphic"] nav[aria-label="Settings Tabs"] a.neu-nav-tab-active,
+[data-theme="neumorphic"] nav[aria-label="Settings Tabs"] a[class*="border-[var(--brand-600)]"],
+[data-theme="neumorphic"] nav[aria-label="Accounting Navigation Tabs"] a.neu-nav-tab-active,
+[data-theme="neumorphic"] nav[aria-label="HR Navigation Tabs"] a.neu-nav-tab-active,
+[data-theme="neumorphic"] nav[aria-label="Payroll Navigation Tabs"] a.neu-nav-tab-active,
+[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] a.neu-nav-tab-active {
+  background-color: var(--neu-surface) !important;
+  color: #4F46E5 !important;
+  box-shadow: 3px 3px 7px var(--neu-shadow-dark), -3px -3px 7px var(--neu-shadow-light) !important;
+  font-weight: 700 !important;
+}
+
+/* 3. Tables & Internal Dividers in Sub-pages */
+[data-theme="neumorphic"] .accounting-page div[class*="border-b"],
+[data-theme="neumorphic"] .reports-page div[class*="border-b"],
+[data-theme="neumorphic"] .hr-page div[class*="border-b"],
+[data-theme="neumorphic"] .payroll-page div[class*="border-b"],
+[data-theme="neumorphic"] .tenancy-page div[class*="border-b"],
+[data-theme="neumorphic"] .settings-page div[class*="border-b"],
+[data-theme="neumorphic"] .billing-page div[class*="border-b"],
+[data-theme="neumorphic"] .help-page div[class*="border-b"],
+[data-theme="neumorphic"] .accounting-page div[class*="border-t"],
+[data-theme="neumorphic"] .reports-page div[class*="border-t"],
+[data-theme="neumorphic"] .hr-page div[class*="border-t"],
+[data-theme="neumorphic"] .payroll-page div[class*="border-t"],
+[data-theme="neumorphic"] .tenancy-page div[class*="border-t"],
+[data-theme="neumorphic"] .settings-page div[class*="border-t"],
+[data-theme="neumorphic"] .billing-page div[class*="border-t"],
+[data-theme="neumorphic"] .help-page div[class*="border-t"] {
+  border-color: var(--neu-line) !important;
+}
+
+/* 4. Action Buttons in Sub-pages */
+[data-theme="neumorphic"] .accounting-page a[class*="bg-indigo-600"],
+[data-theme="neumorphic"] .reports-page a[class*="bg-indigo-600"],
+[data-theme="neumorphic"] .hr-page a[class*="bg-indigo-600"],
+[data-theme="neumorphic"] .payroll-page a[class*="bg-indigo-600"],
+[data-theme="neumorphic"] .tenancy-page a[class*="bg-indigo-600"],
+[data-theme="neumorphic"] .tenancy-page a[class*="bg-[var(--brand-600)]"],
+[data-theme="neumorphic"] .settings-page button[class*="bg-indigo-600"],
+[data-theme="neumorphic"] .settings-page button[class*="bg-[var(--brand-600)]"],
+[data-theme="neumorphic"] .billing-page button[class*="bg-[var(--brand-600)]"] {
+  background-color: var(--neu-accent-fill) !important;
+  color: #FFFFFF !important;
+  box-shadow: 4px 4px 10px var(--neu-shadow-dark), -3px -3px 8px var(--neu-shadow-light) !important;
+  border: none !important;
+  font-weight: 700 !important;
+  border-radius: 14px !important;
+  transition: all 120ms ease !important;
+}
+
+[data-theme="neumorphic"] .accounting-page a[class*="bg-indigo-600"]:active,
+[data-theme="neumorphic"] .reports-page a[class*="bg-indigo-600"]:active,
+[data-theme="neumorphic"] .hr-page a[class*="bg-indigo-600"]:active,
+[data-theme="neumorphic"] .payroll-page a[class*="bg-indigo-600"]:active,
+[data-theme="neumorphic"] .tenancy-page a[class*="bg-indigo-600"]:active,
+[data-theme="neumorphic"] .settings-page button[class*="bg-indigo-600"]:active,
+[data-theme="neumorphic"] .billing-page button[class*="bg-[var(--brand-600)]"]:active {
+  box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light) !important;
+  transform: translateY(1px) !important;
+}
+
+/* 5. Inset Search Wells and Filters in Sub-pages */
+[data-theme="neumorphic"] .accounting-page input,
+[data-theme="neumorphic"] .reports-page input,
+[data-theme="neumorphic"] .hr-page input,
+[data-theme="neumorphic"] .payroll-page input,
+[data-theme="neumorphic"] .tenancy-page input,
+[data-theme="neumorphic"] .settings-page input,
+[data-theme="neumorphic"] .billing-page input,
+[data-theme="neumorphic"] .help-page input,
+[data-theme="neumorphic"] .accounting-page select,
+[data-theme="neumorphic"] .reports-page select,
+[data-theme="neumorphic"] .hr-page select,
+[data-theme="neumorphic"] .payroll-page select,
+[data-theme="neumorphic"] .settings-page select {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 14px !important;
+  color: var(--neu-text) !important;
+}
+
+/* 6. Help Center Hero & Bento Cards */
+[data-theme="neumorphic"] .help-page div[class*="bg-gradient-to-br"] {
+  background: var(--neu-surface) !important;
+  box-shadow: 7px 7px 18px var(--neu-shadow-dark), -6px -6px 14px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 24px !important;
+}
+
+/* 7. Billing Plan Cards & Usage Meters */
+[data-theme="neumorphic"] .billing-page .plan-card,
+[data-theme="neumorphic"] .billing-page div[class*="bg-surface"][class*="rounded"] {
+  background-color: var(--neu-surface) !important;
+  box-shadow: 6px 6px 16px var(--neu-shadow-dark), -5px -5px 12px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 20px !important;
+}
+
+[data-theme="neumorphic"] .billing-page div[class*="bg-slate-200"],
+[data-theme="neumorphic"] .billing-page div[class*="bg-slate-100"] {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2px 2px 5px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light) !important;
+}
