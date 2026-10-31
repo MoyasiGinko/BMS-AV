@@ -1,11 +1,21 @@
 # Build State (updated by the agent after every task)
 
 - Phase: P7 Hardening & delivery - COMPLETE (All phases P1 through P7 complete)
-- Last completed task: Full Tactile Neumorphic Design Restoration across All Sidebar Modules & Sub-pages
+- Last completed task: Lean Navigation Tabs & Header Subtitles Removal
 - Next task: NONE - BACKLOG 100% COMPLETE
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Lean Navigation Tabs & Subtitle Elimination:
+    - User Request: "no need for subtties and also the button's bg container color and shadow effect not needed".
+    - Removed Descriptive Subtitles: Stripped generic `<p class="text-sm ... mt-1">...</p>` subtitle headers across 79 templates (Accounting, HR, Payroll, Reports, Purchasing, Inventory, Customers, CRM, Catalog, Settings, Billing, Help), giving headers a compact, clean, executive appearance.
+    - Flat Lean Tab Navigation:
+      - Stripped all background container colors (`background: transparent !important`) and shadow effects (`box-shadow: none !important`) from all navigation tabs and nav tracks in `static/css/neumorphic.css` and template partials.
+      - Replaced bulky 3D pill button appearance with sleek horizontal text tabs.
+      - Active tab features clean bold indigo typography with a crisp 2px solid indigo bottom underline (`#4F46E5`). Inactive tabs render in slate-muted text with smooth hover contrast.
+      - Excluded `nav *` elements from secondary button styling rules in `static/css/neumorphic.css` to prevent unintended specificity overrides.
+    - Rebuilt Tailwind CSS production stylesheet (`static/css/tailwind.css`) and bumped static cache-buster to `?v=2.7.0` in `templates/layouts/base.html`.
+    - Empirical Verification: Tested and visually verified across Accounting Overview, Chart of Accounts, Employee Directory, Purchasing Suppliers, Reports & Analytics, and Settings. All 35/35 Accounting tests and 19/19 Reports tests passed cleanly.
   - Universal Tactile Neumorphic Restoration Across All Sidebar Modules & Sub-pages:
     - User Request: "design the rest of the pages from the sidebar and all their side pages properly and leanly and professionally".
     - Scope Executed:

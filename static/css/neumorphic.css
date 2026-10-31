@@ -483,12 +483,12 @@ html[data-theme="neumorphic"],
 }
 
 /* Secondary / Ghost Buttons */
-[data-theme="neumorphic"] main button[class*="border"]:not([class*="bg-[var(--brand-600)]"]):not([class*="bg-indigo-600"]),
-[data-theme="neumorphic"] main a[class*="border"]:not([class*="bg-[var(--brand-600)]"]):not([class*="bg-indigo-600"]),
-[data-theme="neumorphic"] main button[class*="bg-[var(--surface-2)]"],
-[data-theme="neumorphic"] main a[class*="bg-[var(--surface-2)]"],
-[data-theme="neumorphic"] main .btn-secondary,
-[data-theme="neumorphic"] main .btn-ghost {
+[data-theme="neumorphic"] main button[class*="border"]:not(nav *):not([class*="bg-[var(--brand-600)]"]):not([class*="bg-indigo-600"]),
+[data-theme="neumorphic"] main a[class*="border"]:not(nav *):not(.neu-nav-tab):not([class*="bg-[var(--brand-600)]"]):not([class*="bg-indigo-600"]),
+[data-theme="neumorphic"] main button[class*="bg-[var(--surface-2)]"]:not(nav *),
+[data-theme="neumorphic"] main a[class*="bg-[var(--surface-2)]"]:not(nav *):not(.neu-nav-tab),
+[data-theme="neumorphic"] main .btn-secondary:not(nav *),
+[data-theme="neumorphic"] main .btn-ghost:not(nav *) {
   background-color: var(--neu-surface) !important;
   box-shadow: 4px 4px 8px var(--neu-shadow-dark), -3px -3px 7px var(--neu-shadow-light) !important;
   border: none !important;
@@ -498,21 +498,21 @@ html[data-theme="neumorphic"],
   transition: all 140ms ease !important;
 }
 
-[data-theme="neumorphic"] main button[class*="border"]:hover,
-[data-theme="neumorphic"] main a[class*="border"]:hover,
-[data-theme="neumorphic"] main button[class*="bg-[var(--surface-2)]"]:hover,
-[data-theme="neumorphic"] main a[class*="bg-[var(--surface-2)]"]:hover,
-[data-theme="neumorphic"] main .btn-secondary:hover,
-[data-theme="neumorphic"] main .btn-ghost:hover {
+[data-theme="neumorphic"] main button[class*="border"]:not(nav *):hover,
+[data-theme="neumorphic"] main a[class*="border"]:not(nav *):hover,
+[data-theme="neumorphic"] main button[class*="bg-[var(--surface-2)]"]:not(nav *):hover,
+[data-theme="neumorphic"] main a[class*="bg-[var(--surface-2)]"]:not(nav *):hover,
+[data-theme="neumorphic"] main .btn-secondary:not(nav *):hover,
+[data-theme="neumorphic"] main .btn-ghost:not(nav *):hover {
   box-shadow: 5px 5px 12px var(--neu-shadow-dark), -4px -4px 10px var(--neu-shadow-light) !important;
   color: #4338CA !important;
   transform: translateY(-1px) !important;
 }
 
-[data-theme="neumorphic"] main button[class*="border"]:active,
-[data-theme="neumorphic"] main a[class*="border"]:active,
-[data-theme="neumorphic"] main .btn-secondary:active,
-[data-theme="neumorphic"] main .btn-ghost:active {
+[data-theme="neumorphic"] main button[class*="border"]:not(nav *):active,
+[data-theme="neumorphic"] main a[class*="border"]:not(nav *):active,
+[data-theme="neumorphic"] main .btn-secondary:not(nav *):active,
+[data-theme="neumorphic"] main .btn-ghost:not(nav *):active {
   box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light) !important;
   transform: translateY(0) !important;
 }
@@ -544,33 +544,55 @@ html[data-theme="neumorphic"],
   outline: none !important;
 }
 
-/* Sub-nav tabs / Segmented Controls */
+/* Sub-nav tabs / Segmented Controls - Clean Lean Text Tabs (No bg container color, No shadow) */
 [data-theme="neumorphic"] main .neu-nav-track,
+[data-theme="neumorphic"] main nav[aria-label*="Tabs"],
 [data-theme="neumorphic"] main div[class*="bg-[var(--surface-2)]"][class*="rounded-xl"],
 [data-theme="neumorphic"] main div[class*="bg-[var(--surface-2)]"][class*="rounded-2xl"] {
-  background-color: var(--neu-surface) !important;
-  box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
   border: none !important;
-  border-radius: 16px !important;
-  padding: 4px !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
 }
 
 [data-theme="neumorphic"] main .neu-nav-tab,
+[data-theme="neumorphic"] main nav[aria-label*="Tabs"] a,
 [data-theme="neumorphic"] main div[class*="bg-[var(--surface-2)]"][class*="rounded-xl"] a,
 [data-theme="neumorphic"] main div[class*="bg-[var(--surface-2)]"][class*="rounded-2xl"] a {
-  border-radius: 12px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
   border: none !important;
+  border-radius: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  color: var(--neu-text-muted, #5A607C) !important;
+  font-weight: 500 !important;
   transition: all 140ms ease !important;
-  font-weight: 600 !important;
+}
+
+[data-theme="neumorphic"] main .neu-nav-tab:hover,
+[data-theme="neumorphic"] main nav[aria-label*="Tabs"] a:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--neu-text, #262B45) !important;
 }
 
 [data-theme="neumorphic"] main .neu-nav-tab.neu-nav-tab-active,
-[data-theme="neumorphic"] main div[class*="bg-[var(--surface-2)]"][class*="rounded-xl"] a[class*="bg-"],
-[data-theme="neumorphic"] main div[class*="bg-[var(--surface-2)]"][class*="rounded-2xl"] a[class*="bg-"] {
-  background-color: var(--neu-surface) !important;
+[data-theme="neumorphic"] main nav[aria-label*="Tabs"] a[class*="border-[var(--brand-600)]"],
+[data-theme="neumorphic"] main nav[aria-label*="Tabs"] a[class*="text-[var(--brand-600)]"],
+[data-theme="neumorphic"] main .neu-nav-tab.neu-nav-tab-active {
+  background: transparent !important;
+  background-color: transparent !important;
   color: #4F46E5 !important;
-  box-shadow: 3px 3px 7px var(--neu-shadow-dark), -3px -3px 7px var(--neu-shadow-light) !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: 2px solid #4F46E5 !important;
   font-weight: 700 !important;
+  border-radius: 0 !important;
+  margin-bottom: -1px !important;
 }
 
 /* Modals & Dialogs */
@@ -1160,28 +1182,50 @@ html[data-theme="spatial"],
   color: var(--neu-text) !important;
 }
 
-/* 2. Sub-Navigation Tabs in Settings & Modules */
+/* 2. Sub-Navigation Tabs in Settings & Modules - Flat Clean Text Tabs */
 [data-theme="neumorphic"] nav[aria-label="Settings Tabs"],
 [data-theme="neumorphic"] nav[aria-label="Accounting Navigation Tabs"],
 [data-theme="neumorphic"] nav[aria-label="HR Navigation Tabs"],
 [data-theme="neumorphic"] nav[aria-label="Payroll Navigation Tabs"],
-[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] {
-  background-color: var(--neu-surface) !important;
-  box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light) !important;
+[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"],
+[data-theme="neumorphic"] nav[aria-label="Purchasing Navigation Tabs"],
+[data-theme="neumorphic"] nav[aria-label="Inventory Navigation Tabs"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
   border: none !important;
-  border-radius: 18px !important;
-  padding: 5px !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
 }
 
 [data-theme="neumorphic"] nav[aria-label="Settings Tabs"] a,
 [data-theme="neumorphic"] nav[aria-label="Accounting Navigation Tabs"] a,
 [data-theme="neumorphic"] nav[aria-label="HR Navigation Tabs"] a,
 [data-theme="neumorphic"] nav[aria-label="Payroll Navigation Tabs"] a,
-[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] a {
+[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] a,
+[data-theme="neumorphic"] nav[aria-label="Purchasing Navigation Tabs"] a,
+[data-theme="neumorphic"] nav[aria-label="Inventory Navigation Tabs"] a {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
   border: none !important;
-  border-radius: 12px !important;
-  color: var(--neu-text-muted) !important;
+  border-radius: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  color: var(--neu-text-muted, #5A607C) !important;
   transition: all 120ms ease !important;
+}
+
+[data-theme="neumorphic"] nav[aria-label="Settings Tabs"] a:hover,
+[data-theme="neumorphic"] nav[aria-label="Accounting Navigation Tabs"] a:hover,
+[data-theme="neumorphic"] nav[aria-label="HR Navigation Tabs"] a:hover,
+[data-theme="neumorphic"] nav[aria-label="Payroll Navigation Tabs"] a:hover,
+[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] a:hover,
+[data-theme="neumorphic"] nav[aria-label="Purchasing Navigation Tabs"] a:hover,
+[data-theme="neumorphic"] nav[aria-label="Inventory Navigation Tabs"] a:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--neu-text, #262B45) !important;
 }
 
 [data-theme="neumorphic"] nav[aria-label="Settings Tabs"] a.neu-nav-tab-active,
@@ -1189,11 +1233,19 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] nav[aria-label="Accounting Navigation Tabs"] a.neu-nav-tab-active,
 [data-theme="neumorphic"] nav[aria-label="HR Navigation Tabs"] a.neu-nav-tab-active,
 [data-theme="neumorphic"] nav[aria-label="Payroll Navigation Tabs"] a.neu-nav-tab-active,
-[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] a.neu-nav-tab-active {
-  background-color: var(--neu-surface) !important;
+[data-theme="neumorphic"] nav[aria-label="Reports Navigation Tabs"] a.neu-nav-tab-active,
+[data-theme="neumorphic"] nav[aria-label="Purchasing Navigation Tabs"] a.neu-nav-tab-active,
+[data-theme="neumorphic"] nav[aria-label="Inventory Navigation Tabs"] a.neu-nav-tab-active,
+[data-theme="neumorphic"] nav[aria-label*="Tabs"] a[class*="text-[var(--brand-600)]"] {
+  background: transparent !important;
+  background-color: transparent !important;
   color: #4F46E5 !important;
-  box-shadow: 3px 3px 7px var(--neu-shadow-dark), -3px -3px 7px var(--neu-shadow-light) !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: 2px solid #4F46E5 !important;
   font-weight: 700 !important;
+  border-radius: 0 !important;
+  margin-bottom: -1px !important;
 }
 
 /* 3. Tables & Internal Dividers in Sub-pages */

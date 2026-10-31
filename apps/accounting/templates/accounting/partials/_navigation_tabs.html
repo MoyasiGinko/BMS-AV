@@ -1,9 +1,9 @@
 {% load i18n %}
-<div class="overflow-x-auto no-scrollbar py-1">
-    <nav class="neu-nav-track inline-flex items-center p-1.5 bg-[var(--surface-2)]/60 rounded-2xl border border-[var(--border)]/50 shadow-inner gap-1" aria-label="Accounting Navigation Tabs">
+<div class="overflow-x-auto no-scrollbar border-b border-line/40 dark:border-white/10 pb-px">
+    <nav class="flex items-center gap-6 text-sm" aria-label="Accounting Navigation Tabs">
         <!-- Dashboard Overview -->
         <a href="{% url 'accounting:dashboard' %}"
-           class="neu-nav-tab {% if active_tab == 'dashboard' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+           class="{% if active_tab == 'dashboard' %}text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold border-b-2 border-[var(--brand-600)] dark:border-[var(--brand-400)]{% else %}text-muted hover:text-ink font-medium border-b-2 border-transparent{% endif %} pb-2.5 pt-1 flex items-center gap-2 whitespace-nowrap transition-colors">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
@@ -11,7 +11,7 @@
         </a>
         <!-- Chart of Accounts -->
         <a href="{% url 'accounting:account_list' %}"
-           class="neu-nav-tab {% if active_tab == 'accounts' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+           class="{% if active_tab == 'accounts' %}text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold border-b-2 border-[var(--brand-600)] dark:border-[var(--brand-400)]{% else %}text-muted hover:text-ink font-medium border-b-2 border-transparent{% endif %} pb-2.5 pt-1 flex items-center gap-2 whitespace-nowrap transition-colors">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -19,7 +19,7 @@
         </a>
         <!-- Manual Journals -->
         <a href="{% url 'accounting:journal_list' %}"
-           class="neu-nav-tab {% if active_tab == 'journals' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+           class="{% if active_tab == 'journals' %}text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold border-b-2 border-[var(--brand-600)] dark:border-[var(--brand-400)]{% else %}text-muted hover:text-ink font-medium border-b-2 border-transparent{% endif %} pb-2.5 pt-1 flex items-center gap-2 whitespace-nowrap transition-colors">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
@@ -27,7 +27,7 @@
         </a>
         <!-- Banking & Reconciliation -->
         <a href="{% url 'accounting:bank_account_list' %}"
-           class="neu-nav-tab {% if active_tab == 'banking' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+           class="{% if active_tab == 'banking' %}text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold border-b-2 border-[var(--brand-600)] dark:border-[var(--brand-400)]{% else %}text-muted hover:text-ink font-medium border-b-2 border-transparent{% endif %} pb-2.5 pt-1 flex items-center gap-2 whitespace-nowrap transition-colors">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
             </svg>
@@ -35,7 +35,7 @@
         </a>
         <!-- Expenses -->
         <a href="{% url 'accounting:expense_list' %}"
-           class="neu-nav-tab {% if active_tab == 'expenses' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+           class="{% if active_tab == 'expenses' %}text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold border-b-2 border-[var(--brand-600)] dark:border-[var(--brand-400)]{% else %}text-muted hover:text-ink font-medium border-b-2 border-transparent{% endif %} pb-2.5 pt-1 flex items-center gap-2 whitespace-nowrap transition-colors">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
@@ -43,7 +43,7 @@
         </a>
         <!-- Currencies & FX -->
         <a href="{% url 'accounting:currency_list' %}"
-           class="neu-nav-tab {% if active_tab == 'currencies' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+           class="{% if active_tab == 'currencies' %}text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold border-b-2 border-[var(--brand-600)] dark:border-[var(--brand-400)]{% else %}text-muted hover:text-ink font-medium border-b-2 border-transparent{% endif %} pb-2.5 pt-1 flex items-center gap-2 whitespace-nowrap transition-colors">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -51,7 +51,7 @@
         </a>
         <!-- Fiscal Periods -->
         <a href="{% url 'accounting:fiscal_period_list' %}"
-           class="neu-nav-tab {% if active_tab == 'periods' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+           class="{% if active_tab == 'periods' %}text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold border-b-2 border-[var(--brand-600)] dark:border-[var(--brand-400)]{% else %}text-muted hover:text-ink font-medium border-b-2 border-transparent{% endif %} pb-2.5 pt-1 flex items-center gap-2 whitespace-nowrap transition-colors">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -59,7 +59,7 @@
         </a>
         <!-- Tax Summary -->
         <a href="{% url 'accounting:tax_summary' %}"
-           class="neu-nav-tab {% if active_tab == 'tax' %}neu-nav-tab-active bg-[var(--surface-1)] text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold shadow-xs border border-[var(--border)]/70{% else %}text-muted hover:text-ink hover:bg-[var(--surface-1)]/50 font-medium border border-transparent{% endif %} whitespace-nowrap px-3.5 py-2 rounded-xl text-sm flex items-center gap-2 transition-all">
+           class="{% if active_tab == 'tax' %}text-[var(--brand-600)] dark:text-[var(--brand-400)] font-bold border-b-2 border-[var(--brand-600)] dark:border-[var(--brand-400)]{% else %}text-muted hover:text-ink font-medium border-b-2 border-transparent{% endif %} pb-2.5 pt-1 flex items-center gap-2 whitespace-nowrap transition-colors">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
             </svg>
@@ -67,4 +67,3 @@
         </a>
     </nav>
 </div>
-

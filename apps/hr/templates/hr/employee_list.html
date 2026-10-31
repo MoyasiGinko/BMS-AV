@@ -9,9 +9,6 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Employee Directory" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Manage team members, roles, departmental assignments, and credentials." %}
-            </p>
         </div>
         <div class="flex items-center gap-3">
             <a href="{% url 'hr:position_list' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 transition-colors">

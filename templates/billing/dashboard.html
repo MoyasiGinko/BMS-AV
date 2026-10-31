@@ -7,9 +7,6 @@
 <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
   <div>
     <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{% trans "Subscription & Billing" %}</h1>
-    <p class="text-sm text-[var(--text-muted)] mt-1">
-      {% trans "Manage subscription tier, inspect usage quotas, and review invoice history." %}
-    </p>
   </div>
   {% if can_manage and subscription %}
     <div class="flex items-center gap-3">
