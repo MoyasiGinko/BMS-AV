@@ -4,6 +4,17 @@
 - Open `[!]` tasks: none
 - Last `make verify`: PASSED
 - Notes:
+  - Category Breakdown Legend Container Padding in Accounting:
+    - User Request: Screenshot of the "Where Money Went" category breakdown list showing zero horizontal padding (dots/percentages touching rounded edges) and Utilities Expense pink bar clipped by the bottom rounded corner.
+    - Root Cause Analysis:
+      - The category legend list container had `space-y-3 pt-3.5 border-t border-line pb-4`. Under neumorphic CSS rules, `border-line` turned this container into an elevated card with 20px rounded corners. With `px-0` and insufficient `pb-4`, the items touched the left and right curved borders, and the 4th item (Utilities Expense) was clipped at the bottom-left curve.
+    - Resolution Implemented:
+      - Upgraded the container to `space-y-3.5 p-5 sm:px-6 sm:py-5 pb-7 rounded-2xl border border-line mt-4`.
+      - Provides 24px left and right padding (`sm:px-6`) and generous 28px bottom padding (`pb-7`), giving the Utilities Expense row and its progress bar complete clearance from the bottom curve.
+    - Empirical Verification:
+      - Live inspection on Chrome DevTools confirmed 28px bottom clearance and 24px horizontal clearance with zero clipping.
+      - 35/35 pytest accounting tests passed in 32s.
+
   - Symmetrical Header Container Padding in Accounting:
     - User Request: "you didnt fix the padding" with screenshot of the "Income & Expenses" header container showing zero top/horizontal padding.
     - Root Cause Analysis:
