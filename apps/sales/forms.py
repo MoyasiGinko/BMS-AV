@@ -39,7 +39,7 @@ class QuoteFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search quotes..."),
-                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-9 pr-3.5 shadow-inner transition-all",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -60,7 +60,7 @@ class OrderFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search orders..."),
-                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-9 pr-3.5 shadow-inner transition-all",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -81,7 +81,7 @@ class InvoiceFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search invoices..."),
-                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-9 pr-3.5 shadow-inner transition-all",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -102,7 +102,7 @@ class CreditNoteFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search credit notes..."),
-                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-9 pr-3.5 shadow-inner transition-all",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -367,7 +367,7 @@ class RecurringProfileFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search profiles..."),
-                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-9 pr-3.5 shadow-inner transition-all",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -436,7 +436,7 @@ class PaymentReminderRuleForm(forms.ModelForm):
         widgets = {
             "timing_days": forms.NumberInput(
                 attrs={
-                    "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-9 pr-3.5 shadow-inner transition-all",
+                    "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
                     "placeholder": "-3 for 3d before due, 7 for 7d overdue",
                 }
             ),

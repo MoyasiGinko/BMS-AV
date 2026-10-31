@@ -574,10 +574,67 @@ html[data-theme="neumorphic"],
   border-radius: 14px !important;
   color: var(--neu-text) !important;
   font-family: var(--neu-font) !important;
-  padding: 12px 18px !important;
-  min-height: 48px;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  padding-left: 18px;
+  padding-right: 18px;
+  min-height: 46px;
   font-size: 0.9375rem !important;
   line-height: 1.375rem !important;
+}
+
+/* Bulletproof Icon Clearance: NEVER allow global rules to smash icon clearance */
+[data-theme="neumorphic"] input[class*="pl-8"],
+.form-input[class*="pl-8"],
+input[class*="pl-8"] {
+  padding-left: 2.25rem !important;
+}
+[data-theme="neumorphic"] input[class*="pl-9"],
+.form-input[class*="pl-9"],
+input[class*="pl-9"] {
+  padding-left: 2.5rem !important;
+}
+[data-theme="neumorphic"] input[class*="pl-10"],
+[data-theme="neumorphic"] select[class*="pl-10"],
+.form-input[class*="pl-10"],
+.form-select[class*="pl-10"],
+input[class*="pl-10"],
+select[class*="pl-10"] {
+  padding-left: 2.625rem !important;
+}
+[data-theme="neumorphic"] input[class*="pl-11"],
+[data-theme="neumorphic"] select[class*="pl-11"],
+.form-input[class*="pl-11"],
+.form-select[class*="pl-11"],
+input[class*="pl-11"],
+select[class*="pl-11"] {
+  padding-left: 2.875rem !important;
+}
+[data-theme="neumorphic"] input[class*="pl-12"],
+[data-theme="neumorphic"] select[class*="pl-12"],
+.form-input[class*="pl-12"],
+.form-select[class*="pl-12"],
+input[class*="pl-12"],
+select[class*="pl-12"] {
+  padding-left: 3.125rem !important;
+}
+[data-theme="neumorphic"] input[class*="pl-14"],
+.form-input[class*="pl-14"],
+input[class*="pl-14"] {
+  padding-left: 3.625rem !important;
+}
+
+/* Compact / Micro inline inputs */
+[data-theme="neumorphic"] input.pos-discount-input,
+[data-theme="neumorphic"] input[class*="w-16"],
+[data-theme="neumorphic"] input[class*="w-12"],
+[data-theme="neumorphic"] input[class*="w-14"],
+[data-theme="neumorphic"] input[class*="h-8"],
+[data-theme="neumorphic"] input[class*="h-9"],
+[data-theme="neumorphic"] input[class*="h-10"] {
+  min-height: unset !important;
+  padding: 6px 10px !important;
+  font-size: 0.875rem !important;
 }
 
 [data-theme="neumorphic"] main textarea,
@@ -1199,9 +1256,12 @@ html[data-theme="spatial"],
   border-radius: 18px !important;
 }
 
+[data-theme="neumorphic"] .pos-terminal .pos-catalog-card,
 .pos-catalog-card {
-  aspect-ratio: 4 / 3;
-  min-height: 175px;
+  aspect-ratio: auto !important;
+  min-height: 205px !important;
+  max-height: none !important;
+  height: auto !important;
 }
 
 #product-grid {
@@ -1672,12 +1732,22 @@ html[data-theme="spatial"],
    Universal Button Ergonomics Guarantee (Neumorphic Mode)
    Buttons must look like sleek interactive controls, NEVER like medium cards
    ========================================================================== */
-[data-theme="neumorphic"] main button:not(.neu-card):not(.card):not(.bos-card),
-[data-theme="neumorphic"] main a[class*="btn"],
-[data-theme="neumorphic"] main a[class*="px-"][class*="py-"]:not(.card):not(.bos-card):not(.neu-card):not([class*="neu-well"]):not([class*="rounded-2xl"]),
+/* Constrain ONLY standard subnav and header action buttons, NEVER POS cards or checkout buttons */
 [data-theme="neumorphic"] .neu-action-btn,
-[data-theme="neumorphic"] .neu-primary-btn {
+[data-theme="neumorphic"] .header-action-btn,
+[data-theme="neumorphic"] main header a[class*="btn"],
+[data-theme="neumorphic"] main header button[class*="btn"],
+[data-theme="neumorphic"] .neu-subnav-btn,
+[data-theme="neumorphic"] nav[aria-label*="Tabs"] a,
+[data-theme="neumorphic"] nav[aria-label*="tabs"] a {
   max-height: 48px;
+}
+
+/* POS Terminal buttons and cards MUST NEVER be constrained by standard desktop form rules */
+[data-theme="neumorphic"] .pos-terminal button,
+[data-theme="neumorphic"] .pos-terminal a,
+[data-theme="neumorphic"] .pos-catalog-card {
+  max-height: none !important;
 }
 
 [data-theme="neumorphic"] nav[aria-label*="Tabs"] a,

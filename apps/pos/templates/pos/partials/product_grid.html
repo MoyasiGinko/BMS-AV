@@ -23,13 +23,14 @@
         }
     }
     .pos-catalog-card {
-        aspect-ratio: 4 / 3 !important;
-        min-height: 170px;
+        aspect-ratio: auto !important;
+        min-height: 205px !important;
+        height: auto !important;
     }
     @media (max-width: 639px) {
         .pos-catalog-card {
             aspect-ratio: auto !important;
-            min-height: 155px;
+            min-height: 195px !important;
         }
     }
 </style>
@@ -47,13 +48,13 @@
                 stock_qty: {{ product.stock_qty|default:0 }},
                 is_stock: {% if product.type == 'stock' %}true{% else %}false{% endif %}
             })"
-            class="pos-catalog-card group relative flex flex-col justify-between p-4 sm:p-4.5 bg-[var(--surface-1)] hover:bg-[var(--surface-2)]/30 {% if product.type == 'stock' and product.stock_qty <= 0 %}opacity-75{% endif %} rounded-2xl text-left transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[170px]">
+            class="pos-catalog-card group relative flex flex-col justify-between p-4 sm:p-4.5 bg-[var(--surface-1)] hover:bg-[var(--surface-2)]/30 {% if product.type == 'stock' and product.stock_qty <= 0 %}opacity-75{% endif %} rounded-2xl text-left transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[205px]">
         <div>
             <!-- SKU & Discount Tag Label (in place of barcode number) -->
             <div class="flex items-center justify-between text-xs font-mono text-muted mb-2 gap-1.5">
                 <span class="px-2 py-0.5 rounded-lg bg-[var(--surface-2)]/70 border border-[var(--border)]/40 font-bold tracking-tight truncate">{{ product.sku }}</span>
                 {% if product.discount_percent > 0 %}
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60 shadow-2xs shrink-0">
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-600 text-white font-black shadow-2xs shrink-0">
                     {{ product.discount_percent|floatformat:0 }}% OFF
                 </span>
                 {% endif %}
@@ -70,13 +71,13 @@
             {% if product.type == 'stock' %}
             <div class="mb-2.5 flex items-center">
                 {% if product.stock_qty <= 0 %}
-                <span class="pos-stock-out inline-flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-100/90 px-2.5 py-0.5 rounded-full border border-rose-300/60">
-                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                <span class="pos-stock-out inline-flex items-center gap-1.5 text-xs font-bold text-white bg-rose-600 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-200"></span>
                     {% trans "Out of stock" %}
                 </span>
                 {% else %}
-                <span class="pos-stock-in inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-300/60">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span class="pos-stock-in inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-200"></span>
                     {{ product.stock_qty|floatformat:0 }} {% trans "in stock" %}
                 </span>
                 {% endif %}
