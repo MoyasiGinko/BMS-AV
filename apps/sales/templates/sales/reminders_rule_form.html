@@ -2,112 +2,163 @@
 {% load i18n %}
 
 {% block title %}
-    {% if rule %}{% trans "Edit Reminder Rule" %}{% else %}{% trans "New Reminder Rule" %}{% endif %} | Business OS
+    {% if rule %}{% trans "Edit Reminder Rule" %}{% else %}{% trans "New Reminder Rule" %}{% endif %} | {{ request.organization.name }}
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto space-y-6">
-    <!-- Breadcrumb & Header -->
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
     <div>
-        <nav class="flex items-center gap-2 text-xs text-slate-500 mb-2">
-            <a href="{% url 'sales:reminders_dashboard' %}" class="hover:text-indigo-600">{% trans "Payment Reminders" %}</a>
-            <span>/</span>
-            <span class="text-ink font-medium">
-                {% if rule %}{{ rule.name }}{% else %}{% trans "New Timing Rule" %}{% endif %}
-            </span>
-        </nav>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">
-            {% if rule %}{% trans "Edit Payment Reminder Rule" %}{% else %}{% trans "Create Payment Reminder Rule" %}{% endif %}
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'sales:reminders_dashboard' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Payment Reminders" %}
+            </a>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+            {% if rule %}{% trans "Edit Payment Reminder Rule" %}: <span class="text-indigo-600 dark:text-indigo-400">{{ rule.name }}</span>{% else %}{% trans "Create Payment Reminder Rule" %}{% endif %}
         </h1>
-        <p class="text-sm text-muted mt-0.5">
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
             {% trans "Configure automatic email delivery timing and message templates for invoice payment notices." %}
         </p>
     </div>
 
-    <!-- Form Card -->
-    <form method="post" class="space-y-6 bg-surface border border-line rounded-xl p-6 shadow-xs">
+    <!-- Form -->
+    <form method="post" class="space-y-8 w-full">
         {% csrf_token %}
 
         {% if form.errors %}
-        <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-sm">
-            <p class="font-medium mb-1">{% trans "Please resolve the following errors:" %}</p>
-            <ul class="list-disc list-inside text-xs space-y-0.5">
-                {% for field, errors in form.errors.items %}
-                    {% for error in errors %}
-                        <li>{{ field|capfirst }}: {{ error }}</li>
-                    {% endfor %}
-                {% endfor %}
-            </ul>
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-start gap-2.5">
+                <svg class="w-5 h-5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <div>
+                    <p class="font-bold mb-1">{% trans "Please resolve the following errors:" %}</p>
+                    <ul class="list-disc list-inside space-y-0.5 text-xs font-medium">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ field|capfirst }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
         {% endif %}
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                    {% trans "Rule Name" %} *
-                </label>
-                <input type="text" name="name" value="{{ form.name.value|default:'' }}" required
-                       class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                       placeholder="e.g. 3 Days Before Due Date">
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: Rule Details & Email Templates -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <!-- Card 1: Rule Identification -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Rule Parameters" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Rule identification name and execution schedule." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Rule Name" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="name" value="{{ form.name.value|default:'' }}" required
+                                   class="form-input" placeholder="e.g. 3 Days Before Due Date">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Timing Days" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.timing_days }}
+                            <p class="text-2xs text-slate-400 mt-1">
+                                {% trans "Negative = days before due (-3). 0 = on due date. Positive = days overdue (+7)." %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Email Template Content -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Email Template" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Custom subject line and message body sent to customer billing contacts." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Email Subject Template" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.subject_template }}
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Email Body Template" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.body_template }}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                    {% trans "Timing Days" %} *
-                </label>
-                {{ form.timing_days }}
-                <span class="block text-2xs text-slate-400 mt-1">
-                    {% trans "Negative = days before due (-3). 0 = on due date. Positive = days overdue (7)." %}
-                </span>
-            </div>
+            <!-- Right 4 cols: Tags Reference & Status -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <!-- Card 3: Rule Status -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Rule Status" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Execution availability." %}</p>
+                    </div>
 
-            <div class="flex items-center pt-6">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="is_active" {% if form.is_active.value|default:True %}checked{% endif %}
-                           class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <span class="text-sm text-ink font-medium">{% trans "Rule Active" %}</span>
-                </label>
-            </div>
+                    <label class="flex items-start gap-3.5 p-3.5 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                        <div class="pt-0.5 shrink-0">
+                            <input type="checkbox" name="is_active" {% if form.is_active.value|default:True %}checked{% endif %} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-xs font-bold text-ink">{% trans "Rule Active" %}</span>
+                            <span class="block text-[11px] text-slate-400 mt-0.5">{% trans "Evaluated during daily automated payment reminder scans." %}</span>
+                        </div>
+                    </label>
+                </div>
 
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                    {% trans "Email Subject Template" %} *
-                </label>
-                {{ form.subject_template }}
-            </div>
+                <!-- Card 4: Template Merge Tags -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-4">
+                    <div class="border-b border-line pb-3">
+                        <h3 class="text-sm font-bold text-ink">{% trans "Available Dynamic Tags" %}</h3>
+                        <p class="text-2xs text-muted mt-0.5">{% trans "Interpolated automatically into subject and message body." %}</p>
+                    </div>
 
-            <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                    {% trans "Email Body Template" %} *
-                </label>
-                {{ form.body_template }}
+                    <div class="flex flex-wrap gap-2 text-2xs font-mono">
+                        <span class="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-indigo-600 dark:text-indigo-400 font-semibold">&#123;&#123; customer_name &#125;&#125;</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-indigo-600 dark:text-indigo-400 font-semibold">&#123;&#123; invoice_number &#125;&#125;</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-indigo-600 dark:text-indigo-400 font-semibold">&#123;&#123; invoice_date &#125;&#125;</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-indigo-600 dark:text-indigo-400 font-semibold">&#123;&#123; due_date &#125;&#125;</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-indigo-600 dark:text-indigo-400 font-semibold">&#123;&#123; currency &#125;&#125;</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-indigo-600 dark:text-indigo-400 font-semibold">&#123;&#123; balance_due &#125;&#125;</span>
+                        <span class="px-2.5 py-1 rounded-lg bg-surface-2 border border-line text-indigo-600 dark:text-indigo-400 font-semibold">&#123;&#123; org_name &#125;&#125;</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Available Tags Reference -->
-        <div class="p-4 rounded-lg bg-app border border-line">
-            <span class="block text-xs font-semibold text-muted mb-1.5">
-                {% trans "Available Dynamic Tags:" %}
-            </span>
-            <div class="flex flex-wrap gap-2 text-2xs font-mono">
-                <span class="px-2 py-1 rounded bg-surface border border-line text-indigo-600 dark:text-indigo-400">&#123;&#123; customer_name &#125;&#125;</span>
-                <span class="px-2 py-1 rounded bg-surface border border-line text-indigo-600 dark:text-indigo-400">&#123;&#123; invoice_number &#125;&#125;</span>
-                <span class="px-2 py-1 rounded bg-surface border border-line text-indigo-600 dark:text-indigo-400">&#123;&#123; invoice_date &#125;&#125;</span>
-                <span class="px-2 py-1 rounded bg-surface border border-line text-indigo-600 dark:text-indigo-400">&#123;&#123; due_date &#125;&#125;</span>
-                <span class="px-2 py-1 rounded bg-surface border border-line text-indigo-600 dark:text-indigo-400">&#123;&#123; currency &#125;&#125;</span>
-                <span class="px-2 py-1 rounded bg-surface border border-line text-indigo-600 dark:text-indigo-400">&#123;&#123; balance_due &#125;&#125;</span>
-                <span class="px-2 py-1 rounded bg-surface border border-line text-indigo-600 dark:text-indigo-400">&#123;&#123; org_name &#125;&#125;</span>
-            </div>
-        </div>
-
-        <!-- Buttons -->
-        <div class="pt-4 border-t border-line flex items-center justify-end gap-3">
-            <a href="{% url 'sales:reminders_dashboard' %}" class="px-4 py-2 rounded-lg border border-line text-sm font-medium text-muted hover:bg-surface-2 transition-colors">
-                {% trans "Cancel" %}
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'sales:reminders_dashboard' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
             </a>
-            <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-colors">
-                {% if rule %}{% trans "Save Changes" %}{% else %}{% trans "Create Rule" %}{% endif %}
-            </button>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {% if rule %}{% trans "Save Changes" %}{% else %}{% trans "Create Reminder Rule" %}{% endif %}
+                </button>
+            </div>
         </div>
     </form>
 </div>

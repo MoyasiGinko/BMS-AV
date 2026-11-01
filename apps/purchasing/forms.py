@@ -24,7 +24,7 @@ class SupplierFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search suppliers by name or code..."),
-                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                "class": "neu-input form-input text-sm rounded-xl",
             }
         ),
     )
@@ -32,7 +32,7 @@ class SupplierFilterForm(forms.Form):
         choices=[("", _("All")), ("1", _("Active")), ("0", _("Inactive"))],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "neu-select form-select text-sm rounded-xl"}
         ),
     )
 
@@ -89,7 +89,7 @@ class PurchaseOrderFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(PurchaseOrderStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "neu-select form-select text-sm rounded-xl"}
         ),
     )
     search = forms.CharField(
@@ -97,7 +97,7 @@ class PurchaseOrderFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search POs..."),
-                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                "class": "neu-input form-input text-sm rounded-xl",
             }
         ),
     )
@@ -162,7 +162,7 @@ class SupplierBillFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(SupplierBillStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "neu-select form-select text-sm rounded-xl"}
         ),
     )
     search = forms.CharField(
@@ -170,7 +170,7 @@ class SupplierBillFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search bills..."),
-                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                "class": "neu-input form-input text-sm rounded-xl",
             }
         ),
     )

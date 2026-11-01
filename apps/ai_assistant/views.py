@@ -251,17 +251,35 @@ class AttentionBriefingView(BaseAiView):
 
         result = generate_attention_briefing(org_id, request.user, items=items)
         briefing_text = result.get("briefing", "")
+        request.session.pop(f"ai_briefing_dismissed_{org_id}", None)
         request.session[f"ai_briefing_{org_id}"] = briefing_text
+        request.session.modified = True
 
+        briefing_lines = [line.strip() for line in briefing_text.strip().split("\n") if line.strip()]
+        highlights = [it.to_dict() for it in items[:3]]
         return render(
             request,
             "ai_assistant/widgets/partials/briefing_banner.html",
             {
                 "briefing": briefing_text,
+                "briefing_lines": briefing_lines,
+                "highlights": highlights,
                 "generated_at": result.get("generated_at"),
                 "provider": result.get("provider"),
             },
         )
+
+
+class AttentionBriefingDismissView(BaseAiView):
+    """HTMX endpoint to dismiss the executive briefing banner and remove it from session."""
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        org_id = self.get_organization_id()
+        if org_id:
+            request.session.pop(f"ai_briefing_{org_id}", None)
+            request.session[f"ai_briefing_dismissed_{org_id}"] = True
+            request.session.modified = True
+        return HttpResponse("")
 
 
 class AttentionDismissView(BaseAiView):

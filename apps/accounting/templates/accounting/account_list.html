@@ -4,34 +4,35 @@
 {% block title %}{% trans "Chart of Accounts" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 accounting-page">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Chart of Accounts" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Standard general ledger accounts organized by financial statement classification." %}
-            </p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Chart of Accounts" %}</h1>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
+            <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
                 {% trans "Dashboard" %}
             </a>
-            <a href="{% url 'accounting:account_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+            <a href="{% url 'accounting:account_create' %}" class="inline-flex items-center px-4.5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs transition-all active:scale-95 cursor-pointer">
                 <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 {% trans "New Account" %}
             </a>
         </div>
     </div>
 
+    <!-- Sub-navigation Tabs -->
+    {% include "accounting/partials/_navigation_tabs.html" with active_tab="accounts" %}
+
+
     <!-- Filter & Search Bar -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all">
         <form method="get" class="flex flex-col sm:flex-row gap-3" hx-get="{% url 'accounting:account_list' %}" hx-target="#account-table-container" hx-push-url="true">
             <div class="flex-1">
-                <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="{% trans 'Search by code or account name...' %}" class="w-full px-3.5 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="{% trans 'Search by code or account name...' %}" class="w-full px-3.5 py-2.5 border border-line rounded-xl text-sm bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
             <div class="w-full sm:w-48">
-                <select name="type" class="w-full px-3.5 py-2 border border-line rounded-lg text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select name="type" class="w-full px-3.5 py-2.5 border border-line rounded-xl text-sm bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="">{% trans "All Account Types" %}</option>
                     <option value="asset" {% if request.GET.type == 'asset' %}selected{% endif %}>{% trans "Asset" %}</option>
                     <option value="liability" {% if request.GET.type == 'liability' %}selected{% endif %}>{% trans "Liability" %}</option>
@@ -47,7 +48,7 @@
     </div>
 
     <!-- Accounts Table Container -->
-    <div id="account-table-container" class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div id="account-table-container" class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
         {% include "accounting/partials/account_table.html" %}
     </div>
 </div>

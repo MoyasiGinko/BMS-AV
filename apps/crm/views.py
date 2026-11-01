@@ -249,6 +249,7 @@ def opportunity_stage_move_view(request: HttpRequest, public_id: str, stage_id: 
         "stages": kanban_data["stages"],
         "total_pipeline_value": kanban_data["total_pipeline_value"],
         "total_deals": kanban_data["total_deals"],
+        "is_htmx": True,
     }
     return render(request, "crm/partials/kanban_board_inner.html", context)
 

@@ -4,109 +4,135 @@
 {% block title %}{% trans "Privacy Request" %} {{ req.public_id|stringformat:".8s" }} - Business OS{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-  <div>
-    <a href="{% url 'integrations:privacy_requests_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-      &larr; {% trans "Back to Privacy Requests" %}
-    </a>
-    <div class="mt-2 sm:flex sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">
-          {% if req.request_type == "access_export" %}
-            {% trans "Subject Access Request (SAR)" %}
-          {% else %}
-            {% trans "Right to Erasure (Forgotten)" %}
-          {% endif %}
-        </h1>
-        <p class="mt-1 text-sm text-muted">
-          {% trans "Subject" %}: <span class="font-medium text-ink">{{ req.subject_email }}</span> ({{ req.subject_type }})
-        </p>
-      </div>
-      <div class="mt-4 sm:mt-0 flex items-center space-x-3">
-        {% if req.status == "completed" and req.request_type == "access_export" %}
-          <a
-            href="{% url 'integrations:privacy_sar_download' request_id=req.public_id %}"
-            class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
-          >
-            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            {% trans "Download SAR JSON" %}
-          </a>
-        {% elif req.status == "pending" or req.status == "verified" %}
-          <form method="post" action="{% url 'integrations:privacy_request_execute' request_id=req.public_id %}">
-            {% csrf_token %}
-            {% if req.request_type == "access_export" %}
-              <button
-                type="submit"
-                class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
-              >
-                {% trans "Compile SAR Export" %}
-              </button>
-            {% else %}
-              <button
-                type="submit"
-                onclick="return confirm('{% trans "Are you sure you want to permanently anonymize this data subject? Accounting invoices will retain tax numbers but personal names, emails, and addresses will be scrubbed." %}');"
-                class="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 transition"
-              >
-                {% trans "Execute Anonymization Erasure" %}
-              </button>
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'integrations:privacy_requests_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Privacy Requests" %}
+            </a>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+                        {% if req.request_type == "access_export" %}
+                            {% trans "Subject Access Request (SAR)" %}
+                        {% else %}
+                            {% trans "Right to Erasure (Forgotten)" %}
+                        {% endif %}
+                    </h1>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {% if req.status == 'completed' %}bg-emerald-600 text-white{% elif req.status == 'failed' %}bg-rose-600 text-white{% else %}bg-amber-600 text-white{% endif %} shadow-2xs">
+                        {{ req.status|title }}
+                    </span>
+                </div>
+                <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+                    {% trans "Subject" %}: <span class="font-bold text-ink">{{ req.subject_email }}</span> ({{ req.subject_type }})
+                </p>
+            </div>
+            <div class="flex items-center gap-3">
+                {% if req.status == "completed" and req.request_type == "access_export" %}
+                    <a href="{% url 'integrations:privacy_sar_download' request_id=req.public_id %}" class="neu-btn-primary inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                        <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        {% trans "Download SAR JSON" %}
+                    </a>
+                {% elif req.status == "pending" or req.status == "verified" %}
+                    <form method="post" action="{% url 'integrations:privacy_request_execute' request_id=req.public_id %}">
+                        {% csrf_token %}
+                        {% if req.request_type == "access_export" %}
+                            <button type="submit" class="neu-btn-primary inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                                {% trans "Compile SAR Export" %}
+                            </button>
+                        {% else %}
+                            <button type="submit" onclick="return confirm('{% trans "Are you sure you want to permanently anonymize this data subject? Accounting invoices will retain tax numbers but personal names, emails, and addresses will be scrubbed." %}');" class="inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                                {% trans "Execute Anonymization Erasure" %}
+                            </button>
+                        {% endif %}
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bento 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left 8 cols: Specification & Results -->
+        <div class="col-span-12 lg:col-span-8 space-y-8">
+            <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                <div class="border-b border-line pb-4">
+                    <h2 class="text-lg font-bold text-ink">{% trans "Request Specification" %}</h2>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Verification audit and subject details." %}</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-muted block mb-1">{% trans "Subject Name" %}</span>
+                        <div class="text-base font-bold text-ink">{{ req.subject_name|default:"-" }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-muted block mb-1">{% trans "Subject Email" %}</span>
+                        <div class="text-base font-bold text-ink">{{ req.subject_email }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-muted block mb-1">{% trans "Created At" %}</span>
+                        <div class="text-sm font-mono text-muted">{{ req.created_at|date:"Y-m-d H:i:s" }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-muted block mb-1">{% trans "Completed At" %}</span>
+                        <div class="text-sm font-mono text-muted">{{ req.completed_at|date:"Y-m-d H:i:s"|default:"-" }}</div>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-muted block mb-1">{% trans "Reason" %}</span>
+                        <div class="text-sm font-semibold text-ink">{{ req.reason|default:"-" }}</div>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-muted block mb-1">{% trans "Verification Notes" %}</span>
+                        <div class="text-sm font-semibold text-slate-600 dark:text-slate-300">{{ req.verification_notes|default:"-" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Erasure / SAR Results -->
+            {% if req.status == "completed" %}
+            <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-4">
+                <div class="border-b border-line pb-3">
+                    <h2 class="text-lg font-bold text-ink">
+                        {% if req.request_type == "access_export" %}
+                            {% trans "Compiled Subject Access Data" %}
+                        {% else %}
+                            {% trans "Erasure Audit Impact" %}
+                        {% endif %}
+                    </h2>
+                </div>
+                <pre class="bg-surface-2 p-5 rounded-2xl text-xs font-mono text-ink overflow-x-auto max-h-96 border border-line">{{ result_json }}</pre>
+            </div>
             {% endif %}
-          </form>
-        {% endif %}
-      </div>
-    </div>
-  </div>
+        </div>
 
-  <!-- Status & Details -->
-  <div class="bg-surface rounded-2xl shadow-sm border border-line p-6 space-y-4">
-    <h2 class="text-lg font-semibold text-ink">
-      {% trans "Request Specification" %}
-    </h2>
-    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-      <div>
-        <dt class="text-muted">{% trans "Status" %}</dt>
-        <dd class="mt-1 font-medium text-ink">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if req.status == 'completed' %}bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300{% elif req.status == 'failed' %}bg-rose-100 text-rose-800{% else %}bg-amber-100 text-amber-800{% endif %}">
-            {{ req.status|title }}
-          </span>
-        </dd>
-      </div>
-      <div>
-        <dt class="text-muted">{% trans "Subject Name" %}</dt>
-        <dd class="mt-1 font-medium text-ink">{{ req.subject_name|default:"-" }}</dd>
-      </div>
-      <div>
-        <dt class="text-muted">{% trans "Created" %}</dt>
-        <dd class="mt-1 font-medium text-ink">{{ req.created_at|date:"Y-m-d H:i:s" }}</dd>
-      </div>
-      <div>
-        <dt class="text-muted">{% trans "Completed At" %}</dt>
-        <dd class="mt-1 font-medium text-ink">{{ req.completed_at|date:"Y-m-d H:i:s"|default:"-" }}</dd>
-      </div>
-      <div class="sm:col-span-2">
-        <dt class="text-muted">{% trans "Reason" %}</dt>
-        <dd class="mt-1 font-medium text-ink">{{ req.reason|default:"-" }}</dd>
-      </div>
-      <div class="sm:col-span-2">
-        <dt class="text-muted">{% trans "Verification Notes" %}</dt>
-        <dd class="mt-1 font-medium text-ink">{{ req.verification_notes|default:"-" }}</dd>
-      </div>
-    </dl>
-  </div>
-
-  <!-- Erasure / SAR Results -->
-  {% if req.status == "completed" %}
-    <div class="bg-surface rounded-2xl shadow-sm border border-line p-6 space-y-4">
-      <h2 class="text-lg font-semibold text-ink">
-        {% if req.request_type == "access_export" %}
-          {% trans "Compiled Subject Access Data" %}
-        {% else %}
-          {% trans "Erasure Audit Impact" %}
-        {% endif %}
-      </h2>
-      <pre class="bg-app p-4 rounded-xl text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto max-h-96">{{ result_json }}</pre>
+        <!-- Right 4 cols: Compliance Architecture Guidance -->
+        <div class="col-span-12 lg:col-span-4 space-y-8">
+            <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    {% trans "GDPR Compliance" %}
+                </div>
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {% trans "Right to Erasure compliance anonymizes customer names, contact emails, billing addresses, and phone numbers across quotes, orders, and tickets while retaining immutable posted GL journal lines." %}
+                </p>
+            </div>
+        </div>
     </div>
-  {% endif %}
 </div>
 {% endblock %}

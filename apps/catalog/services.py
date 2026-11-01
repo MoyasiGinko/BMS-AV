@@ -154,6 +154,7 @@ def create_product(
     type: str = ProductType.STOCK,
     cost_price: Decimal | str | int | float = DECIMAL_ZERO,
     selling_price: Decimal | str | int | float = DECIMAL_ZERO,
+    discount_percent: Decimal | str | int | float = DECIMAL_ZERO,
     barcode: str = "",
     tax_code: TaxCode | None = None,
     track_batch: bool = False,
@@ -193,6 +194,7 @@ def create_product(
         type=type,
         cost_price=cost,
         selling_price=price,
+        discount_percent=Decimal(str(discount_percent or "0.00")).quantize(Decimal("0.01")),
         tax_code=tax_code,
         track_batch=track_batch,
         track_serial=track_serial,
@@ -255,6 +257,9 @@ def update_product(
             setattr(product, field, dec_val)
             if field == "selling_price" and dec_val != old_price:
                 price_changed = True
+        elif field == "discount_percent":
+            dec_val = Decimal(str(val or "0.00")).quantize(Decimal("0.01"))
+            setattr(product, field, dec_val)
         elif hasattr(product, field):
             setattr(product, field, val)
 

@@ -6,130 +6,185 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-  <!-- Header -->
-  <div>
-    <a href="{% url 'integrations:oauth_applications_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-      &larr; {% trans "OAuth Applications" %}
-    </a>
-    <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
-      {% if is_new %}{% trans "Register OAuth Application" %}{% else %}{% trans "Edit Application" %}: {{ application.name }}{% endif %}
-    </h1>
-    <p class="mt-1 text-sm text-muted">
-      {% trans "Configure client credentials, callback redirect URIs, and permitted API scopes." %}
-    </p>
-  </div>
-
-  <!-- Form -->
-  <form method="post" action="" class="bg-surface rounded-2xl shadow-sm border border-line p-8 space-y-6">
-    {% csrf_token %}
-
-    <!-- Name -->
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
     <div>
-      <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
-        {% trans "Application Name" %} <span class="text-rose-500">*</span>
-      </label>
-      {{ form.name }}
-      {% if form.name.errors %}
-      <p class="mt-1 text-xs text-rose-500">{{ form.name.errors.0 }}</p>
-      {% endif %}
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'integrations:oauth_applications_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to OAuth Applications" %}
+            </a>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+            {% if is_new %}{% trans "Register OAuth Application" %}{% else %}{% trans "Edit Application" %}: <span class="text-indigo-600 dark:text-indigo-400">{{ application.name }}</span>{% endif %}
+        </h1>
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% trans "Configure client credentials, callback redirect URIs, token grant flows, and permitted API scopes." %}
+        </p>
     </div>
 
-    <!-- Client Type & Grant Type Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label for="{{ form.client_type.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
-          {% trans "Client Type" %} <span class="text-rose-500">*</span>
-        </label>
-        {{ form.client_type }}
-        <p class="mt-1 text-xs text-slate-500">{% trans "Confidential (server-to-server) or Public (SPA/mobile)." %}</p>
-        {% if form.client_type.errors %}
-        <p class="mt-1 text-xs text-rose-500">{{ form.client_type.errors.0 }}</p>
+    <!-- Form -->
+    <form method="post" action="" class="space-y-8 w-full">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <div>{{ form.non_field_errors }}</div>
+            </div>
+        </div>
         {% endif %}
-      </div>
 
-      <div>
-        <label for="{{ form.authorization_grant_type.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
-          {% trans "Grant Type" %} <span class="text-rose-500">*</span>
-        </label>
-        {{ form.authorization_grant_type }}
-        <p class="mt-1 text-xs text-slate-500">{% trans "Authorization code (with PKCE) or Client credentials." %}</p>
-        {% if form.authorization_grant_type.errors %}
-        <p class="mt-1 text-xs text-rose-500">{{ form.authorization_grant_type.errors.0 }}</p>
-        {% endif %}
-      </div>
-    </div>
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: App Details & Scopes -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <!-- Card 1: Application Identity & Grants -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Application Identity" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Name, grant type, and client classification." %}</p>
+                    </div>
 
-    <!-- Redirect URIs -->
-    <div>
-      <label for="{{ form.redirect_uris.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
-        {% trans "Redirect URIs" %}
-      </label>
-      {{ form.redirect_uris }}
-      <p class="mt-1 text-xs text-slate-500">
-        {% trans "Allowed callback URLs separated by spaces or newlines (Required for Authorization Code grant)." %}
-      </p>
-      {% if form.redirect_uris.errors %}
-      <p class="mt-1 text-xs text-rose-500">{{ form.redirect_uris.errors.0 }}</p>
-      {% endif %}
-    </div>
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Application Name" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
 
-    <!-- Allowed Scopes Checkboxes -->
-    <div class="border-t border-line pt-5">
-      <label class="block text-sm font-semibold text-ink mb-2">
-        {% trans "Permitted Scopes" %}
-      </label>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto p-3 bg-app rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-        {% for val, label in form.fields.scopes.choices %}
-        <label class="flex items-center space-x-2.5 text-xs text-muted hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
-          <input
-            type="checkbox"
-            name="scopes"
-            value="{{ val }}"
-            {% if val in form.fields.scopes.initial or val in form.data.getlist %}checked{% endif %}
-            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-          />
-          <span class="font-mono font-medium">{{ val }}</span>
-          <span class="text-slate-500 text-[11px]">({{ label }})</span>
-        </label>
-        {% endfor %}
-      </div>
-    </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.client_type.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                    {% trans "Client Type" %} <span class="text-rose-500">*</span>
+                                </label>
+                                {{ form.client_type }}
+                                <p class="mt-1 text-2xs text-slate-400">{% trans "Confidential (server-to-server) or Public (SPA/mobile)." %}</p>
+                                {% if form.client_type.errors %}
+                                <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.client_type.errors.0 }}</p>
+                                {% endif %}
+                            </div>
 
-    <!-- Description -->
-    <div>
-      <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-muted mb-1">
-        {% trans "Description" %}
-      </label>
-      {{ form.description }}
-      {% if form.description.errors %}
-      <p class="mt-1 text-xs text-rose-500">{{ form.description.errors.0 }}</p>
-      {% endif %}
-    </div>
+                            <div>
+                                <label for="{{ form.authorization_grant_type.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                    {% trans "Grant Type" %} <span class="text-rose-500">*</span>
+                                </label>
+                                {{ form.authorization_grant_type }}
+                                <p class="mt-1 text-2xs text-slate-400">{% trans "Authorization code (with PKCE) or Client credentials." %}</p>
+                                {% if form.authorization_grant_type.errors %}
+                                <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.authorization_grant_type.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
 
-    <!-- Skip Authorization -->
-    <div class="flex items-center space-x-3 pt-2">
-      {{ form.skip_authorization }}
-      <label for="{{ form.skip_authorization.id_for_label }}" class="text-sm text-muted">
-        {% trans "Skip user consent screen for first-party internal clients" %}
-      </label>
-    </div>
+                        <div>
+                            <label for="{{ form.redirect_uris.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Redirect URIs" %}
+                            </label>
+                            {{ form.redirect_uris }}
+                            <p class="mt-1 text-2xs text-slate-400">
+                                {% trans "Allowed callback URLs separated by spaces or newlines (Required for Authorization Code grant)." %}
+                            </p>
+                            {% if form.redirect_uris.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.redirect_uris.errors.0 }}</p>
+                            {% endif %}
+                        </div>
 
-    <!-- Actions -->
-    <div class="flex items-center justify-end space-x-3 pt-6 border-t border-line">
-      <a
-        href="{% url 'integrations:oauth_applications_list' %}"
-        class="px-4 py-2.5 border border-line text-sm font-medium rounded-xl text-muted bg-surface hover:bg-surface-2 hover:text-ink transition"
-      >
-        {% trans "Cancel" %}
-      </a>
-      <button
-        type="submit"
-        class="px-5 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm shadow-indigo-600/30 transition"
-      >
-        {% if is_new %}{% trans "Register Application" %}{% else %}{% trans "Save Changes" %}{% endif %}
-      </button>
-    </div>
-  </form>
+                        <div>
+                            <label for="{{ form.description.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Description" %}
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                            <p class="mt-1.5 text-xs font-semibold text-rose-500">{{ form.description.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Permitted Scopes -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Permitted Scopes" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Select API resource permissions granted to this application." %}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto p-4 bg-surface-2/40 rounded-xl border border-line">
+                        {% for val, label in form.fields.scopes.choices %}
+                        <label class="flex items-center gap-2.5 text-xs text-muted hover:text-ink cursor-pointer p-2 rounded-lg hover:bg-surface transition-colors">
+                            <input
+                                type="checkbox"
+                                name="scopes"
+                                value="{{ val }}"
+                                {% if val in form.fields.scopes.initial or val in form.data.getlist %}checked{% endif %}
+                                class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span class="font-mono font-bold text-ink">{{ val }}</span>
+                            <span class="text-slate-400 text-[11px]">({{ label }})</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 4 cols: Security & Consent Governance -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <!-- Card 3: Consent Governance -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Consent Governance" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "First-party bypass settings." %}</p>
+                    </div>
+
+                    <label class="flex items-start gap-3.5 p-3.5 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                        <div class="pt-0.5 shrink-0">
+                            {{ form.skip_authorization }}
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-xs font-bold text-ink">{% trans "Skip Authorization" %}</span>
+                            <span class="block text-[11px] text-slate-400 mt-0.5">{% trans "Skip user consent screen for first-party trusted internal clients." %}</span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Guidance Box -->
+                <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        {% trans "Client Secret Security" %}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {% trans "Upon registration, a client secret is displayed ONCE. Store it securely in your secret manager. Business OS stores only hashed credentials." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'integrations:oauth_applications_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {% if is_new %}{% trans "Register Application" %}{% else %}{% trans "Save Changes" %}{% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

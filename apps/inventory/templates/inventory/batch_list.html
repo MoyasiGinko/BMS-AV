@@ -1,62 +1,58 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Batches & Expiry" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="inventory-page space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Batches & Lot Tracking" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Manage lot numbers, expiry dates, and FEFO allocations across warehouses." %}
-            </p>
-        </div>
-        <div class="flex items-center gap-2">
-            <a href="{% url 'inventory:reorder_suggestions' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                {% trans "Reorder Suggestions" %}
-            </a>
-            <a href="{% url 'inventory:serial_list' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
-                {% trans "Serial Numbers" %}
-            </a>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Batches & Lot Tracking" %}</h1>
         </div>
     </div>
 
+    <!-- Navigation Sub-tabs -->
+    {% include "inventory/partials/_navigation_tabs.html" with active_tab="batches" %}
+
     <!-- Filters -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
-        <form method="get" class="flex flex-wrap items-center gap-3">
+    <div class="neu-raised-card p-4 sm:p-5">
+        <form method="get" class="flex flex-wrap items-center gap-4">
             <div class="flex-1 min-w-[200px]">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{% trans "Search Batch" %}</label>
                 <input type="text" name="query" value="{{ query }}" placeholder="{% trans 'Search batch number or product...' %}"
-                       class="w-full py-2 px-3 border border-line rounded-lg bg-surface text-ink text-sm focus:ring-2 focus:ring-indigo-500" />
+                       class="neu-input w-full py-2 px-3 text-sm" />
             </div>
             <div>
-                <select name="warehouse" class="py-2 px-3 border border-line rounded-lg bg-surface text-ink text-sm">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{% trans "Warehouse Scope" %}</label>
+                <select name="warehouse" class="neu-select py-2 px-3 text-sm min-w-[180px]">
                     <option value="">{% trans "All Warehouses" %}</option>
                     {% for wh in warehouses %}
                     <option value="{{ wh.pk }}" {% if selected_warehouse and selected_warehouse.pk == wh.pk %}selected{% endif %}>{{ wh.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 pt-5">
                 <input type="checkbox" id="expiring" name="expiring" value="1" {% if filter_expiring %}checked{% endif %}
-                       class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                <label for="expiring" class="text-sm font-medium text-muted">{% trans "Expiring within 30 days" %}</label>
+                       class="neu-checkbox rounded" />
+                <label for="expiring" class="text-sm font-bold text-slate-600 dark:text-slate-400 cursor-pointer">{% trans "Expiring within 30 days" %}</label>
             </div>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-xs transition-colors">
-                {% trans "Filter" %}
-            </button>
-            {% if query or selected_warehouse or filter_expiring %}
-            <a href="{% url 'inventory:batch_list' %}" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">{% trans "Clear" %}</a>
-            {% endif %}
+            <div class="flex items-end gap-2 pt-5">
+                <button type="submit" class="neu-primary-btn px-4 py-2 text-sm font-bold rounded-xl transition cursor-pointer">
+                    {% trans "Filter" %}
+                </button>
+                {% if query or selected_warehouse or filter_expiring %}
+                <a href="{% url 'inventory:batch_list' %}" class="neu-action-btn text-xs font-bold py-2 px-3 rounded-lg text-slate-500 hover:text-slate-800 transition">{% trans "Clear" %}</a>
+                {% endif %}
+            </div>
         </form>
     </div>
 
     <!-- Expiring warning if filtered -->
     {% if filter_expiring and expiring_batches %}
-    <div class="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl">
-        <div class="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-semibold text-sm">
-            <svg class="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800">
+        <div class="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold text-sm">
+            <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <span>{% trans "Found" %} {{ expiring_batches|length }} {% trans "batch stock entry(s) approaching or past expiration." %}</span>
@@ -65,57 +61,62 @@
     {% endif %}
 
     <!-- Batches Table -->
-    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+    <div class="neu-table-card">
         <table class="w-full text-left border-collapse text-sm">
             <thead>
-                <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
-                    <th class="py-3 px-4">{% trans "Batch Number" %}</th>
-                    <th class="py-3 px-4">{% trans "Product" %}</th>
-                    <th class="py-3 px-4">{% trans "Expiry Date" %}</th>
-                    <th class="py-3 px-4">{% trans "Status" %}</th>
-                    <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+                <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <th class="py-3.5 px-4">{% trans "Batch Number" %}</th>
+                    <th class="py-3.5 px-4">{% trans "Product" %}</th>
+                    <th class="py-3.5 px-4">{% trans "Expiry Date" %}</th>
+                    <th class="py-3.5 px-4">{% trans "Status" %}</th>
+                    <th class="py-3.5 px-4 text-right">{% trans "Actions" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-line/60">
+            <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800">
                 {% for batch in page_obj %}
-                <tr>
-                    <td class="py-3 px-4 font-mono font-medium text-indigo-600 dark:text-indigo-400">
-                        <a href="{% url 'inventory:batch_detail' batch.pk %}" class="hover:underline">
+                <tr class="neu-table-row transition-colors">
+                    <td class="py-3.5 px-4 font-mono font-bold">
+                        <a href="{% url 'inventory:batch_detail' batch.pk %}" class="text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline">
                             {{ batch.batch_number }}
                         </a>
                     </td>
-                    <td class="py-3 px-4 text-ink">
-                        <span class="font-medium">{{ batch.product.name }}</span>
-                        <div class="text-xs text-slate-400 font-mono">{{ batch.product.sku }}</div>
+                    <td class="py-3.5 px-4">
+                        <span class="font-bold text-[var(--neu-text,#262B45)]">{{ batch.product.name }}</span>
+                        <div class="text-xs text-slate-400 font-mono font-medium">{{ batch.product.sku }}</div>
                     </td>
-                    <td class="py-3 px-4 font-mono text-muted">
+                    <td class="py-3.5 px-4 font-mono text-slate-500 font-medium">
                         {{ batch.expiry_date|date:"Y-m-d"|default:"&mdash;" }}
                     </td>
-                    <td class="py-3 px-4">
+                    <td class="py-3.5 px-4">
                         {% if batch.is_expired %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-rose-600 text-white font-bold shadow-2xs border border-rose-200/80">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                             {% trans "Expired" %}
                         </span>
                         {% elif batch.expiry_date %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             {% trans "Active" %}
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs border border-slate-200/60">
                             {% trans "No Expiry" %}
                         </span>
                         {% endif %}
                     </td>
-                    <td class="py-3 px-4 text-right">
-                        <a href="{% url 'inventory:batch_detail' batch.pk %}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                    <td class="py-3.5 px-4 text-right">
+                        <a href="{% url 'inventory:batch_detail' batch.pk %}" class="neu-action-btn text-xs font-bold py-1.5 px-3 rounded-lg text-slate-700 hover:text-slate-900 transition inline-flex items-center gap-1">
                             {% trans "View Details" %} &rarr;
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="py-8 text-center text-muted">
-                        {% trans "No batches found matching the selected criteria." %}
+                    <td colspan="5" class="py-12 text-center">
+                        <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                            <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "No batches found matching criteria" %}</p>
+                            <p class="text-xs text-slate-500 mt-1">{% trans "Lot and batch numbers will appear here upon inventory receipt." %}</p>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -123,16 +124,16 @@
         </table>
 
         {% if page_obj.has_other_pages %}
-        <div class="px-4 py-3 border-t border-line flex items-center justify-between">
-            <div class="text-xs text-slate-500">
-                {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+        <div class="px-5 py-4 border-t border-[#D3D8E8] dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 font-medium">
+            <div>
+                {% trans "Page" %} <span class="font-bold text-slate-700 dark:text-slate-300">{{ page_obj.number }}</span> {% trans "of" %} <span class="font-bold text-slate-700 dark:text-slate-300">{{ page_obj.paginator.num_pages }}</span>
             </div>
-            <div class="flex gap-1">
+            <div class="flex gap-2">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}&query={{ query }}&warehouse={{ selected_warehouse.pk|default:'' }}&expiring={{ filter_expiring|yesno:'1,' }}" class="px-3 py-1 text-xs border rounded hover:bg-surface-2">{% trans "Previous" %}</a>
+                <a href="?page={{ page_obj.previous_page_number }}&query={{ query }}&warehouse={{ selected_warehouse.pk|default:'' }}&expiring={{ filter_expiring|yesno:'1,' }}" class="neu-action-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">&larr; {% trans "Previous" %}</a>
                 {% endif %}
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&query={{ query }}&warehouse={{ selected_warehouse.pk|default:'' }}&expiring={{ filter_expiring|yesno:'1,' }}" class="px-3 py-1 text-xs border rounded hover:bg-surface-2">{% trans "Next" %}</a>
+                <a href="?page={{ page_obj.next_page_number }}&query={{ query }}&warehouse={{ selected_warehouse.pk|default:'' }}&expiring={{ filter_expiring|yesno:'1,' }}" class="neu-action-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">{% trans "Next" %} &rarr;</a>
                 {% endif %}
             </div>
         </div>

@@ -15,6 +15,8 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from unittest.mock import patch
+
 from django.core.cache import cache
 from django.http import HttpRequest
 from django.test import Client, RequestFactory
@@ -201,6 +203,41 @@ class TestOnboardingChecklistWidget:
         # Reset dismissal
         del request.session[f"dismiss_checklist_{org_a.pk}"]
         assert checklist_widget.is_visible(request, org_a) is True
+
+    def test_checklist_hidden_when_all_completed_until_manually_triggered(
+        self, org_a: Organization, owner_a: User
+    ) -> None:
+        checklist_widget = OnboardingChecklistWidget()
+        factory = RequestFactory()
+
+        with patch.object(
+            OnboardingChecklistWidget,
+            "_evaluate_steps",
+            return_value=([{"id": "s", "is_completed": True}], True),
+        ):
+            # 1. By default, when all steps are completed, it is not visible
+            request = factory.get("/")
+            request.user = owner_a
+            request.session = {}
+            assert checklist_widget.is_visible(request, org_a) is False
+
+            # 2. When manually triggered via query parameter ?show_checklist=1
+            req_query = factory.get("/?show_checklist=1")
+            req_query.user = owner_a
+            req_query.session = {}
+            assert checklist_widget.is_visible(req_query, org_a) is True
+
+            # 3. When manually triggered via session flag (e.g. clicked "Show Checklist")
+            req_session = factory.get("/")
+            req_session.user = owner_a
+            req_session.session = {f"show_checklist_{org_a.pk}": True}
+            assert checklist_widget.is_visible(req_session, org_a) is True
+
+            # 4. If dismissed even with all complete, it remains False
+            req_dismiss = factory.get("/")
+            req_dismiss.user = owner_a
+            req_dismiss.session = {f"dismiss_checklist_{org_a.pk}": True}
+            assert checklist_widget.is_visible(req_dismiss, org_a) is False
 
 
 @pytest.mark.django_db

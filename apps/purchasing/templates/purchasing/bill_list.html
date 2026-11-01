@@ -1,29 +1,22 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Supplier Bills" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="purchasing-page space-y-6">
+    <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Vendor & Supplier Bills" %}</h1>
-            <p class="text-sm text-slate-500 mt-1">
-                {% trans "Review incoming supplier invoices, post payables to general ledger, and disburse payments." %}
-            </p>
-        </div>
-        <div class="flex items-center gap-2">
-            <a href="{% url 'purchasing:supplier_payment_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 shadow-xs">
-                {% trans "Disbursements / Payments" %}
-            </a>
-            <a href="{% url 'purchasing:purchase_return_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 shadow-xs">
-                {% trans "Purchase Returns" %}
-            </a>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Vendor & Supplier Bills" %}</h1>
         </div>
     </div>
 
+    <!-- Navigation Sub-tabs -->
+    {% include "purchasing/partials/_navigation_tabs.html" with active_tab="bills" %}
+
     <!-- Filters -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="neu-filter-card p-4 sm:p-5">
         <form method="get" class="flex flex-col sm:flex-row gap-3" hx-get="{% url 'purchasing:supplier_bill_list' %}" hx-target="#bill-table-container" hx-push-url="true">
             <div class="flex-1">
                 {{ filter_form.search }}
@@ -31,14 +24,17 @@
             <div class="w-full sm:w-48">
                 {{ filter_form.status }}
             </div>
-            <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg">
+            <button type="submit" class="neu-primary-btn px-4 py-2 text-sm font-bold rounded-xl transition cursor-pointer">
                 {% trans "Filter" %}
             </button>
+            <a href="{% url 'purchasing:supplier_bill_list' %}" class="neu-btn-ghost px-3 py-2 text-sm font-bold rounded-xl transition cursor-pointer flex items-center justify-center">
+                {% trans "Clear" %}
+            </a>
         </form>
     </div>
 
     <!-- Table Container -->
-    <div id="bill-table-container" class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div id="bill-table-container" class="neu-table-card">
         {% include "purchasing/partials/bill_table.html" %}
     </div>
 </div>

@@ -128,6 +128,28 @@ class FakeAiProvider(BaseAiProvider):
         if intent_resp is not None:
             return intent_resp
 
+        if (
+            model_name == "briefing-agent"
+            or "urgent operational alerts" in user_text
+            or "morning briefing" in user_text
+        ):
+            briefing_bullets = (
+                "• Inventory: 1 item out of stock (Stretch Film Heavy Pallet Wrap) — "
+                "issue supplier purchase order to avoid fulfillment delays.\n"
+                "• Receivables: $1,472.90 overdue across 1 customer invoice (Apex Regional Contractors) — "
+                "prompt collection reminder advised.\n"
+                "• Payables: $2,673.00 due to vendors (Global Pack and Freight Logistics) — "
+                "schedule disbursement to maintain account terms."
+            )
+            return AiResponse(
+                content=briefing_bullets,
+                tool_calls=[],
+                prompt_tokens=120,
+                completion_tokens=85,
+                model=model_name,
+                latency_ms=25,
+            )
+
         overview_content = (
             "Hello! I am your Business OS AI Copilot. Here are a few things I can assist you with:\n\n"
             "- **Sales Performance**: Ask *'Show sales summary for this month'*.\n"

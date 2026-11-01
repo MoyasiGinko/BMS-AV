@@ -4,146 +4,199 @@
 {% block title %}{% if structure %}{{ structure.name }}{% else %}{% trans "New Salary Structure" %}{% endif %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <div>
-        <a href="{% url 'payroll:structure_list' %}" class="text-xs font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 inline-flex items-center gap-1">
-            &larr; {% trans "Back to Structures" %}
-        </a>
-        <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
+<div class="w-full space-y-8 pb-16">
+    <!-- Breadcrumb & Header -->
+    <div class="space-y-2">
+        <nav class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <a href="{% url 'payroll:structure_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Salary Structures" %}</a>
+            <span>/</span>
+            <span class="text-ink font-semibold">{% if structure %}{{ structure.name }}{% else %}{% trans "New Structure" %}{% endif %}</span>
+        </nav>
+        <h1 class="text-3xl font-extrabold tracking-tight text-ink">
             {% if structure %}{{ structure.name }} ({{ structure.code }}){% else %}{% trans "New Salary Structure" %}{% endif %}
         </h1>
-        <p class="text-sm text-muted mt-0.5">
-            {% trans "Configure formula items, standard earnings, and deduction rules applied during payroll calculation." %}
+        <p class="text-sm text-slate-500 font-medium max-w-3xl">
+            {% trans "Configure compensation packages with automated earning and deduction formulas applied during payroll calculation." %}
         </p>
     </div>
 
-    <!-- Header Form -->
-    <form method="post" class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-4">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="save_structure" />
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-xs font-semibold uppercase text-muted mb-1">{% trans "Structure Name" %} *</label>
-                {{ form.name }}
-                {% if form.name.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
-            </div>
-            <div>
-                <label class="block text-xs font-semibold uppercase text-muted mb-1">{% trans "Structure Code" %} *</label>
-                {{ form.code }}
-                {% if form.code.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.code.errors.0 }}</p>{% endif %}
-            </div>
-        </div>
-
-        <div>
-            <label class="block text-xs font-semibold uppercase text-muted mb-1">{% trans "Description" %}</label>
-            {{ form.description }}
-            {% if form.description.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.description.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div class="flex items-center gap-2">
-            {{ form.is_active }}
-            <label for="{{ form.is_active.id_for_label }}" class="text-sm text-muted">{% trans "Is Active for assignment" %}</label>
-        </div>
-
-        <div class="pt-3 border-t border-line flex justify-end">
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors">
-                {% if structure %}{% trans "Save Header" %}{% else %}{% trans "Create & Add Rules" %}{% endif %}
-            </button>
-        </div>
-    </form>
-
-    {% if structure %}
-    <!-- Items & Calculation Rules Section -->
-    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
-        <div class="px-6 py-4 bg-app border-b border-line">
-            <h3 class="text-base font-semibold text-ink">{% trans "Component Formula Rules" %}</h3>
-            <p class="text-xs text-slate-500">{% trans "Rules calculated on top of each employee's assigned base salary." %}</p>
-        </div>
-
-        <!-- Existing Rules Table -->
-        <table class="w-full text-left text-sm">
-            <thead class="border-b border-line text-xs font-semibold uppercase tracking-wider text-slate-500">
-                <tr>
-                    <th class="px-6 py-3">{% trans "Component" %}</th>
-                    <th class="px-6 py-3">{% trans "Type" %}</th>
-                    <th class="px-6 py-3">{% trans "Calculation" %}</th>
-                    <th class="px-6 py-3 text-right">{% trans "Formula Value" %}</th>
-                    <th class="px-6 py-3 text-right">{% trans "Remove" %}</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-line">
-                <tr class="bg-slate-50/40">
-                    <td class="px-6 py-3 font-medium text-ink">{% trans "Base Salary" %}</td>
-                    <td class="px-6 py-3 text-emerald-600 text-xs font-semibold uppercase">{% trans "Earning" %}</td>
-                    <td class="px-6 py-3 text-slate-500 text-xs">{% trans "Contract Base" %}</td>
-                    <td class="px-6 py-3 text-right font-mono text-muted">{% trans "100% of Base" %}</td>
-                    <td class="px-6 py-3 text-right text-xs text-slate-400">{% trans "Fixed base" %}</td>
-                </tr>
-                {% for item in items %}
-                <tr>
-                    <td class="px-6 py-3 font-medium text-ink">{{ item.component.name }} ({{ item.component.code }})</td>
-                    <td class="px-6 py-3">
-                        {% if item.component.component_type == 'earning' %}
-                            <span class="text-xs font-semibold uppercase text-emerald-600">{% trans "Earning" %}</span>
-                        {% else %}
-                            <span class="text-xs font-semibold uppercase text-rose-600">{% trans "Deduction" %}</span>
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-3 text-muted text-xs">{{ item.get_calculation_type_display }}</td>
-                    <td class="px-6 py-3 text-right font-mono text-ink">
-                        {% if item.calculation_type == 'fixed' %}
-                            ${{ item.amount|floatformat:2 }}
-                        {% else %}
-                            {{ item.percentage|floatformat:2 }}% {% trans "of Base" %}
-                        {% endif %}
-                    </td>
-                    <td class="px-6 py-3 text-right">
-                        <form method="post" class="inline" onsubmit="return confirm('{% trans "Remove this component rule?" %}');">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="remove_item" />
-                            <input type="hidden" name="component_id" value="{{ item.component.pk }}" />
-                            <button type="submit" class="text-xs text-rose-600 hover:underline">{% trans "Remove" %}</button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="px-6 py-4 text-center text-slate-400 text-xs">{% trans "No additional component rules added yet." %}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <!-- Add Component Rule Subform -->
-        <div class="p-6 bg-surface-2/50 border-t border-line">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-muted mb-3">{% trans "+ Add Component Rule" %}</h4>
-            <form method="post" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+    <!-- Bento 12-Column Responsive Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+        <!-- Left Column (8 cols): Primary Header & Formulas -->
+        <div class="lg:col-span-8 space-y-8">
+            <!-- Header Card -->
+            <form id="structure-form" method="post" class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="add_item" />
-                <div class="sm:col-span-1">
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Component" %}</label>
-                    {{ item_form.component }}
+                <input type="hidden" name="action" value="save_structure" />
+
+                <div class="border-b border-line pb-4">
+                    <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Structure Identification" %}</h2>
+                    <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Package title, template code, and business scope." %}</p>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Calculation Type" %}</label>
-                    {{ item_form.calculation_type }}
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-muted mb-1">{% trans "Amount / Pct" %}</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        {{ item_form.amount }}
-                        {{ item_form.percentage }}
+
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.name.label }} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.name.errors.0 }}</p>{% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.code.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.code.label }} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.code }}
+                            {% if form.code.errors %}<p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.code.errors.0 }}</p>{% endif %}
+                        </div>
                     </div>
+
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.description.errors.0 }}</p>{% endif %}
+                    </div>
+
+                    <label for="{{ form.is_active.id_for_label }}" class="flex items-start gap-4 p-4 rounded-xl border border-line bg-surface-2/40 hover:bg-surface-2 transition-all cursor-pointer">
+                        <div class="pt-0.5 shrink-0">
+                            {{ form.is_active }}
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-sm font-bold text-ink">{% trans "Active for Assignment" %}</span>
+                            <span class="block text-xs text-slate-500 mt-1 leading-relaxed">
+                                {% trans "When checked, HR staff can assign this package to active employee contracts." %}
+                            </span>
+                        </div>
+                    </label>
                 </div>
-                <div>
-                    <button type="submit" class="w-full px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-sm font-semibold shadow-xs transition-colors">
-                        {% trans "Add Rule" %}
+
+                <div class="pt-4 border-t border-line flex justify-end">
+                    <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                        {% if structure %}{% trans "Save Header Parameters" %}{% else %}{% trans "Create & Proceed to Formulas" %}{% endif %}
                     </button>
                 </div>
             </form>
+
+            {% if structure %}
+            <!-- Component Formula Rules Card -->
+            <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                <div class="border-b border-line pb-4">
+                    <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Component Formula Rules" %}</h2>
+                    <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Calculated allowances and deductions applied on top of employee base pay." %}</p>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-line">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-surface-2/60 text-xs font-bold uppercase tracking-wider text-muted border-b border-line">
+                            <tr>
+                                <th style="padding: 14px 20px;">{% trans "Component" %}</th>
+                                <th style="padding: 14px 20px;">{% trans "Type" %}</th>
+                                <th style="padding: 14px 20px;">{% trans "Calculation" %}</th>
+                                <th style="padding: 14px 20px;" class="text-right">{% trans "Formula Value" %}</th>
+                                <th style="padding: 14px 20px;" class="text-right">{% trans "Action" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-line">
+                            <tr class="bg-surface-2/20">
+                                <td style="padding: 14px 20px;" class="font-bold text-ink">{% trans "Base Salary" %}</td>
+                                <td style="padding: 14px 20px;"><span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white">{% trans "Earning" %}</span></td>
+                                <td style="padding: 14px 20px;" class="text-slate-500 text-xs font-medium">{% trans "Contract Base" %}</td>
+                                <td style="padding: 14px 20px;" class="text-right font-mono text-muted">{% trans "100% of Base" %}</td>
+                                <td style="padding: 14px 20px;" class="text-right text-xs text-slate-400 font-medium">{% trans "Fixed base" %}</td>
+                            </tr>
+                            {% for item in items %}
+                            <tr class="hover:bg-surface-2/40 transition-colors">
+                                <td style="padding: 14px 20px;" class="font-bold text-ink">{{ item.component.name }} ({{ item.component.code }})</td>
+                                <td style="padding: 14px 20px;">
+                                    {% if item.component.component_type == 'earning' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white">{% trans "Earning" %}</span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-600 text-white">{% trans "Deduction" %}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 14px 20px;" class="text-muted text-xs font-medium">{{ item.get_calculation_type_display }}</td>
+                                <td style="padding: 14px 20px;" class="text-right font-mono font-bold text-ink">
+                                    {% if item.calculation_type == 'fixed' %}
+                                        ${{ item.amount|floatformat:2 }}
+                                    {% else %}
+                                        {{ item.percentage|floatformat:2 }}% {% trans "of Base" %}
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 14px 20px;" class="text-right">
+                                    <form method="post" class="inline" onsubmit="return confirm('{% trans "Remove this component rule?" %}');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="remove_item" />
+                                        <input type="hidden" name="component_id" value="{{ item.component.pk }}" />
+                                        <button type="submit" class="text-xs font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer">{% trans "Remove" %}</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="p-6 text-center text-slate-400 text-sm font-medium">{% trans "No additional component rules added yet." %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Add Component Rule Subform Card -->
+                <div class="p-6 rounded-xl border border-line bg-surface-2/40">
+                    <h4 class="text-sm font-bold uppercase tracking-wider text-ink mb-4">{% trans "+ Add Formula Component" %}</h4>
+                    <form method="post" class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_item" />
+                        <div>
+                            <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">{% trans "Component" %}</label>
+                            {{ item_form.component }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">{% trans "Calculation" %}</label>
+                            {{ item_form.calculation_type }}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">{% trans "Amount / %" %}</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                {{ item_form.amount }}
+                                {{ item_form.percentage }}
+                            </div>
+                        </div>
+                        <div>
+                            <button type="submit" class="w-full neu-btn-primary px-4 py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                                {% trans "Add Rule" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column (4 cols): Guidance & Rules -->
+        <div class="lg:col-span-4 space-y-8">
+            <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                <div class="border-b border-line pb-4">
+                    <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Formula Hierarchy" %}</h2>
+                    <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Gross-to-net sequencing." %}</p>
+                </div>
+
+                <div class="space-y-4 text-xs text-slate-500 leading-relaxed font-medium">
+                    <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60">
+                        <span class="block font-bold text-emerald-700 dark:text-emerald-400 mb-1">{% trans "1. Earnings & Allowances" %}</span>
+                        {% trans "Fixed amounts or percentages of contract base salary added to calculate Total Gross Pay." %}
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60">
+                        <span class="block font-bold text-rose-700 dark:text-rose-400 mb-1">{% trans "2. Stat & Voluntary Deductions" %}</span>
+                        {% trans "Income tax withholdings, pensions, and healthcare deductions subtracted from Gross to yield Net Payable." %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
 </div>
 {% endblock %}

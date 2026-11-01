@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import datetime
+import json
 from decimal import Decimal
 from typing import cast
 
@@ -62,12 +63,18 @@ def _get_org(request: HttpRequest) -> Organization:
 def accounting_dashboard(request: HttpRequest) -> HttpResponse:
     org = _get_org(request)
     summary = selectors.get_accounting_summary(organization_id=org.pk)
-    recent_journals = selectors.list_journal_entries(organization_id=org.pk)[:5]
+    financial_trends = selectors.get_monthly_financial_trends(organization_id=org.pk, months=6)
+    expense_breakdown = selectors.get_expense_category_breakdown(organization_id=org.pk, limit=5)
+    recent_journals = selectors.list_journal_entries(organization_id=org.pk)[:4]
     recent_expenses = selectors.list_expenses(organization_id=org.pk)[:5]
     bank_accounts = selectors.list_bank_accounts(organization_id=org.pk, is_active=True)
 
     context = {
         "summary": summary,
+        "financial_trends": financial_trends,
+        "expense_breakdown": expense_breakdown,
+        "trends_json": json.dumps(financial_trends),
+        "breakdown_json": json.dumps(expense_breakdown),
         "recent_journals": recent_journals,
         "recent_expenses": recent_expenses,
         "bank_accounts": bank_accounts,

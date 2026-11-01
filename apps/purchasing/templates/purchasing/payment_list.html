@@ -1,62 +1,78 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Supplier Payments" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="purchasing-page space-y-6">
+    <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Supplier Payments & Disbursements" %}</h1>
-            <p class="text-sm text-slate-500 mt-1">
-                {% trans "Vendor payments, bank transfers, check disbursements, and bill allocations." %}
-            </p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Supplier Payments & Disbursements" %}</h1>
         </div>
-        <a href="{% url 'purchasing:supplier_payment_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-            <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            {% trans "Record Payment" %}
-        </a>
+        <div class="flex items-center gap-2.5">
+            <a href="{% url 'purchasing:supplier_payment_create' %}" class="neu-primary-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "Record Payment" %}
+            </a>
+        </div>
     </div>
 
-    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <!-- Navigation Sub-tabs -->
+    {% include "purchasing/partials/_navigation_tabs.html" with active_tab="payments" %}
+
+    <!-- Table Container -->
+    <div class="neu-table-card">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-line text-sm">
-                <thead class="bg-app text-slate-500">
-                    <tr>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Payment #" %}</th>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Date" %}</th>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Method" %}</th>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Reference" %}</th>
-                        <th class="px-6 py-3.5 text-right font-semibold">{% trans "Amount" %}</th>
-                        <th class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
+            <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800 text-sm">
+                <thead>
+                    <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "Payment #" %}</th>
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "Supplier" %}</th>
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "Date" %}</th>
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "Method" %}</th>
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "Reference" %}</th>
+                        <th class="px-6 py-3.5 text-right font-bold">{% trans "Amount" %}</th>
+                        <th class="px-6 py-3.5 text-right font-bold">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
+                <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                     {% for pay in payments %}
-                    <tr class="hover:bg-surface-2">
-                        <td class="px-6 py-4 font-medium text-indigo-600">
-                            <a href="{% url 'purchasing:supplier_payment_detail' pk=pay.pk %}" class="hover:underline">
+                    <tr class="neu-table-row transition-colors">
+                        <td class="px-6 py-4 font-mono font-bold">
+                            <a href="{% url 'purchasing:supplier_payment_detail' pk=pay.pk %}" class="text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline">
                                 {{ pay.payment_number }}
                             </a>
                         </td>
-                        <td class="px-6 py-4">{{ pay.supplier.name }}</td>
-                        <td class="px-6 py-4 text-xs text-slate-500">{{ pay.payment_date }}</td>
+                        <td class="px-6 py-4 font-bold text-[var(--neu-text,#262B45)]">{{ pay.supplier.name }}</td>
+                        <td class="px-6 py-4 text-xs font-mono font-medium text-slate-500">{{ pay.payment_date|date:"Y-m-d" }}</td>
                         <td class="px-6 py-4 text-xs">
-                            <span class="px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-800">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs border border-slate-200/60">
                                 {{ pay.get_payment_method_display }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-xs font-mono text-slate-500">{{ pay.reference|default:"-" }}</td>
-                        <td class="px-6 py-4 text-right font-mono font-bold text-emerald-600">${{ pay.amount }}</td>
+                        <td class="px-6 py-4 text-xs font-mono font-medium text-slate-500">{{ pay.reference|default:"-" }}</td>
+                        <td class="px-6 py-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">${{ pay.amount|floatformat:2|intcomma }}</td>
                         <td class="px-6 py-4 text-right text-xs">
-                            <a href="{% url 'purchasing:supplier_payment_detail' pk=pay.pk %}" class="text-indigo-600 hover:underline font-medium">{% trans "View" %}</a>
+                            <a href="{% url 'purchasing:supplier_payment_detail' pk=pay.pk %}" class="neu-action-btn text-xs font-bold py-1.5 px-3 rounded-lg text-slate-700 hover:text-slate-900 transition inline-flex items-center gap-1">
+                                {% trans "View" %} &rarr;
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">{% trans "No disbursements recorded yet" %}</td></tr>
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center">
+                            <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                                <svg class="mx-auto h-10 w-10 text-slate-400 mb-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "No disbursements recorded yet" %}</p>
+                                <p class="text-xs text-slate-500 mt-1">{% trans "Record payments made to suppliers against open bills." %}</p>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>

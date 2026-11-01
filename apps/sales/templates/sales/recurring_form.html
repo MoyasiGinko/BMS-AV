@@ -2,233 +2,304 @@
 {% load i18n %}
 
 {% block title %}
-    {% if profile %}{% trans "Edit Recurring Profile" %}{% else %}{% trans "New Recurring Profile" %}{% endif %} | Business OS
+    {% if profile %}{% trans "Edit Recurring Profile" %}{% else %}{% trans "New Recurring Profile" %}{% endif %} | {{ request.organization.name }}
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <!-- Breadcrumb & Title -->
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
     <div>
-        <nav class="flex items-center gap-2 text-xs text-slate-500 mb-2">
-            <a href="{% url 'sales:recurring_list' %}" class="hover:text-indigo-600">{% trans "Recurring Invoices" %}</a>
-            <span>/</span>
-            <span class="text-ink font-medium">
-                {% if profile %}{{ profile.title }}{% else %}{% trans "New Profile" %}{% endif %}
-            </span>
-        </nav>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">
-            {% if profile %}{% trans "Edit Recurring Profile" %}{% else %}{% trans "Create Recurring Profile" %}{% endif %}
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'sales:recurring_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Recurring Invoices" %}
+            </a>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+            {% if profile %}{% trans "Edit Recurring Profile" %}: <span class="text-indigo-600 dark:text-indigo-400">{{ profile.title }}</span>{% else %}{% trans "Create Recurring Profile" %}{% endif %}
         </h1>
-        <p class="text-sm text-muted mt-0.5">
-            {% trans "Configure automated invoice generation schedule and default line items." %}
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% trans "Configure automated invoice generation schedule, recurrence frequency, auto-post rules, and recurring billing line items." %}
         </p>
     </div>
 
-    <!-- Form Card -->
-    <form method="post" class="space-y-6 bg-surface border border-line rounded-xl p-6 shadow-xs">
+    <!-- Form -->
+    <form method="post" class="space-y-8 w-full">
         {% csrf_token %}
 
         {% if form.errors %}
-        <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 text-sm">
-            <p class="font-medium mb-1">{% trans "Please resolve the following errors:" %}</p>
-            <ul class="list-disc list-inside text-xs space-y-0.5">
-                {% for field, errors in form.errors.items %}
-                    {% for error in errors %}
-                        <li>{{ field|capfirst }}: {{ error }}</li>
-                    {% endfor %}
-                {% endfor %}
-            </ul>
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-start gap-2.5">
+                <svg class="w-5 h-5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <div>
+                    <p class="font-bold mb-1">{% trans "Please resolve the following errors:" %}</p>
+                    <ul class="list-disc list-inside space-y-0.5 text-xs font-medium">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ field|capfirst }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
         {% endif %}
 
-        <!-- Schedule Setup -->
-        <div>
-            <h2 class="text-base font-semibold text-ink mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-                {% trans "Profile & Schedule Settings" %}
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Profile Title" %} *
-                    </label>
-                    <input type="text" name="title" value="{{ form.title.value|default:'' }}" required
-                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                           placeholder="e.g. Monthly Retainer - Acme Corporation">
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: Schedule, Account & Line Items -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <!-- Card 1: Profile & Client Parameters -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Profile & Account Specifications" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Profile title, recipient customer, and dispatch locations." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Profile Title" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" name="title" value="{{ form.title.value|default:'' }}" required
+                                   class="form-input" placeholder="e.g. Monthly Retainer - Acme Corporation">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                    {% trans "Customer" %} <span class="text-rose-500">*</span>
+                                </label>
+                                {{ form.customer }}
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                    {% trans "Warehouse" %} <span class="text-rose-500">*</span>
+                                </label>
+                                {{ form.warehouse }}
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                    {% trans "Branch" %}
+                                </label>
+                                {{ form.branch }}
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                    {% trans "Currency" %}
+                                </label>
+                                <input type="text" name="currency" value="{{ form.currency.value|default:'USD' }}" maxlength="3"
+                                       class="form-input uppercase">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Customer" %} *
-                    </label>
-                    {{ form.customer }}
+                <!-- Card 2: Recurrence Schedule -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Recurrence Schedule" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Frequency timing, interval calculation, and schedule duration." %}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Frequency" %} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.frequency }}
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Interval (Every N periods)" %}
+                            </label>
+                            <input type="number" name="interval" value="{{ form.interval.value|default:'1' }}" min="1" max="99"
+                                   class="form-input">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Start Date" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="date" name="start_date" value="{{ form.start_date.value|date:'Y-m-d'|default:'' }}" required
+                                   class="form-input">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "End Date (Optional)" %}
+                            </label>
+                            <input type="date" name="end_date" value="{{ form.end_date.value|date:'Y-m-d'|default:'' }}"
+                                   class="form-input">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Next Run Date" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="date" name="next_run_date" value="{{ form.next_run_date.value|date:'Y-m-d'|default:'' }}" required
+                                   class="form-input">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Payment Terms (Days)" %}
+                            </label>
+                            <input type="number" name="payment_terms_days" value="{{ form.payment_terms_days.value|default:'30' }}" min="0" max="365"
+                                   class="form-input">
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Warehouse" %} *
-                    </label>
-                    {{ form.warehouse }}
+                <!-- Card 3: Default Line Items -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Default Line Items" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Product and pricing copied onto each generated sales invoice." %}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Product" %}
+                            </label>
+                            <select name="product_id" class="form-select">
+                                <option value="">{% trans "-- Select Product (or custom description) --" %}</option>
+                                {% for prod in products %}
+                                    <option value="{{ prod.id }}" {% if first_line and first_line.product_id == prod.id %}selected{% endif %}>
+                                        {{ prod.name }} ({{ prod.sku }}) - ${{ prod.unit_price }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Line Description" %}
+                            </label>
+                            <input type="text" name="description" value="{{ first_line.description|default:'' }}"
+                                   class="form-input" placeholder="e.g. Monthly cloud managed infrastructure and support">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Quantity" %}
+                            </label>
+                            <input type="number" name="quantity" value="{{ first_line.quantity|default:'1.0000' }}" step="0.0001" min="0.0001"
+                                   class="form-input">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Unit Price (leave 0 to use product standard price)" %}
+                            </label>
+                            <input type="number" name="unit_price" value="{{ first_line.unit_price|default:'0.00' }}" step="0.01" min="0.00"
+                                   class="form-input" placeholder="0.00">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Discount %" %}
+                            </label>
+                            <input type="number" name="discount_percent" value="{{ first_line.discount_percent|default:'0.00' }}" step="0.01" min="0.00" max="100.00"
+                                   class="form-input">
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Branch" %}
-                    </label>
-                    {{ form.branch }}
+                <!-- Card 4: Notes & Terms -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Notes & Terms" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Printed onto generated invoices." %}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Notes" %}
+                            </label>
+                            {{ form.notes }}
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {% trans "Terms & Conditions" %}
+                            </label>
+                            {{ form.terms }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 4 cols: Automation & Execution Rules -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <!-- Card 5: Automation Controls -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Automation Rules" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Automated lifecycle actions upon generation." %}</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <label class="flex items-start gap-3.5 p-3.5 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                            <div class="pt-0.5 shrink-0">
+                                <input type="checkbox" name="auto_post" {% if form.auto_post.value %}checked{% endif %} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            </div>
+                            <div class="flex-1">
+                                <span class="block text-xs font-bold text-ink">{% trans "Auto-Post Invoices" %}</span>
+                                <span class="block text-[11px] text-slate-400 mt-0.5">{% trans "Automatically commit invoices to the General Ledger upon generation." %}</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3.5 p-3.5 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                            <div class="pt-0.5 shrink-0">
+                                <input type="checkbox" name="auto_send_email" {% if form.auto_send_email.value %}checked{% endif %} class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            </div>
+                            <div class="flex-1">
+                                <span class="block text-xs font-bold text-ink">{% trans "Auto-Email to Customer" %}</span>
+                                <span class="block text-[11px] text-slate-400 mt-0.5">{% trans "Send generated invoice PDF via email immediately to customer contacts." %}</span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Currency" %}
-                    </label>
-                    <input type="text" name="currency" value="{{ form.currency.value|default:'USD' }}" maxlength="3"
-                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink uppercase">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Frequency" %} *
-                    </label>
-                    {{ form.frequency }}
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Interval (Every N periods)" %}
-                    </label>
-                    <input type="number" name="interval" value="{{ form.interval.value|default:'1' }}" min="1" max="99"
-                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Start Date" %} *
-                    </label>
-                    {{ form.start_date }}
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "End Date (Optional)" %}
-                    </label>
-                    {{ form.end_date }}
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Payment Terms (Days)" %}
-                    </label>
-                    <input type="number" name="payment_terms_days" value="{{ form.payment_terms_days.value|default:'30' }}" min="0"
-                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Total Cycles Limit (Optional)" %}
-                    </label>
-                    <input type="number" name="total_cycles_limit" value="{{ form.total_cycles_limit.value|default:'' }}" min="1" placeholder="{% trans 'Leave empty for unlimited' %}"
-                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
+                <!-- Guidance Box -->
+                <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {% trans "Background Dispatch" %}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {% trans "A periodic Celery background worker dispatches due schedules at midnight local organization time, updating next run dates and publishing invoice generation domain events." %}
+                    </p>
                 </div>
             </div>
         </div>
 
-        <!-- Automation Flags -->
-        <div>
-            <h2 class="text-base font-semibold text-ink mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-                {% trans "Execution & Delivery" %}
-            </h2>
-            <div class="space-y-3">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="auto_post" {% if form.auto_post.value|default:True %}checked{% endif %}
-                           class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <span class="text-sm text-ink font-medium">{% trans "Automatically Post Invoice" %}</span>
-                    <span class="text-xs text-slate-400">({% trans "updates ledgers & customer balance; if unchecked, invoice remains in Draft" %})</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="send_email" {% if form.send_email.value|default:True %}checked{% endif %}
-                           class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <span class="text-sm text-ink font-medium">{% trans "Send Invoice Email Notification to Customer" %}</span>
-                    <span class="text-xs text-slate-400">({% trans "dispatched automatically upon generation" %})</span>
-                </label>
-            </div>
-        </div>
-
-        <!-- Template Item -->
-        <div>
-            <h2 class="text-base font-semibold text-ink mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-                {% trans "Default Item / Service" %}
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 rounded-lg bg-app border border-line">
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Product / Service" %} *
-                    </label>
-                    <select name="product" required class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
-                        <option value="">{% trans "-- Select Product or Service --" %}</option>
-                        {% for prod in products %}
-                            <option value="{{ prod.pk }}" {% if first_line and first_line.product.pk == prod.pk %}selected{% endif %}>
-                                {{ prod.name }} ({{ prod.sku }}) - ${{ prod.price }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Quantity" %}
-                    </label>
-                    <input type="number" name="quantity" value="{{ first_line.quantity|default:'1.0000' }}" step="0.0001" min="0.0001"
-                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Unit Price" %}
-                    </label>
-                    <input type="number" name="unit_price" value="{{ first_line.unit_price|default:'0.0000' }}" step="0.0001" min="0.0000"
-                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink"
-                           placeholder="0.00 (leave 0 for product price)">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Discount %" %}
-                    </label>
-                    <input type="number" name="discount_percent" value="{{ first_line.discount_percent|default:'0.00' }}" step="0.01" min="0.00" max="100.00"
-                           class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
-                </div>
-            </div>
-        </div>
-
-        <!-- Notes & Terms -->
-        <div>
-            <h2 class="text-base font-semibold text-ink mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-                {% trans "Notes & Terms" %}
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Notes (printed on generated invoices)" %}
-                    </label>
-                    {{ form.notes }}
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-muted mb-1">
-                        {% trans "Terms & Conditions" %}
-                    </label>
-                    {{ form.terms }}
-                </div>
-            </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="pt-4 border-t border-line flex items-center justify-end gap-3">
-            <a href="{% url 'sales:recurring_list' %}" class="px-4 py-2 rounded-lg border border-line text-sm font-medium text-muted hover:bg-surface-2 transition-colors">
-                {% trans "Cancel" %}
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'sales:recurring_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
             </a>
-            <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-xs transition-colors">
-                {% if profile %}{% trans "Save Changes" %}{% else %}{% trans "Create Profile" %}{% endif %}
-            </button>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {% if profile %}{% trans "Save Changes" %}{% else %}{% trans "Create Profile" %}{% endif %}
+                </button>
+            </div>
         </div>
     </form>
 </div>

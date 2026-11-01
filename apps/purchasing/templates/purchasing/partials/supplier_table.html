@@ -1,65 +1,69 @@
-{% load i18n %}
+{% load i18n humanize %}
 <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-line text-sm">
-        <thead class="bg-app text-muted">
-            <tr>
-                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Contact" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-left font-semibold">{% trans "Terms" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Payable Balance" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-center font-semibold">{% trans "Status" %}</th>
-                <th scope="col" class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
+    <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800 text-sm">
+        <thead>
+            <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
+                <th scope="col" class="px-6 py-3.5 text-left font-bold">{% trans "Supplier" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-bold">{% trans "Contact" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-left font-bold">{% trans "Terms" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-right font-bold">{% trans "Payable Balance" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-center font-bold">{% trans "Status" %}</th>
+                <th scope="col" class="px-6 py-3.5 text-right font-bold">{% trans "Actions" %}</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
+        <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800 text-slate-800 dark:text-slate-200">
             {% for supplier in suppliers %}
-            <tr class="hover:bg-surface-2 transition-colors">
+            <tr class="neu-table-row transition-colors">
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <a href="{% url 'purchasing:supplier_detail' pk=supplier.pk %}" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                    <a href="{% url 'purchasing:supplier_detail' pk=supplier.pk %}" class="font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline">
                         {{ supplier.name }}
                     </a>
-                    <span class="block text-xs text-slate-400 font-mono">{{ supplier.code }}</span>
+                    <span class="block text-xs text-slate-400 font-mono font-medium">{{ supplier.code }}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-muted">
-                    {% if supplier.contact_person %}<div class="text-xs font-medium">{{ supplier.contact_person }}</div>{% endif %}
-                    {% if supplier.email %}<div class="text-xs text-slate-400">{{ supplier.email }}</div>{% endif %}
-                    {% if supplier.phone %}<div class="text-xs text-slate-400">{{ supplier.phone }}</div>{% endif %}
-                    {% if not supplier.contact_person and not supplier.email and not supplier.phone %}-{% endif %}
+                <td class="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400">
+                    {% if supplier.contact_person %}<div class="text-xs font-bold text-slate-700 dark:text-slate-300">{{ supplier.contact_person }}</div>{% endif %}
+                    {% if supplier.email %}<div class="text-xs text-slate-400 font-medium">{{ supplier.email }}</div>{% endif %}
+                    {% if supplier.phone %}<div class="text-xs text-slate-400 font-mono">{{ supplier.phone }}</div>{% endif %}
+                    {% if not supplier.contact_person and not supplier.email and not supplier.phone %}<span class="text-slate-400">-</span>{% endif %}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-muted text-xs">
+                <td class="px-6 py-4 whitespace-nowrap text-slate-500 text-xs font-medium">
                     {{ supplier.payment_terms_days }} {% trans "days" %} ({{ supplier.currency }})
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-semibold {% if supplier.current_balance > 0 %}text-rose-600 dark:text-rose-400{% else %}text-muted{% endif %}">
-                    ${{ supplier.current_balance }}
+                <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-black {% if supplier.current_balance > 0 %}text-rose-600 dark:text-rose-400{% else %}text-slate-500{% endif %}">
+                    ${{ supplier.current_balance|floatformat:2|intcomma }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                     {% if supplier.is_active %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         {% trans "Active" %}
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/60">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                         {% trans "Inactive" %}
                     </span>
                     {% endif %}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-xs">
-                    <a href="{% url 'purchasing:supplier_detail' pk=supplier.pk %}" class="text-indigo-600 dark:text-indigo-400 hover:underline font-medium mr-3">
+                    <a href="{% url 'purchasing:supplier_detail' pk=supplier.pk %}" class="neu-action-btn text-xs font-bold py-1.5 px-3 rounded-lg text-slate-700 hover:text-slate-900 transition inline-flex items-center gap-1 mr-2">
                         {% trans "View" %}
                     </a>
-                    <a href="{% url 'purchasing:supplier_update' pk=supplier.pk %}" class="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+                    <a href="{% url 'purchasing:supplier_update' pk=supplier.pk %}" class="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition">
                         {% trans "Edit" %}
                     </a>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="px-6 py-12 text-center text-muted">
-                    <svg class="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                    <p class="mt-2 text-sm font-medium text-slate-900 dark:text-slate-200">{% trans "No suppliers found" %}</p>
-                    <p class="mt-1 text-xs text-slate-400">{% trans "Add your first vendor to start issuing purchase orders and recording bills." %}</p>
+                <td colspan="6" class="px-6 py-12 text-center">
+                    <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                        <svg class="mx-auto h-10 w-10 text-slate-400 mb-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "No suppliers found" %}</p>
+                        <p class="text-xs text-slate-500 mt-1">{% trans "Add your first vendor or adjust your filter query." %}</p>
+                    </div>
                 </td>
             </tr>
             {% endfor %}

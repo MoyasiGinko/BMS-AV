@@ -21,15 +21,10 @@ class OnboardingChecklistWidget(DashboardWidget):
     title = _("Getting Started with Business OS")
     description = _("Setup steps to get your organization fully operational")
     col_span = 12
-    order = 10
+    order = 1
     template_name = "tenancy/dashboard/onboarding_checklist.html"
 
-    def is_visible(self, request: HttpRequest, organization: Any) -> bool:
-        # Check if user explicitly dismissed the checklist for this workspace
-        dismissed = request.session.get(f"dismiss_checklist_{organization.pk}", False)
-        return not (dismissed and not request.GET.get("show_checklist"))
-
-    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+    def _evaluate_steps(self, organization: Any) -> tuple[list[dict[str, Any]], bool]:
         # 1. Profile & regional setup
         profile_done = bool(organization.base_currency and organization.timezone)
 
@@ -94,11 +89,30 @@ class OnboardingChecklistWidget(DashboardWidget):
                 "icon": "credit-card",
             },
         ]
+        all_completed = all(s["is_completed"] for s in steps)
+        return steps, all_completed
 
+    def is_visible(self, request: HttpRequest, organization: Any) -> bool:
+        # Check if user explicitly dismissed the checklist for this workspace
+        dismissed = request.session.get(f"dismiss_checklist_{organization.pk}", False)
+        manually_triggered = bool(
+            request.GET.get("show_checklist") or request.session.get(f"show_checklist_{organization.pk}", False)
+        )
+
+        if dismissed and not manually_triggered:
+            return False
+
+        _, all_completed = self._evaluate_steps(organization)
+        if all_completed and not manually_triggered:
+            return False
+
+        return True
+
+    def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
+        steps, all_completed = self._evaluate_steps(organization)
         completed_count = sum(1 for s in steps if s["is_completed"])
         total_count = len(steps)
         percent_complete = int((completed_count / total_count) * 100) if total_count else 0
-        all_completed = completed_count == total_count
 
         return {
             "steps": steps,

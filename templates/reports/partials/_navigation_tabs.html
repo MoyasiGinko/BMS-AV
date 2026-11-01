@@ -1,0 +1,77 @@
+{% load i18n %}
+<div class="overflow-x-auto no-scrollbar py-2">
+    <nav class="flex items-center gap-2.5 sm:gap-3 flex-wrap" aria-label="Reports Navigation Tabs">
+        <!-- All Reports Directory -->
+        <a href="{% url 'reports:index' %}"
+           class="neu-subnav-btn {% if active_tab == 'all' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            {% trans "All Reports" %}
+        </a>
+        <!-- Profit & Loss -->
+        <a href="{% url 'reports:profit_and_loss' %}"
+           class="neu-subnav-btn {% if active_tab == 'profit_loss' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            {% trans "Profit & Loss" %}
+        </a>
+        <!-- Balance Sheet -->
+        <a href="{% url 'reports:balance_sheet' %}"
+           class="neu-subnav-btn {% if active_tab == 'balance_sheet' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+            </svg>
+            {% trans "Balance Sheet" %}
+        </a>
+        <!-- Cash Flow -->
+        <a href="{% url 'reports:cash_flow' %}"
+           class="neu-subnav-btn {% if active_tab == 'cash_flow' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {% trans "Cash Flow" %}
+        </a>
+        <!-- Trial Balance -->
+        <a href="{% url 'reports:trial_balance' %}"
+           class="neu-subnav-btn {% if active_tab == 'trial_balance' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            {% trans "Trial Balance" %}
+        </a>
+        <!-- Aged Receivables -->
+        <a href="{% url 'reports:aged_receivables' %}"
+           class="neu-subnav-btn {% if active_tab == 'aged_receivables' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {% trans "Aged Receivables" %}
+        </a>
+        <!-- Aged Payables -->
+        <a href="{% url 'reports:aged_payables' %}"
+           class="neu-subnav-btn {% if active_tab == 'aged_payables' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            {% trans "Aged Payables" %}
+        </a>
+        <!-- Custom Builder -->
+        <a href="{% url 'reports:builder' %}"
+           class="neu-subnav-btn {% if active_tab == 'builder' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+            </svg>
+            {% trans "Custom Builder" %}
+        </a>
+        <!-- Schedules -->
+        <a href="{% url 'reports:schedules' %}"
+           class="neu-subnav-btn {% if active_tab == 'schedules' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            {% trans "Schedules" %}
+        </a>
+    </nav>
+</div>

@@ -1,65 +1,97 @@
 {% load i18n %}
-<div class="card p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs h-full flex flex-col justify-between">
+<div class="card p-6 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs transition-all h-full flex flex-col justify-between"
+     x-data="{
+       rate: {{ attendance_kpi.attendance_rate|default:100 }},
+       get circ() { return 150.8; },
+       get offset() {
+         return this.circ - (this.rate / 100) * this.circ;
+       }
+     }"
+>
   <div>
+    <!-- Header with Action Button & Refresh -->
     <div class="flex items-center justify-between pb-3 mb-4 border-b border-[var(--border)]">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20 shadow-xs">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div>
-          <h3 class="text-sm font-bold text-[var(--text)]">{% trans "Today's Attendance" %}</h3>
-          <p class="text-2xs text-[var(--text-muted)] mt-0.5">{{ attendance_kpi.date|date:"M d, Y" }}</p>
+          <h3 class="text-sm sm:text-base font-bold text-[var(--text)] tracking-tight">{% trans "Today's Attendance" %}</h3>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ attendance_kpi.date|date:"l, M d" }}</p>
         </div>
       </div>
-      <button
-        type="button"
-        hx-get="{% url 'dashboard_widget_partial' 'attendance' %}"
-        hx-target="#widget-attendance"
-        hx-swap="innerHTML"
-        class="text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-md hover:bg-[var(--surface-2)] transition-colors"
-        title="{% trans "Refresh widget" %}"
-      >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      </button>
-    </div>
-
-    <!-- Main Metric -->
-    <div class="mb-4">
-      <div class="flex items-baseline justify-between gap-2">
-        <span class="text-2xl font-extrabold text-[var(--text)] tracking-tight font-mono">
-          {{ attendance_kpi.attendance_rate }}%
-        </span>
-        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-500/10 text-teal-600 dark:text-teal-400">
-          {{ attendance_kpi.present_count }} / {{ attendance_kpi.scheduled_count }} {% trans "present" %}
-        </span>
+      <div class="flex items-center gap-2">
+        <a
+          href="{% url 'hr:attendance_list' %}"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--brand-600)] transition-colors shadow-2xs"
+          title="{% trans 'Attendance Roster' %}"
+        >
+          <span>{% trans "Roster" %}</span>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </a>
+        <button
+          type="button"
+          hx-get="{% url 'dashboard_widget_partial' 'attendance' %}"
+          hx-target="#widget-attendance"
+          hx-swap="innerHTML"
+          class="w-7 h-7 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer shadow-2xs"
+          title="{% trans "Refresh widget" %}"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
       </div>
-      <p class="text-2xs text-[var(--text-muted)] mt-1">
-        {% trans "Late arrivals" %}: <span class="font-medium text-amber-600 dark:text-amber-400 font-mono">{{ attendance_kpi.late_count }}</span>
-        &bull;
-        {% trans "On leave" %}: <span class="font-medium text-blue-600 dark:text-blue-400 font-mono">{{ attendance_kpi.on_leave_count }}</span>
-      </p>
     </div>
 
-    <!-- Mini Attendance Grid -->
-    <div class="grid grid-cols-2 gap-2 pt-3 border-t border-[var(--border)]/60 text-xs">
-      <div class="p-2.5 rounded-xl bg-[var(--surface-2)]/40 border border-[var(--border)]/50">
-        <div class="text-3xs uppercase tracking-wider text-[var(--text-muted)] font-semibold">{% trans "On Time" %}</div>
+    <!-- Attendance Metric & Radial Progress Gauge -->
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight font-mono">
+          {{ attendance_kpi.attendance_rate }}%
+        </div>
+        <p class="text-xs text-[var(--text-muted)] mt-1">
+          <span class="font-bold text-teal-600 dark:text-teal-400 font-mono">{{ attendance_kpi.present_count }}</span> {% trans "of" %} {{ attendance_kpi.scheduled_count }} {% trans "scheduled on duty" %}
+        </p>
+      </div>
+
+      <!-- Compact Circular Donut Gauge -->
+      <div class="w-14 h-14 relative flex items-center justify-center shrink-0">
+        <svg class="w-full h-full transform -rotate-90 overflow-visible" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="24" fill="transparent" stroke="var(--surface-2)" stroke-width="6"/>
+          <circle
+            cx="30" cy="30" r="24"
+            fill="transparent"
+            stroke="#0d9488"
+            stroke-width="6"
+            stroke-linecap="round"
+            :stroke-dasharray="circ"
+            :stroke-dashoffset="offset"
+            class="transition-all duration-700 ease-out"
+          />
+        </svg>
+        <span class="absolute text-3xs font-extrabold font-mono text-[var(--text)]" x-text="rate + '%'"></span>
+      </div>
+    </div>
+
+    <!-- Attendance Status Grid -->
+    <div class="grid grid-cols-3 gap-2 pt-3 border-t border-[var(--border)]/60 text-center">
+      <div class="p-3 sm:py-3.5 sm:px-4 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50">
+        <div class="text-3xs uppercase tracking-wider text-[var(--text-muted)] font-semibold">{% trans "Present" %}</div>
         <div class="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
           {{ attendance_kpi.present_count }}
         </div>
       </div>
-      <div class="p-2.5 rounded-xl bg-[var(--surface-2)]/40 border border-[var(--border)]/50">
-        <div class="text-3xs uppercase tracking-wider text-[var(--text-muted)] font-semibold">{% trans "Absent / Missing" %}</div>
-        <div class="text-sm font-bold text-rose-600 dark:text-rose-400 font-mono mt-0.5">
-          {{ attendance_kpi.absent_count }}
+      <div class="p-2 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50">
+        <div class="text-3xs uppercase tracking-wider text-[var(--text-muted)] font-semibold">{% trans "Late" %}</div>
+        <div class="text-sm font-bold {% if attendance_kpi.late_count > 0 %}text-amber-600 dark:text-amber-400{% else %}text-[var(--text)]{% endif %} font-mono mt-0.5">
+          {{ attendance_kpi.late_count }}
+        </div>
+      </div>
+      <div class="p-2 rounded-xl bg-[var(--surface-2)]/30 border border-[var(--border)]/50">
+        <div class="text-3xs uppercase tracking-wider text-[var(--text-muted)] font-semibold">{% trans "Leave" %}</div>
+        <div class="text-sm font-bold {% if attendance_kpi.on_leave_count > 0 %}text-blue-600 dark:text-blue-400{% else %}text-[var(--text)]{% endif %} font-mono mt-0.5">
+          {{ attendance_kpi.on_leave_count }}
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="mt-4 pt-3 border-t border-[var(--border)]/60">
-    <a href="{% url 'reports:attendance' %}" class="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:underline inline-flex items-center gap-1">
-      {% trans "View Attendance Report" %} &rarr;
-    </a>
   </div>
 </div>

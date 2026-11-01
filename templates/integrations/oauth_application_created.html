@@ -4,53 +4,53 @@
 {% block title %}{% trans "OAuth Application Created" %} - Business OS{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+<div class="w-full pb-16 space-y-8">
   <!-- Warning Banner -->
-  <div class="rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-6 shadow-sm">
-    <div class="flex items-start space-x-3">
-      <div class="flex-shrink-0">
-        <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <div class="card rounded-2xl bg-amber-500/10 border border-amber-500/20 p-7 sm:p-8 shadow-xs">
+    <div class="flex items-start gap-4">
+      <div class="w-12 h-12 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-md">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       </div>
       <div>
-        <h3 class="text-base font-semibold text-amber-900 dark:text-amber-200">
+        <h3 class="text-lg font-bold text-amber-900 dark:text-amber-200">
           {% trans "Save Your Client Secret Now!" %}
         </h3>
-        <p class="mt-1 text-sm text-amber-800 dark:text-amber-300">
+        <p class="mt-1 text-sm text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
           {% trans "This client secret is only shown once and cannot be retrieved later. If you lose it, you will need to regenerate a new one." %}
         </p>
       </div>
     </div>
   </div>
 
-  <!-- Credentials Card -->
-  <div class="bg-surface rounded-2xl shadow-sm border border-line p-8 space-y-6">
-    <div class="border-b border-line pb-5">
-      <h2 class="text-xl font-bold text-ink">
+  <!-- Credentials Bento Card -->
+  <div class="card bg-surface rounded-2xl shadow-xs border border-line p-7 sm:p-8 space-y-6">
+    <div class="border-b border-line pb-4">
+      <h2 class="text-2xl font-extrabold tracking-tight text-ink">
         {{ application.name }}
       </h2>
-      <p class="text-sm text-slate-500 mt-1">
+      <p class="text-sm text-muted mt-1 font-medium">
         {% trans "OAuth2 client credentials successfully provisioned." %}
       </p>
     </div>
 
     <!-- Client ID -->
-    <div class="space-y-2">
-      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+    <div class="neu-well p-5 rounded-xl border border-line/60 bg-surface-2/40 space-y-2">
+      <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">
         {% trans "Client ID" %}
       </label>
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center gap-3">
         <input
           type="text"
           readonly
           value="{{ application.client_id }}"
-          class="flex-1 font-mono text-sm bg-app border border-line rounded-xl px-3.5 py-2.5 text-ink focus:outline-none"
+          class="flex-1 font-mono text-sm bg-surface border border-line rounded-xl px-4 py-3 text-ink focus:outline-none"
         />
         <button
           type="button"
           onclick="navigator.clipboard.writeText('{{ application.client_id }}'); alert('Client ID copied to clipboard!');"
-          class="px-4 py-2.5 border border-line text-sm font-medium rounded-xl text-muted bg-surface hover:bg-surface-2 hover:text-ink transition"
+          class="min-h-[48px] px-5 py-3 border border-line text-sm font-bold rounded-xl text-ink bg-surface hover:bg-surface-2 transition cursor-pointer"
         >
           {% trans "Copy" %}
         </button>
@@ -58,21 +58,21 @@
     </div>
 
     <!-- Client Secret -->
-    <div class="space-y-2">
-      <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">
-        {% trans "Client Secret" %}
+    <div class="neu-well p-5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-2">
+      <label class="block text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+        {% trans "Client Secret (One-Time Display)" %}
       </label>
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center gap-3">
         <input
           type="text"
           readonly
           value="{{ raw_secret }}"
-          class="flex-1 font-mono text-sm bg-amber-50/50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700 rounded-xl px-3.5 py-2.5 text-ink font-bold focus:outline-none"
+          class="flex-1 font-mono text-sm bg-surface border border-amber-500/40 rounded-xl px-4 py-3 text-ink font-bold focus:outline-none"
         />
         <button
           type="button"
           onclick="navigator.clipboard.writeText('{{ raw_secret }}'); alert('Client Secret copied to clipboard!');"
-          class="px-4 py-2.5 border border-transparent text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition"
+          class="min-h-[48px] px-6 py-3 text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition cursor-pointer"
         >
           {% trans "Copy Secret" %}
         </button>
@@ -80,32 +80,38 @@
     </div>
 
     <!-- Details Grid -->
-    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-line text-sm">
-      <div>
-        <span class="text-slate-500">{% trans "Grant Type:" %}</span>
-        <span class="font-medium text-ink ml-1">{{ application.get_authorization_grant_type_display }}</span>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-line text-sm">
+      <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">{% trans "Grant Type:" %}</span>
+        <span class="font-bold text-ink">{{ application.get_authorization_grant_type_display }}</span>
       </div>
-      <div>
-        <span class="text-slate-500">{% trans "Client Type:" %}</span>
-        <span class="font-medium text-ink ml-1 capitalize">{{ application.client_type }}</span>
+      <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">{% trans "Client Type:" %}</span>
+        <span class="font-bold text-ink capitalize">{{ application.client_type }}</span>
       </div>
-      <div>
-        <span class="text-slate-500">{% trans "Allowed Scopes:" %}</span>
-        <span class="font-mono text-xs text-indigo-600 dark:text-indigo-400 ml-1">{{ application.allowed_scopes }}</span>
+      <div class="sm:col-span-2 neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">{% trans "Allowed Scopes:" %}</span>
+        <span class="font-mono text-xs text-indigo-600 dark:text-indigo-400 font-bold">{{ application.allowed_scopes }}</span>
       </div>
       {% if application.redirect_uris %}
-      <div class="col-span-2">
-        <span class="text-slate-500 block mb-1">{% trans "Redirect URIs:" %}</span>
-        <pre class="font-mono text-xs bg-app p-2 rounded-lg text-muted whitespace-pre-wrap">{{ application.redirect_uris }}</pre>
+      <div class="sm:col-span-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">{% trans "Redirect URIs:" %}</span>
+        <pre class="font-mono text-xs bg-surface-2/60 p-4 rounded-xl text-ink border border-line whitespace-pre-wrap leading-relaxed">{{ application.redirect_uris }}</pre>
       </div>
       {% endif %}
     </div>
 
-    <!-- Actions -->
-    <div class="pt-6 border-t border-line flex justify-end space-x-3">
+    <!-- Grounded Bottom Action Bar -->
+    <div class="pt-6 border-t border-line flex items-center justify-between gap-4">
+      <a
+        href="{% url 'integrations:oauth_applications_list' %}"
+        class="min-h-[48px] inline-flex items-center justify-center px-6 py-3 rounded-xl border border-line bg-surface-2/60 hover:bg-surface-2 text-sm font-bold text-muted hover:text-ink transition-colors"
+      >
+        {% trans "Back to List" %}
+      </a>
       <a
         href="{% url 'integrations:oauth_application_detail' application.public_id %}"
-        class="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
+        class="min-h-[48px] inline-flex items-center justify-center px-8 py-3 rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition"
       >
         {% trans "Go to Application" %} &rarr;
       </a>

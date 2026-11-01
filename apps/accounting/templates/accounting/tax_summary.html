@@ -4,19 +4,20 @@
 {% block title %}{% trans "Tax Summary & Filing" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 accounting-page">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Tax Summary & Reporting" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Sales tax collected, input tax credits on purchases/expenses, and net tax liability calculation." %}
-            </p>
         </div>
         <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
             &larr; {% trans "Dashboard" %}
         </a>
     </div>
+
+    <!-- Sub-navigation Tabs -->
+    {% include "accounting/partials/_navigation_tabs.html" with active_tab="tax" %}
+
 
     <!-- Date Filter -->
     <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">

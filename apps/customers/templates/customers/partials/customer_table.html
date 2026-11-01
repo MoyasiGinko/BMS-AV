@@ -1,85 +1,107 @@
-{% load i18n %}
+{% load i18n humanize %}
 
-<div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+<div class="neu-table-card bg-[var(--surface-1)] rounded-2xl overflow-hidden transition-all">
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-line text-left text-sm">
-            <thead class="bg-app text-muted font-medium">
+        <table class="min-w-full text-left text-sm">
+            <thead class="border-b border-slate-200 dark:border-slate-700/60 bg-[var(--surface-2)]/30 text-xs font-bold text-muted uppercase tracking-wider">
                 <tr>
-                    <th scope="col" class="py-3 px-4">{% trans "Customer" %}</th>
-                    <th scope="col" class="py-3 px-4">{% trans "Type" %}</th>
-                    <th scope="col" class="py-3 px-4">{% trans "Contact & Phone" %}</th>
-                    <th scope="col" class="py-3 px-4 text-right">{% trans "Current Balance" %}</th>
-                    <th scope="col" class="py-3 px-4 text-right">{% trans "Credit Limit" %}</th>
-                    <th scope="col" class="py-3 px-4 text-center">{% trans "Status" %}</th>
-                    <th scope="col" class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+                    <th scope="col" class="py-3.5 px-5">{% trans "Customer" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Type" %}</th>
+                    <th scope="col" class="py-3.5 px-4">{% trans "Contact & Phone" %}</th>
+                    <th scope="col" class="py-3.5 px-4 text-right">{% trans "Current Balance" %}</th>
+                    <th scope="col" class="py-3.5 px-4 text-right">{% trans "Credit Limit" %}</th>
+                    <th scope="col" class="py-3.5 px-4 text-center">{% trans "Status" %}</th>
+                    <th scope="col" class="py-3.5 px-5 text-right">{% trans "Actions" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700/60">
                 {% for customer in page_obj %}
-                <tr class="hover:bg-surface-2 transition-colors">
-                    <td class="py-3.5 px-4">
-                        <div class="font-medium text-ink">
-                            <a href="{% url 'customers:customer_detail' customer.pk %}" class="hover:text-indigo-600 transition-colors">
+                <tr class="hover:bg-[var(--surface-2)]/40 transition-colors">
+                    <td class="py-4 px-5">
+                        <div class="font-extrabold text-base text-ink leading-snug">
+                            <a href="{% url 'customers:customer_detail' customer.pk %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                 {{ customer.name }}
                             </a>
                         </div>
-                        <div class="text-xs text-slate-500 font-mono mt-0.5">{{ customer.code }}</div>
+                        <div class="text-xs font-mono font-bold text-muted mt-1 inline-block px-2 py-0.5 rounded-md bg-[var(--surface-2)]/80">
+                            {{ customer.code }}
+                        </div>
                     </td>
-                    <td class="py-3.5 px-4 text-muted">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-2 text-muted">
+                    <td class="py-4 px-4">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-[var(--surface-2)]/80 text-ink">
                             {{ customer.get_type_display }}
                         </span>
                     </td>
-                    <td class="py-3.5 px-4 text-muted">
+                    <td class="py-4 px-4 text-sm">
                         {% if customer.phone %}
-                        <div class="text-xs font-mono">{{ customer.phone }}</div>
+                        <div class="text-xs font-mono font-bold text-ink flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-muted opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            {{ customer.phone }}
+                        </div>
                         {% endif %}
                         {% if customer.email %}
-                        <div class="text-xs text-slate-400">{{ customer.email }}</div>
+                        <div class="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-muted opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            {{ customer.email }}
+                        </div>
                         {% endif %}
                         {% if not customer.phone and not customer.email %}
-                        <span class="text-xs text-slate-400">-</span>
+                        <span class="text-xs text-muted">-</span>
                         {% endif %}
                     </td>
-                    <td class="py-3.5 px-4 text-right font-mono font-medium">
-                        <span class="{% if customer.current_balance > 0 %}text-amber-600 dark:text-amber-400{% else %}text-muted{% endif %}">
-                            ${{ customer.current_balance }}
+                    <td class="py-4 px-4 text-right font-mono font-bold text-sm sm:text-base">
+                        {% if customer.current_balance > 0 %}
+                        <span class="text-amber-600 dark:text-amber-400 font-black">
+                            ${{ customer.current_balance|floatformat:2|intcomma }}
                         </span>
+                        {% else %}
+                        <span class="text-muted">
+                            ${{ customer.current_balance|floatformat:2|intcomma }}
+                        </span>
+                        {% endif %}
                     </td>
-                    <td class="py-3.5 px-4 text-right font-mono text-xs">
+                    <td class="py-4 px-4 text-right font-mono text-xs sm:text-sm">
                         {% if customer.has_credit_terms %}
-                            <span class="{% if customer.is_credit_exceeded %}text-rose-600 font-semibold{% else %}text-slate-500{% endif %}">
-                                ${{ customer.credit_limit }}
+                            <span class="font-bold {% if customer.is_credit_exceeded %}text-rose-600 dark:text-rose-400 font-black{% else %}text-ink{% endif %}">
+                                ${{ customer.credit_limit|floatformat:2|intcomma }}
                             </span>
                             {% if customer.is_credit_exceeded %}
-                            <span class="block text-[10px] text-rose-500 uppercase tracking-wider font-sans font-bold">{% trans "Exceeded" %}</span>
+                            <span class="block text-[10px] text-rose-600 dark:text-rose-400 uppercase tracking-wider font-sans font-black mt-0.5">{% trans "Exceeded" %}</span>
                             {% endif %}
                         {% else %}
-                            <span class="text-slate-400">{% trans "Prepaid" %}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-[var(--surface-2)]/80 text-xs font-bold text-muted">{% trans "Prepaid" %}</span>
                         {% endif %}
                     </td>
-                    <td class="py-3.5 px-4 text-center">
+                    <td class="py-4 px-4 text-center">
                         {% if customer.status == "active" %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 shadow-2xs">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                             {% trans "Active" %}
                         </span>
                         {% elif customer.status == "suspended" %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300/60 shadow-2xs">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                             {% trans "Suspended" %}
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-2 text-muted">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300/60">
+                            <span class="w-2 h-2 rounded-full bg-slate-400"></span>
                             {% trans "Inactive" %}
                         </span>
                         {% endif %}
                     </td>
-                    <td class="py-3.5 px-4 text-right">
+                    <td class="py-4 px-5 text-right">
                         <div class="inline-flex items-center gap-2">
-                            <a href="{% url 'customers:customer_detail' customer.pk %}" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                            <a href="{% url 'customers:customer_detail' customer.pk %}"
+                               class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--surface-2)] text-indigo-700 dark:text-indigo-300 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs cursor-pointer">
                                 {% trans "View" %}
                             </a>
-                            <span class="text-slate-300 dark:text-slate-700">|</span>
-                            <a href="{% url 'customers:customer_update' customer.pk %}" class="text-xs font-medium text-muted hover:underline">
+                            <a href="{% url 'customers:customer_update' customer.pk %}"
+                               class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-[var(--surface-2)] text-muted hover:text-ink hover:bg-[var(--surface-2)]/80 transition-all shadow-2xs cursor-pointer">
                                 {% trans "Edit" %}
                             </a>
                         </div>
@@ -87,12 +109,14 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="py-12 text-center text-muted">
-                        <svg class="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <p class="font-medium text-base text-ink">{% trans "No customers found" %}</p>
-                        <p class="text-xs text-slate-400 mt-1">{% trans "Try adjusting your search criteria or register a new client account." %}</p>
+                    <td colspan="7" class="py-16 text-center text-muted">
+                        <div class="w-16 h-16 rounded-2xl bg-[var(--surface-2)]/80 flex items-center justify-center text-muted mx-auto mb-3.5 border border-slate-200 dark:border-slate-700/60">
+                            <svg class="w-8 h-8 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <p class="font-extrabold text-lg text-ink">{% trans "No customers found" %}</p>
+                        <p class="text-xs sm:text-sm text-muted mt-1">{% trans "Try adjusting your search criteria or register a new client account." %}</p>
                     </td>
                 </tr>
                 {% endfor %}
@@ -102,24 +126,24 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="px-4 py-3 border-t border-line flex items-center justify-between text-xs text-slate-500">
+    <div class="px-5 py-4 border-t border-slate-200 dark:border-slate-700/60 flex items-center justify-between text-xs sm:text-sm font-bold text-muted bg-[var(--surface-2)]/20">
         <div>
-            {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+            {% trans "Page" %} <span class="font-mono text-ink">{{ page_obj.number }}</span> {% trans "of" %} <span class="font-mono text-ink">{{ page_obj.paginator.num_pages }}</span>
         </div>
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-2">
             {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}"
-               hx-get="?page={{ page_obj.previous_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}"
+            <a href="?page={{ page_obj.previous_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}&has_balance_only={{ has_balance_only|yesno:'on,' }}&over_credit_only={{ over_credit_only|yesno:'on,' }}"
+               hx-get="?page={{ page_obj.previous_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}&has_balance_only={{ has_balance_only|yesno:'on,' }}&over_credit_only={{ over_credit_only|yesno:'on,' }}"
                hx-target="#customer-table-container"
-               class="px-2.5 py-1 border border-line rounded-md hover:bg-slate-50">
+               class="px-3.5 py-1.5 rounded-xl bg-[var(--surface-2)]/80 hover:bg-[var(--surface-2)] text-ink font-bold transition-all shadow-2xs">
                 {% trans "Previous" %}
             </a>
             {% endif %}
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}"
-               hx-get="?page={{ page_obj.next_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}"
+            <a href="?page={{ page_obj.next_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}&has_balance_only={{ has_balance_only|yesno:'on,' }}&over_credit_only={{ over_credit_only|yesno:'on,' }}"
+               hx-get="?page={{ page_obj.next_page_number }}&query={{ query }}&status={{ status }}&type={{ type }}&has_balance_only={{ has_balance_only|yesno:'on,' }}&over_credit_only={{ over_credit_only|yesno:'on,' }}"
                hx-target="#customer-table-container"
-               class="px-2.5 py-1 border border-line rounded-md hover:bg-slate-50">
+               class="px-3.5 py-1.5 rounded-xl bg-[var(--surface-2)]/80 hover:bg-[var(--surface-2)] text-ink font-bold transition-all shadow-2xs">
                 {% trans "Next" %}
             </a>
             {% endif %}

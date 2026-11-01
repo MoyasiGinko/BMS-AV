@@ -21,7 +21,7 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
         "light": {
             "name": "Clean White",
             "bg": "#ffffff",
-            "text": "#64748b",
+            "text": "#475569",
             "hover_bg": "#f1f5f9",
             "hover_text": "#0f172a",
             "active_bg": "#f0fdfa",
@@ -31,9 +31,9 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
     },
     "dark": {
         "dark_contrast": {
-            "name": "Dark Contrast (Default)",
+            "name": "Midnight Dark (Default)",
             "bg": "#090d16",
-            "text": "#818cf8",
+            "text": "#94a3b8",
             "hover_bg": "#161f30",
             "hover_text": "#ffffff",
             "active_bg": "#1e293b",
@@ -53,7 +53,7 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
     },
     "spatial": {
         "dark_contrast": {
-            "name": "Dark Contrast (Default)",
+            "name": "Frosted Obsidian Glass (Default)",
             "bg": "rgba(15, 23, 42, 0.95)",
             "text": "#94a3b8",
             "hover_bg": "rgba(30, 41, 59, 0.90)",
@@ -63,10 +63,10 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
             "active_border": "#0284c7",
         },
         "light": {
-            "name": "Frosted Light Glass",
+            "name": "Frosted Opal Light Glass",
             "bg": "rgba(255, 255, 255, 0.90)",
-            "text": "#475569",
-            "hover_bg": "rgba(241, 245, 249, 0.85)",
+            "text": "#334155",
+            "hover_bg": "rgba(241, 245, 249, 0.90)",
             "hover_text": "#0f172a",
             "active_bg": "#e0f2fe",
             "active_text": "#0284c7",
@@ -74,8 +74,18 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
         },
     },
     "neumorphic": {
+        "light": {
+            "name": "Soft Clay Light (Default)",
+            "bg": "#e2e8f0",
+            "text": "#334155",
+            "hover_bg": "#cbd5e1",
+            "hover_text": "#0f172a",
+            "active_bg": "#dbeafe",
+            "active_text": "#1d4ed8",
+            "active_border": "#2563eb",
+        },
         "dark_contrast": {
-            "name": "Dark Contrast (Default)",
+            "name": "Tactile Slate Dark",
             "bg": "#1e293b",
             "text": "#94a3b8",
             "hover_bg": "#334155",
@@ -84,28 +94,26 @@ THEME_SIDEBAR_PRESETS: dict[str, dict[str, dict[str, str]]] = {
             "active_text": "#60a5fa",
             "active_border": "#3b82f6",
         },
-        "light": {
-            "name": "Soft Light Neumorphic",
-            "bg": "#e2e8f0",
-            "text": "#475569",
-            "hover_bg": "#cbd5e1",
-            "hover_text": "#0f172a",
-            "active_bg": "#dbeafe",
-            "active_text": "#1d4ed8",
-            "active_border": "#2563eb",
-        },
     },
 }
 
+DEFAULT_SIDEBAR_MODES: dict[str, str] = {
+    "fast": "dark_contrast",
+    "dark": "dark_contrast",
+    "spatial": "dark_contrast",
+    "neumorphic": "light",
+}
+
 DEFAULT_SIDEBAR_COLORS: dict[str, dict[str, str]] = {
-    theme: presets["dark_contrast"] for theme, presets in THEME_SIDEBAR_PRESETS.items()
+    theme: presets[DEFAULT_SIDEBAR_MODES[theme]] for theme, presets in THEME_SIDEBAR_PRESETS.items()
 }
 
 
 def _resolve_active_theme(request: HttpRequest) -> str:
     """Resolve the active ground truth platform theme."""
-    if request.user.is_authenticated and getattr(request.user, "theme", None) in ALLOWED_THEMES:
-        return request.user.theme
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False) and getattr(user, "theme", None) in ALLOWED_THEMES:
+        return user.theme
     cookie_theme = request.COOKIES.get("bos_theme")
     if cookie_theme in ALLOWED_THEMES:
         return cookie_theme
@@ -119,8 +127,9 @@ def _resolve_active_theme(request: HttpRequest) -> str:
 
 def _extract_user_sidebar_modes(request: HttpRequest) -> dict[str, str]:
     """Extract per-theme sidebar modes from user model or cookies."""
-    if request.user.is_authenticated:
-        cfg = getattr(request.user, "theme_config", None)
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False):
+        cfg = getattr(user, "theme_config", None)
         if isinstance(cfg, dict) and isinstance(cfg.get("sidebar_modes"), dict):
             return {
                 k: str(v)
@@ -150,8 +159,9 @@ def _extract_user_sidebar_custom(
     custom_single: dict[str, str] = {}
     valid_keys = ("bg", "text", "hover_bg", "hover_text", "active_bg", "active_text")
 
-    if request.user.is_authenticated:
-        cfg = getattr(request.user, "theme_config", None)
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False):
+        cfg = getattr(user, "theme_config", None)
         if isinstance(cfg, dict):
             if isinstance(cfg.get("sidebar_custom"), dict):
                 sidebar_custom = {
@@ -182,20 +192,22 @@ def _resolve_sidebar_for_theme(
     custom_single: dict[str, str],
 ) -> tuple[str, dict[str, str]]:
     """Determine final mode and color map for the given theme."""
+
     presets = THEME_SIDEBAR_PRESETS.get(theme, THEME_SIDEBAR_PRESETS["fast"])
 
+    default_mode = DEFAULT_SIDEBAR_MODES.get(theme, "dark_contrast")
     if theme in modes:
         mode = modes[theme]
-    elif customs.get(theme) or custom_single:
+    elif customs.get(theme) or (theme == "fast" and custom_single and not modes):
         mode = "custom"
     else:
-        mode = "dark_contrast"
+        mode = default_mode
 
     if mode == "light":
         return "light", dict(presets["light"])
     if mode == "custom":
-        res = dict(presets["dark_contrast"])
-        override = customs.get(theme, custom_single)
+        res = dict(presets[default_mode])
+        override = customs.get(theme) or (custom_single if (theme == "fast" and not modes) else {})
         res.update(override)
         return "custom", res
     return "dark_contrast", dict(presets["dark_contrast"])
@@ -211,11 +223,16 @@ def theme_context(request: HttpRequest) -> dict[str, Any]:
         theme, user_sidebar_modes, user_sidebar_custom, custom_sidebar
     )
 
+    bg_val = active_sidebar_colors.get("bg", "")
+    is_light = bg_val in ("#ffffff", "#e2e8f0", "#f8fafc") or "255, 255, 255" in bg_val
+    active_sidebar_tone = "light" if is_light else "dark"
+
     return {
         "current_theme": theme,
         "default_theme": "fast",
         "active_sidebar_mode": active_mode,
         "active_sidebar_colors": active_sidebar_colors,
+        "active_sidebar_tone": active_sidebar_tone,
         "user_sidebar_modes": user_sidebar_modes,
         "user_sidebar_modes_json": json.dumps(user_sidebar_modes),
         "user_sidebar_custom": user_sidebar_custom,
@@ -228,30 +245,26 @@ def theme_context(request: HttpRequest) -> dict[str, Any]:
             {
                 "id": "fast",
                 "name": "Modern & Fast",
-                "weight": "Lightweight (Default) • Best for performance & old devices",
-                "description": "Crisp 1px borders, high contrast, zero blur, instant 60fps rendering.",
+                "weight": "Lightweight (Default) • Best for performance",
+                "description": "High contrast, crisp borders, and instant responsiveness.",
             },
             {
                 "id": "dark",
                 "name": "Modern Dark",
-                "weight": "Lightweight • Deep dark palette for low-light environments",
-                "description": ("Deep midnight slate palette with soft teal accents and low eye strain."),
+                "weight": "Dark Mode",
+                "description": "Deep midnight slate palette for low-light environments.",
             },
             {
                 "id": "spatial",
                 "name": "Minimal Spatial",
-                "weight": "Balanced • Clean spatial depth & modern typography",
-                "description": (
-                    "Delicate floating elevations, translucent frosted glass headers, and spacious cards."
-                ),
+                "weight": "Spatial Depth",
+                "description": "Translucent frosted glass with clean spatial depth.",
             },
             {
                 "id": "neumorphic",
                 "name": "Neumorphic",
-                "weight": "Heavy • Tactile dual-shadow continuous surface",
-                "description": (
-                    "Single continuous surface with dual opposing 135° soft highlights & sunken wells."
-                ),
+                "weight": "Tactile Surface",
+                "description": "Soft tactile dual-shadow embossed surfaces.",
             },
         ],
     }

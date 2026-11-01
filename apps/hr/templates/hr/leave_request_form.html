@@ -4,79 +4,149 @@
 {% block title %}{% trans "Apply For Leave" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-xl mx-auto space-y-6">
+<div class="w-full space-y-8 pb-16">
     <!-- Breadcrumb & Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <div class="flex items-center gap-2 text-sm text-slate-500 mb-1">
-                <a href="{% url 'hr:leave_request_list' %}" class="hover:text-slate-700 dark:hover:text-slate-300">{% trans "Leave Requests" %}</a>
-                <span>/</span>
-                <span class="text-slate-800 dark:text-slate-200">{% trans "New Application" %}</span>
-            </div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">
-                {% trans "Apply For Leave" %}
-            </h1>
-        </div>
+    <div class="space-y-2">
+        <nav class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <a href="{% url 'hr:leave_request_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Leave Requests" %}</a>
+            <span>/</span>
+            <span class="text-ink font-semibold">{% trans "New Application" %}</span>
+        </nav>
+        <h1 class="text-3xl font-extrabold tracking-tight text-ink">{% trans "Apply For Leave" %}</h1>
+        <p class="text-sm text-slate-500 font-medium max-w-3xl">
+            {% trans "Submit a formal leave application for manager approval with automated balance deduction." %}
+        </p>
     </div>
 
-    <!-- Application Form Card -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
-        <div class="mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <span class="text-xs text-slate-400 uppercase font-semibold">{% trans "Applying as" %}</span>
-            <div class="text-base font-bold text-ink mt-0.5">{{ employee.full_name }}</div>
-            <span class="text-xs font-mono text-slate-500">{{ employee.code }} &bull; {{ employee.position.title|default:"Staff" }}</span>
+    <!-- Main Fullwidth Form -->
+    <form id="leave-request-form" method="post" class="space-y-8 w-full">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span>{{ form.non_field_errors }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Bento 12-Column Responsive Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+            <!-- Left Main Column (8 cols): Primary parameters -->
+            <div class="lg:col-span-8 space-y-8">
+                <!-- Card 1: Leave Category & Dates -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Leave Schedule & Category" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Select policy category and calendar dates." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.leave_type.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.leave_type.label }} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.leave_type }}
+                            {% if form.leave_type.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.leave_type.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.start_date.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {{ form.start_date.label }} <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.start_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.end_date.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {{ form.end_date.label }} <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.end_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="{{ form.days_count.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.days_count.label }} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.days_count }}
+                            <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Specify duration in work days (e.g. 1.0 or 0.5 for half-day)." %}</p>
+                            {% if form.days_count.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.days_count.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Reason & Documentation -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Reason / Justification" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Details shared with approving manager." %}</p>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.reason.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                            {{ form.reason.label }} <span class="text-rose-600 font-black">*</span>
+                        </label>
+                        {{ form.reason }}
+                        {% if form.reason.errors %}
+                        <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.reason.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column (4 cols): Applicant Info & Policy Rules -->
+            <div class="lg:col-span-4 space-y-8">
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Applicant Profile" %}</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Applying staff member." %}</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60">
+                            <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Employee" %}</span>
+                            <div class="text-base font-extrabold text-ink mt-0.5">{{ employee.full_name }}</div>
+                            <span class="text-xs font-mono text-slate-500">{{ employee.code }} &bull; {{ employee.position.title|default:"Staff" }}</span>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60 text-xs text-slate-500 leading-relaxed font-medium">
+                            <span class="block font-bold text-ink mb-1">{% trans "Approval Workflow" %}</span>
+                            {% trans "Upon submission, your direct reporting manager will receive an immediate notification to approve or reject the request." %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <form method="post" class="space-y-5">
-            {% csrf_token %}
-
-            {% if form.non_field_errors %}
-            <div class="p-3.5 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 text-sm">
-                {{ form.non_field_errors }}
-            </div>
-            {% endif %}
-
-            <div>
-                <label class="block text-sm font-medium text-muted mb-1">{% trans "Leave Category" %} *</label>
-                {{ form.leave_type }}
-                {% if form.leave_type.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.leave_type.errors.0 }}</p>{% endif %}
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-muted mb-1">{% trans "Start Date" %} *</label>
-                    {{ form.start_date }}
-                    {% if form.start_date.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.start_date.errors.0 }}</p>{% endif %}
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-muted mb-1">{% trans "End Date" %} *</label>
-                    {{ form.end_date }}
-                    {% if form.end_date.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.end_date.errors.0 }}</p>{% endif %}
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-muted mb-1">{% trans "Calculated Working Days" %} *</label>
-                {{ form.days_count }}
-                <span class="text-xs text-slate-400 mt-1 block">{% trans "Specify duration in days (e.g. 1.0 or 0.5 for half-day)." %}</span>
-                {% if form.days_count.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.days_count.errors.0 }}</p>{% endif %}
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-muted mb-1">{% trans "Reason / Justification" %} *</label>
-                {{ form.reason }}
-                {% if form.reason.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.reason.errors.0 }}</p>{% endif %}
-            </div>
-
-            <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
-                <a href="{% url 'hr:self_service_profile' %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50 transition-colors">
-                    {% trans "Cancel" %}
-                </a>
-                <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+        <!-- Symmetrical Bottom Footer Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'hr:leave_request_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                     {% trans "Submit Leave Request" %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

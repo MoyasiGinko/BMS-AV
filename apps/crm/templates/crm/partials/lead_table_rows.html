@@ -1,49 +1,49 @@
-{% load i18n %}
+{% load i18n humanize %}
 {% for lead in leads %}
 <tr class="hover:bg-surface-2 transition-colors">
     <td class="px-6 py-4 whitespace-nowrap">
-        <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+        <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="font-bold text-ink hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
             {{ lead.full_name }}
         </a>
         {% if lead.title %}
-        <p class="text-xs text-muted">{{ lead.title }}</p>
+        <p class="text-xs text-muted mt-0.5">{{ lead.title }}</p>
         {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-ink">
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-ink font-medium">
         {{ lead.company_name|default:"-" }}
     </td>
     <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
         {% if lead.email %}<div>{{ lead.email }}</div>{% endif %}
-        {% if lead.phone %}<div class="text-xs text-slate-400">{{ lead.phone }}</div>{% endif %}
+        {% if lead.phone %}<div class="text-xs text-slate-400 mt-0.5">{{ lead.phone }}</div>{% endif %}
     </td>
     <td class="px-6 py-4 whitespace-nowrap text-sm text-muted capitalize">
         {{ lead.source }}
     </td>
     <td class="px-6 py-4 whitespace-nowrap">
         {% if lead.status == "new" %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">New</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200/60 shadow-2xs">New</span>
         {% elif lead.status == "contacted" %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Contacted</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200/60 shadow-2xs">Contacted</span>
         {% elif lead.status == "qualified" %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Qualified</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200/60 shadow-2xs">Qualified</span>
         {% elif lead.status == "converted" %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">Converted</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200/60 shadow-2xs">Converted</span>
         {% elif lead.status == "disqualified" %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">Disqualified</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60 shadow-2xs">Disqualified</span>
         {% else %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">{{ lead.status }}</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60 shadow-2xs">{{ lead.status }}</span>
         {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-ink font-mono">
-        {% if lead.estimated_value %}${{ lead.estimated_value }}{% else %}-{% endif %}
+    <td class="px-6 py-4 whitespace-nowrap text-sm font-extrabold text-ink font-mono">
+        {% if lead.estimated_value %}${{ lead.estimated_value|floatformat:2|intcomma }}{% else %}-{% endif %}
     </td>
     <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
         {% if lead.assigned_to %}{{ lead.assigned_to.email }}{% else %}Unassigned{% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 mr-3">{% trans "View" %}</a>
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold">
+        <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 mr-3">{% trans "View" %}</a>
         {% if lead.status != "converted" %}
-        <a href="{% url 'crm:lead_convert' public_id=lead.public_id %}" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-900 font-semibold">{% trans "Convert" %}</a>
+        <a href="{% url 'crm:lead_convert' public_id=lead.public_id %}" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 font-bold">{% trans "Convert" %}</a>
         {% endif %}
     </td>
 </tr>

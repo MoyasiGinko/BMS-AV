@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -89,8 +91,16 @@ def product_list_view(request: HttpRequest) -> HttpResponse:
     page_obj = paginator.get_page(page_number)
 
     categories = list_categories(organization_id=org.pk)
+    all_prods = Product.all_tenants.filter(organization=org)
+    metrics = {
+        "total_products": all_prods.count(),
+        "active_products": all_prods.filter(is_active=True).count(),
+        "total_categories": len(categories),
+        "discounted_products": all_prods.filter(discount_percent__gt=0).count(),
+    }
 
     context = {
+        "metrics": metrics,
         "page_obj": page_obj,
         "products": page_obj.object_list,
         "categories": categories,
@@ -136,6 +146,7 @@ def product_create_view(request: HttpRequest) -> HttpResponse:
                     type=data["type"],
                     cost_price=data["cost_price"],
                     selling_price=data["selling_price"],
+                    discount_percent=data.get("discount_percent") or Decimal("0.00"),
                     barcode=data.get("barcode", ""),
                     tax_code=tax_code,
                     track_batch=data.get("track_batch", False),
@@ -214,6 +225,7 @@ def product_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
                     type=data["type"],
                     cost_price=data["cost_price"],
                     selling_price=data["selling_price"],
+                    discount_percent=data.get("discount_percent") or Decimal("0.00"),
                     barcode=data.get("barcode", ""),
                     tax_code=tax_code,
                     track_batch=data.get("track_batch", False),
@@ -238,6 +250,7 @@ def product_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
             "type": product.type,
             "cost_price": product.cost_price,
             "selling_price": product.selling_price,
+            "discount_percent": product.discount_percent,
             "tax_code_id": product.tax_code_id,
             "reorder_level": product.reorder_level,
             "reorder_quantity": product.reorder_quantity,

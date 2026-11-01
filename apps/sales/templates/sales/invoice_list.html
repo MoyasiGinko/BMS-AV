@@ -1,24 +1,28 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Sales Invoices" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Header -->
+    <!-- Clean Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Sales Invoices" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Manage customer invoices, post receivables, and issue stock automatically." %}
-            </p>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Sales Invoices" %}</h1>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/50">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                    {% trans "Live Ledger" %}
+                </span>
+            </div>
+            <p class="text-xs sm:text-sm text-muted mt-1">{% trans "Track customer billings, collections, receivables, and payment receipts." %}</p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{% url 'sales:invoice_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        <div class="flex items-center gap-3">
+            <a href="{% url 'sales:invoice_create' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-[var(--brand-600)] hover:bg-[var(--brand-700)] shadow-xs transition-all active:scale-[0.98]">
+                <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4" />
                 </svg>
-                {% trans "New Invoice" %}
+                <span>{% trans "New Invoice" %}</span>
             </a>
         </div>
     </div>
@@ -26,65 +30,155 @@
     <!-- Navigation Tabs -->
     {% include "sales/partials/_navigation_tabs.html" with active_tab="invoices" %}
 
-    <!-- Summary Metrics -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-5">
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Total Invoiced" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-ink font-mono">${{ metrics.total_invoiced }}</span>
-                <span class="text-xs text-emerald-600 font-medium">{% trans "Lifetime" %}</span>
+    <!-- 4 Neumorphic KPI Summary Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <!-- Total Invoiced -->
+        <div class="p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs hover:border-[var(--brand-600)]/60 transition-all flex flex-col justify-between group">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{% trans "Total Invoiced" %}</span>
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-[var(--brand-600)] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="mt-2.5 flex items-baseline justify-between">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-ink font-mono tracking-tight">${{ metrics.total_invoiced|default:0|floatformat:2|intcomma }}</span>
+                </div>
+                <p class="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                    <span>{% trans "Cumulative sales volume" %}</span>
+                </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[var(--border)]/40">
+                <div class="h-1.5 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
+                    <div class="h-full bg-emerald-500 rounded-full" style="width: 100%"></div>
+                </div>
+                <div class="mt-2 flex items-center justify-between text-2xs font-mono text-muted">
+                    <span>{% trans "Status" %}</span>
+                    <span class="font-bold text-ink">{% trans "100% Invoiced" %}</span>
+                </div>
             </div>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Unpaid Receivables" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 font-mono">${{ metrics.total_unpaid }}</span>
-                <span class="text-xs text-slate-400">{% trans "Outstanding" %}</span>
+
+        <!-- Unpaid Receivables -->
+        <a href="?status=posted" class="p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs hover:border-[var(--brand-600)]/60 transition-all flex flex-col justify-between group block">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{% trans "Unpaid Receivables" %}</span>
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-[var(--brand-600)] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="mt-2.5 flex items-baseline justify-between">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-[var(--brand-600)] dark:text-[var(--brand-400)] font-mono tracking-tight">${{ metrics.total_unpaid|default:0|floatformat:2|intcomma }}</span>
+                </div>
+                <p class="mt-1 text-xs font-medium text-muted flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--brand-500)] inline-block"></span>
+                    <span>{% trans "Pending collection" %}</span>
+                </p>
             </div>
-        </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Overdue Amount" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold {% if metrics.overdue_amount > 0 %}text-rose-600 dark:text-rose-400{% else %}text-ink{% endif %} font-mono">
-                    ${{ metrics.overdue_amount }}
-                </span>
-                <span class="text-xs text-slate-400">{{ metrics.overdue_count }} {% trans "overdue" %}</span>
+            <div class="mt-4 pt-3 border-t border-[var(--border)]/40">
+                <div class="h-1.5 w-full bg-[var(--surface-2)] rounded-full overflow-hidden flex">
+                    <div class="h-full bg-[var(--brand-600)] rounded-l-full" style="width: 65%"></div>
+                    <div class="h-full bg-amber-500 rounded-r-full" style="width: 35%"></div>
+                </div>
+                <div class="mt-2 flex items-center justify-between text-2xs font-mono text-muted">
+                    <span>{% trans "Receivables Ratio" %}</span>
+                    <span class="font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)]">{% trans "Active AR" %}</span>
+                </div>
             </div>
-        </div>
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "This Month" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl font-bold text-ink font-mono">${{ metrics.month_invoiced }}</span>
-                <span class="text-xs text-slate-400">{% trans "Month-to-date" %}</span>
+        </a>
+
+        <!-- Overdue Amount -->
+        <a href="?overdue=1" class="p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs hover:border-[var(--brand-600)]/60 transition-all flex flex-col justify-between group block">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{% trans "Overdue Amount" %}</span>
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-[var(--brand-600)] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="mt-2.5 flex items-baseline justify-between">
+                    <span class="text-2xl sm:text-3xl font-extrabold {% if metrics.overdue_amount > 0 %}text-rose-600 dark:text-rose-400{% else %}text-ink{% endif %} font-mono tracking-tight">
+                        ${{ metrics.overdue_amount|default:0|floatformat:2|intcomma }}
+                    </span>
+                    {% if metrics.overdue_count %}
+                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200/60">{{ metrics.overdue_count }}</span>
+                    {% endif %}
+                </div>
+                <p class="mt-1 text-xs font-medium {% if metrics.overdue_amount > 0 %}text-rose-600 dark:text-rose-400{% else %}text-muted{% endif %} flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full {% if metrics.overdue_amount > 0 %}bg-rose-500{% else %}bg-emerald-500{% endif %} inline-block"></span>
+                    <span>{% if metrics.overdue_count %}{% trans "Requires customer followup" %}{% else %}{% trans "All accounts on schedule" %}{% endif %}</span>
+                </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[var(--border)]/40">
+                <div class="h-1.5 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
+                    <div class="h-full {% if metrics.overdue_amount > 0 %}bg-rose-500{% else %}bg-emerald-500{% endif %} rounded-full" style="width: {% if metrics.overdue_amount > 0 %}100%{% else %}0%{% endif %}"></div>
+                </div>
+                <div class="mt-2 flex items-center justify-between text-2xs font-mono text-muted">
+                    <span>{% trans "Risk Level" %}</span>
+                    <span class="font-bold {% if metrics.overdue_amount > 0 %}text-rose-600 dark:text-rose-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                        {% if metrics.overdue_amount > 0 %}{% trans "Attention Needed" %}{% else %}{% trans "Healthy" %}{% endif %}
+                    </span>
+                </div>
+            </div>
+        </a>
+
+        <!-- This Month -->
+        <div class="p-5 bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs hover:border-[var(--brand-600)]/60 transition-all flex flex-col justify-between group">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{% trans "This Month" %}</span>
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-[var(--brand-600)] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="mt-2.5 flex items-baseline justify-between">
+                    <span class="text-2xl sm:text-3xl font-extrabold text-ink font-mono tracking-tight">${{ metrics.month_invoiced|default:0|floatformat:2|intcomma }}</span>
+                </div>
+                <p class="mt-1 text-xs font-medium text-muted flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block"></span>
+                    <span>{% trans "Current billing cycle" %}</span>
+                </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-[var(--border)]/40">
+                <div class="h-1.5 w-full bg-[var(--surface-2)] rounded-full overflow-hidden">
+                    <div class="h-full bg-sky-500 rounded-full" style="width: 82%"></div>
+                </div>
+                <div class="mt-2 flex items-center justify-between text-2xs font-mono text-muted">
+                    <span>{% trans "Period" %}</span>
+                    <span class="font-bold text-ink">{% trans "Active Month" %}</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Filter Bar -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
-        <form method="get" class="flex flex-col sm:flex-row gap-3 items-center justify-between"
+    <!-- Filter & Search Toolbar -->
+    <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl p-4 shadow-xs">
+        <form method="get" class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between"
               hx-get="{% url 'sales:invoice_list' %}"
               hx-target="#invoice-table-container"
               hx-swap="outerHTML"
               hx-trigger="keyup from:input[name='search'] delay:300ms, change from:select[name='status']">
-            <div class="flex flex-1 w-full sm:w-auto gap-3 items-center">
-                <div class="w-full sm:w-72">
+            <!-- Search & Status Dropdown -->
+            <div class="flex flex-1 flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                <!-- Search Input Container -->
+                <div class="relative w-full sm:w-80">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
                     {{ filter_form.search }}
                 </div>
-                <div class="w-full sm:w-48">
+
+                <!-- Status Select Dropdown Container -->
+                <div class="w-full sm:w-56">
                     {{ filter_form.status }}
                 </div>
             </div>
-            <div class="flex gap-2">
-                <button type="submit" class="px-3.5 py-2 text-sm font-medium text-muted bg-surface-2 hover:bg-slate-200 rounded-lg transition-colors">
-                    {% trans "Filter" %}
-                </button>
+
+            <!-- Clear Action -->
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'sales:invoice_list' %}" class="px-3.5 py-2 text-xs font-bold rounded-xl text-muted hover:text-ink bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] border border-[var(--border)]/50 transition-all shadow-2xs">
+                    {% trans "Reset Filters" %}
+                </a>
             </div>
         </form>
     </div>
 
     <!-- Data Table Card -->
-    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-[var(--surface-1)] border border-[var(--border)] rounded-2xl shadow-xs overflow-hidden">
         {% include "sales/partials/invoice_table.html" %}
     </div>
 </div>

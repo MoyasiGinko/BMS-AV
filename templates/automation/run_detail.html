@@ -4,38 +4,36 @@
 {% block title %}{% trans "Execution Run" %} #{{ run.public_id|stringformat:"s"|slice:":8" }} | Business OS{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+<div class="w-full pb-16 space-y-8">
 
   <!-- Breadcrumbs & Header -->
-  <div>
-    <div class="flex items-center space-x-2 text-sm text-muted mb-1">
-      <a href="{% url 'automation:rule_list' %}" class="hover:text-slate-700 dark:hover:text-slate-200">{% trans "Automation" %}</a>
-      <span>/</span>
-      <a href="{% url 'automation:run_list' %}" class="hover:text-slate-700 dark:hover:text-slate-200">{% trans "Run History" %}</a>
-      <span>/</span>
-      <span class="text-ink">#{{ run.public_id|stringformat:"s"|slice:":8" }}</span>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <div class="flex items-center space-x-2 text-sm text-muted mb-1">
+        <a href="{% url 'automation:rule_list' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{% trans "Automation" %}</a>
+        <span>/</span>
+        <a href="{% url 'automation:run_list' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-medium">{% trans "Run History" %}</a>
+        <span>/</span>
+        <span class="text-ink font-semibold">#{{ run.public_id|stringformat:"s"|slice:":8" }}</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
+        {% trans "Execution Run Log" %}
+      </h1>
+      <p class="mt-1 text-xs font-mono text-muted">UUID: {{ run.public_id }}</p>
     </div>
-    <div class="sm:flex sm:items-center sm:justify-between">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">
-          {% trans "Execution Run Log" %}
-        </h1>
-        <p class="mt-1 text-xs font-mono text-slate-400">UUID: {{ run.public_id }}</p>
-      </div>
-      <div class="mt-4 sm:mt-0">
-        <a href="{% url 'automation:run_list' %}" class="inline-flex items-center px-4 py-2 rounded-lg border border-line bg-surface text-sm font-medium text-muted hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors shadow-sm">
-          &larr; {% trans "Back to Run History" %}
-        </a>
-      </div>
+    <div>
+      <a href="{% url 'automation:run_list' %}" class="min-h-[44px] inline-flex items-center px-5 py-2.5 rounded-xl border border-line bg-surface text-sm font-bold text-ink hover:bg-surface-2 transition-colors">
+        &larr; {% trans "Back to Run History" %}
+      </a>
     </div>
   </div>
 
-  <!-- Run Overview Card -->
-  <div class="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-4">
-    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+  <!-- Run Overview Bento Card -->
+  <div class="card p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-line pb-4">
       <div>
-        <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Rule Name</span>
-        <h2 class="text-base font-bold text-ink">
+        <span class="text-xs text-slate-500 uppercase tracking-wider font-bold">Rule Name</span>
+        <h2 class="text-xl font-bold text-ink mt-0.5">
           <a href="{% url 'automation:rule_edit' run.rule.public_id %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline">
             {{ run.rule.name }}
           </a>
@@ -43,71 +41,71 @@
       </div>
       <div>
         {% if run.status == 'success' %}
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+          <span class="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
             Success
           </span>
         {% elif run.status == 'failed' %}
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300">
+          <span class="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-bold bg-rose-600 text-white shadow-2xs">
             Failed
           </span>
         {% elif run.status == 'partial' %}
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+          <span class="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-bold bg-amber-600 text-white shadow-2xs">
             Partial
           </span>
         {% else %}
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+          <span class="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-bold bg-slate-600 text-white shadow-2xs">
             Skipped
           </span>
         {% endif %}
       </div>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-      <div>
-        <span class="text-slate-400 block">Trigger Event</span>
-        <span class="font-mono font-semibold text-ink">{{ run.trigger_event_type }}</span>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm">
+      <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Trigger Event</span>
+        <span class="font-mono font-bold text-ink">{{ run.trigger_event_type }}</span>
       </div>
-      <div>
-        <span class="text-slate-400 block">Execution Time</span>
-        <span class="font-mono font-semibold text-ink">{{ run.execution_time_ms }} ms</span>
+      <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Execution Time</span>
+        <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">{{ run.execution_time_ms }} ms</span>
       </div>
-      <div>
-        <span class="text-slate-400 block">Executed At</span>
-        <span class="font-semibold text-ink">{{ run.created_at|date:"M d, Y H:i:s" }}</span>
+      <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Executed At</span>
+        <span class="font-mono text-ink text-xs">{{ run.created_at|date:"M d, Y H:i:s" }}</span>
       </div>
-      <div>
-        <span class="text-slate-400 block">Actions Count</span>
-        <span class="font-semibold text-ink">{{ run.actions_executed|length }} executed</span>
+      <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Actions Count</span>
+        <span class="font-bold text-ink">{{ run.actions_executed|length }} executed</span>
       </div>
     </div>
 
     {% if run.error_message %}
-      <div class="mt-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 p-4 text-xs font-mono text-rose-800 dark:text-rose-300 whitespace-pre-wrap">
+      <div class="mt-4 rounded-xl bg-rose-500/10 border border-rose-500/20 p-5 text-xs font-mono text-rose-800 dark:text-rose-300 whitespace-pre-wrap leading-relaxed">
         {{ run.error_message }}
       </div>
     {% endif %}
   </div>
 
   <!-- Trigger Payload Inspection -->
-  <div class="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-3">
-    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-      <h3 class="text-sm font-semibold text-ink">
+  <div class="card p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-4">
+    <div class="flex items-center justify-between border-b border-line pb-3">
+      <h3 class="text-base font-bold text-ink">
         Trigger Payload
       </h3>
-      <span class="text-xs font-mono text-slate-400">JSON</span>
+      <span class="text-xs font-mono font-bold text-slate-400 bg-surface-2 px-2.5 py-0.5 rounded-lg border border-line">JSON</span>
     </div>
-    <pre class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-4 text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto border border-line">{{ run.trigger_payload|pprint }}</pre>
+    <pre class="bg-surface-2/50 rounded-xl p-5 text-xs font-mono text-ink overflow-x-auto border border-line leading-relaxed">{{ run.trigger_payload|pprint }}</pre>
   </div>
 
   <!-- Actions Output Inspection -->
-  <div class="rounded-2xl border border-line bg-surface p-6 shadow-sm space-y-3">
-    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-      <h3 class="text-sm font-semibold text-ink">
+  <div class="card p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-4">
+    <div class="flex items-center justify-between border-b border-line pb-3">
+      <h3 class="text-base font-bold text-ink">
         Actions Executed Output
       </h3>
-      <span class="text-xs font-mono text-slate-400">JSON</span>
+      <span class="text-xs font-mono font-bold text-slate-400 bg-surface-2 px-2.5 py-0.5 rounded-lg border border-line">JSON</span>
     </div>
-    <pre class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-4 text-xs font-mono text-slate-800 dark:text-slate-200 overflow-x-auto border border-line">{{ run.actions_executed|pprint }}</pre>
+    <pre class="bg-surface-2/50 rounded-xl p-5 text-xs font-mono text-ink overflow-x-auto border border-line leading-relaxed">{{ run.actions_executed|pprint }}</pre>
   </div>
 
 </div>

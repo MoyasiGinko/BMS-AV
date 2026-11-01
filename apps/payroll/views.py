@@ -300,7 +300,15 @@ def my_payslips_view(request: HttpRequest) -> HttpResponse:
 
     if not employee:
         messages.info(request, _("No employee record is associated with your account."))
-        return redirect("tenancy:dashboard")
+        return render(
+            request,
+            "payroll/my_payslips.html",
+            {
+                "employee": None,
+                "page_obj": None,
+                "payslips": [],
+            },
+        )
 
     payslips = selectors.list_employee_payslips(organization=org, employee=employee)
     paginator = Paginator(payslips, 20)

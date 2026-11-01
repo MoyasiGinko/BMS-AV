@@ -7,6 +7,8 @@ from apps.payroll import views
 app_name = "payroll"
 
 urlpatterns = [
+    # Root
+    path("", views.payroll_run_list_view, name="index"),
     # Runs
     path("runs/", views.payroll_run_list_view, name="run_list"),
     path("runs/create/", views.payroll_run_create_view, name="run_create"),
@@ -27,7 +29,9 @@ urlpatterns = [
     path("components/", views.salary_component_list_view, name="component_list"),
     path("components/create/", views.salary_component_create_view, name="component_create"),
     path("components/<uuid:public_id>/edit/", views.salary_component_edit_view, name="component_edit"),
-    # Assignments
+    # Salaries (dedicated route) & Assignments
+    path("salaries/", views.salary_assignment_list_view, name="salary_list"),
+    path("salaries/create/", views.salary_assignment_create_view, name="salary_create"),
     path("assignments/", views.salary_assignment_list_view, name="assignment_list"),
     path("assignments/create/", views.salary_assignment_create_view, name="assignment_create"),
 ]

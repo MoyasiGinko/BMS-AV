@@ -31,7 +31,7 @@ class QuoteFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(QuoteStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
         ),
     )
     search = forms.CharField(
@@ -39,7 +39,7 @@ class QuoteFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search quotes..."),
-                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -52,7 +52,7 @@ class OrderFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(SalesOrderStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
         ),
     )
     search = forms.CharField(
@@ -60,7 +60,7 @@ class OrderFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search orders..."),
-                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -73,7 +73,7 @@ class InvoiceFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(InvoiceStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
         ),
     )
     search = forms.CharField(
@@ -81,7 +81,7 @@ class InvoiceFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search invoices..."),
-                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -94,7 +94,7 @@ class CreditNoteFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(CreditNoteStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
         ),
     )
     search = forms.CharField(
@@ -102,7 +102,7 @@ class CreditNoteFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search credit notes..."),
-                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -277,14 +277,14 @@ class PaymentFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(PaymentStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
         ),
     )
     payment_method = forms.ChoiceField(
         choices=[("", _("All Methods")), *list(PaymentMethod.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
         ),
     )
     search = forms.CharField(
@@ -359,7 +359,7 @@ class RecurringProfileFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(RecurringProfileStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select text-sm rounded-lg border-slate-300 dark:border-slate-600"}
+            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
         ),
     )
     search = forms.CharField(
@@ -367,7 +367,7 @@ class RecurringProfileFilterForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "placeholder": _("Search profiles..."),
-                "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
             }
         ),
     )
@@ -436,7 +436,7 @@ class PaymentReminderRuleForm(forms.ModelForm):
         widgets = {
             "timing_days": forms.NumberInput(
                 attrs={
-                    "class": "form-input text-sm rounded-lg border-slate-300 dark:border-slate-600",
+                    "class": "form-input w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink placeholder:text-muted focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 pl-11 pr-3.5 shadow-inner transition-all",
                     "placeholder": "-3 for 3d before due, 7 for 7d overdue",
                 }
             ),

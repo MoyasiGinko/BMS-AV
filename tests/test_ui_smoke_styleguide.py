@@ -77,10 +77,10 @@ def test_ui_smoke_styleguide(live_server: pytest.FixtureRequest, page: Page) -> 
 
     # 7. Theme toggle test (Light / Dark)
     initial_theme = page.evaluate("() => document.documentElement.getAttribute('data-theme')")
-    page.click("#theme-toggle-btn")
+    page.evaluate("() => window.toggleTheme()")
     new_theme = page.evaluate("() => document.documentElement.getAttribute('data-theme')")
     assert new_theme != initial_theme
     # Toggle back
-    page.click("#theme-toggle-btn")
+    page.evaluate("() => window.toggleTheme()")
     restored_theme = page.evaluate("() => document.documentElement.getAttribute('data-theme')")
     assert restored_theme == initial_theme

@@ -1,32 +1,32 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Cycle Counts & Audits" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="inventory-page space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Cycle Counts & Physical Audits" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Periodic inventory counting sheets, variance analysis, and automatic ledger reconciliation." %}
-            </p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Cycle Counts & Physical Audits" %}</h1>
         </div>
         <div>
-            <a href="{% url 'inventory:count_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            <a href="{% url 'inventory:count_create' %}" class="neu-primary-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
                 </svg>
                 {% trans "New Cycle Count" %}
             </a>
         </div>
     </div>
 
-    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+    <!-- Navigation Sub-tabs -->
+    {% include "inventory/partials/_navigation_tabs.html" with active_tab="counts" %}
+
+    <div class="neu-table-card">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
+                    <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
                         <th class="py-3.5 px-4">{% trans "Audit #" %}</th>
                         <th class="py-3.5 px-4">{% trans "Warehouse" %}</th>
                         <th class="py-3.5 px-4">{% trans "Scheduled Date" %}</th>
@@ -34,41 +34,46 @@
                         <th class="py-3.5 px-4 text-right">{% trans "Action" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-line/60">
+                <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800">
                     {% for c in page_obj %}
-                    <tr class="hover:bg-surface-2 transition-colors">
-                        <td class="py-3.5 px-4 font-mono font-medium text-ink">
-                            <a href="{% url 'inventory:count_detail' c.pk %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
+                    <tr class="neu-table-row transition-colors">
+                        <td class="py-3.5 px-4 font-mono font-bold text-ink">
+                            <a href="{% url 'inventory:count_detail' c.pk %}" class="text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline">
                                 {{ c.count_number }}
                             </a>
                         </td>
-                        <td class="py-3.5 px-4 text-muted">
+                        <td class="py-3.5 px-4 text-slate-600 dark:text-slate-400 font-medium">
                             {{ c.warehouse.name }}
                         </td>
-                        <td class="py-3.5 px-4 text-muted">
+                        <td class="py-3.5 px-4 text-slate-500 text-xs font-mono font-medium">
                             {{ c.scheduled_date|date:"Y-m-d" }}
                         </td>
                         <td class="py-3.5 px-4">
                             {% if c.status == 'completed' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                 {% trans "Completed" %}
                             </span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200/80">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                 {% trans "Draft / In Progress" %}
                             </span>
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-4 text-right">
-                            <a href="{% url 'inventory:count_detail' c.pk %}" class="text-indigo-600 dark:text-indigo-400 hover:underline text-xs font-medium">
+                            <a href="{% url 'inventory:count_detail' c.pk %}" class="neu-action-btn text-xs font-bold py-1.5 px-3 rounded-lg text-slate-700 hover:text-slate-900 transition inline-flex items-center gap-1">
                                 {% if c.status == 'completed' %}{% trans "View Results" %}{% else %}{% trans "Record Counts" %}{% endif %} &rarr;
                             </a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="py-12 text-center text-muted">
-                            <p class="text-base font-medium text-ink">{% trans "No cycle counts created yet" %}</p>
+                        <td colspan="5" class="py-12 text-center">
+                            <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                                <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "No cycle counts created yet" %}</p>
+                                <p class="text-xs text-slate-500 mt-1">{% trans "Start an audit to physically verify on-hand inventory." %}</p>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

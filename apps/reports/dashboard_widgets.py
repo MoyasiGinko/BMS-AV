@@ -21,8 +21,8 @@ class SalesTodayWidget(DashboardWidget):
     description = _("Gross sales, transaction volume, and POS vs invoice breakdown for today")
     module = "sales"
     permission = "sales.view"
-    col_span = 4
-    order = 15
+    col_span = 3
+    order = 9
     template_name = "reports/widgets/sales_today.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -39,8 +39,8 @@ class ReceivablesWidget(DashboardWidget):
     description = _("Open invoice aging, overdue balances, and top outstanding customer debts")
     module = "sales"
     permission = "sales.view"
-    col_span = 4
-    order = 16
+    col_span = 3
+    order = 6
     template_name = "reports/widgets/receivables.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -57,8 +57,8 @@ class LowStockWidget(DashboardWidget):
     description = _("Products at or below their reorder points and safety stock levels")
     module = "inventory"
     permission = "inventory.view"
-    col_span = 4
-    order = 17
+    col_span = 3
+    order = 8
     template_name = "reports/widgets/low_stock.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -76,7 +76,7 @@ class TopProductsWidget(DashboardWidget):
     module = "sales"
     permission = "sales.view"
     col_span = 6
-    order = 25
+    order = 15
     template_name = "reports/widgets/top_products.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -111,8 +111,8 @@ class PayablesWidget(DashboardWidget):
     description = _("Open vendor bill aging, overdue totals, and top outstanding supplier liabilities")
     module = "purchasing"
     permission = "purchasing.view"
-    col_span = 4
-    order = 18
+    col_span = 3
+    order = 7
     template_name = "reports/widgets/payables.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -147,8 +147,8 @@ class CashPositionWidget(DashboardWidget):
     description = _("Real-time balances across bank accounts, petty cash, and 30-day liquidity flows")
     module = "accounting"
     permission = "accounting.view"
-    col_span = 4
-    order = 19
+    col_span = 6
+    order = 14
     template_name = "reports/widgets/cash_position.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -165,8 +165,8 @@ class ProfitTrendWidget(DashboardWidget):
     description = _("6-month revenue, expense, net profit margin, and financial growth trajectory")
     module = "accounting"
     permission = "accounting.view"
-    col_span = 6
-    order = 28
+    col_span = 7
+    order = 2
     template_name = "reports/widgets/profit_trend.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -201,8 +201,8 @@ class HeadcountWidget(DashboardWidget):
     description = _("Active headcount, departmental distribution, and hiring trends")
     module = "hr"
     permission = "hr.view"
-    col_span = 4
-    order = 30
+    col_span = 6
+    order = 32
     template_name = "reports/widgets/headcount.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -219,8 +219,8 @@ class AttendanceWidget(DashboardWidget):
     description = _("Real-time workforce presence, late check-ins, and active leaves")
     module = "hr"
     permission = "hr.view"
-    col_span = 4
-    order = 31
+    col_span = 6
+    order = 33
     template_name = "reports/widgets/attendance.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
@@ -256,7 +256,7 @@ class EmployeePerformanceWidget(DashboardWidget):
     module = "hr"
     permission = "hr.view"
     col_span = 6
-    order = 33
+    order = 36
     template_name = "reports/widgets/employee_performance.html"
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:

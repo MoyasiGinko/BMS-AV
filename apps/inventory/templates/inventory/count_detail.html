@@ -4,132 +4,163 @@
 {% block title %}{% trans "Audit Sheet" %} {{ stock_count.count_number }} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <a href="{% url 'inventory:count_list' %}" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-                &larr; {% trans "Back to Cycle Counts" %}
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'inventory:count_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "All Cycle Counts" %}
             </a>
-            <h1 class="text-2xl font-bold tracking-tight text-ink mt-1">
-                {{ stock_count.count_number }}
-            </h1>
         </div>
-        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {% if stock_count.status == 'completed' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300{% endif %}">
-            {{ stock_count.get_status_display }}
-        </span>
-    </div>
-
-    <!-- Metadata Card -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-6">
-        <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Warehouse" %}</span>
-            <div class="mt-1 font-medium text-ink">{{ stock_count.warehouse.name }}</div>
-        </div>
-        <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Scheduled Date" %}</span>
-            <div class="mt-1 font-medium text-ink">{{ stock_count.scheduled_date|date:"Y-m-d" }}</div>
-        </div>
-        <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Completed At" %}</span>
-            <div class="mt-1 text-muted">{{ stock_count.completed_at|date:"Y-m-d H:i"|default:"Pending" }}</div>
-        </div>
-        <div>
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Initiated By" %}</span>
-            <div class="mt-1 text-muted">
-                {% if stock_count.created_by %}{{ stock_count.created_by.get_full_name|default:stock_count.created_by.email }}{% else %}{% trans "System" %}{% endif %}
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink font-mono">
+                        {{ stock_count.count_number }}
+                    </h1>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {% if stock_count.status == 'completed' %}bg-emerald-600 text-white{% else %}bg-amber-600 text-white{% endif %} shadow-2xs">
+                        {{ stock_count.get_status_display }}
+                    </span>
+                </div>
+                <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+                    {% trans "Warehouse:" %} {{ stock_count.warehouse.name }} &bull; {{ stock_count.scheduled_date|date:"Y-m-d" }}
+                </p>
             </div>
-        </div>
-        {% if stock_count.adjustment %}
-        <div class="col-span-2 sm:col-span-4 border-t border-slate-100 dark:border-slate-800 pt-3">
-            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{% trans "Reconciliation Adjustment" %}</span>
-            <div class="mt-1">
-                <a href="{% url 'inventory:adjustment_detail' stock_count.adjustment.pk %}" class="inline-flex items-center text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
-                    {{ stock_count.adjustment.adjustment_number }} &rarr;
-                </a>
+            {% if stock_count.status == 'draft' %}
+            <div>
+                <form method="post" action="{% url 'inventory:count_start' stock_count.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="neu-btn-primary inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                        {% trans "Start Physical Count" %} &rarr;
+                    </button>
+                </form>
             </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 
-    {% if stock_count.status == 'draft' %}
-    <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl">
-        <p class="text-sm text-indigo-900 dark:text-indigo-200">
-            {% trans "This count is in Draft status. Start the count when warehouse counting begins." %}
-        </p>
-        <form method="post" action="{% url 'inventory:count_start' stock_count.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-xs transition-colors">
-                {% trans "Start Count" %}
-            </button>
-        </form>
-    </div>
-    {% endif %}
+    <!-- Bento 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left 8 cols: Count Input Form -->
+        <div class="col-span-12 lg:col-span-8 space-y-8">
+            <form method="post" class="space-y-8">
+                {% csrf_token %}
+                <div class="rounded-2xl border border-line bg-surface shadow-xs overflow-hidden">
+                    <div class="p-7 sm:p-8 border-b border-line flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                            <h2 class="text-lg font-bold text-ink">{% trans "Inventory Count Lines" %}</h2>
+                            <p class="text-xs text-muted mt-0.5">{% trans "Recorded quantities compared against expected book values." %}</p>
+                        </div>
+                    </div>
 
-    <!-- Count Input Form -->
-    <form method="post" class="space-y-6">
-        {% csrf_token %}
-        <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
-            <div class="px-5 py-4 border-b border-line flex items-center justify-between">
-                <h3 class="font-semibold text-ink text-sm">{% trans "Inventory Count Lines" %}</h3>
-                {% if stock_count.status != 'completed' %}
-                <span class="text-xs text-slate-400">{% trans "Enter physical counted numbers. Discrepancies will be automatically adjusted upon reconciling." %}</span>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-line text-sm">
+                            <thead class="bg-surface-2 text-muted">
+                                <tr>
+                                    <th scope="col" class="px-6 py-4 text-left font-bold uppercase text-2xs tracking-wider">{% trans "Product / Variant" %}</th>
+                                    <th scope="col" class="px-6 py-4 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Expected Qty" %}</th>
+                                    <th scope="col" class="px-6 py-4 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Counted Qty" %}</th>
+                                    <th scope="col" class="px-6 py-4 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Variance" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-line text-ink">
+                                {% for line in stock_count.lines.all %}
+                                <tr class="hover:bg-surface-2/60 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <span class="font-bold text-ink text-base">{{ line.product.name }}</span>
+                                        {% if line.variant %}
+                                        <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold ml-1">({{ line.variant.name }})</span>
+                                        {% endif %}
+                                        <div class="text-xs text-slate-400 font-mono mt-0.5">{{ line.variant.sku|default:line.product.sku }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-mono font-bold text-muted text-base">
+                                        {{ line.expected_qty }}
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        {% if stock_count.status == 'completed' %}
+                                        <span class="font-mono font-extrabold text-ink text-base">{{ line.counted_qty }}</span>
+                                        {% else %}
+                                        <input type="number" step="any" name="count_line_{{ line.pk }}" value="{{ line.counted_qty }}"
+                                               class="w-32 text-right py-2 px-3 border border-line rounded-xl bg-surface text-ink font-mono font-bold text-sm focus:ring-2 focus:ring-indigo-500" />
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-mono font-extrabold text-base {% if line.variance == 0 %}text-slate-400{% elif line.variance > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                                        {% if line.variance > 0 %}+{% endif %}{{ line.variance }}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="px-6 py-12 text-center text-slate-400 text-sm">
+                                        {% trans "No product stock levels found in this warehouse." %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {% if stock_count.status != 'completed' and stock_count.lines.exists %}
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+                    <button type="submit" name="action" value="save_progress" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                        {% trans "Save Progress Draft" %}
+                    </button>
+                    <button type="submit" name="action" value="reconcile" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                        <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {% trans "Complete Count & Post Variances" %}
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Right 4 cols: Audit Parameters & Reconciliation Link -->
+        <div class="col-span-12 lg:col-span-4 space-y-8">
+            <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-5">
+                <div class="border-b border-line pb-3">
+                    <h3 class="text-base font-bold text-ink">{% trans "Audit Parameters" %}</h3>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Warehouse and schedule coordinates." %}</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Warehouse" %}</span>
+                        <div class="text-base font-bold text-ink">{{ stock_count.warehouse.name }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Scheduled Date" %}</span>
+                        <div class="text-sm font-semibold text-ink">{{ stock_count.scheduled_date|date:"Y-m-d" }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Completed At" %}</span>
+                        <div class="text-sm font-mono text-muted">{{ stock_count.completed_at|date:"Y-m-d H:i"|default:"Pending" }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Initiated By" %}</span>
+                        <div class="text-sm font-semibold text-muted">
+                            {% if stock_count.created_by %}{{ stock_count.created_by.get_full_name|default:stock_count.created_by.email }}{% else %}{% trans "System" %}{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if stock_count.adjustment %}
+                <div class="border-t border-line pt-4">
+                    <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Reconciliation Adjustment" %}</span>
+                    <a href="{% url 'inventory:adjustment_detail' stock_count.adjustment.pk %}" class="text-sm font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
+                        {{ stock_count.adjustment.adjustment_number }} &rarr;
+                    </a>
+                </div>
                 {% endif %}
             </div>
-            <table class="w-full text-left border-collapse text-sm">
-                <thead>
-                    <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
-                        <th class="py-3 px-4">{% trans "Product / Variant" %}</th>
-                        <th class="py-3 px-4 text-right">{% trans "Expected Qty" %}</th>
-                        <th class="py-3 px-4 text-right">{% trans "Counted Qty" %}</th>
-                        <th class="py-3 px-4 text-right">{% trans "Variance" %}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-line/60 font-mono text-xs">
-                    {% for line in stock_count.lines.all %}
-                    <tr>
-                        <td class="py-3 px-4 font-sans text-sm">
-                            <span class="font-medium text-ink">{{ line.product.name }}</span>
-                            {% if line.variant %}
-                            <span class="text-xs text-indigo-600 dark:text-indigo-400">({{ line.variant.name }})</span>
-                            {% endif %}
-                            <div class="text-xs text-slate-400 font-mono">{{ line.variant.sku|default:line.product.sku }}</div>
-                        </td>
-                        <td class="py-3 px-4 text-right text-muted">
-                            {{ line.expected_qty }}
-                        </td>
-                        <td class="py-3 px-4 text-right font-sans">
-                            {% if stock_count.status == 'completed' %}
-                            <span class="font-medium text-ink font-mono">{{ line.counted_qty }}</span>
-                            {% else %}
-                            <input type="number" step="any" name="count_line_{{ line.pk }}" value="{{ line.counted_qty }}"
-                                   class="w-28 text-right py-1 px-2 border border-line rounded-lg bg-surface text-ink font-mono text-xs focus:ring-2 focus:ring-indigo-500" />
-                            {% endif %}
-                        </td>
-                        <td class="py-3 px-4 text-right font-semibold {% if line.variance == 0 %}text-slate-400{% elif line.variance > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
-                            {% if line.variance > 0 %}+{% endif %}{{ line.variance }}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="py-8 text-center text-muted font-sans">
-                            {% trans "No product stock levels found in this warehouse." %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
-
-        {% if stock_count.status != 'completed' and stock_count.lines.exists %}
-        <div class="flex items-center justify-end gap-3">
-            <button type="submit" name="action" value="save_progress" class="px-4 py-2.5 rounded-lg text-sm font-medium text-muted bg-surface border border-line hover:bg-surface-2 hover:text-ink shadow-xs transition-colors">
-                {% trans "Save Progress" %}
-            </button>
-            <button type="submit" name="action" value="reconcile" class="px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                {% trans "Complete Count & Post Variances" %}
-            </button>
-        </div>
-        {% endif %}
-    </form>
+    </div>
 </div>
 {% endblock %}

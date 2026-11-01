@@ -43,12 +43,25 @@
           if (rawCustoms) Object.assign(customs, JSON.parse(rawCustoms));
         } catch(e) {}
 
-        var mode = modes[theme] || 'dark_contrast';
+        var defaultMode = theme === 'neumorphic' ? 'light' : 'dark_contrast';
+        var mode = modes[theme] || defaultMode;
         var themePresets = presets[theme] || presets.fast;
-        var colors = themePresets[mode] || themePresets.dark_contrast;
+        var colors = themePresets[mode] || themePresets[defaultMode] || themePresets.dark_contrast;
         if (mode === 'custom') {
           var customForTheme = customs[theme] || {};
-          colors = Object.assign({}, themePresets.dark_contrast, customForTheme);
+          colors = Object.assign({}, themePresets[defaultMode] || themePresets.dark_contrast, customForTheme);
+        }
+        if (theme === 'neumorphic') {
+          mode = 'light';
+          colors = (themePresets && themePresets.light) || {
+            bg: '#E6E9F2',
+            text: '#5A607C',
+            hover_bg: '#E6E9F2',
+            hover_text: '#262B45',
+            active_bg: '#E6E9F2',
+            active_text: '#4338CA',
+            active_border: '#4F46E5'
+          };
         }
 
         var doc = document.documentElement;
@@ -61,11 +74,19 @@
           doc.style.setProperty('--sidebar-active-text', colors.active_text);
           doc.style.setProperty('--sidebar-active-border', colors.active_border || colors.active_text);
         }
-        if (colors.bg && (colors.bg === '#0f172a' || colors.bg === '#090d16' || colors.bg.indexOf('rgba(15,') !== -1 || colors.bg === '#1e293b')) {
-          doc.style.setProperty('--sidebar-border', 'rgba(255, 255, 255, 0.08)');
-        } else {
-          doc.style.setProperty('--sidebar-border', 'var(--border)');
+        var isDarkBg = true;
+        if (colors.bg) {
+          if (colors.bg === '#ffffff' || colors.bg === '#fff' || colors.bg.indexOf('255, 255, 255') !== -1 || colors.bg === '#f8fafc' || colors.bg === '#e2e8f0' || colors.bg.toLowerCase() === '#e6e9f2') {
+            isDarkBg = false;
+          } else if (colors.bg.startsWith('#') && colors.bg.length >= 7) {
+            var r = parseInt(colors.bg.substr(1,2), 16) || 0;
+            var g = parseInt(colors.bg.substr(3,2), 16) || 0;
+            var b = parseInt(colors.bg.substr(5,2), 16) || 0;
+            isDarkBg = ((0.299 * r + 0.587 * g + 0.114 * b) / 255) < 0.55;
+          }
         }
+        doc.style.setProperty('--sidebar-border', isDarkBg ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)');
+        doc.setAttribute('data-sidebar-tone', isDarkBg ? 'dark' : 'light');
       } catch (e) {}
     })();
   </script>
@@ -79,10 +100,10 @@
   <meta name="apple-mobile-web-app-title" content="Business OS">
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
-  <!-- Calm Ledger Tokens, Neumorphic System & Tailwind 4 -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=1.0.6">
-  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=1.0.5">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=1.0.6">
+  <!-- Calm Ledger Tokens, Tailwind 4 & Neumorphic System -->
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=3.2.0">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=3.2.0">
+  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=4.3.0">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -125,12 +146,18 @@
     window.resolveSidebarForTheme = function(themeName) {
       themeName = themeName || document.documentElement.getAttribute('data-theme') || 'fast';
       var presets = (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS[themeName]) || (window.THEME_SIDEBAR_PRESETS && window.THEME_SIDEBAR_PRESETS.fast) || {};
-      var modes = Object.assign({}, window.USER_SIDEBAR_MODES || {});
+      var defaultMode = themeName === 'neumorphic' ? 'light' : 'dark_contrast';
+      var modes = Object.assign({
+        fast: 'dark_contrast',
+        dark: 'dark_contrast',
+        spatial: 'dark_contrast',
+        neumorphic: 'light'
+      }, window.USER_SIDEBAR_MODES || {});
       try {
         var rawModes = localStorage.getItem('bos_sidebar_modes');
         if (rawModes) Object.assign(modes, JSON.parse(rawModes));
       } catch(e) {}
-      var mode = modes[themeName] || 'dark_contrast';
+      var mode = modes[themeName] || defaultMode;
 
       var customs = Object.assign({}, window.USER_SIDEBAR_CUSTOM || {});
       try {
@@ -141,11 +168,13 @@
       var colors;
       if (mode === 'light' && presets.light) {
         colors = presets.light;
+      } else if (mode === 'dark_contrast' && presets.dark_contrast) {
+        colors = presets.dark_contrast;
       } else if (mode === 'custom') {
-        colors = Object.assign({}, presets.dark_contrast || {}, customs[themeName] || {});
+        colors = Object.assign({}, presets[defaultMode] || presets.dark_contrast || presets.light || {}, customs[themeName] || {});
       } else {
-        mode = 'dark_contrast';
-        colors = presets.dark_contrast || {};
+        mode = defaultMode;
+        colors = presets[defaultMode] || presets.dark_contrast || presets.light || {};
       }
       return { mode: mode, colors: colors };
     };
@@ -162,11 +191,35 @@
         doc.style.setProperty('--sidebar-active-text', colors.active_text);
         doc.style.setProperty('--sidebar-active-border', colors.active_border || colors.active_text);
       }
-      if (colors.bg && (colors.bg === '#0f172a' || colors.bg === '#090d16' || colors.bg.indexOf('rgba(15,') !== -1 || colors.bg === '#1e293b')) {
-        doc.style.setProperty('--sidebar-border', 'rgba(255, 255, 255, 0.08)');
-      } else {
-        doc.style.setProperty('--sidebar-border', 'var(--border)');
+      var isDarkBg = true;
+      if (colors.bg) {
+        if (colors.bg === '#ffffff' || colors.bg === '#fff' || colors.bg.indexOf('255, 255, 255') !== -1 || colors.bg === '#f8fafc' || colors.bg === '#e2e8f0' || colors.bg.toLowerCase() === '#e6e9f2') {
+          isDarkBg = false;
+        } else if (colors.bg.startsWith('#') && colors.bg.length >= 7) {
+          var r = parseInt(colors.bg.substr(1,2), 16) || 0;
+          var g = parseInt(colors.bg.substr(3,2), 16) || 0;
+          var b = parseInt(colors.bg.substr(5,2), 16) || 0;
+          isDarkBg = ((0.299 * r + 0.587 * g + 0.114 * b) / 255) < 0.55;
+        }
       }
+      var borderColor = isDarkBg ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+      doc.style.setProperty('--sidebar-border', borderColor);
+
+      var asideEl = document.querySelector('aside.bos-sidebar');
+      if (asideEl) {
+        if (colors.bg) asideEl.style.setProperty('background-color', colors.bg, 'important');
+        if (colors.text) asideEl.style.setProperty('color', colors.text, 'important');
+        asideEl.style.setProperty('border-right-color', borderColor, 'important');
+        asideEl.setAttribute('data-sidebar-tone', isDarkBg ? 'dark' : 'light');
+
+        var activeLinks = asideEl.querySelectorAll('nav a[class*="border-l-[3px]"], nav a.active, nav a.is-active, .sidebar-nav-item.active, .sidebar-nav-item.is-active');
+        activeLinks.forEach(function(el) {
+          if (colors.active_bg) el.style.setProperty('background-color', colors.active_bg, 'important');
+          if (colors.active_text) el.style.setProperty('color', colors.active_text, 'important');
+          if (colors.active_border || colors.active_text) el.style.setProperty('border-left-color', colors.active_border || colors.active_text, 'important');
+        });
+      }
+      doc.setAttribute('data-sidebar-tone', isDarkBg ? 'dark' : 'light');
     };
 
     window.setTheme = function(theme) {
@@ -234,6 +287,10 @@
       targetTheme = targetTheme || document.documentElement.getAttribute('data-theme') || 'fast';
       mode = mode || 'dark_contrast';
       window.USER_SIDEBAR_MODES = window.USER_SIDEBAR_MODES || {};
+      try {
+        var rawModes = localStorage.getItem('bos_sidebar_modes');
+        if (rawModes) Object.assign(window.USER_SIDEBAR_MODES, JSON.parse(rawModes));
+      } catch(e) {}
       window.USER_SIDEBAR_MODES[targetTheme] = mode;
       try {
         localStorage.setItem('bos_sidebar_modes', JSON.stringify(window.USER_SIDEBAR_MODES));
@@ -242,6 +299,10 @@
 
       if (mode === 'custom' && customColors) {
         window.USER_SIDEBAR_CUSTOM = window.USER_SIDEBAR_CUSTOM || {};
+        try {
+          var rawCustoms = localStorage.getItem('bos_sidebar_custom');
+          if (rawCustoms) Object.assign(window.USER_SIDEBAR_CUSTOM, JSON.parse(rawCustoms));
+        } catch(e) {}
         window.USER_SIDEBAR_CUSTOM[targetTheme] = customColors;
         try {
           localStorage.setItem('bos_sidebar_custom', JSON.stringify(window.USER_SIDEBAR_CUSTOM));
@@ -295,6 +356,12 @@
       targetTheme = targetTheme || document.documentElement.getAttribute('data-theme') || 'fast';
       return window.setSidebarPreset(targetTheme, 'dark_contrast');
     };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      var currentTheme = document.documentElement.getAttribute('data-theme') || 'fast';
+      var resolved = window.resolveSidebarForTheme(currentTheme);
+      window.applySidebarColors(resolved.colors);
+    });
 
     window.toast = function(message, type, duration) {
       window.dispatchEvent(new CustomEvent('toast', {

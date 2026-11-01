@@ -4,76 +4,103 @@
 {% block title %}{% trans "POS Terminal - Open Shift" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-xl mx-auto py-8">
-    <div class="bg-surface border border-line rounded-2xl shadow-xl overflow-hidden">
-        <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-8 text-white">
-            <div class="flex items-center space-x-3">
-                <div class="p-3 bg-white/10 rounded-xl backdrop-blur-sm">
-                    <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
+<div class="w-full space-y-8 pb-16">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'pos:register_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Manage Registers" %}
+            </a>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+            {% trans "Point of Sale Terminal" %}
+        </h1>
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% trans "Open a cash shift to start processing sales transactions and barcoded checkouts." %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <form method="post" action="{% url 'pos:shift_open' %}" class="space-y-8 w-full">
+        {% csrf_token %}
+
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: Shift Parameters -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Shift Parameters" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Select active terminal and verify starting physical drawer cash." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="id_register" class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                                {% trans "Select Register / Terminal" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <select id="id_register" name="register" required class="form-select">
+                                {% for reg in registers %}
+                                    <option value="{{ reg.pk }}" {% if selected_register and selected_register.pk == reg.pk %}selected{% endif %}>
+                                        {{ reg.code }} &mdash; {{ reg.name }} ({{ reg.branch.name }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="id_opening_cash" class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                                {% trans "Opening Cash Float ($)" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="number" step="0.01" min="0" name="opening_cash" id="id_opening_cash" required value="0.00" class="form-input font-mono font-bold text-base">
+                            <p class="mt-1 text-2xs text-slate-400">
+                                {% trans "Count physical cash in the drawer before starting your shift." %}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="id_notes" class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                                {% trans "Opening Notes (Optional)" %}
+                            </label>
+                            <input type="text" name="notes" id="id_notes" placeholder="{% trans 'e.g., Morning shift, drawer verified' %}" class="form-input">
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight">{% trans "Point of Sale" %}</h1>
-                    <p class="text-indigo-100 text-sm mt-0.5">{% trans "Open a cash shift to start processing sales." %}</p>
+            </div>
+
+            <!-- Right 4 cols: Guidance & Fast Checkout Info -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        {% trans "POS Terminal Engine" %}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {% trans "Upon opening your shift, you will enter the full-screen cash register interface with instant barcode scanning, discount rules, split payments, and thermal slip printing." %}
+                    </p>
                 </div>
             </div>
         </div>
 
-        <form method="post" action="{% url 'pos:shift_open' %}" class="p-6 sm:p-8 space-y-6">
-            {% csrf_token %}
-
-            <div>
-                <label for="id_register" class="block text-sm font-semibold text-muted">
-                    {% trans "Select Register / Terminal" %}
-                </label>
-                <div class="mt-2">
-                    <select id="id_register" name="register" required class="block w-full rounded-xl border-line bg-surface text-ink shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm p-3">
-                        {% for reg in registers %}
-                            <option value="{{ reg.pk }}" {% if selected_register and selected_register.pk == reg.pk %}selected{% endif %}>
-                                {{ reg.code }} — {{ reg.name }} ({{ reg.branch.name }})
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <div>
-                <label for="id_opening_cash" class="block text-sm font-semibold text-muted">
-                    {% trans "Opening Cash Float ($)" %}
-                </label>
-                <div class="mt-2 relative rounded-xl shadow-xs">
-                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-mono text-base">
-                        $
-                    </div>
-                    <input type="number" step="0.01" min="0" name="opening_cash" id="id_opening_cash" required value="0.00" class="block w-full pl-8 pr-4 py-3 rounded-xl border-line bg-surface text-ink font-mono text-lg font-bold focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-                <p class="mt-1 text-xs text-muted">
-                    {% trans "Count physical cash in the drawer before starting your shift." %}
-                </p>
-            </div>
-
-            <div>
-                <label for="id_notes" class="block text-sm font-semibold text-muted">
-                    {% trans "Opening Notes (Optional)" %}
-                </label>
-                <div class="mt-2">
-                    <input type="text" name="notes" id="id_notes" placeholder="{% trans 'e.g., Morning shift, drawer verified' %}" class="block w-full rounded-xl border-line bg-surface text-ink shadow-xs focus:border-indigo-500 focus:ring-indigo-500 text-sm p-3">
-                </div>
-            </div>
-
-            <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <a href="{% url 'pos:register_list' %}" class="text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-                    {% trans "Manage Registers" %}
-                </a>
-                <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all">
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'pos:register_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
                     <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     {% trans "Open Shift & Launch POS" %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

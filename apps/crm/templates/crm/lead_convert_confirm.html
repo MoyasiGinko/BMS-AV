@@ -4,68 +4,101 @@
 {% block title %}{% trans "Convert Lead" %} | {{ lead.full_name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto space-y-6">
+<div class="w-full space-y-8 pb-16">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Convert Lead to Customer" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Provision a formal customer account and optionally launch an active deal in your sales pipeline." %}
-            </p>
+    <div>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Lead" %}
+            </a>
         </div>
-        <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="text-sm text-slate-500 hover:text-slate-700">
-            {% trans "Cancel" %}
-        </a>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+            {% trans "Convert Lead to Customer" %}: <span class="text-indigo-600 dark:text-indigo-400">{{ lead.full_name }}</span>
+        </h1>
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% trans "Promote this qualified prospect into a formal Customer Account and optionally generate an Opportunity deal in your pipeline." %}
+        </p>
     </div>
 
-    <!-- Conversion Card -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-6">
-        <div class="p-4 bg-app rounded-lg space-y-2 text-sm">
-            <div class="flex justify-between">
-                <span class="text-slate-500">{% trans "Lead Contact" %}:</span>
-                <span class="font-semibold text-ink">{{ lead.full_name }}</span>
+    <!-- Form -->
+    <form method="post" class="space-y-8 w-full">
+        {% csrf_token %}
+
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: Conversion Details -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <!-- Prospect Overview -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Target Customer Specifications" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Account parameters populated from this qualified lead." %}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 rounded-2xl bg-surface-2/40 border border-line">
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Lead Contact" %}</span>
+                            <span class="text-base font-extrabold text-ink">{{ lead.full_name }}</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Target Customer Name" %}</span>
+                            <span class="text-base font-extrabold text-ink">{{ lead.company_name|default:lead.full_name }}</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Contact Email" %}</span>
+                            <span class="text-sm font-semibold text-muted">{{ lead.email|default:"-" }}</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Estimated Pipeline Value" %}</span>
+                            <span class="text-base font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">${{ lead.estimated_value|default:"0.00" }}</span>
+                        </div>
+                    </div>
+
+                    <label class="flex items-start gap-3.5 p-4 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                        <div class="pt-0.5 shrink-0">
+                            <input id="create_opportunity" name="create_opportunity" type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-sm font-bold text-ink">{% trans "Create active Opportunity deal in pipeline" %}</span>
+                            <span class="block text-xs text-slate-400 mt-0.5">{% trans "Opens a deal in the first stage of the default pipeline carrying the estimated value." %}</span>
+                        </div>
+                    </label>
+                </div>
             </div>
-            <div class="flex justify-between">
-                <span class="text-slate-500">{% trans "Target Customer Name" %}:</span>
-                <span class="font-semibold text-ink">{{ lead.company_name|default:lead.full_name }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-slate-500">{% trans "Contact Email" %}:</span>
-                <span class="text-muted">{{ lead.email|default:"-" }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-slate-500">{% trans "Estimated Value" %}:</span>
-                <span class="font-mono font-bold text-ink">${{ lead.estimated_value|default:"0.00" }}</span>
+
+            <!-- Right 4 cols: Audit & Transition Notes -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {% trans "Touchpoint History Retained" %}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {% trans "All logged touchpoints, communication logs, and pending tasks will be automatically linked to the newly created customer account." %}
+                    </p>
+                </div>
             </div>
         </div>
 
-        <form method="post" class="space-y-6">
-            {% csrf_token %}
-            <div class="space-y-4">
-                <div class="flex items-start">
-                    <div class="flex items-center h-5">
-                        <input id="create_opportunity" name="create_opportunity" type="checkbox" checked class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    </div>
-                    <div class="ml-3 text-sm">
-                        <label for="create_opportunity" class="font-medium text-muted">{% trans "Create active Opportunity deal in pipeline" %}</label>
-                        <p class="text-slate-500 text-xs mt-0.5">{% trans "Opens a deal in the first stage of the default pipeline carrying the estimated value." %}</p>
-                    </div>
-                </div>
-
-                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300">
-                    {% trans "Note: All logged touchpoints and pending tasks will be automatically linked to the new customer account." %}
-                </div>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-line">
-                <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-slate-50">
-                    {% trans "Cancel" %}
-                </a>
-                <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors">
-                    {% trans "Confirm & Convert" %}
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'crm:lead_detail' public_id=lead.public_id %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {% trans "Confirm & Convert to Customer" %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

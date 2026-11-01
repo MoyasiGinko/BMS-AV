@@ -4,30 +4,31 @@
 {% block title %}{% trans "Bank Accounts" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6 accounting-page">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Banking & Cash" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Manage bank accounts, record statement lines, and perform periodic reconciliations." %}
-            </p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Banking & Cash" %}</h1>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 shadow-xs">
+            <a href="{% url 'accounting:dashboard' %}" class="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
                 {% trans "Dashboard" %}
             </a>
-            <a href="{% url 'accounting:bank_account_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+            <a href="{% url 'accounting:bank_account_create' %}" class="inline-flex items-center px-4.5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs transition-all active:scale-95 cursor-pointer">
                 <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 {% trans "Add Bank Account" %}
             </a>
         </div>
     </div>
 
+    <!-- Sub-navigation Tabs -->
+    {% include "accounting/partials/_navigation_tabs.html" with active_tab="banking" %}
+
+
     <!-- Bank Accounts Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for ba in bank_accounts %}
-        <div class="bg-surface border border-line rounded-xl p-5 shadow-xs flex flex-col justify-between">
+        <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all flex flex-col justify-between">
             <div>
                 <div class="flex items-start justify-between">
                     <div>
@@ -39,11 +40,11 @@
                         <p class="text-xs text-slate-400 mt-0.5">{{ ba.bank_name }}</p>
                     </div>
                     {% if ba.is_active %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">
                         {% trans "Active" %}
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs">
                         {% trans "Inactive" %}
                     </span>
                     {% endif %}
@@ -85,7 +86,7 @@
             </div>
         </div>
         {% empty %}
-        <div class="col-span-full bg-surface border border-line rounded-xl p-12 text-center text-slate-400">
+        <div class="col-span-full bg-surface border border-line rounded-2xl p-12 text-center text-slate-400">
             <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
             <p class="text-sm font-medium text-muted">{% trans "No bank accounts added yet." %}</p>
             <a href="{% url 'accounting:bank_account_create' %}" class="inline-block mt-3 px-4 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">

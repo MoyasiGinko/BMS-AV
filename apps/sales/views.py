@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.catalog.models import Product
@@ -68,6 +69,7 @@ def quote_list(request: HttpRequest) -> HttpResponse:
         "quotes": quotes,
         "filter_form": filter_form,
         "metrics": selectors.get_sales_summary_metrics(organization=org),
+        "today": timezone.now().date(),
     }
 
     if getattr(request, "htmx", False):
@@ -198,6 +200,7 @@ def order_list(request: HttpRequest) -> HttpResponse:
         "orders": orders,
         "filter_form": filter_form,
         "metrics": selectors.get_sales_summary_metrics(organization=org),
+        "today": timezone.now().date(),
     }
 
     if getattr(request, "htmx", False):
@@ -335,6 +338,7 @@ def invoice_list(request: HttpRequest) -> HttpResponse:
         "invoices": invoices,
         "filter_form": filter_form,
         "metrics": selectors.get_sales_summary_metrics(organization=org),
+        "today": timezone.now().date(),
     }
 
     if getattr(request, "htmx", False):
@@ -464,6 +468,7 @@ def credit_note_list(request: HttpRequest) -> HttpResponse:
         "credit_notes": credit_notes,
         "filter_form": filter_form,
         "metrics": selectors.get_sales_summary_metrics(organization=org),
+        "today": timezone.now().date(),
     }
 
     if getattr(request, "htmx", False):

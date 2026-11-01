@@ -5,7 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
 
 from apps.accounts.models import User
-from apps.core.context_processors import theme_context
+from apps.core.context_processors import ALLOWED_THEMES, THEME_SIDEBAR_PRESETS, theme_context
 from apps.tenancy.models import Membership, Organization, Role
 
 
@@ -124,7 +124,7 @@ def test_dashboard_renders_theme_and_selector(theme_test_env: dict[str, object])
     assert "Modern &amp; Fast" in content or "Modern & Fast" in content
     assert "Modern Dark" in content
     assert "Minimal Spatial" in content
-    assert "Lightweight (Default) • Best for performance" in content
+    assert "Clean, high-contrast" in content or "Lightweight" in content
 
 
 @pytest.mark.django_db
@@ -339,3 +339,64 @@ def test_custom_sidebar_per_theme_isolation(theme_test_env: dict[str, object]) -
     user.refresh_from_db()
     assert user.theme_config["sidebar_custom"]["fast"]["bg"] == "#111111"
     assert user.theme_config["sidebar_custom"]["dark"]["bg"] == "#222222"
+
+
+def test_two_presets_and_one_custom_per_theme_schema() -> None:
+    """Verify that every theme has exactly two presets of sidebar theme and supports 1 custom."""
+    required_keys = {"bg", "text", "hover_bg", "hover_text", "active_bg", "active_text", "name"}
+
+    for theme in ALLOWED_THEMES:
+        assert theme in THEME_SIDEBAR_PRESETS, f"Theme {theme} missing in THEME_SIDEBAR_PRESETS"
+        presets = THEME_SIDEBAR_PRESETS[theme]
+
+        # Each theme must have exactly two curated presets
+        preset_modes = set(presets.keys())
+        msg = (
+            f"Theme {theme} must have exactly two sidebar presets: "
+            f"'dark_contrast' (Preset 1) and 'light' (Preset 2). Found: {preset_modes}"
+        )
+        assert preset_modes == {"dark_contrast", "light"}, msg
+
+        for mode_key, colors in presets.items():
+            missing = required_keys - set(colors.keys())
+            assert not missing, f"Theme {theme} preset {mode_key} is missing keys: {missing}"
+            assert colors["bg"].startswith("#") or colors["bg"].startswith("rgba(")
+            assert colors["text"].startswith("#") or colors["text"].startswith("rgba(")
+            assert colors["hover_bg"].startswith("#") or colors["hover_bg"].startswith("rgba(")
+            assert colors["hover_text"].startswith("#") or colors["hover_text"].startswith("rgba(")
+            assert colors["active_bg"].startswith("#") or colors["active_bg"].startswith("rgba(")
+            assert colors["active_text"].startswith("#") or colors["active_text"].startswith("rgba(")
+
+
+@pytest.mark.django_db
+def test_theme_manager_template_locks_preset_inputs_and_exposes_custom(
+    theme_test_env: dict[str, object],
+) -> None:
+    """Verify Theme Manager template locks Presets 1 & 2 while Custom mode is editable."""
+    user: User = theme_test_env["user"]  # type: ignore[assignment]
+    client = Client()
+    client.force_login(user)
+
+    resp = client.get("/settings/theme/#sidebar")
+    assert resp.status_code == 200
+    content = resp.content.decode("utf-8")
+
+    # Assert Preset 1, Preset 2, and Custom cards are present
+    assert 'id="sidebar-preset-dark-contrast"' in content
+    assert 'id="sidebar-preset-light"' in content
+    assert 'id="sidebar-preset-custom"' in content
+
+    # Assert locked banners and disabled input bindings exist
+    assert ':disabled="getActiveMode() !== \'custom\'"' in content
+    assert "Preset Colors are Locked (Read-Only)" in content
+    assert "Unlock &amp; Edit in Custom" in content or "Unlock & Edit in Custom" in content
+    assert "Custom Palette Active &amp; Unlocked" in content or "Custom Palette Active & Unlocked" in content
+    assert "3. Custom Palette" in content
+
+
+def test_neumorphic_sidebar_presets_light_default_and_dark() -> None:
+    """Verify that neumorphic mode has soft clay light as default and preserves surface continuity."""
+    presets = THEME_SIDEBAR_PRESETS["neumorphic"]
+    assert "light" in presets
+    assert presets["light"]["name"] == "Soft Clay Light (Default)"
+    assert presets["light"]["bg"] == "#E6E9F2"

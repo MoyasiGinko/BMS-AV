@@ -1,9 +1,9 @@
-{% load i18n %}
-<div id="movement-table-container" class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+{% load i18n humanize %}
+<div id="movement-table-container" class="neu-table-card">
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse text-sm">
             <thead>
-                <tr class="border-b border-line bg-slate-50/75 dark:bg-slate-800/50 text-muted text-xs font-semibold uppercase tracking-wider">
+                <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
                     <th class="py-3.5 px-4">{% trans "Date & Time" %}</th>
                     <th class="py-3.5 px-4">{% trans "Type" %}</th>
                     <th class="py-3.5 px-4">{% trans "Product / Variant" %}</th>
@@ -14,63 +14,73 @@
                     <th class="py-3.5 px-4">{% trans "Reference / Notes" %}</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-line/60">
+            <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800">
                 {% for m in page_obj %}
-                <tr class="hover:bg-surface-2 transition-colors font-mono text-xs">
-                    <td class="py-3.5 px-4 text-muted whitespace-nowrap font-sans">
+                <tr class="neu-table-row transition-colors font-mono text-xs">
+                    <td class="py-3.5 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap font-sans font-medium">
                         {{ m.occurred_at|date:"Y-m-d H:i" }}
                     </td>
-                    <td class="py-3.5 px-4 whitespace-nowrap">
+                    <td class="py-3.5 px-4 whitespace-nowrap font-sans">
                         {% if m.type == 'receipt' or m.type == 'return_in' %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             {{ m.get_type_display }}
                         </span>
                         {% elif m.type == 'issue' or m.type == 'return_out' %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/80">
+                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                             {{ m.get_type_display }}
                         </span>
                         {% elif m.type == 'transfer_in' or m.type == 'transfer_out' %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200/80">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                             {{ m.get_type_display }}
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200/80">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                             {{ m.get_type_display }}
                         </span>
                         {% endif %}
                     </td>
                     <td class="py-3.5 px-4 font-sans text-sm">
-                        <span class="font-medium text-ink">{{ m.product.name }}</span>
+                        <span class="font-bold text-[var(--neu-text,#262B45)]">{{ m.product.name }}</span>
                         {% if m.variant %}
-                        <span class="text-xs text-indigo-600 dark:text-indigo-400">({{ m.variant.name }})</span>
+                        <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">({{ m.variant.name }})</span>
                         {% endif %}
-                        <div class="text-xs text-slate-400 font-mono">{{ m.variant.sku|default:m.product.sku }}</div>
+                        <div class="text-xs text-slate-400 font-mono font-medium">{{ m.variant.sku|default:m.product.sku }}</div>
                     </td>
-                    <td class="py-3.5 px-4 font-sans text-muted">
+                    <td class="py-3.5 px-4 font-sans text-slate-600 dark:text-slate-400 font-medium">
                         {{ m.warehouse.name }}
                     </td>
-                    <td class="py-3.5 px-4 text-right font-semibold {% if m.quantity > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
-                        {% if m.quantity > 0 %}+{% endif %}{{ m.quantity }}
+                    <td class="py-3.5 px-4 text-right font-black {% if m.quantity > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                        {% if m.quantity > 0 %}+{% endif %}{{ m.quantity|floatformat:"-2"|intcomma }}
                     </td>
-                    <td class="py-3.5 px-4 text-right text-muted">
-                        ${{ m.unit_cost }}
+                    <td class="py-3.5 px-4 text-right text-slate-500 dark:text-slate-400 font-medium">
+                        ${{ m.unit_cost|floatformat:2|intcomma }}
                     </td>
-                    <td class="py-3.5 px-4 text-right text-ink font-medium">
-                        ${{ m.total_cost }}
+                    <td class="py-3.5 px-4 text-right text-[var(--neu-text,#262B45)] font-bold">
+                        ${{ m.total_cost|floatformat:2|intcomma }}
                     </td>
-                    <td class="py-3.5 px-4 text-muted font-sans text-xs">
+                    <td class="py-3.5 px-4 text-slate-600 dark:text-slate-400 font-sans text-xs">
                         {% if m.reference_type %}
-                        <span class="font-medium text-muted">{{ m.reference_type }} #{{ m.reference_id }}</span>
+                        <span class="font-bold text-slate-700 dark:text-slate-300">{{ m.reference_type }} #{{ m.reference_id }}</span>
                         {% endif %}
                         {% if m.notes %}
-                        <div class="text-slate-400 text-xs">{{ m.notes }}</div>
+                        <div class="text-slate-400 text-xs mt-0.5">{{ m.notes }}</div>
                         {% endif %}
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="py-12 text-center text-muted font-sans">
-                        <p class="text-base font-medium text-ink">{% trans "No stock movements recorded yet" %}</p>
+                    <td colspan="8" class="py-12 text-center">
+                        <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                            <svg class="w-10 h-10 text-slate-400 mb-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "No stock movements recorded yet" %}</p>
+                            <p class="text-xs text-slate-500 mt-1">{% trans "Movements appear automatically when stock is received, transferred, or adjusted." %}</p>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -80,22 +90,22 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    <div class="px-4 py-3 border-t border-line flex items-center justify-between text-xs text-muted">
+    <div class="px-5 py-4 border-t border-[#D3D8E8] dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 font-medium">
         <div>
-            {% trans "Showing" %} {{ page_obj.start_index }} - {{ page_obj.end_index }} {% trans "of" %} {{ page_obj.paginator.count }}
+            {% trans "Showing" %} <span class="font-bold text-slate-700 dark:text-slate-300">{{ page_obj.start_index }}</span> - <span class="font-bold text-slate-700 dark:text-slate-300">{{ page_obj.end_index }}</span> {% trans "of" %} <span class="font-bold text-slate-700 dark:text-slate-300">{{ page_obj.paginator.count }}</span>
         </div>
         <div class="flex items-center space-x-2">
             {% if page_obj.has_previous %}
             <a href="?page={{ page_obj.previous_page_number }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}"
-               class="px-2.5 py-1.5 border border-line rounded-md hover:bg-surface-2 text-muted">
-                {% trans "Previous" %}
+               class="neu-action-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+                &larr; {% trans "Previous" %}
             </a>
             {% endif %}
-            <span class="font-medium text-muted">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            <span class="font-bold text-slate-700 dark:text-slate-300 px-2">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
             <a href="?page={{ page_obj.next_page_number }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}"
-               class="px-2.5 py-1.5 border border-line rounded-md hover:bg-surface-2 text-muted">
-                {% trans "Next" %}
+               class="neu-action-btn px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+                {% trans "Next" %} &rarr;
             </a>
             {% endif %}
         </div>

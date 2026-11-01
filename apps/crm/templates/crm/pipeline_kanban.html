@@ -1,31 +1,33 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Pipeline Kanban" %} | {{ pipeline.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="crm-page space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <div class="flex items-center space-x-3">
-                <h1 class="text-2xl font-bold tracking-tight text-ink">{{ pipeline.name }}</h1>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
-                    {{ total_deals }} {% trans "Deals" %}
-                </span>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                    ${{ total_pipeline_value }}
-                </span>
+            <div class="flex flex-wrap items-center gap-3">
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{{ pipeline.name }}</h1>
+                <div id="pipeline-stats-chips" class="flex items-center gap-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-800 shadow-2xs font-mono">
+                        {{ total_deals }} {% trans "Deals" %}
+                    </span>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-800 shadow-2xs">
+                        ${{ total_pipeline_value|floatformat:2|intcomma }}
+                    </span>
+                </div>
             </div>
-            <p class="text-sm text-muted mt-1">
+            <p class="text-sm sm:text-base text-muted mt-1">
                 {% trans "Visual deal stage progression, win probabilities, and pipeline values." %}
             </p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
             <!-- Pipeline selector if multiple -->
             {% if all_pipelines|length > 1 %}
             <form method="get" class="flex items-center">
-                <select name="pipeline" onchange="this.form.submit()" class="text-sm rounded-lg border-line bg-surface text-ink px-3 py-2">
+                <select name="pipeline" onchange="this.form.submit()" class="neu-select text-sm rounded-xl px-3.5 py-2 font-medium bg-[var(--surface-1)] text-ink border border-[#D3D8E8] dark:border-slate-700 cursor-pointer">
                     {% for p in all_pipelines %}
                     <option value="{{ p.code }}" {% if p.id == pipeline.id %}selected{% endif %}>{{ p.name }}</option>
                     {% endfor %}
@@ -33,18 +35,21 @@
             </form>
             {% endif %}
 
-            <a href="{% url 'crm:opportunity_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
-                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            <a href="{% url 'crm:opportunity_create' %}" class="neu-btn-primary inline-flex items-center px-4.5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 4v16m8-8H4" />
                 </svg>
                 {% trans "New Deal" %}
             </a>
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    {% include "crm/partials/_navigation_tabs.html" with active_tab="pipeline" %}
+
     <!-- Kanban Board Container -->
     <div id="kanban-container">
-        {% include "crm/partials/kanban_board_inner.html" %}
+        {% include "crm/partials/kanban_board_inner.html" with is_htmx=False %}
     </div>
 </div>
 {% endblock %}

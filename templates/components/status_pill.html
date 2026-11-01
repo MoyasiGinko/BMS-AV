@@ -3,32 +3,21 @@ Status Pill Component
 Usage:
   {% include "components/status_pill.html" with status="paid" label="Paid" %}
   {% include "components/status_pill.html" with status="overdue" label="Overdue" %}
-Variants: paid/active/ok, draft/neutral, pending/warning/partially_paid, overdue/danger/void, processing/info
+Variants: paid/active/ok/posted/success, draft/neutral, pending/warning/partially_paid, overdue/danger/void/cancelled, processing/info
 {% endcomment %}
-<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border select-none
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold select-none shadow-2xs
   {% if status == 'paid' or status == 'active' or status == 'ok' or status == 'posted' or status == 'success' %}
-    bg-[var(--success-bg)] text-[var(--success)] border-[var(--success-border)]
+    bg-emerald-600 text-white
   {% elif status == 'warning' or status == 'pending' or status == 'partially_paid' or status == 'low' %}
-    bg-[var(--warning-bg)] text-[var(--warning)] border-[var(--warning-border)]
-  {% elif status == 'overdue' or status == 'danger' or status == 'void' or status == 'failed' or status == 'cancelled' %}
-    bg-[var(--danger-bg)] text-[var(--danger)] border-[var(--danger-border)]
+    bg-amber-600 text-white
+  {% elif status == 'overdue' or status == 'danger' or status == 'void' or status == 'failed' or status == 'cancelled' or status == 'rejected' %}
+    bg-rose-600 text-white
   {% elif status == 'info' or status == 'processing' %}
-    bg-[var(--info-bg)] text-[var(--info)] border-[var(--info-border)]
+    bg-blue-600 text-white
   {% else %}
-    bg-[var(--surface-2)] text-[var(--text-muted)] border-[var(--border)]
+    bg-slate-600 text-white
   {% endif %}
   {{ class }}"
 >
-  {% if status == 'paid' or status == 'active' or status == 'ok' or status == 'posted' or status == 'success' %}
-    <span class="w-1.5 h-1.5 rounded-full bg-[var(--success)]" aria-hidden="true"></span>
-  {% elif status == 'warning' or status == 'pending' or status == 'partially_paid' or status == 'low' %}
-    <span class="w-1.5 h-1.5 rounded-full bg-[var(--warning)]" aria-hidden="true"></span>
-  {% elif status == 'overdue' or status == 'danger' or status == 'void' or status == 'failed' or status == 'cancelled' %}
-    <span class="w-1.5 h-1.5 rounded-full bg-[var(--danger)]" aria-hidden="true"></span>
-  {% elif status == 'info' or status == 'processing' %}
-    <span class="w-1.5 h-1.5 rounded-full bg-[var(--info)]" aria-hidden="true"></span>
-  {% else %}
-    <span class="w-1.5 h-1.5 rounded-full bg-[var(--text-subtle)]" aria-hidden="true"></span>
-  {% endif %}
   <span>{% if label %}{{ label }}{% elif status %}{{ status|title }}{% else %}Status{% endif %}</span>
 </span>

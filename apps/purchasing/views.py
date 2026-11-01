@@ -166,10 +166,12 @@ def purchase_order_list(request: HttpRequest) -> HttpResponse:
     status = request.GET.get("status") or None
     orders = selectors.list_purchase_orders(organization=org, status=status)
     orders = scope_queryset(orders, request.user, organization=org)
+    summary = selectors.get_purchasing_summary(organization=org)
 
     context = {
         "orders": orders,
         "filter_form": form,
+        "summary": summary,
     }
     if getattr(request, "htmx", False):
         return render(request, "purchasing/partials/po_table.html", context)
@@ -333,10 +335,12 @@ def supplier_bill_list(request: HttpRequest) -> HttpResponse:
     status = request.GET.get("status") or None
     bills = selectors.list_supplier_bills(organization=org, status=status)
     bills = scope_queryset(bills, request.user, organization=org)
+    summary = selectors.get_purchasing_summary(organization=org)
 
     context = {
         "bills": bills,
         "filter_form": form,
+        "summary": summary,
     }
     if getattr(request, "htmx", False):
         return render(request, "purchasing/partials/bill_table.html", context)

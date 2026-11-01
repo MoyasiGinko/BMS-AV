@@ -1,27 +1,46 @@
 {% load i18n %}
-<div class="border-b border-line">
-    <nav class="flex space-x-6 overflow-x-auto" aria-label="Tabs">
-        <a href="{% url 'sales:invoice_list' %}" class="{% if active_tab == 'invoices' %}border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 font-medium{% endif %} whitespace-nowrap py-3 px-1 border-b-2 text-sm flex items-center gap-1.5 transition-colors">
+<div class="overflow-x-auto no-scrollbar py-2">
+    <nav class="flex items-center gap-2.5 sm:gap-3 flex-wrap" aria-label="Sales Navigation Tabs">
+        <!-- Invoices -->
+        <a href="{% url 'sales:invoice_list' %}"
+           class="neu-subnav-btn {% if active_tab == 'invoices' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             {% trans "Invoices" %}
         </a>
-        <a href="{% url 'sales:recurring_list' %}" class="{% if active_tab == 'recurring' %}border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 font-medium{% endif %} whitespace-nowrap py-3 px-1 border-b-2 text-sm flex items-center gap-1.5 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            {% trans "Recurring Invoices" %}
+        <!-- Recurring -->
+        <a href="{% url 'sales:recurring_list' %}"
+           class="neu-subnav-btn {% if active_tab == 'recurring' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            {% trans "Recurring" %}
         </a>
-        <a href="{% url 'sales:reminders_dashboard' %}" class="{% if active_tab == 'reminders' %}border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 font-medium{% endif %} whitespace-nowrap py-3 px-1 border-b-2 text-sm flex items-center gap-1.5 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-            {% trans "Payment Reminders" %}
+        <!-- Reminders -->
+        <a href="{% url 'sales:reminders_dashboard' %}"
+           class="neu-subnav-btn {% if active_tab == 'reminders' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            {% trans "Reminders" %}
         </a>
-        <a href="{% url 'sales:order_list' %}" class="{% if active_tab == 'orders' %}border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 font-medium{% endif %} whitespace-nowrap py-3 px-1 border-b-2 text-sm transition-colors">
-            {% trans "Sales Orders" %}
+        <!-- Orders -->
+        <a href="{% url 'sales:order_list' %}"
+           class="neu-subnav-btn {% if active_tab == 'orders' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            {% trans "Orders" %}
         </a>
-        <a href="{% url 'sales:quote_list' %}" class="{% if active_tab == 'quotes' %}border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 font-medium{% endif %} whitespace-nowrap py-3 px-1 border-b-2 text-sm transition-colors">
+        <!-- Quotations -->
+        <a href="{% url 'sales:quote_list' %}"
+           class="neu-subnav-btn {% if active_tab == 'quotes' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
             {% trans "Quotations" %}
         </a>
-        <a href="{% url 'sales:credit_note_list' %}" class="{% if active_tab == 'credit_notes' %}border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 font-medium{% endif %} whitespace-nowrap py-3 px-1 border-b-2 text-sm transition-colors">
+        <!-- Credit Notes -->
+        <a href="{% url 'sales:credit_note_list' %}"
+           class="neu-subnav-btn {% if active_tab == 'credit_notes' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
             {% trans "Credit Notes" %}
         </a>
-        <a href="{% url 'sales:payment_list' %}" class="{% if active_tab == 'payments' %}border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold{% else %}border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 font-medium{% endif %} whitespace-nowrap py-3 px-1 border-b-2 text-sm transition-colors">
+        <!-- Payments -->
+        <a href="{% url 'sales:payment_list' %}"
+           class="neu-subnav-btn {% if active_tab == 'payments' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             {% trans "Payments" %}
         </a>
     </nav>

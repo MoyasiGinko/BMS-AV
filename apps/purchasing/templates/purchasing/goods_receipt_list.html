@@ -1,61 +1,78 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Goods Receipts" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="purchasing-page space-y-6">
+    <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Goods Receipts (GRN)" %}</h1>
-            <p class="text-sm text-slate-500 mt-1">
-                {% trans "Track goods received into inventory from suppliers with unit costing." %}
-            </p>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Goods Receipts (GRN)" %}</h1>
         </div>
-        <a href="{% url 'purchasing:purchase_order_list' %}" class="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">
-            {% trans "Purchase Orders" %}
-        </a>
     </div>
 
-    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <!-- Navigation Sub-tabs -->
+    {% include "purchasing/partials/_navigation_tabs.html" with active_tab="receipts" %}
+
+    <!-- Table Container -->
+    <div class="neu-table-card">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-line text-sm">
-                <thead class="bg-app text-slate-500">
-                    <tr>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "GRN Number" %}</th>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Supplier" %}</th>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Warehouse" %}</th>
-                        <th class="px-6 py-3.5 text-left font-semibold">{% trans "Date" %}</th>
-                        <th class="px-6 py-3.5 text-right font-semibold">{% trans "Total Cost" %}</th>
-                        <th class="px-6 py-3.5 text-center font-semibold">{% trans "Status" %}</th>
-                        <th class="px-6 py-3.5 text-right font-semibold">{% trans "Actions" %}</th>
+            <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800 text-sm">
+                <thead>
+                    <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "GRN Number" %}</th>
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "Supplier" %}</th>
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "Warehouse" %}</th>
+                        <th class="px-6 py-3.5 text-left font-bold">{% trans "Date" %}</th>
+                        <th class="px-6 py-3.5 text-right font-bold">{% trans "Total Cost" %}</th>
+                        <th class="px-6 py-3.5 text-center font-bold">{% trans "Status" %}</th>
+                        <th class="px-6 py-3.5 text-right font-bold">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-line text-slate-800 dark:text-slate-200">
+                <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                     {% for grn in receipts %}
-                    <tr class="hover:bg-surface-2">
-                        <td class="px-6 py-4 font-medium text-indigo-600">
-                            <a href="{% url 'purchasing:goods_receipt_detail' pk=grn.pk %}" class="hover:underline">
+                    <tr class="neu-table-row transition-colors">
+                        <td class="px-6 py-4 font-mono font-bold">
+                            <a href="{% url 'purchasing:goods_receipt_detail' pk=grn.pk %}" class="text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline">
                                 {{ grn.receipt_number }}
                             </a>
                         </td>
-                        <td class="px-6 py-4">{{ grn.supplier.name }}</td>
-                        <td class="px-6 py-4 text-xs text-slate-500">{{ grn.warehouse.name }}</td>
-                        <td class="px-6 py-4 text-xs text-slate-500">{{ grn.date }}</td>
-                        <td class="px-6 py-4 text-right font-mono font-semibold">${{ grn.total_cost }}</td>
+                        <td class="px-6 py-4 font-bold text-[var(--neu-text,#262B45)]">{{ grn.supplier.name }}</td>
+                        <td class="px-6 py-4 text-xs font-medium text-slate-600 dark:text-slate-400">{{ grn.warehouse.name }}</td>
+                        <td class="px-6 py-4 text-xs font-mono font-medium text-slate-500">{{ grn.date|date:"Y-m-d" }}</td>
+                        <td class="px-6 py-4 text-right font-mono font-bold text-[var(--neu-text,#262B45)]">${{ grn.total_cost|floatformat:2|intcomma }}</td>
                         <td class="px-6 py-4 text-center">
                             {% if grn.status == 'received' %}
-                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">{% trans "Received" %}</span>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                {% trans "Received" %}
+                            </span>
                             {% else %}
-                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">{% trans "Draft" %}</span>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200/80">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                {% trans "Draft" %}
+                            </span>
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 text-right text-xs">
-                            <a href="{% url 'purchasing:goods_receipt_detail' pk=grn.pk %}" class="text-indigo-600 hover:underline font-medium">{% trans "View" %}</a>
+                            <a href="{% url 'purchasing:goods_receipt_detail' pk=grn.pk %}" class="neu-action-btn text-xs font-bold py-1.5 px-3 rounded-lg text-slate-700 hover:text-slate-900 transition inline-flex items-center gap-1">
+                                {% trans "View" %} &rarr;
+                            </a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">{% trans "No goods receipts found" %}</td></tr>
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center">
+                            <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                                <svg class="mx-auto h-10 w-10 text-slate-400 mb-2 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                                <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "No goods receipts found" %}</p>
+                                <p class="text-xs text-slate-500 mt-1">{% trans "Goods receipt records are generated when shipments arrive at warehouses." %}</p>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>

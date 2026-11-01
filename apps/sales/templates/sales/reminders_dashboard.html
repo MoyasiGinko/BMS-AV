@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
                 {% trans "Sales & Invoicing" %}
             </h1>
             <p class="text-sm text-muted mt-0.5">
@@ -35,7 +35,7 @@
 
     <!-- Summary Metrics -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Active Timing Rules" %}</span>
             <div class="mt-2 text-2xl font-bold text-ink">
                 {{ summary.active_rules_count }}
@@ -44,7 +44,7 @@
                 {% trans "Configured stages" %}
             </span>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Notices Dispatched" %}</span>
             <div class="mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                 {{ summary.total_sent }}
@@ -53,7 +53,7 @@
                 {% trans "Customer emails delivered" %}
             </span>
         </div>
-        <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+        <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Delivery Failures" %}</span>
             <div class="mt-2 text-2xl font-bold text-rose-600 dark:text-rose-400">
                 {{ summary.total_failed }}
@@ -65,7 +65,7 @@
     </div>
 
     <!-- Timing Rules Section -->
-    <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
+    <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all">
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h2 class="text-base font-semibold text-ink">
@@ -114,9 +114,9 @@
                         </td>
                         <td class="py-3.5 px-4">
                             {% if rule.is_active %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Active" %}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">{% trans "Active" %}</span>
                             {% else %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">{% trans "Inactive" %}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs">{% trans "Inactive" %}</span>
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-4 text-xs font-mono text-muted truncate max-w-xs">
@@ -149,7 +149,7 @@
     </div>
 
     <!-- Audit Log Section -->
-    <div class="bg-surface border border-line rounded-xl p-5 shadow-xs">
+    <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all">
         <h2 class="text-base font-semibold text-ink mb-4">
             {% trans "Recent Dispatched Reminders Log" %}
         </h2>
@@ -184,11 +184,11 @@
                         </td>
                         <td class="py-3.5 px-4">
                             {% if log.status == 'sent' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400">{% trans "Sent" %}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">{% trans "Sent" %}</span>
                             {% elif log.status == 'skipped' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">{% trans "Skipped" %}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs">{% trans "Skipped" %}</span>
                             {% else %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-400">{% trans "Failed" %}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-rose-600 text-white font-bold shadow-2xs">{% trans "Failed" %}</span>
                             {% endif %}
                         </td>
                         <td class="py-3.5 px-4 text-xs text-slate-400 truncate max-w-xs">

@@ -6,130 +6,175 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <!-- Breadcrumb -->
-    <div class="flex items-center gap-2 text-xs text-slate-500">
-        <a href="{% url 'integrations:imports_list' %}" class="hover:text-indigo-600">{% trans "Integrations" %}</a>
-        <span>&rsaquo;</span>
-        <a href="{% url 'integrations:webhook_endpoints_list' %}" class="hover:text-indigo-600">{% trans "Webhooks" %}</a>
-        <span>&rsaquo;</span>
-        <span class="text-muted font-medium">
-            {% if action == "edit" %}{% trans "Edit Endpoint" %}{% else %}{% trans "New Endpoint" %}{% endif %}
-        </span>
-    </div>
-
+<div class="w-full space-y-8 pb-16">
     <!-- Header -->
     <div>
-        <h1 class="text-2xl font-bold tracking-tight text-ink">
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'integrations:webhook_endpoints_list' %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Webhooks" %}
+            </a>
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
             {% if action == "edit" %}{% trans "Edit Webhook Endpoint" %}{% else %}{% trans "Register Webhook Endpoint" %}{% endif %}
         </h1>
-        <p class="text-xs text-slate-500 mt-1">
-            {% trans "Configure the HTTPS endpoint URL and subscribe to the specific domain events your integration requires." %}
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% trans "Configure target HTTPS destination URL, signing secrets, and event subscriptions for real-time external integration." %}
         </p>
     </div>
 
-    <!-- Main Form Card -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
-        <form method="post" class="space-y-6" x-data="{ selectAll: {% if '*' in form.selected_events.initial %}true{% else %}false{% endif %} }">
-            {% csrf_token %}
+    <!-- Main Form -->
+    <form method="post" class="space-y-8 w-full" x-data="{ selectAll: {% if '*' in form.selected_events.initial %}true{% else %}false{% endif %} }">
+        {% csrf_token %}
 
-            {% if form.errors %}
-            <div class="p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg text-xs text-rose-700 dark:text-rose-300">
-                <div class="font-semibold mb-1">{% trans "Please resolve the following errors:" %}</div>
-                <ul class="list-disc list-inside space-y-0.5">
-                    {% for field, errors in form.errors.items %}
-                    <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
-                    {% endfor %}
-                </ul>
+        {% if form.errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-start gap-2.5">
+                <svg class="w-5 h-5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <div>
+                    <p class="font-bold mb-1">{% trans "Please resolve the following errors:" %}</p>
+                    <ul class="list-disc list-inside space-y-0.5 text-xs font-medium">
+                        {% for field, errors in form.errors.items %}
+                        <li>{{ field }}: {{ errors|join:", " }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            <!-- Payload URL -->
-            <div>
-                <label for="{{ form.url.id_for_label }}" class="block text-xs font-semibold text-muted mb-1">
-                    {{ form.url.label }} <span class="text-rose-500">*</span>
-                </label>
-                {{ form.url }}
-                {% if form.url.help_text %}
-                <p class="text-2xs text-slate-500 mt-1">{{ form.url.help_text }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Description -->
-            <div>
-                <label for="{{ form.description.id_for_label }}" class="block text-xs font-semibold text-muted mb-1">
-                    {{ form.description.label }}
-                </label>
-                {{ form.description }}
-                {% if form.description.help_text %}
-                <p class="text-2xs text-slate-500 mt-1">{{ form.description.help_text }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Active Checkbox -->
-            <div class="flex items-center gap-2 pt-1">
-                {{ form.is_active }}
-                <label for="{{ form.is_active.id_for_label }}" class="text-xs font-medium text-muted cursor-pointer">
-                    {% trans "Enable this endpoint immediately upon saving" %}
-                </label>
-            </div>
-
-            <!-- Event Subscriptions Selection -->
-            <div class="pt-4 border-t border-line">
-                <div class="flex items-center justify-between mb-3">
-                    <div>
-                        <h3 class="text-sm font-semibold text-ink">{% trans "Event Subscriptions" %}</h3>
-                        <p class="text-2xs text-slate-500 mt-0.5">{% trans "Choose which domain events will trigger a POST request to this endpoint." %}</p>
+        <!-- Bento 12-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left 8 cols: Endpoint Coordinates & Subscriptions -->
+            <div class="col-span-12 lg:col-span-8 space-y-8">
+                <!-- Card 1: URL & Description -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Endpoint Coordinates" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Target HTTPS destination URL and descriptive identity." %}</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <label class="inline-flex items-center gap-1.5 text-xs text-indigo-600 font-semibold cursor-pointer">
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.url.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {{ form.url.label }} <span class="text-rose-500">*</span>
+                            </label>
+                            {{ form.url }}
+                            {% if form.url.help_text %}
+                            <p class="text-2xs text-slate-400 mt-1">{{ form.url.help_text }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.description.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                                {{ form.description.label }}
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.help_text %}
+                            <p class="text-2xs text-slate-400 mt-1">{{ form.description.help_text }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Event Subscriptions -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                            <h2 class="text-lg font-bold text-ink">{% trans "Event Subscriptions" %}</h2>
+                            <p class="text-xs text-muted mt-0.5">{% trans "Choose domain events that trigger payload dispatch." %}</p>
+                        </div>
+                        <label class="inline-flex items-center gap-2 text-xs text-indigo-600 font-bold cursor-pointer">
                             <input type="checkbox" name="selected_events" value="*" x-model="selectAll" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                             {% trans "Subscribe to ALL events (*)" %}
                         </label>
                     </div>
-                </div>
 
-                <!-- Event Category Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" x-show="!selectAll">
-                    {% for module, events in events_by_module.items %}
-                    <div class="border border-line rounded-lg p-3 bg-slate-50/50 dark:bg-slate-800/30">
-                        <h4 class="text-xs font-semibold uppercase tracking-wider text-muted mb-2 flex items-center justify-between">
-                            <span>{{ module|title }}</span>
-                            <span class="text-3xs text-slate-400">({{ events|length }})</span>
-                        </h4>
-                        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                            {% for evt in events %}
-                            <label class="flex items-start gap-2 text-2xs text-muted cursor-pointer hover:bg-surface-2 p-1 rounded">
-                                <input type="checkbox" name="selected_events" value="{{ evt.event_type }}" 
-                                       {% if evt.event_type in form.selected_events.initial and '*' not in form.selected_events.initial %}checked{% endif %} 
-                                       class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                                <span class="flex-1">
-                                    <span class="font-mono font-semibold text-ink">{{ evt.event_type }}</span>
-                                    <span class="block text-3xs text-slate-500">{{ evt.description }}</span>
-                                </span>
-                            </label>
-                            {% endfor %}
+                    <!-- Category Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-show="!selectAll">
+                        {% for module, events in events_by_module.items %}
+                        <div class="border border-line rounded-xl p-4 bg-surface-2/40">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-muted mb-3 flex items-center justify-between border-b border-line pb-2">
+                                <span>{{ module|title }}</span>
+                                <span class="text-3xs text-slate-400">({{ events|length }})</span>
+                            </h4>
+                            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                {% for evt in events %}
+                                <label class="flex items-start gap-2.5 text-xs text-muted cursor-pointer hover:bg-surface p-1.5 rounded-lg transition-colors">
+                                    <input type="checkbox" name="selected_events" value="{{ evt.event_type }}" 
+                                           {% if evt.event_type in form.selected_events.initial and '*' not in form.selected_events.initial %}checked{% endif %} 
+                                           class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span class="flex-1">
+                                        <span class="font-mono font-semibold text-ink text-xs block">{{ evt.event_type }}</span>
+                                        <span class="block text-3xs text-slate-500">{{ evt.description }}</span>
+                                    </span>
+                                </label>
+                                {% endfor %}
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
 
-                <div x-show="selectAll" class="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg text-xs text-indigo-700 dark:text-indigo-300">
-                    <p class="font-semibold">{% trans "Wildcard Mode Active" %}</p>
-                    <p class="mt-0.5 text-2xs">{% trans "This endpoint will receive all existing domain events as well as any future events added to the platform catalog." %}</p>
+                    <div x-show="selectAll" class="p-5 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 rounded-2xl text-xs text-indigo-700 dark:text-indigo-300">
+                        <p class="font-bold text-sm">{% trans "Wildcard Mode Active" %}</p>
+                        <p class="mt-1 leading-relaxed">{% trans "This endpoint will automatically receive all existing domain events and any new events added in future releases." %}</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Submit buttons -->
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-line">
-                <a href="{% url 'integrations:webhook_endpoints_list' %}" class="px-4 py-2 border border-line rounded-lg text-xs font-semibold text-muted hover:bg-slate-50">
-                    {% trans "Cancel" %}
-                </a>
-                <button type="submit" class="px-5 py-2 border border-transparent rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            <!-- Right 4 cols: Security & Operational Rules -->
+            <div class="col-span-12 lg:col-span-4 space-y-8">
+                <!-- Card 3: Endpoint Status -->
+                <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-bold text-ink">{% trans "Endpoint Status" %}</h2>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Activation status for immediate event routing." %}</p>
+                    </div>
+
+                    <label class="flex items-start gap-3.5 p-3.5 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                        <div class="pt-0.5 shrink-0">
+                            {{ form.is_active }}
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-xs font-bold text-ink">{% trans "Endpoint Active" %}</span>
+                            <span class="block text-[11px] text-slate-400 mt-0.5">{% trans "Immediately start dispatching queued event webhooks." %}</span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Guidance Box -->
+                <div class="p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-3">
+                    <div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        {% trans "HMAC-SHA256 Signing" %}
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {% trans "Each webhook payload includes an X-BusinessOS-Signature header computed using HMAC-SHA256 with your secret key to prevent spoofing and verify message authenticity." %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Symmetrical Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'integrations:webhook_endpoints_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                     {% if action == "edit" %}{% trans "Save Changes" %}{% else %}{% trans "Create Endpoint" %}{% endif %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

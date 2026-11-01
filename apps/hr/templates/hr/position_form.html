@@ -6,86 +6,153 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto space-y-6">
+<div class="w-full space-y-8 pb-16">
     <!-- Breadcrumbs / Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <nav class="flex items-center text-sm text-slate-500 mb-2">
-                <a href="{% url 'hr:position_list' %}" class="hover:text-slate-800 dark:hover:text-white">{% trans "Positions" %}</a>
-                <span class="mx-2">/</span>
-                <span class="text-slate-800 dark:text-slate-200">{% if is_edit %}{{ position.title }}{% else %}{% trans "New" %}{% endif %}</span>
-            </nav>
-            <h1 class="text-2xl font-bold text-ink">
-                {% if is_edit %}{% trans "Edit Position" %}{% else %}{% trans "Create Job Position" %}{% endif %}
-            </h1>
-        </div>
-        <a href="{% url 'hr:position_list' %}"
-           class="px-3.5 py-2 text-sm border border-line rounded-lg text-muted hover:bg-surface-2 transition-colors">
-            {% trans "Cancel" %}
-        </a>
+    <div class="space-y-2">
+        <nav class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <a href="{% url 'hr:position_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Positions" %}</a>
+            <span>/</span>
+            <span class="text-ink font-semibold">{% if is_edit %}{{ position.title }}{% else %}{% trans "New" %}{% endif %}</span>
+        </nav>
+        <h1 class="text-3xl font-extrabold tracking-tight text-ink">
+            {% if is_edit %}{% trans "Edit Position" %}{% else %}{% trans "Create Job Position" %}{% endif %}
+        </h1>
+        <p class="text-sm text-slate-500 font-medium max-w-3xl">
+            {% trans "Define role responsibilities, reporting hierarchy, and approved compensation salary bands." %}
+        </p>
     </div>
 
-    <!-- Form Card -->
-    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
-        <form method="post" class="p-6 space-y-5">
-            {% csrf_token %}
+    <!-- Main Fullwidth Form -->
+    <form id="position-form" method="post" class="space-y-8 w-full">
+        {% csrf_token %}
 
-            {% if form.non_field_errors %}
-            <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:rose-300 text-sm">
-                {{ form.non_field_errors }}
+        {% if form.non_field_errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span>{{ form.non_field_errors }}</span>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Position Title" %} *</label>
-                    {{ form.title }}
-                    {% if form.title.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+        <!-- Bento 12-Column Responsive Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+            <!-- Left Main Column (8 cols): Title & Description -->
+            <div class="lg:col-span-8 space-y-8">
+                <!-- Card 1: Position Definition -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Position Classification" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Title, unique role code, and department grouping." %}</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.title.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.title.label }} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}<p class="text-rose-500 text-xs mt-1.5 font-bold">{{ form.title.errors.0 }}</p>{% endif %}
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.code.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {{ form.code.label }} <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.code }}
+                                {% if form.code.errors %}<p class="text-rose-500 text-xs mt-1.5 font-bold">{{ form.code.errors.0 }}</p>{% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.department.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {{ form.department.label }}
+                                </label>
+                                {{ form.department }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Code / Reference" %} *</label>
-                    {{ form.code }}
-                    {% if form.code.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.code.errors.0 }}</p>{% endif %}
+
+                <!-- Card 2: Job Description & Core Duties -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Job Description & Scope" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Detailed responsibilities, expectations, and skills." %}</p>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Department" %}</label>
-                    {{ form.department }}
+
+                <!-- Card 3: Approved Compensation Range -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Salary Band Range" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Approved minimum and maximum compensation budget." %}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.min_salary.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.min_salary.label }} ({{ request.organization.currency|default:"$" }})
+                            </label>
+                            {{ form.min_salary }}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.max_salary.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {{ form.max_salary.label }} ({{ request.organization.currency|default:"$" }})
+                            </label>
+                            {{ form.max_salary }}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-muted mb-1">{% trans "Job Description" %}</label>
-                {{ form.description }}
-            </div>
+            <!-- Right Column (4 cols): Active Status -->
+            <div class="lg:col-span-4 space-y-8">
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Position Status" %}</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Recruitment availability." %}</p>
+                    </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Minimum Salary Band" %}</label>
-                    {{ form.min_salary }}
+                    <label for="{{ form.is_active.id_for_label }}" class="flex items-start gap-4 p-4 rounded-xl border border-line bg-surface-2/40 hover:bg-surface-2 transition-all cursor-pointer">
+                        <div class="pt-0.5 shrink-0">
+                            {{ form.is_active }}
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-sm font-bold text-ink">{% trans "Active Position" %}</span>
+                            <span class="block text-xs text-slate-500 mt-1 leading-relaxed">
+                                {% trans "When checked, this position is available for assignment in employee profiles and job requisitions." %}
+                            </span>
+                        </div>
+                    </label>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-muted mb-1">{% trans "Maximum Salary Band" %}</label>
-                    {{ form.max_salary }}
-                </div>
             </div>
+        </div>
 
-            <div class="flex items-center space-x-2 pt-2">
-                {{ form.is_active }}
-                <label for="{{ form.is_active.id_for_label }}" class="text-sm font-medium text-muted">
-                    {% trans "Active position (available for selection in employee profiles)" %}
-                </label>
-            </div>
-
-            <div class="pt-4 border-t border-line flex items-center justify-end space-x-3">
-                <a href="{% url 'hr:position_list' %}"
-                   class="px-4 py-2 border border-line rounded-lg text-sm text-muted hover:bg-slate-50 transition-colors">
-                    {% trans "Cancel" %}
-                </a>
-                <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+        <!-- Symmetrical Bottom Footer Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% url 'hr:position_list' %}" class="neu-btn-ghost inline-flex items-center px-6 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <div class="flex items-center gap-4">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-8 py-3.5 rounded-xl text-base font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                     {% if is_edit %}{% trans "Save Position" %}{% else %}{% trans "Create Position" %}{% endif %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

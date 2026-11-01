@@ -13,7 +13,7 @@
           &larr; {% trans "Integrations" %}
         </a>
       </div>
-      <h1 class="text-2xl font-bold tracking-tight text-ink mt-2">
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">
         {% trans "Inbound Webhooks" %}
       </h1>
       <p class="mt-1 text-sm text-muted">
@@ -92,7 +92,7 @@
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               {% if ep.status == "active" %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs dark:text-emerald-300">
                 {% trans "Active" %}
               </span>
               {% elif ep.status == "paused" %}

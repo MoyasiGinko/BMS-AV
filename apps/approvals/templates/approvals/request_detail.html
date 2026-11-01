@@ -4,19 +4,19 @@
 {% block title %}{{ approval_request.document_reference }} | {% trans "Approval Request" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6 max-w-5xl mx-auto">
+<div class="w-full pb-16 space-y-8">
     <!-- Breadcrumb & Navigation -->
     <div class="flex items-center justify-between">
         <nav class="flex items-center text-sm font-medium text-muted space-x-2">
-            <a href="{% url 'approvals:inbox' %}" class="hover:text-slate-900 dark:hover:text-white transition-colors">{% trans "Approval Inbox" %}</a>
+            <a href="{% url 'approvals:inbox' %}" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">{% trans "Approval Inbox" %}</a>
             <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
-            <span class="font-mono text-ink">{{ approval_request.document_reference }}</span>
+            <span class="font-mono text-ink font-bold">{{ approval_request.document_reference }}</span>
         </nav>
         <div>
-            <a href="{% url 'approvals:inbox' %}" class="inline-flex items-center text-sm text-muted hover:text-slate-900 dark:hover:text-white">
-                <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <a href="{% url 'approvals:inbox' %}" class="inline-flex items-center text-sm font-semibold text-muted hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 {% trans "Back to Inbox" %}
@@ -24,89 +24,88 @@
         </div>
     </div>
 
-    <!-- Header Card -->
-    <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <!-- Header Bento Card -->
+    <div class="card p-7 sm:p-8 bg-surface border border-line rounded-2xl shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div>
                 <div class="flex items-center gap-3">
-                    <h1 class="text-2xl font-bold font-mono text-ink">{{ approval_request.document_reference }}</h1>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold font-mono text-ink tracking-tight">{{ approval_request.document_reference }}</h1>
                     {% if approval_request.status == 'pending' %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                            <span class="w-1.5 h-1.5 mr-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-600 text-white shadow-2xs">
                             {{ approval_request.get_status_display }}
                         </span>
                     {% elif approval_request.status == 'approved' %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
                             {{ approval_request.get_status_display }}
                         </span>
                     {% elif approval_request.status == 'rejected' %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-600 text-white shadow-2xs">
                             {{ approval_request.get_status_display }}
                         </span>
                     {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-600 text-white shadow-2xs">
                             {{ approval_request.get_status_display }}
                         </span>
                     {% endif %}
                 </div>
-                <p class="text-sm font-medium text-muted mt-1">
+                <p class="text-sm font-medium text-muted mt-2">
                     {{ approval_request.document_title }}
                 </p>
             </div>
             <div class="text-left sm:text-right">
-                <span class="text-xs text-slate-500 uppercase tracking-wider block">{% trans "Impact Value" %}</span>
-                <span class="text-2xl font-bold font-mono text-ink">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">{% trans "Impact Value" %}</span>
+                <span class="text-3xl font-black font-mono text-ink tracking-tight">
                     {% if approval_request.amount > 0 %}
                         ${{ approval_request.amount|floatformat:2 }}
                     {% endif %}
                     {% if approval_request.discount_percent > 0 %}
-                        <span class="text-lg text-amber-600 dark:text-amber-400">({{ approval_request.discount_percent|floatformat:2 }}% {% trans "Discount" %})</span>
+                        <span class="text-xl text-amber-600 font-bold ml-1">({{ approval_request.discount_percent|floatformat:2 }}% {% trans "Discount" %})</span>
                     {% endif %}
                 </span>
             </div>
         </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Details Column (2 cols) -->
-        <div class="lg:col-span-2 space-y-6">
+    <!-- Main Content 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Details Column (8 cols) -->
+        <div class="lg:col-span-8 space-y-8">
             <!-- Metadata Card -->
-            <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-4">
-                <h2 class="text-base font-semibold text-ink border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div class="card p-7 sm:p-8 bg-surface border border-line rounded-2xl shadow-xs space-y-6">
+                <h2 class="text-lg font-bold text-ink border-b border-line pb-4">
                     {% trans "Request Details" %}
                 </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <span class="text-xs text-slate-500 block">{% trans "Document Type" %}</span>
-                        <span class="font-medium text-ink">{{ approval_request.get_document_type_display }}</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                    <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{% trans "Document Type" %}</span>
+                        <span class="font-semibold text-ink text-base">{{ approval_request.get_document_type_display }}</span>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-500 block">{% trans "Document ID" %}</span>
-                        <span class="font-mono text-ink">{{ approval_request.document_id }}</span>
+                    <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{% trans "Document ID" %}</span>
+                        <span class="font-mono font-semibold text-ink text-base">{{ approval_request.document_id }}</span>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-500 block">{% trans "Requester" %}</span>
-                        <span class="font-medium text-ink">{{ approval_request.requester.get_full_name|default:approval_request.requester.email }}</span>
+                    <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{% trans "Requester" %}</span>
+                        <span class="font-semibold text-ink">{{ approval_request.requester.get_full_name|default:approval_request.requester.email }}</span>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-500 block">{% trans "Submitted At" %}</span>
-                        <span class="text-ink">{{ approval_request.created_at|date:"M d, Y H:i" }}</span>
+                    <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{% trans "Submitted At" %}</span>
+                        <span class="font-mono text-ink">{{ approval_request.created_at|date:"M d, Y H:i" }}</span>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-500 block">{% trans "Assigned Approver" %}</span>
+                    <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{% trans "Assigned Approver" %}</span>
                         {% if approval_request.assigned_user %}
-                            <span class="font-medium text-ink">{{ approval_request.assigned_user.get_full_name|default:approval_request.assigned_user.email }}</span>
+                            <span class="font-semibold text-ink">{{ approval_request.assigned_user.get_full_name|default:approval_request.assigned_user.email }}</span>
                         {% elif approval_request.assigned_role %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-surface-2 text-muted">{{ approval_request.assigned_role.name }}</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold bg-surface-2 text-muted border border-line">{{ approval_request.assigned_role.name }}</span>
                         {% else %}
                             <span class="text-slate-500">{% trans "Any Authorized Approver" %}</span>
                         {% endif %}
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-500 block">{% trans "Triggered Policy Rule" %}</span>
+                    <div class="neu-well p-4 rounded-xl border border-line/60 bg-surface-2/40">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{% trans "Triggered Policy Rule" %}</span>
                         {% if approval_request.rule %}
-                            <span class="font-medium text-indigo-600 dark:text-indigo-400">{{ approval_request.rule.name }}</span>
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ approval_request.rule.name }}</span>
                         {% else %}
                             <span class="text-slate-400">{% trans "Manual / Direct Submission" %}</span>
                         {% endif %}
@@ -114,18 +113,18 @@
                 </div>
 
                 {% if approval_request.submission_notes %}
-                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
-                        <span class="text-xs text-slate-500 block mb-1">{% trans "Submission Notes" %}</span>
-                        <div class="p-3 rounded-lg bg-app text-sm text-muted">
+                    <div class="pt-4 border-t border-line">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">{% trans "Submission Notes" %}</span>
+                        <div class="p-4 rounded-xl bg-surface-2/60 border border-line/60 text-sm text-ink leading-relaxed font-medium">
                             {{ approval_request.submission_notes }}
                         </div>
                     </div>
                 {% endif %}
 
                 {% if approval_request.decision_notes %}
-                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
-                        <span class="text-xs text-slate-500 block mb-1">{% trans "Decision Notes" %}</span>
-                        <div class="p-3 rounded-lg {% if approval_request.status == 'approved' %}bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/40{% elif approval_request.status == 'rejected' %}bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300 border border-rose-100 dark:border-rose-900/40{% else %}bg-app text-muted{% endif %} text-sm">
+                    <div class="pt-4 border-t border-line">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">{% trans "Decision Notes" %}</span>
+                        <div class="p-4 rounded-xl {% if approval_request.status == 'approved' %}bg-emerald-50 text-emerald-900 border border-emerald-200{% elif approval_request.status == 'rejected' %}bg-rose-50 text-rose-900 border border-rose-200{% else %}bg-surface-2 text-ink border border-line{% endif %} text-sm font-medium leading-relaxed">
                             {{ approval_request.decision_notes }}
                         </div>
                     </div>
@@ -134,27 +133,27 @@
 
             <!-- Action Card (if Pending) -->
             {% if approval_request.status == 'pending' %}
-                <div class="bg-surface border border-line rounded-xl p-6 shadow-xs space-y-4">
-                    <h2 class="text-base font-semibold text-ink border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div class="card p-7 sm:p-8 bg-surface border border-line rounded-2xl shadow-xs space-y-6">
+                    <h2 class="text-lg font-bold text-ink border-b border-line pb-4">
                         {% trans "Decision Actions" %}
                     </h2>
                     {% if can_approve %}
-                        <form method="post" id="decision-form" class="space-y-4">
+                        <form method="post" id="decision-form" class="space-y-6">
                             {% csrf_token %}
                             <div>
-                                <label for="decision-notes" class="block text-xs font-semibold text-muted mb-1">
+                                <label for="decision-notes" class="block text-xs font-bold uppercase tracking-wider text-muted mb-2">
                                     {% trans "Decision Notes / Justification (Optional)" %}
                                 </label>
-                                <textarea id="decision-notes" name="notes" rows="3" class="w-full rounded-lg border-line bg-surface text-ink px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500" placeholder="{% trans 'Provide details or conditions for this decision...' %}"></textarea>
+                                <textarea id="decision-notes" name="notes" rows="3" class="w-full rounded-xl border border-line bg-surface text-ink px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500" placeholder="{% trans 'Provide details or conditions for this decision...' %}"></textarea>
                             </div>
-                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                                <button type="submit" formaction="{% url 'approvals:request_approve' approval_request.pk %}" class="min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 border border-transparent rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md active:scale-95 transition-all cursor-pointer">
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                                <button type="submit" formaction="{% url 'approvals:request_approve' approval_request.pk %}" class="min-h-[48px] inline-flex items-center justify-center px-8 py-3 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md active:scale-95 transition-all cursor-pointer">
                                     <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
                                     {% trans "Approve Request" %}
                                 </button>
-                                <button type="submit" formaction="{% url 'approvals:request_reject' approval_request.pk %}" class="min-h-[44px] inline-flex items-center justify-center px-6 py-2.5 border border-transparent rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-md active:scale-95 transition-all cursor-pointer">
+                                <button type="submit" formaction="{% url 'approvals:request_reject' approval_request.pk %}" class="min-h-[48px] inline-flex items-center justify-center px-8 py-3 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-md active:scale-95 transition-all cursor-pointer">
                                     <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -163,7 +162,7 @@
                             </div>
                         </form>
                     {% else %}
-                        <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 text-sm">
+                        <div class="p-5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-sm font-medium">
                             {% trans "You are currently not authorized to decide this request. Assigned to:" %}
                             <strong>
                                 {% if approval_request.assigned_user %}
@@ -173,17 +172,17 @@
                                 {% else %}
                                     {% trans "Designated approver role" %}
                                 {% endif %}
-                            </strong>.
+                            </strong>
                         </div>
                     {% endif %}
                 </div>
             {% endif %}
         </div>
 
-        <!-- History Timeline Column (1 col) -->
-        <div class="space-y-6">
-            <div class="bg-surface border border-line rounded-xl p-6 shadow-xs">
-                <h2 class="text-base font-semibold text-ink border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+        <!-- Sidebar / Audit Column (4 cols) -->
+        <div class="lg:col-span-4 space-y-8">
+            <div class="card p-7 sm:p-8 bg-surface border border-line rounded-2xl shadow-xs">
+                <h2 class="text-lg font-bold text-ink border-b border-line pb-4 mb-6">
                     {% trans "Audit Timeline" %}
                 </h2>
                 <div class="flow-root">
@@ -192,15 +191,15 @@
                             <li>
                                 <div class="relative pb-8">
                                     {% if not forloop.last %}
-                                        <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-slate-200 dark:bg-slate-800" aria-hidden="true"></span>
+                                        <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-line" aria-hidden="true"></span>
                                     {% endif %}
                                     <div class="relative flex space-x-3">
                                         <div>
-                                            <span class="h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white dark:ring-slate-900
-                                                {% if entry.action == 'submitted' %}bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300
-                                                {% elif entry.action == 'approved' %}bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300
-                                                {% elif entry.action == 'rejected' %}bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300
-                                                {% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">
+                                            <span class="h-8 w-8 rounded-full flex items-center justify-center ring-4 ring-surface
+                                                {% if entry.action == 'submitted' %}bg-blue-600 text-white
+                                                {% elif entry.action == 'approved' %}bg-emerald-600 text-white
+                                                {% elif entry.action == 'rejected' %}bg-rose-600 text-white
+                                                {% else %}bg-slate-600 text-white{% endif %}">
                                                 {% if entry.action == 'submitted' %}
                                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                                                 {% elif entry.action == 'approved' %}
@@ -214,9 +213,9 @@
                                         </div>
                                         <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                                             <div>
-                                                <p class="text-xs font-semibold text-ink">
+                                                <p class="text-xs font-bold text-ink">
                                                     {{ entry.get_action_display }}
-                                                    <span class="font-normal text-slate-500">
+                                                    <span class="font-normal text-slate-500 block sm:inline">
                                                         {% if entry.actor %}by {{ entry.actor.get_full_name|default:entry.actor.email }}{% endif %}
                                                     </span>
                                                 </p>
@@ -224,7 +223,7 @@
                                                     <p class="text-xs text-muted mt-1 italic">"{{ entry.notes }}"</p>
                                                 {% endif %}
                                             </div>
-                                            <div class="text-right text-xs whitespace-nowrap text-slate-400">
+                                            <div class="text-right text-xs whitespace-nowrap text-slate-400 font-mono">
                                                 <time>{{ entry.created_at|date:"M d, H:i" }}</time>
                                             </div>
                                         </div>
@@ -232,7 +231,7 @@
                                 </div>
                             </li>
                         {% empty %}
-                            <li class="text-xs text-slate-500">{% trans "No audit events logged." %}</li>
+                            <li class="text-xs text-slate-500 py-4 text-center">{% trans "No audit events logged." %}</li>
                         {% endfor %}
                     </ul>
                 </div>

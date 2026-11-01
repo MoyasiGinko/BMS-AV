@@ -506,19 +506,10 @@ def generate_attention_briefing(
     except Exception:
         content = ""
 
-    if not content:
-        # Fallback to rule-based structured briefing
-        top_critical = [it for it in active_items if it.severity == "critical"]
-        top_warnings = [it for it in active_items if it.severity == "warning"]
-
-        lines = [f"**Executive Briefing for {org.name} ({timestamp})**:"]
-        if top_critical:
-            lines.append(f"• **Immediate Action Required**: {top_critical[0].description}")
-        if top_warnings:
-            lines.append(f"• **Upcoming Risk**: {top_warnings[0].description}")
-        lines.append(
-            f"• **Operational Status**: {len(active_items)} total items tracked across organization."
-        )
+    if not content or "Hello!" in content or "AI Copilot" in content:
+        lines = []
+        for it in active_items[:3]:
+            lines.append(f"• {it.title}: {it.description}")
         content = "\n".join(lines)
 
     return {

@@ -38,15 +38,15 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                     {% if exp.status == 'posted' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-emerald-600 text-white font-bold shadow-2xs">
                         {% trans "Posted" %}
                     </span>
                     {% elif exp.status == 'void' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-rose-600 text-white font-bold shadow-2xs">
                         {% trans "Void" %}
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-600 text-white font-bold shadow-2xs">
                         {{ exp.get_status_display }}
                     </span>
                     {% endif %}

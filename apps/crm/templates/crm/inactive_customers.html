@@ -1,36 +1,42 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n humanize %}
 
 {% block title %}{% trans "Inactive Customer Segments" %} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="crm-page space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <div class="flex items-center space-x-3">
-                <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Inactive Customer Segments" %}</h1>
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Inactive Customer Segments" %}</h1>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200/60 shadow-2xs font-mono">
                     {{ count }} {% trans "At-Risk Accounts" %}
                 </span>
             </div>
-            <p class="text-sm text-muted mt-1">
+            <p class="text-sm sm:text-base text-muted mt-1">
                 {% trans "Accounts with no sales orders or CRM interactions for more than the inactivity threshold. Ideal for win-back campaigns." %}
             </p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'crm:customer_360_index' %}" class="px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50">
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{% url 'crm:customer_360_index' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
                 {% trans "Customer 360 Index" %}
             </a>
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    {% include "crm/partials/_navigation_tabs.html" with active_tab="inactive" %}
+
     <!-- Threshold Filter -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="neu-filter-card bg-[var(--surface-1)] rounded-2xl p-4 transition-all">
         <form method="get" class="flex items-center gap-4">
-            <label class="text-sm font-medium text-muted">{% trans "Inactivity Threshold" %}:</label>
-            <div class="w-48">
-                <select name="days" onchange="this.form.submit()" class="w-full text-sm rounded-lg border-line bg-surface text-ink px-3 py-2">
+            <label class="text-sm font-bold text-muted uppercase tracking-wider">{% trans "Inactivity Threshold" %}:</label>
+            <div class="w-52">
+                <select name="days" onchange="this.form.submit()" class="neu-select w-full text-sm rounded-xl px-3.5 py-2.5 font-medium cursor-pointer">
                     <option value="30" {% if days_threshold == 30 %}selected{% endif %}>30 {% trans "days" %}</option>
                     <option value="60" {% if days_threshold == 60 %}selected{% endif %}>60 {% trans "days" %}</option>
                     <option value="90" {% if days_threshold == 90 %}selected{% endif %}>90 {% trans "days" %}</option>
@@ -41,47 +47,53 @@
     </div>
 
     <!-- Table -->
-    <div class="bg-surface border border-line rounded-xl overflow-hidden shadow-xs">
+    <div class="neu-table-card bg-[var(--surface-1)] rounded-2xl overflow-hidden transition-all">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-line">
-                <thead class="bg-app">
+            <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800">
+                <thead class="bg-slate-50/50 dark:bg-slate-800/40">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Customer Account" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Code" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Email" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Last Activity" %}</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Days Inactive" %}</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">{% trans "Actions" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Customer Account" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Code" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Email" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Last Activity" %}</th>
+                        <th class="px-6 py-3.5 text-left text-xs font-bold text-muted uppercase tracking-wider">{% trans "Days Inactive" %}</th>
+                        <th class="px-6 py-3.5 text-right text-xs font-bold text-muted uppercase tracking-wider">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-line">
+                <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800">
                     {% for row in inactive_customers %}
-                    <tr class="hover:bg-surface-2">
-                        <td class="px-6 py-4 whitespace-nowrap font-medium text-ink">
-                            {{ row.customer.name }}
+                    <tr class="hover:bg-surface-2 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap font-bold text-ink">
+                            <a href="{% url 'crm:customer_360' customer_id=row.customer.pk %}" class="hover:text-indigo-600 transition-colors">
+                                {{ row.customer.name }}
+                            </a>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-muted">
                             {{ row.customer.code }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
                             {{ row.customer.email|default:"-" }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            {% if row.last_activity_date %}{{ row.last_activity_date|date:"M d, Y" }}{% else %}<span class="italic text-slate-400">{% trans "Never" %}</span>{% endif %}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-muted">
+                            {% if row.last_activity_date %}
+                                {{ row.last_activity_date|date:"M d, Y" }}
+                            {% else %}
+                                <span class="text-xs text-slate-400 italic">{% trans "Never active" %}</span>
+                            {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-amber-600 dark:text-amber-400">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-bold text-amber-600 dark:text-amber-400">
                             {{ row.days_inactive }} {% trans "days" %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="{% url 'crm:customer_360' customer_id=row.customer.pk %}" class="text-indigo-600 dark:text-indigo-400 hover:underline">
-                                {% trans "Customer 360" %} →
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold">
+                            <a href="{% url 'crm:customer_360' customer_id=row.customer.pk %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800">
+                                {% trans "360 View" %} →
                             </a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-sm text-muted">
-                            {% trans "No inactive customers found exceeding threshold." %}
+                        <td colspan="6" class="px-6 py-12 text-center text-sm text-muted font-medium">
+                            {% trans "No inactive customers detected within the selected timeframe." %}
                         </td>
                     </tr>
                     {% endfor %}

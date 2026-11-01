@@ -14,9 +14,6 @@
                 <span class="text-muted font-medium">{% trans "Daily Summaries" %}</span>
             </div>
             <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Executive Daily Summaries" %}</h1>
-            <p class="text-sm text-muted mt-1">
-                {% trans "Pre-aggregated sub-second sales and expense trends across branches." %}
-            </p>
         </div>
         <div>
             <form method="post" action="{% url 'reports:daily_summaries_rebuild' %}" class="inline">

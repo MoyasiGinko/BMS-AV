@@ -6,208 +6,342 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <div class="flex items-center gap-2">
-                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="text-sm font-medium text-slate-500 hover:text-muted dark:hover:text-slate-200">
-                    &larr; {% trans "Back" %}
-                </a>
-            </div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink mt-1">
-                {% if is_new %}{% trans "Create New Product" %}{% else %}{% trans "Edit Product" %}: {{ product.name }}{% endif %}
-            </h1>
+<div class="w-full space-y-8 pb-16 catalog-page">
+    <!-- Header with Breadcrumbs & Title -->
+    <div>
+        <!-- Breadcrumbs / Back Link -->
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="neu-btn-ghost inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-surface-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "Back to Catalog" %}
+            </a>
         </div>
+
+        <!-- Title & Context Badge -->
+        <div class="flex flex-wrap items-center gap-3">
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
+                {% if is_new %}
+                    {% trans "Create New Product" %}
+                {% else %}
+                    {% trans "Edit Product" %}: <span class="text-indigo-600 dark:text-indigo-400">{{ product.name }}</span>
+                {% endif %}
+            </h1>
+            {% if not is_new %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold {% if product.is_active %}bg-emerald-600 text-white{% else %}bg-slate-600 text-white{% endif %} shadow-2xs">
+                {% if product.is_active %}{% trans "Active" %}{% else %}{% trans "Archived" %}{% endif %}
+            </span>
+            {% endif %}
+        </div>
+        <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
+            {% if is_new %}
+                {% trans "Configure catalog item specifications, pricing structure, inventory alert rules, and tracking parameters." %}
+            {% else %}
+                {% trans "Update product identification, sales and cost pricing, inventory reorder thresholds, and catalog status." %}
+            {% endif %}
+        </p>
     </div>
 
-    <!-- Form Card -->
-    <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
-        <form method="post" class="p-6 space-y-6">
-            {% csrf_token %}
+    <!-- Main Fullwidth Form -->
+    <form id="product-form" method="post" class="space-y-8 w-full">
+        {% csrf_token %}
 
-            {% if form.non_field_errors %}
-            <div class="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-sm text-red-600 dark:text-red-400">
-                {{ form.non_field_errors }}
+        {% if form.non_field_errors %}
+        <div class="p-5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-2xl text-sm font-semibold text-rose-700 dark:text-rose-400 shadow-xs">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span>{{ form.non_field_errors }}</span>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            <!-- Basic Info Section -->
-            <div>
-                <h3 class="text-base font-semibold text-ink border-b border-line pb-2 mb-4">
-                    {% trans "General Information" %}
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="{{ form.sku.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "SKU" %} <span class="text-red-500">*</span>
-                        </label>
-                        {{ form.sku }}
-                        {% if form.sku.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.sku.errors.0 }}</p>
-                        {% endif %}
+        <!-- Bento 12-Column Responsive Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+            <!-- Left Main Column (8 cols): Primary specifications -->
+            <div class="lg:col-span-8 space-y-8">
+                <!-- Card 1: Core Product Identity & Classification -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="flex items-center justify-between border-b border-line pb-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "General Information" %}</h2>
+                            <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Primary product name, inventory identifiers, and category classification." %}</p>
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="{{ form.barcode.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Barcode / UPC" %}
-                        </label>
-                        {{ form.barcode }}
-                        {% if form.barcode.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.barcode.errors.0 }}</p>
-                        {% endif %}
+                    <div class="space-y-6">
+                        <!-- Product Name (Full width in card) -->
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {% trans "Product Name" %} <span class="text-rose-600 font-black">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.name.errors.0 }}</p>
+                            {% else %}
+                            <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Visible name displayed on catalog items, invoices, quotes, and packing slips." %}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- SKU and Barcode (2 Columns) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.sku.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "SKU (Stock Keeping Unit)" %} <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.sku }}
+                                {% if form.sku.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.sku.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Unique inventory reference code for warehouse tracking." %}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.barcode.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Barcode / UPC / EAN" %}
+                                </label>
+                                {{ form.barcode }}
+                                {% if form.barcode.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.barcode.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Scannable barcode for POS scanners and warehouse receipt." %}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Category and Product Type (2 Columns) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.category_id.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Category" %}
+                                </label>
+                                {{ form.category_id }}
+                                {% if form.category_id.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.category_id.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Taxonomy node for reports, filters, and catalog navigation." %}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.type.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Product Type" %} <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.type }}
+                                {% if form.type.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.type.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Physical items track quantity; services/bundles have zero physical stock." %}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Pricing & Financials -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="flex items-center justify-between border-b border-line pb-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Pricing & Measurement" %}</h2>
+                            <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Define baseline acquisition costs, default retail selling price, discounts, and taxes." %}</p>
+                        </div>
                     </div>
 
-                    <div class="md:col-span-2">
-                        <label for="{{ form.name.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Product Name" %} <span class="text-red-500">*</span>
-                        </label>
-                        {{ form.name }}
-                        {% if form.name.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.name.errors.0 }}</p>
-                        {% endif %}
-                    </div>
+                    <div class="space-y-6">
+                        <!-- Cost & Selling Price (2 Columns) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.cost_price.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Cost Price" %} ({{ request.organization.currency|default:"$" }}) <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.cost_price }}
+                                {% if form.cost_price.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.cost_price.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Default acquisition/supplier cost per unit (COGS base)." %}</p>
+                                {% endif %}
+                            </div>
 
-                    <div>
-                        <label for="{{ form.category_id.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Category" %}
-                        </label>
-                        {{ form.category_id }}
-                        {% if form.category_id.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.category_id.errors.0 }}</p>
-                        {% endif %}
-                    </div>
+                            <div>
+                                <label for="{{ form.selling_price.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Selling Price" %} ({{ request.organization.currency|default:"$" }}) <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.selling_price }}
+                                {% if form.selling_price.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.selling_price.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Standard catalog selling price before customer tier discounts." %}</p>
+                                {% endif %}
+                            </div>
+                        </div>
 
+                        <!-- Discount, Unit of Measure, Tax Code (3 Columns) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <div>
+                                <label for="{{ form.discount_percent.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Promotional Discount (%)" %}
+                                </label>
+                                {{ form.discount_percent }}
+                                {% if form.discount_percent.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.discount_percent.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Active catalog markdown percentage." %}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.unit_id.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Unit of Measure" %} <span class="text-rose-600 font-black">*</span>
+                                </label>
+                                {{ form.unit_id }}
+                                {% if form.unit_id.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.unit_id.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Packaging unit (e.g. piece, box, kg)." %}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.tax_code_id.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Tax Code" %}
+                                </label>
+                                {{ form.tax_code_id }}
+                                {% if form.tax_code_id.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.tax_code_id.errors.0 }}</p>
+                                {% else %}
+                                <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Applicable VAT or sales tax rate." %}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Description & Rich Operational Notes -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Description & Operational Notes" %}</h2>
+                        <p class="text-sm text-slate-500 font-medium mt-0.5">{% trans "Customer-facing description, product dimensions, or internal handling instructions." %}</p>
+                    </div>
                     <div>
-                        <label for="{{ form.type.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Product Type" %} <span class="text-red-500">*</span>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                            {% trans "Detailed Notes & Description" %}
                         </label>
-                        {{ form.type }}
-                        {% if form.type.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.type.errors.0 }}</p>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.description.errors.0 }}</p>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Pricing & Measurement Section -->
-            <div>
-                <h3 class="text-base font-semibold text-ink border-b border-line pb-2 mb-4">
-                    {% trans "Pricing & Measurement" %}
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label for="{{ form.cost_price.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Cost Price" %} <span class="text-red-500">*</span>
-                        </label>
-                        {{ form.cost_price }}
-                        {% if form.cost_price.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.cost_price.errors.0 }}</p>
-                        {% endif %}
+            <!-- Right Side Column (4 cols): Status, Reorder & Tracking Controls -->
+            <div class="lg:col-span-4 space-y-8">
+                <!-- Card 4: Catalog Visibility & Availability -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Catalog Visibility" %}</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Control item availability across channels." %}</p>
                     </div>
 
-                    <div>
-                        <label for="{{ form.selling_price.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Selling Price" %} <span class="text-red-500">*</span>
-                        </label>
-                        {{ form.selling_price }}
-                        {% if form.selling_price.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.selling_price.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-
-                    <div>
-                        <label for="{{ form.unit_id.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Unit of Measure" %} <span class="text-red-500">*</span>
-                        </label>
-                        {{ form.unit_id }}
-                        {% if form.unit_id.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.unit_id.errors.0 }}</p>
-                        {% endif %}
-                    </div>
-
-                    <div class="md:col-span-3">
-                        <label for="{{ form.tax_code_id.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Tax Code" %}
-                        </label>
-                        {{ form.tax_code_id }}
-                        {% if form.tax_code_id.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.tax_code_id.errors.0 }}</p>
-                        {% endif %}
-                    </div>
+                    <!-- Active in Catalog Setting Card -->
+                    <label for="{{ form.is_active.id_for_label }}" class="flex items-start gap-4 p-4 rounded-xl border border-line bg-surface-2/40 hover:bg-surface-2 transition-all cursor-pointer">
+                        <div class="pt-0.5 shrink-0">
+                            {{ form.is_active }}
+                        </div>
+                        <div class="flex-1">
+                            <span class="block text-sm font-bold text-ink">{% trans "Active in Catalog" %}</span>
+                            <span class="block text-xs text-slate-500 mt-1 leading-relaxed">
+                                {% trans "When checked, this product is immediately available for selection in POS, Sales Orders, Quotations, and eCommerce." %}
+                            </span>
+                        </div>
+                    </label>
                 </div>
-            </div>
 
-            <!-- Inventory Controls Section -->
-            <div>
-                <h3 class="text-base font-semibold text-ink border-b border-line pb-2 mb-4">
-                    {% trans "Inventory Management" %}
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="{{ form.reorder_level.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Reorder Alert Level" %}
-                        </label>
-                        {{ form.reorder_level }}
-                        {% if form.reorder_level.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.reorder_level.errors.0 }}</p>
-                        {% endif %}
+                <!-- Card 5: Inventory Controls & Stock Rules -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Inventory Management" %}</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Automated replenishment and tracking controls." %}</p>
                     </div>
 
-                    <div>
-                        <label for="{{ form.reorder_quantity.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                            {% trans "Reorder Quantity Target" %}
-                        </label>
-                        {{ form.reorder_quantity }}
-                        {% if form.reorder_quantity.errors %}
-                        <p class="text-xs text-red-500 mt-1">{{ form.reorder_quantity.errors.0 }}</p>
-                        {% endif %}
+                    <div class="space-y-5">
+                        <!-- Reorder Alert Level -->
+                        <div>
+                            <label for="{{ form.reorder_level.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {% trans "Reorder Alert Level" %}
+                            </label>
+                            {{ form.reorder_level }}
+                            {% if form.reorder_level.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.reorder_level.errors.0 }}</p>
+                            {% else %}
+                            <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Trigger purchase order recommendation when stock falls below this quantity." %}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Reorder Quantity Target -->
+                        <div>
+                            <label for="{{ form.reorder_quantity.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                {% trans "Target Reorder Quantity" %}
+                            </label>
+                            {{ form.reorder_quantity }}
+                            {% if form.reorder_quantity.errors %}
+                            <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.reorder_quantity.errors.0 }}</p>
+                            {% else %}
+                            <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "Recommended default quantity to order from suppliers." %}</p>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-3 pt-2">
-                        {{ form.track_batch }}
-                        <label for="{{ form.track_batch.id_for_label }}" class="text-sm font-medium text-muted">
-                            {% trans "Track Batch / Lots" %}
-                        </label>
-                    </div>
+                    <!-- Lot & Serial Tracking Controls -->
+                    <div class="border-t border-line pt-5 space-y-3">
+                        <span class="block text-xs font-bold uppercase tracking-wider text-muted">{% trans "Traceability Controls" %}</span>
 
-                    <div class="flex items-center gap-3 pt-2">
-                        {{ form.track_serial }}
-                        <label for="{{ form.track_serial.id_for_label }}" class="text-sm font-medium text-muted">
-                            {% trans "Track Serial Numbers" %}
+                        <!-- Track Batch / Lots -->
+                        <label for="{{ form.track_batch.id_for_label }}" class="flex items-start gap-3.5 p-3.5 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                            <div class="pt-0.5 shrink-0">
+                                {{ form.track_batch }}
+                            </div>
+                            <div class="flex-1">
+                                <span class="block text-xs font-bold text-ink">{% trans "Track Lots / Batches" %}</span>
+                                <span class="block text-[11px] text-slate-400 mt-0.5">{% trans "Require batch assignment and expiration dates on stock movements." %}</span>
+                            </div>
                         </label>
-                    </div>
 
-                    <div class="flex items-center gap-3 pt-2">
-                        {{ form.is_active }}
-                        <label for="{{ form.is_active.id_for_label }}" class="text-sm font-medium text-muted">
-                            {% trans "Active in Catalog" %}
+                        <!-- Track Serial Numbers -->
+                        <label for="{{ form.track_serial.id_for_label }}" class="flex items-start gap-3.5 p-3.5 rounded-xl border border-line bg-surface-2/30 hover:bg-surface-2 transition-all cursor-pointer">
+                            <div class="pt-0.5 shrink-0">
+                                {{ form.track_serial }}
+                            </div>
+                            <div class="flex-1">
+                                <span class="block text-xs font-bold text-ink">{% trans "Track Serial Numbers" %}</span>
+                                <span class="block text-[11px] text-slate-400 mt-0.5">{% trans "Require individual serial number entry on receipt and dispatch." %}</span>
+                            </div>
                         </label>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Description -->
-            <div>
-                <label for="{{ form.description.id_for_label }}" class="block text-xs font-medium text-muted mb-1">
-                    {% trans "Description & Notes" %}
-                </label>
-                {{ form.description }}
-                {% if form.description.errors %}
-                <p class="text-xs text-red-500 mt-1">{{ form.description.errors.0 }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Actions -->
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-line">
-                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="px-4 py-2 border border-line rounded-lg text-sm font-medium text-muted hover:bg-surface-2 transition-colors">
+        <!-- Symmetrical Bottom Footer Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl border border-line bg-surface shadow-xs">
+            <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="neu-btn-ghost inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-bold text-muted hover:text-ink bg-surface hover:bg-surface-2 transition-all cursor-pointer">
+                &larr; {% trans "Back to Catalog" %}
+            </a>
+            <div class="flex items-center gap-3">
+                <a href="{% if is_new %}{% url 'catalog:product_list' %}{% else %}{% url 'catalog:product_detail' pk=product.pk %}{% endif %}" class="neu-btn-ghost inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-ink bg-surface hover:bg-surface-2 transition-all cursor-pointer">
                     {% trans "Cancel" %}
                 </a>
-                <button type="submit" class="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">
+                <button type="submit" class="neu-btn-primary inline-flex items-center px-7 py-2.5 rounded-xl text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
                     {% if is_new %}{% trans "Create Product" %}{% else %}{% trans "Save Changes" %}{% endif %}
                 </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 {% endblock %}

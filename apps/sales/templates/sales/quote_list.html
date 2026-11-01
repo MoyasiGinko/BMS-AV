@@ -8,13 +8,13 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Quotations" %}</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Quotations" %}</h1>
             <p class="text-sm text-muted mt-1">
                 {% trans "Manage customer price estimates, send quotes, and convert to sales orders." %}
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{% url 'sales:quote_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors">
+            <a href="{% url 'sales:quote_create' %}" class="inline-flex items-center px-4.5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs transition-all active:scale-95 cursor-pointer">
                 <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
@@ -24,28 +24,10 @@
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="border-b border-line">
-        <nav class="flex space-x-8" aria-label="Tabs">
-            <a href="{% url 'sales:invoice_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
-                {% trans "Invoices" %}
-            </a>
-            <a href="{% url 'sales:order_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
-                {% trans "Sales Orders" %}
-            </a>
-            <a href="{% url 'sales:quote_list' %}" class="border-indigo-500 text-indigo-600 dark:text-indigo-400 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
-                {% trans "Quotations" %}
-            </a>
-            <a href="{% url 'sales:credit_note_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
-                {% trans "Credit Notes" %}
-            </a>
-            <a href="{% url 'sales:payment_list' %}" class="border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-300 whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm">
-                {% trans "Payments" %}
-            </a>
-        </nav>
-    </div>
+    {% include "sales/partials/_navigation_tabs.html" with active_tab="quotes" %}
 
     <!-- Filter Bar -->
-    <div class="bg-surface border border-line rounded-xl p-4 shadow-xs">
+    <div class="bg-surface border border-line rounded-2xl p-5 shadow-xs transition-all">
         <form method="get" class="flex flex-col sm:flex-row gap-3 items-center justify-between"
               hx-get="{% url 'sales:quote_list' %}"
               hx-target="#quote-table-container"
@@ -68,7 +50,7 @@
     </div>
 
     <!-- Data Table Card -->
-    <div class="bg-surface border border-line rounded-xl shadow-xs overflow-hidden">
+    <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
         {% include "sales/partials/quote_table.html" %}
     </div>
 </div>

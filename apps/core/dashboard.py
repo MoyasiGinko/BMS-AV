@@ -182,7 +182,7 @@ class QuickActionsWidget(DashboardWidget):
     widget_id = "quick_actions"
     title = _("Quick Actions")
     description = _("Fast shortcuts to common platform workflows")
-    col_span = 4
+    col_span = 6
     order = 30
     template_name = "core/dashboard/widgets/quick_actions.html"
     is_user_specific = True
@@ -203,7 +203,7 @@ class RecentAuditActivityWidget(DashboardWidget):
     title = _("Recent Workspace Activity")
     description = _("Immutable audit log feed of security actions and changes")
     permission = "settings.manage"
-    col_span = 8
+    col_span = 6
     order = 40
     template_name = "core/dashboard/widgets/recent_activity.html"
 

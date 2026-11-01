@@ -1,6 +1,41 @@
-{% load i18n %}
+{% load i18n humanize %}
 
-<div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+<style>
+    #product-grid {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 0.875rem;
+    }
+    @media (min-width: 480px) {
+        #product-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    @media (min-width: 900px) {
+        #product-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+    }
+    @media (min-width: 1950px) {
+        #product-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+    .pos-catalog-card {
+        aspect-ratio: auto !important;
+        min-height: 205px !important;
+        height: auto !important;
+    }
+    @media (max-width: 639px) {
+        .pos-catalog-card {
+            aspect-ratio: auto !important;
+            min-height: 195px !important;
+        }
+    }
+</style>
+
+<div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3.5 sm:gap-4">
     {% for product in products %}
     <button type="button"
             @click="addToCart({
@@ -8,59 +43,80 @@
                 sku: '{{ product.sku|escapejs }}',
                 name: '{{ product.name|escapejs }}',
                 price: '{{ product.selling_price }}',
+                discount_percent: {{ product.discount_percent|default:'0.00' }},
                 tax_rate: '{{ product.tax_code.rate|default:'0.00' }}',
                 stock_qty: {{ product.stock_qty|default:0 }},
                 is_stock: {% if product.type == 'stock' %}true{% else %}false{% endif %}
             })"
-            class="group relative flex flex-col justify-between p-3.5 bg-surface/80 hover:bg-indigo-50/50 dark:hover:bg-slate-800 border {% if product.type == 'stock' and product.stock_qty <= 0 %}border-rose-200 dark:border-rose-900/50 opacity-80{% else %}border-line/80 hover:border-indigo-400 dark:hover:border-indigo-500{% endif %} rounded-xl text-left shadow-xs hover:shadow-md transition-all duration-150 active:scale-95 cursor-pointer">
+            class="pos-catalog-card group relative flex flex-col justify-between p-4 sm:p-4.5 bg-[var(--surface-1)] hover:bg-[var(--surface-2)]/30 {% if product.type == 'stock' and product.stock_qty <= 0 %}opacity-75{% endif %} rounded-2xl text-left transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[205px]">
         <div>
-            <div class="flex items-center justify-between text-[11px] font-mono text-muted mb-1 gap-1">
-                <span class="truncate">{{ product.sku }}</span>
-                {% if product.barcode %}
-                <span class="text-[10px] bg-surface-2 px-1 rounded truncate">{{ product.barcode }}</span>
+            <!-- SKU & Discount Tag Label (in place of barcode number) -->
+            <div class="flex items-center justify-between text-xs font-mono text-muted mb-2 gap-1.5">
+                <span class="px-2 py-0.5 rounded-lg bg-[var(--surface-2)]/70 border border-[var(--border)]/40 font-bold tracking-tight truncate">{{ product.sku }}</span>
+                {% if product.discount_percent > 0 %}
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-600 text-white font-black shadow-2xs shrink-0">
+                    {{ product.discount_percent|floatformat:0 }}% OFF
+                </span>
                 {% endif %}
             </div>
-            <h4 class="text-xs sm:text-sm font-semibold text-ink line-clamp-2 leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+
+            <!-- Product Title -->
+            <h4 class="text-sm sm:text-base font-bold text-ink line-clamp-2 leading-snug group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors mt-1">
                 {{ product.name }}
             </h4>
         </div>
 
-        <div class="mt-2.5">
+        <div class="mt-3">
+            <!-- Stock Pill -->
             {% if product.type == 'stock' %}
-            <div class="mb-1.5 flex items-center">
+            <div class="mb-2.5 flex items-center">
                 {% if product.stock_qty <= 0 %}
-                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">
-                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span class="pos-stock-out inline-flex items-center gap-1.5 text-xs font-bold text-white bg-rose-600 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-200"></span>
                     {% trans "Out of stock" %}
                 </span>
                 {% else %}
-                <span class="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    {{ product.stock_qty|floatformat:0 }} {% trans "available" %}
+                <span class="pos-stock-in inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-200"></span>
+                    {{ product.stock_qty|floatformat:0 }} {% trans "in stock" %}
                 </span>
                 {% endif %}
             </div>
             {% endif %}
 
-            <div class="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
-                <span class="text-sm sm:text-base font-bold font-mono text-indigo-600 dark:text-indigo-400">
-                    ${{ product.selling_price }}
-                </span>
-                <span class="w-6 h-6 flex items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            <!-- Price and Tactile Plus Action -->
+            <div class="pt-2.5 border-t border-[var(--border)]/50 flex items-center justify-between gap-2">
+                <div class="flex flex-col min-w-0">
+                    {% if product.discount_percent > 0 %}
+                    <span class="text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors leading-tight">
+                        ${{ product.effective_price|floatformat:2|intcomma }}
+                    </span>
+                    <span class="text-xs sm:text-sm font-mono text-muted line-through font-semibold mt-0.5">
+                        ${{ product.selling_price|floatformat:2|intcomma }}
+                    </span>
+                    {% else %}
+                    <span class="text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors leading-tight">
+                        ${{ product.selling_price|floatformat:2|intcomma }}
+                    </span>
+                    {% endif %}
+                </div>
+                <span class="w-8 h-8 sm:w-8.5 sm:h-8.5 flex items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--brand-600)] dark:text-[var(--brand-400)] group-hover:bg-[var(--brand-600)] group-hover:text-white transition-all shadow-2xs border border-[var(--border)]/60 shrink-0">
+                    <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 4v16m8-8H4" />
                     </svg>
                 </span>
             </div>
         </div>
     </button>
     {% empty %}
-    <div class="col-span-full py-16 text-center text-muted">
-        <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-        </svg>
-        <p class="text-base font-medium">{% trans "No products found matching criteria." %}</p>
-        <p class="text-xs text-slate-400 mt-1">{% trans "Try clearing your search term or select another category." %}</p>
+    <div class="col-span-full py-20 text-center text-muted">
+        <div class="max-w-sm mx-auto flex flex-col items-center justify-center text-center">
+            <div class="w-16 h-16 rounded-2xl bg-[var(--surface-2)] flex items-center justify-center text-muted mb-4 shadow-inner border border-[var(--border)]/50">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+            </div>
+            <h3 class="text-lg font-bold text-ink">{% trans "No products found" %}</h3>
+            <p class="text-sm text-muted mt-1 leading-relaxed">{% trans "No catalog items match your search term or selected category." %}</p>
+        </div>
     </div>
     {% endfor %}
 </div>

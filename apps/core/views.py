@@ -12,7 +12,7 @@ from django.db import connection
 from django.http import HttpRequest, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 
-from apps.core.context_processors import THEME_SIDEBAR_PRESETS
+from apps.core.context_processors import DEFAULT_SIDEBAR_MODES, THEME_SIDEBAR_PRESETS
 from apps.core.dashboard import (
     get_visible_widgets,
     get_widget,
@@ -97,11 +97,14 @@ def dashboard_view(request: HttpRequest) -> HttpResponse:
         )
 
     checklist_dismissed = request.session.get(f"dismiss_checklist_{org.pk}", False)
+    checklist_visible = any(w.widget_id == "onboarding_checklist" for w in visible_widgets)
+    checklist_hidden = not checklist_visible
 
     context = {
         "organization": org,
         "widgets": rendered_widgets,
-        "checklist_dismissed": checklist_dismissed,
+        "checklist_dismissed": checklist_dismissed or checklist_hidden,
+        "checklist_hidden": checklist_hidden,
     }
 
     if request.headers.get("HX-Request") and request.GET.get("partial") == "widgets":
@@ -141,6 +144,7 @@ def dismiss_onboarding_checklist_view(request: HttpRequest) -> HttpResponse:
     org = getattr(request, "organization", None) or get_current_organization()
     if org is not None:
         request.session[f"dismiss_checklist_{org.pk}"] = True
+        request.session.pop(f"show_checklist_{org.pk}", None)
 
     if request.headers.get("HX-Request"):
         return HttpResponse("")
@@ -155,6 +159,7 @@ def reset_onboarding_checklist_view(request: HttpRequest) -> HttpResponse:
     org = getattr(request, "organization", None) or get_current_organization()
     if org is not None:
         request.session.pop(f"dismiss_checklist_{org.pk}", None)
+        request.session[f"show_checklist_{org.pk}"] = True
 
     return redirect("dashboard")
 
@@ -232,12 +237,13 @@ def _resolve_active_sidebar_colors(
     theme: str, modes: dict[str, str], customs: dict[str, Any]
 ) -> dict[str, str]:
     """Helper to compute final active sidebar colors for the active theme."""
-    mode = modes.get(theme, "dark_contrast")
+    default_mode = DEFAULT_SIDEBAR_MODES.get(theme, "dark_contrast")
+    mode = modes.get(theme, default_mode)
     presets = THEME_SIDEBAR_PRESETS.get(theme, THEME_SIDEBAR_PRESETS["fast"])
     if mode == "light":
         return dict(presets["light"])
     if mode == "custom":
-        res = dict(presets["dark_contrast"])
+        res = dict(presets[default_mode])
         custom_colors = customs.get(theme, {})
         if isinstance(custom_colors, dict):
             res.update(custom_colors)
