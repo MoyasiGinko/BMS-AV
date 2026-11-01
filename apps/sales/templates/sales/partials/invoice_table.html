@@ -1,4 +1,4 @@
-{% load i18n humanize %}
+{% load i18n humanize money_tags %}
 <div id="invoice-table-container">
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-muted">
@@ -92,15 +92,15 @@
 
                     <!-- Grand Total -->
                     <td class="py-3.5 px-5 text-right font-mono font-bold text-ink text-sm whitespace-nowrap">
-                        ${{ inv.grand_total|floatformat:2|intcomma }}
+                        {{ inv.grand_total|money:inv.currency }}
                     </td>
 
                     <!-- Balance Due -->
                     <td class="py-3.5 px-5 text-right font-mono font-bold text-sm whitespace-nowrap">
                         {% if inv.balance_due > 0 %}
-                            <span class="text-amber-600 dark:text-amber-400">${{ inv.balance_due|floatformat:2|intcomma }}</span>
+                            <span class="text-amber-600 dark:text-amber-400">{{ inv.balance_due|money:inv.currency }}</span>
                         {% else %}
-                            <span class="text-muted/60 font-medium">$0.00</span>
+                            <span class="text-muted/60 font-medium">{{ 0|money:inv.currency }}</span>
                         {% endif %}
                     </td>
 
@@ -148,7 +148,7 @@
             <span>{% blocktrans count counter=invoices.count %}Showing <strong>{{ counter }}</strong> invoice{% plural %}Showing <strong>{{ counter }}</strong> invoices{% endblocktrans %}</span>
         </div>
         <div class="flex items-center gap-4 font-mono text-2xs text-muted">
-            <span>{% trans "Currency" %}: <strong class="text-ink">USD</strong></span>
+            <span>{% trans "Currency" %}: <strong class="text-ink">{{ request.organization.currency|default:"USD" }}</strong></span>
             <span>•</span>
             <span class="text-emerald-700 dark:text-emerald-400 font-semibold">✓ {% trans "Live Ledger Sync" %}</span>
         </div>

@@ -34,7 +34,7 @@
     </div>
 
     <!-- Main Fullwidth Form -->
-    <form id="product-form" method="post" class="space-y-8 w-full">
+    <form id="product-form" method="post" enctype="multipart/form-data" class="space-y-8 w-full">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
@@ -229,6 +229,32 @@
 
             <!-- Right Side Column (4 cols): Status, Reorder & Tracking Controls -->
             <div class="lg:col-span-4 space-y-8">
+                <!-- Product Image Upload Card -->
+                <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-4">
+                    <div class="border-b border-line pb-4">
+                        <h2 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Product Image" %}</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">{% trans "Primary photo for POS, catalog, and invoices." %}</p>
+                    </div>
+
+                    {% if product and product.primary_image %}
+                    <div class="w-full aspect-square rounded-xl overflow-hidden border border-line bg-surface-2 mb-3">
+                        <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover" />
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <label for="{{ form.image.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                            {% if product and product.primary_image %}{% trans "Replace Image" %}{% else %}{% trans "Upload Image" %}{% endif %}
+                        </label>
+                        {{ form.image }}
+                        {% if form.image.errors %}
+                        <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.image.errors.0 }}</p>
+                        {% else %}
+                        <p class="text-xs text-slate-400 mt-1.5 font-medium">{% trans "PNG, JPG, or WebP up to 5MB." %}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <!-- Card 4: Catalog Visibility & Availability -->
                 <div class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs neu-card space-y-6">
                     <div class="border-b border-line pb-4">

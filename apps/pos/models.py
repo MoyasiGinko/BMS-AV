@@ -52,6 +52,39 @@ class POSRegister(TenantModel):
         return f"{self.code} - {self.name} ({self.branch.name})"
 
 
+class POSRegisterSequenceBlock(TenantModel):
+    """Pre-allocated sequence block for an offline or local register to emit unbroken numbers."""
+
+    register = models.ForeignKey(
+        "pos.POSRegister",
+        on_delete=models.CASCADE,
+        related_name="sequence_blocks",
+        verbose_name=_("POS Register"),
+    )
+    sequence = models.ForeignKey(
+        "core.NumberSequence",
+        on_delete=models.CASCADE,
+        related_name="register_sequence_blocks",
+        verbose_name=_("Number Sequence"),
+    )
+    range_start = models.PositiveBigIntegerField(_("Range Start"))
+    range_end = models.PositiveBigIntegerField(_("Range End"))
+    next_number = models.PositiveBigIntegerField(_("Next Available Number"))
+    is_active = models.BooleanField(_("Is Active"), default=True)
+    allocated_at = models.DateTimeField(_("Allocated At"), default=timezone.now)
+
+    class Meta:
+        verbose_name = _("POS Register Sequence Block")
+        verbose_name_plural = _("POS Register Sequence Blocks")
+        ordering = ["-allocated_at"]
+        indexes = [
+            models.Index(fields=["organization", "register", "is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.register.code}: [{self.range_start} - {self.range_end}] (next: {self.next_number})"
+
+
 class POSShiftStatus(models.TextChoices):
     OPEN = "open", _("Open")
     CLOSED = "closed", _("Closed")

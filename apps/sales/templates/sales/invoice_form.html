@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n money_tags %}
 
 {% block title %}{% trans "New Sales Invoice" %} | {{ request.organization.name }}{% endblock %}
 
@@ -106,7 +106,7 @@
                             <select name="product" required class="w-full text-base font-medium rounded-xl border border-line bg-surface text-ink shadow-2xs">
                                 <option value="">{% trans "Select a product..." %}</option>
                                 {% for p in products %}
-                                <option value="{{ p.pk }}">{{ p.name }} ({{ p.sku }}) - ${{ p.price }}</option>
+                                <option value="{{ p.pk }}">{{ p.name }} ({{ p.sku }}) - {{ p.price|money:request.organization.currency }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -167,8 +167,8 @@
                         </div>
 
                         <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60">
-                            <span class="block font-bold text-ink mb-1">{% trans "2. Posting & Stock Decrement" %}</span>
-                            {% trans "When confirmed, inventory quantities are atomically committed and an immutable journal entry posts to your General Ledger." %}
+                            <span class="block font-bold text-ink mb-1">{% trans "2. Posting & Stock Updates" %}</span>
+                            {% trans "When confirmed, inventory quantities are updated and the entry is recorded." %}
                         </div>
 
                         <div class="p-4 rounded-xl bg-surface-2/40 border border-line/60">

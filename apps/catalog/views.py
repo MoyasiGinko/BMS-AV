@@ -27,6 +27,7 @@ from apps.catalog.models import (
     Category,
     PriceList,
     Product,
+    ProductImage,
     ProductType,
     Unit,
 )
@@ -125,7 +126,7 @@ def product_create_view(request: HttpRequest) -> HttpResponse:
     _check_perm(request, "catalog.manage", org)
 
     if request.method == "POST":
-        form = ProductForm(request.POST, organization_id=org.pk)
+        form = ProductForm(request.POST, request.FILES, organization_id=org.pk)
         if form.is_valid():
             data = form.cleaned_data
             unit = get_object_or_404(Unit.all_tenants, organization=org, pk=data["unit_id"])
@@ -157,6 +158,15 @@ def product_create_view(request: HttpRequest) -> HttpResponse:
                     description=data.get("description", ""),
                     actor=request.user,
                 )
+                image_file = form.cleaned_data.get("image")
+                if image_file:
+                    ProductImage.objects.create(
+                        organization=org,
+                        product=product,
+                        image=image_file,
+                        alt_text=product.name,
+                        is_primary=True,
+                    )
                 messages.success(
                     request, _("Product '%(name)s' created successfully.") % {"name": product.name}
                 )
@@ -204,7 +214,7 @@ def product_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
         raise PermissionDenied(_("Product not found."))
 
     if request.method == "POST":
-        form = ProductForm(request.POST, organization_id=org.pk)
+        form = ProductForm(request.POST, request.FILES, organization_id=org.pk)
         if form.is_valid():
             data = form.cleaned_data
             unit = get_object_or_404(Unit.all_tenants, organization=org, pk=data["unit_id"])
@@ -236,6 +246,18 @@ def product_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
                     description=data.get("description", ""),
                     actor=request.user,
                 )
+                image_file = form.cleaned_data.get("image")
+                if image_file:
+                    ProductImage.objects.filter(
+                        organization=org, product=product, is_primary=True
+                    ).update(is_primary=False)
+                    ProductImage.objects.create(
+                        organization=org,
+                        product=product,
+                        image=image_file,
+                        alt_text=product.name,
+                        is_primary=True,
+                    )
                 messages.success(request, _("Product updated successfully."))
                 return redirect("catalog:product_detail", pk=product.pk)
             except CatalogError as err:

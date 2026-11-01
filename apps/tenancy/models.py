@@ -47,6 +47,10 @@ class Organization(models.Model):
     def status(self) -> str:
         return self.settings.get("status", "active" if self.is_active else "suspended")
 
+    @property
+    def currency(self) -> str:
+        return self.base_currency
+
 
 class Role(TenantModel):
     """Named bundle of permission codes scoped to an organization."""

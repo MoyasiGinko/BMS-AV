@@ -1,4 +1,4 @@
-{% load i18n humanize %}
+{% load i18n humanize money_tags %}
 
 <style>
     #product-grid {
@@ -24,13 +24,21 @@
     }
     .pos-catalog-card {
         aspect-ratio: auto !important;
-        min-height: 205px !important;
+        min-height: 320px !important;
         height: auto !important;
+    }
+    .pos-card-thumb {
+        height: 155px !important;
+        width: 100% !important;
+        display: flex !important;
     }
     @media (max-width: 639px) {
         .pos-catalog-card {
             aspect-ratio: auto !important;
-            min-height: 195px !important;
+            min-height: 305px !important;
+        }
+        .pos-card-thumb {
+            height: 140px !important;
         }
     }
 </style>
@@ -48,64 +56,76 @@
                 stock_qty: {{ product.stock_qty|default:0 }},
                 is_stock: {% if product.type == 'stock' %}true{% else %}false{% endif %}
             })"
-            class="pos-catalog-card group relative flex flex-col justify-between p-4 sm:p-4.5 bg-[var(--surface-1)] hover:bg-[var(--surface-2)]/30 {% if product.type == 'stock' and product.stock_qty <= 0 %}opacity-75{% endif %} rounded-2xl text-left transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[205px]">
+            class="pos-catalog-card group relative flex flex-col justify-between p-3.5 sm:p-4 bg-[var(--surface-1)] hover:bg-[var(--surface-2)]/30 rounded-2xl text-left transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[315px]">
         <div>
-            <!-- SKU & Discount Tag Label (in place of barcode number) -->
-            <div class="flex items-center justify-between text-xs font-mono text-muted mb-2 gap-1.5">
-                <span class="px-2 py-0.5 rounded-lg bg-[var(--surface-2)]/70 border border-[var(--border)]/40 font-bold tracking-tight truncate">{{ product.sku }}</span>
-                {% if product.discount_percent > 0 %}
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-600 text-white font-black shadow-2xs shrink-0">
-                    {{ product.discount_percent|floatformat:0 }}% OFF
-                </span>
-                {% endif %}
+            <!-- Image / Placeholder at the very top -->
+            {% if product.primary_image %}
+            <div class="pos-card-thumb mb-2.5 w-full rounded-xl overflow-hidden bg-[var(--surface-2)] border border-[var(--border)]/40 flex items-center justify-center">
+                <img src="{{ product.primary_image.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
             </div>
-
-            <!-- Product Title -->
-            <h4 class="text-sm sm:text-base font-bold text-ink line-clamp-2 leading-snug group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors mt-1">
-                {{ product.name }}
-            </h4>
-        </div>
-
-        <div class="mt-3">
-            <!-- Stock Pill -->
-            {% if product.type == 'stock' %}
-            <div class="mb-2.5 flex items-center">
-                {% if product.stock_qty <= 0 %}
-                <span class="pos-stock-out inline-flex items-center gap-1.5 text-xs font-bold text-white bg-rose-600 px-2.5 py-0.5 rounded-full shadow-2xs">
-                    <span class="w-1.5 h-1.5 rounded-full bg-rose-200"></span>
-                    {% trans "Out of stock" %}
-                </span>
-                {% else %}
-                <span class="pos-stock-in inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 px-2.5 py-0.5 rounded-full shadow-2xs">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-200"></span>
-                    {{ product.stock_qty|floatformat:0 }} {% trans "in stock" %}
-                </span>
-                {% endif %}
+            {% else %}
+            <div class="pos-card-thumb mb-2.5 w-full rounded-xl overflow-hidden bg-[var(--surface-2)]/50 border border-[var(--border)]/40 flex flex-col items-center justify-center text-muted group-hover:bg-[var(--surface-2)]/80 transition-colors">
+                <div class="w-10 h-10 rounded-xl bg-[var(--surface-1)] border border-[var(--border)]/50 flex items-center justify-center shadow-2xs mb-1.5">
+                    <svg class="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                </div>
+                <span class="text-[10px] font-bold tracking-wider uppercase text-muted/70">{{ product.name|slice:":2" }}</span>
             </div>
             {% endif %}
 
-            <!-- Price and Tactile Plus Action -->
-            <div class="pt-2.5 border-t border-[var(--border)]/50 flex items-center justify-between gap-2">
-                <div class="flex flex-col min-w-0">
-                    {% if product.discount_percent > 0 %}
-                    <span class="text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors leading-tight">
-                        ${{ product.effective_price|floatformat:2|intcomma }}
-                    </span>
-                    <span class="text-xs sm:text-sm font-mono text-muted line-through font-semibold mt-0.5">
-                        ${{ product.selling_price|floatformat:2|intcomma }}
+            <!-- Product Title -->
+            <h4 class="text-sm sm:text-base font-bold text-ink line-clamp-2 leading-snug group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors min-h-[2.5rem]">
+                {{ product.name }}
+            </h4>
+
+            <!-- SKU (left) & Stock Count (right) in the same row -->
+            <div class="mt-2 flex items-center justify-between text-xs gap-1.5 h-6">
+                <span class="px-2 py-0.5 rounded-lg bg-[var(--surface-2)]/80 text-muted border border-[var(--border)]/50 font-mono font-bold tracking-tight truncate max-w-[55%]">
+                    {{ product.sku }}
+                </span>
+                {% if product.type == 'stock' %}
+                    {% if product.stock_qty <= 0 %}
+                    <span class="pos-stock-out inline-flex items-center gap-1 text-[11px] font-bold text-white bg-rose-600 px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-200"></span>
+                        {% trans "Out of stock" %}
                     </span>
                     {% else %}
-                    <span class="text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors leading-tight">
-                        ${{ product.selling_price|floatformat:2|intcomma }}
+                    <span class="pos-stock-in inline-flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-200"></span>
+                        {{ product.stock_qty|floatformat:0 }} {% trans "in stock" %}
                     </span>
                     {% endif %}
-                </div>
-                <span class="w-8 h-8 sm:w-8.5 sm:h-8.5 flex items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--brand-600)] dark:text-[var(--brand-400)] group-hover:bg-[var(--brand-600)] group-hover:text-white transition-all shadow-2xs border border-[var(--border)]/60 shrink-0">
-                    <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 4v16m8-8H4" />
-                    </svg>
-                </span>
+                {% endif %}
             </div>
+        </div>
+
+        <!-- Price and Tactile Plus Action (with Discount Tag clipped with price) -->
+        <div class="pt-2.5 border-t border-[var(--border)]/60 flex items-center justify-between gap-2 mt-3">
+            <div class="flex flex-col min-w-0 justify-center">
+                {% if product.discount_percent > 0 %}
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="pos-price-val text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors leading-tight">
+                        {{ product.effective_price|money:request.organization.currency }}
+                    </span>
+                    <span class="px-1.5 py-0.5 rounded-md text-[10px] font-black bg-amber-600 text-white shadow-2xs shrink-0 tracking-tight">
+                        {{ product.discount_percent|floatformat:0 }}% OFF
+                    </span>
+                </div>
+                <span class="text-xs sm:text-sm font-mono text-muted line-through font-semibold mt-0.5">
+                    {{ product.selling_price|money:request.organization.currency }}
+                </span>
+                {% else %}
+                <span class="pos-price-val text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors leading-tight">
+                    {{ product.selling_price|money:request.organization.currency }}
+                </span>
+                {% endif %}
+            </div>
+            <span class="pos-plus-btn w-8.5 h-8.5 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--brand-600)] dark:text-[var(--brand-400)] group-hover:bg-[var(--brand-600)] group-hover:text-white transition-all shadow-2xs border border-[var(--border)] shrink-0 font-bold">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+            </span>
         </div>
     </button>
     {% empty %}

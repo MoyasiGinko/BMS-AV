@@ -305,3 +305,31 @@ class UsageCounter(TenantModel):
 
     def __str__(self) -> str:
         return f"[{self.organization}] {self.metric}: {self.value}"
+
+
+class FeatureOverride(TenantModel):
+    """Explicit per-organization override for a module or feature key (enables or disables)."""
+
+    feature_code = models.CharField(_("feature or module code"), max_length=64, db_index=True)
+    is_enabled = models.BooleanField(_("is enabled"), default=True)
+    reason = models.CharField(_("reason for override"), max_length=255, blank=True)
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("feature override")
+        verbose_name_plural = _("feature overrides")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "feature_code"],
+                name="uniq_org_feature_override",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "feature_code"]),
+        ]
+
+    def __str__(self) -> str:
+        state = "enabled" if self.is_enabled else "disabled"
+        return f"[{self.organization}] {self.feature_code}: {state}"

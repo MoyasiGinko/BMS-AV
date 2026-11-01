@@ -14,7 +14,7 @@ from django.utils import timezone
 from apps.core.events import publish
 from apps.core.exceptions import ValidationError
 from apps.core.metrics import record_metric
-from apps.core.models import ApiKey, AuditLog, NumberSequence
+from apps.core.models import ApiKey, AuditLog, NumberSequence, VoidDocumentNumber
 from apps.core.tenant_context import get_current_organization_id
 
 
@@ -75,6 +75,92 @@ def generate_next_number(
     seq.save(update_fields=["next_number", "last_reset_date", "updated_at"])
 
     return formatted
+
+
+@transaction.atomic
+def record_void_document_number(
+    *,
+    organization_id: int,
+    sequence: NumberSequence | None = None,
+    sequence_name: str | None = None,
+    document_number: str,
+    reason: str,
+    sequence_number: int | None = None,
+    source: str = "",
+    actor: Any = None,
+) -> VoidDocumentNumber:
+    """Record a sequential document number as void or skipped for statutory tracking."""
+    if sequence is None:
+        if not sequence_name:
+            raise ValidationError("Either sequence or sequence_name must be provided.")
+        # Scoped to organization using all_tenants for execution outside request thread context
+        sequence = (
+            NumberSequence.all_tenants.select_for_update()
+            .filter(organization_id=organization_id, name=sequence_name)
+            .first()
+        )
+        if sequence is None:
+            raise ValidationError(f"Number sequence '{sequence_name}' not found for organization.")
+
+    # Scoped to organization using all_tenants for execution outside request thread context
+    void_record, _ = VoidDocumentNumber.all_tenants.get_or_create(
+        organization_id=organization_id,
+        sequence=sequence,
+        document_number=document_number,
+        defaults={
+            "sequence_number": sequence_number,
+            "reason": reason,
+            "source": source,
+            "actor": actor if getattr(actor, "is_authenticated", False) else None,
+            "voided_at": timezone.now(),
+        },
+    )
+    return void_record
+
+
+def list_void_document_numbers(
+    *,
+    organization_id: int,
+    sequence_name: str | None = None,
+) -> Any:
+    """List all voided document numbers for an organization, optionally filtered by sequence."""
+    # Scoped to organization using all_tenants for execution outside request thread context
+    qs = VoidDocumentNumber.all_tenants.filter(organization_id=organization_id)
+    if sequence_name:
+        qs = qs.filter(sequence__name=sequence_name)
+    return qs.order_by("-voided_at")
+
+
+@transaction.atomic
+def detect_and_record_sequence_gaps(
+    *,
+    organization_id: int,
+    sequence: NumberSequence,
+    expected_next: int,
+    actual_next: int,
+    reason: str = "Unbroken sequence gap detected",
+    source: str = "",
+    actor: Any = None,
+) -> list[VoidDocumentNumber]:
+    """Detect and record all skipped numbers between expected_next and actual_next - 1 as void."""
+    if actual_next <= expected_next:
+        return []
+
+    created_voids = []
+    for num in range(expected_next, actual_next):
+        num_str = str(num).zfill(sequence.padding)
+        formatted = f"{sequence.prefix}{num_str}{sequence.suffix}"
+        void_entry = record_void_document_number(
+            organization_id=organization_id,
+            sequence=sequence,
+            document_number=formatted,
+            sequence_number=num,
+            reason=reason,
+            source=source,
+            actor=actor,
+        )
+        created_voids.append(void_entry)
+    return created_voids
 
 
 @transaction.atomic

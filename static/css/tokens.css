@@ -198,9 +198,11 @@ aside.bos-sidebar nav a[class*="border-l-[3px]"] {
 
 [data-theme="dark"] .card,
 [data-theme="dark"] [class*="card"],
+[data-theme="dark"] .neu-card,
 [data-theme="dark"] #dashboard-widgets-container > div > div {
   background-color: #111a2e !important;
   border-color: #223152 !important;
+  color: #e6edf7 !important;
 }
 
 [data-theme="dark"] input[type="text"],
@@ -383,3 +385,32 @@ body.overflow-hidden {
 [data-theme="fast"] .border-slate-300:not([data-keep-color]) {
   border-color: var(--border) !important;
 }
+
+/* ==========================================================================
+   Semantic Design Token Utility Classes
+   Ensures standard class names dynamically inherit active theme variables.
+   ========================================================================== */
+.bg-surface { background-color: var(--surface) !important; }
+.bg-surface-2 { background-color: var(--surface-2) !important; }
+.bg-app { background-color: var(--bg) !important; }
+.border-line { border-color: var(--border) !important; }
+.border-line-strong { border-color: var(--border-strong) !important; }
+.text-ink { color: var(--text) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-subtle { color: var(--text-subtle) !important; }
+
+[data-theme="dark"] .text-ink { color: #e6edf7 !important; }
+[data-theme="dark"] .text-muted { color: #93a4c0 !important; }
+[data-theme="dark"] .text-subtle { color: #6b7c99 !important; }
+
+/* Sub-navigation tabs consistent sizing across all themes */
+.neu-subnav-btn {
+  height: 36px !important;
+  min-height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+}
+

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import datetime
 import logging
 import uuid
@@ -26,6 +25,7 @@ from apps.billing.events import (
 )
 from apps.billing.gateway import GatewayWebhookEvent, get_payment_gateway
 from apps.billing.models import (
+    FeatureOverride,
     Module,
     Plan,
     PlanModule,
@@ -37,6 +37,7 @@ from apps.billing.models import (
 from apps.billing.registry import registry
 from apps.core.events import publish
 from apps.core.exceptions import ValidationError
+from apps.core.permissions import _FEATURE_OVERRIDES
 
 logger = logging.getLogger(__name__)
 
@@ -607,47 +608,115 @@ def increment_usage(
 # ---------------------------------------------------------------------------
 
 
+def _get_base_modules_for_org(organization: Any) -> set[str]:
+    enabled_keys = {mod.key for mod in registry.all() if mod.is_core}
+    subscription = Subscription.all_tenants.filter(organization=organization).select_related("plan").first()
+    if subscription and subscription.is_active_or_trialing and subscription.plan:
+        plan_modules = set(
+            PlanModule.objects.filter(plan=subscription.plan, included=True).values_list(
+                "module__key", flat=True
+            )
+        )
+        enabled_keys.update(plan_modules)
+    elif subscription is None:
+        enabled_keys.update(mod.key for mod in registry.all())
+    return enabled_keys
+
+
+def _apply_tenant_overrides(organization: Any, enabled_keys: set[str]) -> None:
+    try:
+        for override in FeatureOverride.all_tenants.filter(organization=organization):
+            mod_key = override.feature_code.split(".", 1)[0]
+            if override.is_enabled:
+                enabled_keys.add(mod_key)
+            else:
+                enabled_keys.discard(mod_key)
+    except Exception as exc:
+        logger.debug("FeatureOverride lookup failed: %s", exc)
+
+    org_id = getattr(organization, "pk", getattr(organization, "id", None))
+    if org_id is not None:
+        for (o_id, f_code), is_allowed in _FEATURE_OVERRIDES.items():
+            if o_id == org_id:
+                mod_key = f_code.split(".", 1)[0]
+                if is_allowed:
+                    enabled_keys.add(mod_key)
+                else:
+                    enabled_keys.discard(mod_key)
+
+    for mod in registry.all():
+        if mod.is_core:
+            enabled_keys.add(mod.key)
+
+
+def get_organization_enabled_modules(organization: Any) -> set[str]:
+    """Resolve the set of enabled module keys for an organization according to AGENTS.md:
+    Resolution order: core, then plan, then per-organization override (explicit on or off), then dependency validation.
+    """
+    if organization is None:
+        return set()
+
+    enabled_keys = _get_base_modules_for_org(organization)
+    _apply_tenant_overrides(organization, enabled_keys)
+    return registry.validate_dependencies(enabled_keys)
+
+
+def set_organization_feature_override(
+    *,
+    organization: Any,
+    feature_code: str,
+    is_enabled: bool,
+    reason: str = "",
+) -> FeatureOverride:
+    """Persist an explicit per-organization override for a module or feature key."""
+    override, _ = FeatureOverride.all_tenants.update_or_create(
+        organization=organization,
+        feature_code=feature_code,
+        defaults={"is_enabled": is_enabled, "reason": reason},
+    )
+    return override
+
+
+def remove_organization_feature_override(
+    *,
+    organization: Any,
+    feature_code: str,
+) -> None:
+    """Remove an explicit per-organization override for a module or feature key."""
+    FeatureOverride.all_tenants.filter(
+        organization=organization,
+        feature_code=feature_code,
+    ).delete()
+
+
 def check_organization_feature_entitlement(organization: Any, feature_code: str) -> bool | None:
     """Entitlement engine callback (Layer 1).
-
-    Returns:
-        True: if feature/module is permitted under active plan.
-        False: if forbidden or subscription is expired/missing.
-        None: if no opinion (falls back to next checker or default).
+    Resolution order: core, then plan, then per-organization override (explicit on or off), then dependency validation.
     """
     if organization is None:
         return False
 
     module_key = feature_code.split(".", 1)[0] if "." in feature_code else feature_code
     mod_def = registry.get(module_key)
-
-    # Core platform modules are universally accessible
     if mod_def and mod_def.is_core:
         return True
 
-    cached_modules = getattr(organization, "_cached_plan_modules", None)
-    if cached_modules is None:
-        subscription = (
-            Subscription.all_tenants.filter(organization=organization).select_related("plan").first()
-        )
+    org_id = getattr(organization, "pk", getattr(organization, "id", None))
+    if org_id is not None and not _FEATURE_OVERRIDES.get((org_id, feature_code), True):
+        return False
 
-        if subscription is None:
-            return None
+    try:
+        db_override = FeatureOverride.all_tenants.filter(
+            organization=organization, feature_code=feature_code
+        ).first()
+    except Exception:
+        db_override = None
 
-        if not subscription.is_active_or_trialing:
-            return False
+    if db_override is not None and not db_override.is_enabled:
+        return False
 
-        # Fetch all included module keys for this plan in 1 query
-        included_keys = set(
-            PlanModule.objects.filter(plan=subscription.plan, included=True).values_list(
-                "module__key", flat=True
-            )
-        )
-        with contextlib.suppress(Exception):
-            organization._cached_plan_modules = included_keys
-        cached_modules = included_keys
-
-    return module_key in cached_modules
+    enabled_modules = get_organization_enabled_modules(organization)
+    return module_key in enabled_modules
 
 
 def require_task_feature(feature_code: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:

@@ -1,4 +1,4 @@
-{% load i18n humanize %}
+{% load i18n humanize money_tags %}
 <div id="product-table-container" class="space-y-4">
     {% if products %}
     <div class="neu-table-card overflow-x-auto bg-[var(--surface-1)] rounded-2xl transition-all">
@@ -20,9 +20,13 @@
                 <tr class="hover:bg-surface-2 transition-colors">
                     <td class="px-6 py-4">
                         <div class="flex items-center space-x-3.5">
+                            {% if p.primary_image %}
+                            <img src="{{ p.primary_image.image.url }}" alt="{{ p.name }}" class="w-10 h-10 rounded-xl object-cover border border-line shadow-2xs flex-shrink-0" />
+                            {% else %}
                             <div class="neu-initial-avatar w-10 h-10 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-black text-xs uppercase shadow-2xs flex-shrink-0">
                                 {{ p.name|slice:":2" }}
                             </div>
+                            {% endif %}
                             <div>
                                 <a href="{% url 'catalog:product_detail' p.pk %}" class="product-title font-bold text-ink hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-sm">
                                     {{ p.name }}
@@ -70,21 +74,21 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-4 text-right font-mono text-xs font-bold text-muted">
-                        ${{ p.cost_price|floatformat:2|intcomma }}
+                        {{ p.cost_price|money:request.organization.currency }}
                     </td>
                     <td class="px-4 py-4 text-right">
                         {% if p.discount_percent > 0 %}
                         <div class="flex flex-col items-end">
                             <span class="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
-                                ${{ p.effective_price|floatformat:2|intcomma }}
+                                {{ p.effective_price|money:request.organization.currency }}
                             </span>
                             <span class="line-through text-xs font-mono text-muted">
-                                ${{ p.selling_price|floatformat:2|intcomma }}
+                                {{ p.selling_price|money:request.organization.currency }}
                             </span>
                         </div>
                         {% else %}
                         <span class="text-sm font-black font-mono text-ink">
-                            ${{ p.selling_price|floatformat:2|intcomma }}
+                            {{ p.selling_price|money:request.organization.currency }}
                         </span>
                         {% endif %}
                     </td>

@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n money_tags %}
 
 {% block title %}{{ credit_note.credit_note_number }} | {% trans "Credit Notes" %}{% endblock %}
 
@@ -64,7 +64,7 @@
         <div>
             <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Total Credit" %}</span>
             <p class="text-sm font-mono font-bold text-ink mt-1">
-                ${{ credit_note.grand_total }}
+                {{ credit_note.grand_total|money:credit_note.currency }}
             </p>
         </div>
         <div>
@@ -109,7 +109,7 @@
                     <tr>
                         <td class="py-3 px-4 font-medium text-ink">{{ line.product.name }}</td>
                         <td class="py-3 px-4 text-right font-mono">{{ line.quantity }}</td>
-                        <td class="py-3 px-4 text-right font-mono">${{ line.unit_price }}</td>
+                        <td class="py-3 px-4 text-right font-mono">{{ line.unit_price|money:credit_note.currency }}</td>
                         <td class="py-3 px-4 text-center">
                             {% if line.restock %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-600 text-white font-bold shadow-2xs">{% trans "Yes" %}</span>
@@ -117,8 +117,8 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{% trans "No" %}</span>
                             {% endif %}
                         </td>
-                        <td class="py-3 px-4 text-right font-mono">${{ line.tax_amount }}</td>
-                        <td class="py-3 px-4 text-right font-mono font-medium text-ink">${{ line.line_total }}</td>
+                        <td class="py-3 px-4 text-right font-mono">{{ line.tax_amount|money:credit_note.currency }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium text-ink">{{ line.line_total|money:credit_note.currency }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -129,15 +129,15 @@
             <div class="w-full sm:w-80 space-y-2 text-sm">
                 <div class="flex justify-between text-muted">
                     <span>{% trans "Subtotal:" %}</span>
-                    <span class="font-mono">${{ credit_note.subtotal }}</span>
+                    <span class="font-mono">{{ credit_note.subtotal|money:credit_note.currency }}</span>
                 </div>
                 <div class="flex justify-between text-muted">
                     <span>{% trans "Tax Total:" %}</span>
-                    <span class="font-mono">${{ credit_note.tax_total }}</span>
+                    <span class="font-mono">{{ credit_note.tax_total|money:credit_note.currency }}</span>
                 </div>
                 <div class="pt-2 border-t border-line flex justify-between text-base font-bold text-ink">
                     <span>{% trans "Total Credit:" %}</span>
-                    <span class="font-mono text-indigo-600 dark:text-indigo-400">${{ credit_note.grand_total }}</span>
+                    <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ credit_note.grand_total|money:credit_note.currency }}</span>
                 </div>
             </div>
         </div>

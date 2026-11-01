@@ -69,7 +69,7 @@ def list_products(
     qs = (
         Product.all_tenants.filter(organization_id=organization_id)
         .select_related("category", "unit", "tax_code")
-        .prefetch_related("variants")
+        .prefetch_related("variants", "images")
     )
 
     if search.strip():

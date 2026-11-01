@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n money_tags %}
 
 {% block title %}{{ invoice.invoice_number }} | {% trans "Sales Invoices" %}{% endblock %}
 
@@ -79,7 +79,7 @@
         <div>
             <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">{% trans "Balance Due" %}</span>
             <p class="text-sm font-mono font-bold {% if invoice.balance_due > 0 %}text-amber-600 dark:text-amber-400{% else %}text-emerald-600{% endif %} mt-1">
-                ${{ invoice.balance_due }}
+                {{ invoice.balance_due|money:invoice.currency }}
             </p>
         </div>
         <div>
@@ -119,10 +119,10 @@
                             <span class="block text-xs text-slate-400 font-mono">{{ line.product.sku }}</span>
                         </td>
                         <td class="py-3 px-4 text-right font-mono">{{ line.quantity }}</td>
-                        <td class="py-3 px-4 text-right font-mono">${{ line.unit_price }}</td>
+                        <td class="py-3 px-4 text-right font-mono">{{ line.unit_price|money:invoice.currency }}</td>
                         <td class="py-3 px-4 text-right font-mono">{{ line.discount_percent }}%</td>
-                        <td class="py-3 px-4 text-right font-mono">${{ line.tax_amount }}</td>
-                        <td class="py-3 px-4 text-right font-mono font-medium text-ink">${{ line.line_total }}</td>
+                        <td class="py-3 px-4 text-right font-mono">{{ line.tax_amount|money:invoice.currency }}</td>
+                        <td class="py-3 px-4 text-right font-mono font-medium text-ink">{{ line.line_total|money:invoice.currency }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -134,21 +134,21 @@
             <div class="w-full sm:w-80 space-y-2 text-sm">
                 <div class="flex justify-between text-muted">
                     <span>{% trans "Subtotal:" %}</span>
-                    <span class="font-mono">${{ invoice.subtotal }}</span>
+                    <span class="font-mono">{{ invoice.subtotal|money:invoice.currency }}</span>
                 </div>
                 {% if invoice.discount_total > 0 %}
                 <div class="flex justify-between text-muted">
                     <span>{% trans "Discount Total:" %}</span>
-                    <span class="font-mono text-emerald-600">-${{ invoice.discount_total }}</span>
+                    <span class="font-mono text-emerald-600">-{{ invoice.discount_total|money:invoice.currency }}</span>
                 </div>
                 {% endif %}
                 <div class="flex justify-between text-muted">
                     <span>{% trans "Tax Total:" %}</span>
-                    <span class="font-mono">${{ invoice.tax_total }}</span>
+                    <span class="font-mono">{{ invoice.tax_total|money:invoice.currency }}</span>
                 </div>
                 <div class="pt-2 border-t border-line flex justify-between text-base font-bold text-ink">
                     <span>{% trans "Grand Total:" %}</span>
-                    <span class="font-mono text-indigo-600 dark:text-indigo-400">${{ invoice.grand_total }}</span>
+                    <span class="font-mono text-indigo-600 dark:text-indigo-400">{{ invoice.grand_total|money:invoice.currency }}</span>
                 </div>
             </div>
         </div>

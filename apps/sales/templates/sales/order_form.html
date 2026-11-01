@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% load i18n %}
+{% load i18n money_tags %}
 
 {% block title %}{% trans "New Sales Order" %} | {{ request.organization.name }}{% endblock %}
 
@@ -100,7 +100,7 @@
                             <select name="product" required class="w-full text-base font-medium rounded-xl border border-line bg-surface text-ink shadow-2xs">
                                 <option value="">{% trans "Select a product..." %}</option>
                                 {% for p in products %}
-                                <option value="{{ p.pk }}">{{ p.name }} ({{ p.sku }}) - ${{ p.price }}</option>
+                                <option value="{{ p.pk }}">{{ p.name }} ({{ p.sku }}) - {{ p.price|money:request.organization.currency }}</option>
                                 {% endfor %}
                             </select>
                         </div>

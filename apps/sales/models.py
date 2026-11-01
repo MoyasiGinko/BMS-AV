@@ -813,7 +813,7 @@ class CreditNoteLine(TenantModel):
         return f"{self.credit_note.credit_note_number} - {self.product.name} ({self.quantity})"
 
 
-class PaymentMethod(models.TextChoices):
+class PaymentMethodChoices(models.TextChoices):
     CASH = "cash", _("Cash")
     BANK_TRANSFER = "bank_transfer", _("Bank Transfer")
     CREDIT_CARD = "credit_card", _("Credit Card")
@@ -821,6 +821,69 @@ class PaymentMethod(models.TextChoices):
     CHECK = "check", _("Check / Cheque")
     ONLINE = "online", _("Online Payment")
     OTHER = "other", _("Other")
+
+
+class PaymentProcessMode(models.TextChoices):
+    RECORD_ONLY = "record_only", _("Record Only")
+    MANUAL_VERIFY = "manual_verify", _("Manual Verification")
+    GATEWAY = "gateway", _("Payment Gateway")
+
+
+class PaymentMethod(TenantModel):
+    """Tenant-scoped dynamic payment method (e.g. Cash, bKash, Bank Wire, Stripe)."""
+
+    # Backward-compatible choice constants
+    CASH = "cash"
+    BANK_TRANSFER = "bank_transfer"
+    CREDIT_CARD = "credit_card"
+    DEBIT_CARD = "debit_card"
+    CHECK = "check"
+    ONLINE = "online"
+    OTHER = "other"
+    choices = PaymentMethodChoices.choices
+
+    public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
+    name = models.CharField(_("Name"), max_length=64)
+    code = models.SlugField(_("Code"), max_length=32)
+    process_mode = models.CharField(
+        _("Process Mode"),
+        max_length=32,
+        choices=PaymentProcessMode.choices,
+        default=PaymentProcessMode.RECORD_ONLY,
+    )
+    settlement_account = models.ForeignKey(
+        "accounting.Account",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales_payment_methods",
+        verbose_name=_("Settlement Account"),
+    )
+    fee_rate = models.DecimalField(
+        _("Fee Rate"),
+        max_digits=6,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    requires_tx_id = models.BooleanField(_("Requires Transaction ID"), default=False)
+    requires_proof = models.BooleanField(_("Requires Proof Document"), default=False)
+    is_active = models.BooleanField(_("Active"), default=True)
+    is_default = models.BooleanField(_("Default"), default=False)
+    sort_order = models.PositiveIntegerField(_("Sort Order"), default=0)
+
+    class Meta:
+        verbose_name = _("Payment Method")
+        verbose_name_plural = _("Payment Methods")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "code"],
+                name="uniq_org_payment_method_code",
+            )
+        ]
+        ordering = ("sort_order", "name")
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.code})" 
 
 
 class PaymentStatus(models.TextChoices):
@@ -854,6 +917,14 @@ class Payment(TenantModel):
         max_length=32,
         choices=PaymentMethod.choices,
         default=PaymentMethod.CASH,
+    )
+    payment_method_record = models.ForeignKey(
+        "sales.PaymentMethod",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payments",
+        verbose_name=_("Payment Method Record"),
     )
     amount = models.DecimalField(
         _("Payment Amount"),

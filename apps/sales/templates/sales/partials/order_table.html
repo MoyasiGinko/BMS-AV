@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n money_tags %}
 <div id="order-table-container">
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-muted">
@@ -41,7 +41,7 @@
                         {% endif %}
                     </td>
                     <td class="py-3.5 px-4 text-right font-mono font-medium text-ink">
-                        ${{ order.grand_total }}
+                        {{ order.grand_total|money:order.currency }}
                     </td>
                     <td class="py-3.5 px-4 text-right">
                         <a href="{% url 'sales:order_detail' public_id=order.public_id %}" class="text-xs text-muted hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">

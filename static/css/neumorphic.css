@@ -922,14 +922,15 @@ html[data-theme="spatial"],
 
 /* ==========================================================================
    Neumorphic Components & Utility Classes
+   Strictly scoped to [data-theme="neumorphic"] so they do not leak into Dark/Fast/Spatial modes.
    ========================================================================== */
-.neu-surface {
+[data-theme="neumorphic"] .neu-surface {
   background-color: var(--neu-surface) !important;
   color: var(--neu-text) !important;
   font-family: var(--neu-font) !important;
 }
 
-.neu-card {
+[data-theme="neumorphic"] .neu-card {
   background-color: var(--neu-surface);
   border-radius: var(--neu-radius-card);
   box-shadow: var(--neu-raise-lg);
@@ -939,7 +940,7 @@ html[data-theme="spatial"],
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.neu-card-stat {
+[data-theme="neumorphic"] .neu-card-stat {
   background-color: var(--neu-surface);
   border-radius: var(--neu-radius-card);
   box-shadow: var(--neu-raise-lg);
@@ -948,7 +949,7 @@ html[data-theme="spatial"],
   color: var(--neu-text);
 }
 
-.neu-well {
+[data-theme="neumorphic"] .neu-well {
   background-color: var(--neu-surface);
   border-radius: var(--neu-radius-well);
   box-shadow: var(--neu-inset-lg);
@@ -957,7 +958,7 @@ html[data-theme="spatial"],
   color: var(--neu-text);
 }
 
-.neu-btn-primary {
+[data-theme="neumorphic"] .neu-btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -980,18 +981,18 @@ html[data-theme="spatial"],
   transition: box-shadow 0.08s ease, transform 0.08s ease;
 }
 
-.neu-btn-primary:active {
+[data-theme="neumorphic"] .neu-btn-primary:active {
   box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.2);
   background-color: #3730A3;
   transform: translateY(1px);
 }
 
-.neu-btn-primary:focus-visible {
+[data-theme="neumorphic"] .neu-btn-primary:focus-visible {
   outline: 2px solid #4F46E5;
   outline-offset: 3px;
 }
 
-.neu-btn-ghost {
+[data-theme="neumorphic"] .neu-btn-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1014,17 +1015,17 @@ html[data-theme="spatial"],
   transition: box-shadow 0.08s ease, transform 0.08s ease;
 }
 
-.neu-btn-ghost:active {
+[data-theme="neumorphic"] .neu-btn-ghost:active {
   box-shadow: var(--neu-inset-sm);
   transform: translateY(1px);
 }
 
-.neu-btn-ghost:focus-visible {
+[data-theme="neumorphic"] .neu-btn-ghost:focus-visible {
   outline: 2px solid var(--neu-accent-text);
   outline-offset: 3px;
 }
 
-.neu-btn-round {
+[data-theme="neumorphic"] .neu-btn-round {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1040,17 +1041,17 @@ html[data-theme="spatial"],
   transition: box-shadow 0.08s ease, color 0.15s ease, transform 0.08s ease;
 }
 
-.neu-btn-round:hover {
+[data-theme="neumorphic"] .neu-btn-round:hover {
   color: var(--neu-accent-text);
 }
 
-.neu-btn-round:active {
+[data-theme="neumorphic"] .neu-btn-round:active {
   box-shadow: var(--neu-inset-sm);
   color: var(--neu-accent-fill);
   transform: scale(0.98);
 }
 
-.neu-search {
+[data-theme="neumorphic"] .neu-search {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1066,7 +1067,7 @@ html[data-theme="spatial"],
   transition: box-shadow 0.15s ease;
 }
 
-.neu-search input {
+[data-theme="neumorphic"] .neu-search input {
   background: transparent;
   border: none;
   outline: none;
@@ -1076,11 +1077,11 @@ html[data-theme="spatial"],
   font-size: 14px;
 }
 
-.neu-search input::placeholder {
+[data-theme="neumorphic"] .neu-search input::placeholder {
   color: var(--neu-text-muted);
 }
 
-.neu-segmented {
+[data-theme="neumorphic"] .neu-segmented {
   display: inline-flex;
   align-items: center;
   padding: 4px;
@@ -1090,7 +1091,7 @@ html[data-theme="spatial"],
   gap: 4px;
 }
 
-.neu-segmented-btn {
+[data-theme="neumorphic"] .neu-segmented-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1106,7 +1107,7 @@ html[data-theme="spatial"],
   transition: all 0.12s ease;
 }
 
-.neu-segmented-btn.active {
+[data-theme="neumorphic"] .neu-segmented-btn.active {
   background-color: var(--neu-surface);
   color: var(--neu-accent-text);
   font-weight: 700;
@@ -1204,7 +1205,7 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] .pos-terminal .pos-catalog-card,
 .pos-catalog-card {
   aspect-ratio: auto !important;
-  min-height: 205px !important;
+  min-height: 320px !important;
   max-height: none !important;
   height: auto !important;
 }
@@ -1730,8 +1731,27 @@ html[data-theme="spatial"],
   max-height: none !important;
 }
 
-/* POS Catalog Card divider line softening */
+/* POS Catalog Card divider and high-contrast price & action */
 [data-theme="neumorphic"] .pos-catalog-card .border-t {
   border-color: var(--neu-line) !important;
-  opacity: 0.5 !important;
+  opacity: 1 !important;
+}
+
+[data-theme="neumorphic"] .pos-catalog-card .text-ink,
+[data-theme="neumorphic"] .pos-catalog-card .pos-price-val {
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .pos-catalog-card .pos-plus-btn {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  box-shadow: 3px 3px 6px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
+  border: 1px solid var(--neu-line) !important;
+}
+
+[data-theme="neumorphic"] .pos-catalog-card:hover .pos-plus-btn {
+  background-color: var(--neu-accent-fill) !important;
+  color: #FFFFFF !important;
+  border-color: var(--neu-accent-fill) !important;
+  box-shadow: 2px 2px 4px var(--neu-shadow-dark) !important;
 }

@@ -72,6 +72,7 @@ from apps.sales.models import (
     Payment,
     PaymentAllocation,
     PaymentMethod,
+    PaymentProcessMode,
     PaymentRefund,
     PaymentReminderLog,
     PaymentReminderRule,
@@ -2379,3 +2380,90 @@ def process_due_payment_reminders(
         "failed": failed_items,
         "logs": logs,
     }
+
+
+# ---------------------------------------------------------------------------
+# Dynamic Payment Method Management
+# ---------------------------------------------------------------------------
+
+
+def create_payment_method(
+    *,
+    organization: Any,
+    name: str,
+    code: str,
+    process_mode: str = "record_only",
+    settlement_account: Any = None,
+    fee_rate: Decimal = Decimal("0.0000"),
+    requires_tx_id: bool = False,
+    requires_proof: bool = False,
+    is_active: bool = True,
+    is_default: bool = False,
+    sort_order: int = 0,
+) -> Any:
+    """Create a new tenant-scoped payment method record."""
+    with transaction.atomic():
+        if is_default:
+            PaymentMethod.objects.filter(is_default=True).update(is_default=False)
+
+        return PaymentMethod.objects.create(
+            organization=organization,
+            name=name,
+            code=code,
+            process_mode=process_mode,
+            settlement_account=settlement_account,
+            fee_rate=fee_rate,
+            requires_tx_id=requires_tx_id,
+            requires_proof=requires_proof,
+            is_active=is_active,
+            is_default=is_default,
+            sort_order=sort_order,
+        )
+
+
+def update_payment_method(
+    *,
+    payment_method: Any,
+    **kwargs: Any,
+) -> Any:
+    """Update an existing payment method record."""
+    with transaction.atomic():
+        if kwargs.get("is_default"):
+            PaymentMethod.objects.filter(is_default=True).exclude(pk=payment_method.pk).update(
+                is_default=False
+            )
+
+        for key, value in kwargs.items():
+            setattr(payment_method, key, value)
+        payment_method.save()
+        return payment_method
+
+
+def list_active_payment_methods(*, organization: Any) -> Any:
+    """List all active payment methods for an organization ordered by sort order."""
+    # Scoped to organization using all_tenants for execution outside request thread context
+    return PaymentMethod.all_tenants.filter(organization=organization, is_active=True).order_by("sort_order", "name")
+
+
+def get_payment_method_by_code(*, organization: Any, code: str) -> Any:
+    """Retrieve a payment method record by code for an organization."""
+    # Scoped to organization using all_tenants for execution outside request thread context
+    return PaymentMethod.all_tenants.filter(organization=organization, code=code).first()
+
+
+def ensure_default_payment_methods(*, organization: Any) -> list[Any]:
+    """Seed standard payment methods (Cash, Bank Transfer) if none exist for organization."""
+    defaults = [
+        {"name": "Cash", "code": "cash", "process_mode": PaymentProcessMode.RECORD_ONLY, "is_default": True, "sort_order": 1},
+        {"name": "Bank Transfer", "code": "bank_transfer", "process_mode": PaymentProcessMode.MANUAL_VERIFY, "requires_tx_id": True, "requires_proof": True, "sort_order": 2},
+    ]
+    created = []
+    for d in defaults:
+        # Scoped to organization using all_tenants for execution outside request thread context
+        pm, _ = PaymentMethod.all_tenants.get_or_create(
+            organization=organization,
+            code=d["code"],
+            defaults=d,
+        )
+        created.append(pm)
+    return created

@@ -234,6 +234,14 @@ class Product(TenantModel):
             return ((self.selling_price - self.cost_price) / self.cost_price) * Decimal("100")
         return Decimal("0.0000")
 
+    @property
+    def primary_image(self) -> ProductImage | None:
+        """Return the primary image or first gallery image if available."""
+        if hasattr(self, "_prefetched_objects_cache") and "images" in self._prefetched_objects_cache:
+            imgs = self._prefetched_objects_cache["images"]
+            return imgs[0] if imgs else None
+        return self.images.order_by("-is_primary", "sort_order", "created_at").first()
+
 
 class ProductVariant(TenantModel):
     """Specific variant of a product (e.g. Size, Color)."""

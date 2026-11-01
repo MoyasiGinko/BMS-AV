@@ -194,6 +194,16 @@ class ProductForm(forms.Form):
             }
         ),
     )
+    image = forms.ImageField(
+        label=_("Product Image"),
+        required=False,
+        widget=forms.FileInput(
+            attrs={
+                "class": "w-full text-sm font-medium text-ink file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-primary file:text-white hover:file:opacity-90 cursor-pointer",
+                "accept": "image/*",
+            }
+        ),
+    )
 
     def __init__(self, *args: Any, organization_id: int | None = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)

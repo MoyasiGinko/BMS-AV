@@ -119,6 +119,51 @@ class NumberSequence(TenantModel):
         return f"{self.name} ({self.prefix}...)"
 
 
+class VoidDocumentNumber(TenantModel):
+    """Statutory tracking of void, skipped, or cancelled sequential numbers."""
+
+    sequence = models.ForeignKey(
+        "core.NumberSequence",
+        on_delete=models.CASCADE,
+        related_name="voided_numbers",
+        verbose_name=_("number sequence"),
+    )
+    document_number = models.CharField(_("document number"), max_length=64, db_index=True)
+    sequence_number = models.PositiveBigIntegerField(_("sequence integer value"), null=True, blank=True)
+    reason = models.CharField(_("reason for void"), max_length=255)
+    source = models.CharField(_("source terminal or system"), max_length=64, blank=True, default="")
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="voided_numbers",
+        verbose_name=_("actor"),
+    )
+    voided_at = models.DateTimeField(_("voided at"), default=timezone.now)
+
+    objects: ClassVar[TenantManager[Any]] = TenantManager()
+    all_tenants: ClassVar[models.Manager[Any]] = models.Manager()
+
+    class Meta:
+        verbose_name = _("void document number")
+        verbose_name_plural = _("void document numbers")
+        ordering = ("-voided_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "sequence", "document_number"],
+                name="uniq_org_seq_void_doc_num",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["organization", "sequence", "document_number"]),
+            models.Index(fields=["organization", "-voided_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.document_number} (Void: {self.reason})"
+
+
 class AuditLog(TenantModel):
     """Immutable audit log recording sensitive actions and state changes within a tenant."""
 

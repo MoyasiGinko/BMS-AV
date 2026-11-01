@@ -43,3 +43,7 @@ class InsufficientTenderError(POSError):
 
 class HeldCartNotFoundError(POSError):
     """Raised when a held cart cannot be found to resume."""
+
+
+class SequenceBlockExhaustedError(POSError):
+    """Raised when an allocated sequence block has consumed all numbers."""

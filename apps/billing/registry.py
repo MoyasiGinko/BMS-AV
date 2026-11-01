@@ -31,6 +31,7 @@ class ModuleDefinition:
     icon: str = "cube"
     sort_order: int = 100
     is_core: bool = False
+    depends_on: list[str] = field(default_factory=list)
     nav_items: list[NavItem] = field(default_factory=list)
     permissions: list[str] = field(default_factory=list)
 
@@ -48,6 +49,7 @@ class _ModuleRegistry:
         icon: str = "cube",
         sort_order: int = 100,
         is_core: bool = False,
+        depends_on: list[str] | None = None,
         nav_items: list[NavItem] | None = None,
         permissions: list[str] | None = None,
     ) -> ModuleDefinition:
@@ -58,6 +60,7 @@ class _ModuleRegistry:
             icon=icon,
             sort_order=sort_order,
             is_core=is_core,
+            depends_on=depends_on or [],
             nav_items=nav_items or [],
             permissions=permissions or [],
         )
@@ -69,6 +72,22 @@ class _ModuleRegistry:
 
     def all(self) -> list[ModuleDefinition]:
         return sorted(self._modules.values(), key=lambda m: (m.sort_order, m.name))
+
+    def validate_dependencies(self, enabled_keys: set[str]) -> set[str]:
+        """Cascade disable any module whose declared dependencies are not enabled."""
+        valid_keys = set(enabled_keys)
+        changed = True
+        while changed:
+            changed = False
+            for key in list(valid_keys):
+                mod = self.get(key)
+                if not mod or mod.is_core:
+                    continue
+                missing = [dep for dep in mod.depends_on if dep not in valid_keys]
+                if missing:
+                    valid_keys.remove(key)
+                    changed = True
+        return valid_keys
 
     def get_navigation(
         self,
@@ -170,6 +189,7 @@ registry.register(
     description="Stock levels, warehouse locations, and stock movements",
     icon="archive-box",
     sort_order=40,
+    depends_on=["catalog"],
     nav_items=[
         NavItem(
             "Stock Levels", "inventory:stock_level_list", icon="archive-box", permission="inventory.view"
@@ -229,6 +249,7 @@ registry.register(
     description="Quotes, orders, invoices, and credit notes",
     icon="document-text",
     sort_order=60,
+    depends_on=["catalog", "customers"],
     nav_items=[
         NavItem("Invoices", "sales:invoice_list", icon="document-text", permission="sales.view"),
         NavItem("Sales Orders", "sales:order_list", icon="clipboard-document-list", permission="sales.view"),
@@ -252,6 +273,7 @@ registry.register(
     description="Fast counter checkout, registers, cash shifts, and receipts",
     icon="calculator",
     sort_order=70,
+    depends_on=["catalog", "inventory", "sales"],
     nav_items=[
         NavItem("Terminal", "pos:terminal", icon="calculator", permission="pos.access"),
         NavItem("Registers", "pos:register_list", icon="computer-desktop", permission="pos.manage"),
@@ -272,6 +294,7 @@ registry.register(
     description="Suppliers, purchase orders, and vendor bills",
     icon="truck",
     sort_order=80,
+    depends_on=["catalog", "inventory"],
     permissions=["purchasing.view", "purchasing.manage"],
 )
 
@@ -290,6 +313,7 @@ registry.register(
     description="Leads, deals, sales pipeline stages, and activities",
     icon="chat-bubble-left-right",
     sort_order=100,
+    depends_on=["customers"],
     nav_items=[
         NavItem("Leads", "crm:lead_list", icon="user-plus", permission="crm.view"),
         NavItem("Pipeline Kanban", "crm:pipeline_kanban", icon="view-columns", permission="crm.view"),
@@ -342,6 +366,7 @@ registry.register(
     description="Salary structures, payroll calculation runs, and payslips",
     icon="banknotes",
     sort_order=120,
+    depends_on=["hr", "accounting"],
     nav_items=[
         NavItem("Payroll Runs", "payroll:run_list", icon="banknotes", permission="payroll.view"),
         NavItem("Salary Structures", "payroll:structure_list", icon="template", permission="payroll.view"),

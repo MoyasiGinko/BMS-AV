@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n money_tags %}
 <div id="payment-table-container">
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-muted">
@@ -47,13 +47,13 @@
                         {% endif %}
                     </td>
                     <td class="py-3.5 px-4 text-right font-mono font-medium text-ink">
-                        ${{ p.amount }}
+                        {{ p.amount|money:p.currency }}
                     </td>
                     <td class="py-3.5 px-4 text-right font-mono font-medium text-emerald-600 dark:text-emerald-400">
-                        ${{ p.allocated_amount }}
+                        {{ p.allocated_amount|money:p.currency }}
                     </td>
                     <td class="py-3.5 px-4 text-right font-mono font-medium {% if p.unallocated_amount > 0 %}text-amber-600 dark:text-amber-400 font-semibold{% else %}text-slate-400{% endif %}">
-                        ${{ p.unallocated_amount }}
+                        {{ p.unallocated_amount|money:p.currency }}
                     </td>
                     <td class="py-3.5 px-4 text-right">
                         <div class="flex items-center justify-end gap-2">

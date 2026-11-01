@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n money_tags %}
 <div id="credit-note-table-container">
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-muted">
@@ -47,7 +47,7 @@
                         {% endif %}
                     </td>
                     <td class="py-3.5 px-4 text-right font-mono font-medium text-ink">
-                        ${{ cn.grand_total }}
+                        {{ cn.grand_total|money:cn.currency }}
                     </td>
                     <td class="py-3.5 px-4 text-right">
                         <a href="{% url 'sales:credit_note_detail' public_id=cn.public_id %}" class="text-xs text-muted hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">

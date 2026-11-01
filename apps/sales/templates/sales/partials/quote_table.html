@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n money_tags %}
 <div id="quote-table-container">
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm text-muted">
@@ -43,7 +43,7 @@
                         {% endif %}
                     </td>
                     <td class="py-3.5 px-4 text-right font-mono font-medium text-ink">
-                        ${{ quote.grand_total }}
+                        {{ quote.grand_total|money:quote.currency }}
                     </td>
                     <td class="py-3.5 px-4 text-right">
                         <div class="flex items-center justify-end gap-2">

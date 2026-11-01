@@ -11,7 +11,8 @@ from django.utils import timezone
 from apps.accounting import services as accounting_services
 from apps.accounting.services import Cr, Dr
 from apps.core.events import publish
-from apps.core.services import generate_next_number
+from apps.core.models import NumberSequence
+from apps.core.services import generate_next_number, record_void_document_number
 from apps.core.tenant_context import tenant_context
 from apps.customers import services as customers_services
 from apps.customers.models import Customer
@@ -29,12 +30,14 @@ from apps.pos.exceptions import (
     InvalidPaymentTenderError,
     NoOpenShiftError,
     RegisterInactiveError,
+    SequenceBlockExhaustedError,
     ShiftAlreadyClosedError,
     ShiftAlreadyOpenError,
 )
 from apps.pos.models import (
     POSHeldCart,
     POSRegister,
+    POSRegisterSequenceBlock,
     POSSale,
     POSShift,
     POSShiftStatus,
@@ -447,3 +450,122 @@ def resume_cart(
 
     publish(CartResumed(organization_id=organization.pk, held_cart_id=held_cart_id, shift_id=shift_id))
     return cart_info
+
+
+@transaction.atomic
+def allocate_register_sequence_block(
+    *,
+    organization: Organization,
+    register: POSRegister,
+    sequence_name: str = "pos_receipt",
+    block_size: int = 100,
+    actor: Any = None,
+) -> POSRegisterSequenceBlock:
+    """Pre-allocate a sequential range of receipt/invoice numbers for an offline POS register."""
+    if not register.is_active:
+        raise RegisterInactiveError(f"Register '{register.code}' is inactive.")
+    if block_size < 1:
+        raise ValueError("Block size must be at least 1.")
+
+    # Scoped to organization using all_tenants for execution outside request thread context
+    seq = (
+        NumberSequence.all_tenants.select_for_update()
+        .filter(organization=organization, name=sequence_name)
+        .first()
+    )
+    if seq is None:
+        seq = NumberSequence.all_tenants.create(
+            organization=organization,
+            name=sequence_name,
+            prefix=f"REC-{register.code}-",
+            padding=5,
+            next_number=1,
+            created_by=actor if getattr(actor, "is_authenticated", False) else None,
+        )
+
+    start = seq.next_number
+    end = start + block_size - 1
+    seq.next_number += block_size
+    seq.save(update_fields=["next_number", "updated_at"])
+
+    # Scoped to organization using all_tenants for execution outside request thread context
+    block = POSRegisterSequenceBlock.all_tenants.create(
+        organization=organization,
+        register=register,
+        sequence=seq,
+        range_start=start,
+        range_end=end,
+        next_number=start,
+        is_active=True,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+    return block
+
+
+@transaction.atomic
+def consume_next_number_from_block(
+    *,
+    block: POSRegisterSequenceBlock,
+) -> tuple[int, str]:
+    """Atomically consume the next number in an allocated block and return (int_val, formatted_string)."""
+    # Lock block row
+    locked_block = (
+        POSRegisterSequenceBlock.all_tenants.select_for_update()
+        .filter(pk=block.pk)
+        .first()
+    )
+    if not locked_block or not locked_block.is_active or locked_block.next_number > locked_block.range_end:
+        if locked_block and locked_block.is_active:
+            locked_block.is_active = False
+            locked_block.save(update_fields=["is_active", "updated_at"])
+        raise SequenceBlockExhaustedError("Allocated sequence block range is exhausted.")
+
+    current_val = locked_block.next_number
+    num_str = str(current_val).zfill(locked_block.sequence.padding)
+    formatted = f"{locked_block.sequence.prefix}{num_str}{locked_block.sequence.suffix}"
+
+    locked_block.next_number += 1
+    if locked_block.next_number > locked_block.range_end:
+        locked_block.is_active = False
+    locked_block.save(update_fields=["next_number", "is_active", "updated_at"])
+
+    # Update in-memory reference
+    block.next_number = locked_block.next_number
+    block.is_active = locked_block.is_active
+
+    return current_val, formatted
+
+
+@transaction.atomic
+def record_register_block_gaps(
+    *,
+    block: POSRegisterSequenceBlock,
+    used_numbers: set[int],
+    reason: str = "Offline synchronization gap",
+    actor: Any = None,
+) -> list[Any]:
+    """Inspect synchronized numbers against the block range and record any skipped numbers as void."""
+    if not used_numbers:
+        return []
+
+    max_used = max(used_numbers)
+    if max_used < block.range_start:
+        return []
+
+    void_entries = []
+    limit = min(max_used, block.range_end)
+    for num in range(block.range_start, limit + 1):
+        if num not in used_numbers:
+            num_str = str(num).zfill(block.sequence.padding)
+            formatted = f"{block.sequence.prefix}{num_str}{block.sequence.suffix}"
+            void_record = record_void_document_number(
+                organization_id=block.organization_id,
+                sequence=block.sequence,
+                document_number=formatted,
+                sequence_number=num,
+                reason=reason,
+                source=f"POS Register {block.register.code}",
+                actor=actor,
+            )
+            void_entries.append(void_record)
+    return void_entries

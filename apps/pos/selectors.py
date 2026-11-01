@@ -187,7 +187,7 @@ def get_pos_catalog_products(
     qs = Product.all_tenants.filter(
         organization=organization,
         is_active=True,
-    ).select_related("category", "unit", "tax_code")
+    ).select_related("category", "unit", "tax_code").prefetch_related("images")
 
     if warehouse:
         stock_subquery = (
