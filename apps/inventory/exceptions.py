@@ -12,28 +12,28 @@ class InventoryError(BusinessOSException):
     default_code = "inventory_error"
 
 
-class InsufficientStock(InventoryError):
+class InsufficientStockError(InventoryError):
     """Raised when an operation requires more stock than is on-hand/available."""
 
     default_message = "Insufficient stock available for this operation."
     default_code = "insufficient_stock"
 
 
-class NegativeStockDisallowed(InventoryError):
+class NegativeStockDisallowedError(InventoryError):
     """Raised when negative inventory is disallowed by tenant configuration."""
 
     default_message = "Negative stock is disallowed for this organization."
     default_code = "negative_stock_disallowed"
 
 
-class InvalidMovement(InventoryError):
+class InvalidMovementError(InventoryError):
     """Raised when attempting an invalid stock ledger movement."""
 
     default_message = "Invalid stock movement specified."
     default_code = "invalid_movement"
 
 
-class WarehouseInactive(InventoryError):
+class WarehouseInactiveError(InventoryError):
     """Raised when attempting operations against an inactive warehouse."""
 
     default_message = "The selected warehouse is inactive."
@@ -80,3 +80,9 @@ class SerialNotFoundError(SerialError):
 
     default_message = "Serial number not found or not currently in stock."
     default_code = "serial_not_found"
+
+
+InsufficientStock = InsufficientStockError
+NegativeStockDisallowed = NegativeStockDisallowedError
+InvalidMovement = InvalidMovementError
+WarehouseInactive = WarehouseInactiveError

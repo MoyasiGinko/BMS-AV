@@ -11,17 +11,23 @@ class CustomerNotFoundError(CustomerError):
     """Customer not found or not accessible within tenant."""
 
 
-class CreditLimitExceeded(CustomerError):
+class CreditLimitExceededError(CustomerError):
     """Transaction exceeds approved credit limit."""
 
 
-class CustomerSuspended(CustomerError):
+class CustomerSuspendedError(CustomerError):
     """Customer account is suspended and cannot accept new charges."""
 
 
-class InvalidBalanceMutation(CustomerError):
+class InvalidBalanceMutationError(CustomerError):
     """Invalid debit or credit amount in ledger entry."""
 
 
-class CustomerHasTransactions(CustomerError):
+class CustomerHasTransactionsError(CustomerError):
     """Customer with posted balance entries cannot be deleted."""
+
+
+CreditLimitExceeded = CreditLimitExceededError
+CustomerSuspended = CustomerSuspendedError
+InvalidBalanceMutation = InvalidBalanceMutationError
+CustomerHasTransactions = CustomerHasTransactionsError

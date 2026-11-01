@@ -174,6 +174,7 @@ def test_structure_component_and_assignment_views(
     )
     assert resp.status_code == 302
 
+
 @pytest.mark.django_db
 def test_my_payslips_view_without_and_with_employee(
     auth_client: Client,
@@ -199,4 +200,3 @@ def test_my_payslips_view_without_and_with_employee(
     assert resp.status_code == 200
     assert employee.full_name in resp.content.decode()
     assert "No payslips issued yet for your employee account." in resp.content.decode()
-

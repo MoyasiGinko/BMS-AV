@@ -23,47 +23,84 @@ class ProductForm(forms.Form):
     sku = forms.CharField(
         label=_("SKU"),
         max_length=64,
-        widget=forms.TextInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "placeholder": "e.g. PROD-001"}),
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "placeholder": "e.g. PROD-001",
+            }
+        ),
     )
     name = forms.CharField(
         label=_("Product Name"),
         max_length=255,
-        widget=forms.TextInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "placeholder": "e.g. Wireless Ergonomic Mouse"}),
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "placeholder": "e.g. Wireless Ergonomic Mouse",
+            }
+        ),
     )
     barcode = forms.CharField(
         label=_("Barcode / UPC / EAN"),
         max_length=64,
         required=False,
-        widget=forms.TextInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "placeholder": "e.g. 012345678905"}),
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "placeholder": "e.g. 012345678905",
+            }
+        ),
     )
     category_id = forms.IntegerField(
         label=_("Category"),
         required=False,
-        widget=forms.Select(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"}),
+        widget=forms.Select(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"
+            }
+        ),
     )
     unit_id = forms.IntegerField(
         label=_("Unit of Measure"),
-        widget=forms.Select(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"}),
+        widget=forms.Select(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"
+            }
+        ),
     )
     type = forms.ChoiceField(
         label=_("Product Type"),
         choices=ProductType.choices,
         initial=ProductType.STOCK,
-        widget=forms.Select(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"}),
+        widget=forms.Select(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"
+            }
+        ),
     )
     cost_price = forms.DecimalField(
         label=_("Cost Price"),
         max_digits=18,
         decimal_places=4,
         initial=Decimal("0.0000"),
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "0.01"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "0.01",
+            }
+        ),
     )
     selling_price = forms.DecimalField(
         label=_("Selling Price"),
         max_digits=18,
         decimal_places=4,
         initial=Decimal("0.0000"),
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "0.01"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "0.01",
+            }
+        ),
     )
     discount_percent = forms.DecimalField(
         label=_("Discount (%)"),
@@ -71,12 +108,24 @@ class ProductForm(forms.Form):
         decimal_places=2,
         required=False,
         initial=Decimal("0.00"),
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "0.5", "min": "0", "max": "100", "placeholder": "0.00"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "0.5",
+                "min": "0",
+                "max": "100",
+                "placeholder": "0.00",
+            }
+        ),
     )
     tax_code_id = forms.IntegerField(
         label=_("Tax Code"),
         required=False,
-        widget=forms.Select(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"}),
+        widget=forms.Select(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"
+            }
+        ),
     )
     reorder_level = forms.DecimalField(
         label=_("Reorder Level"),
@@ -84,7 +133,12 @@ class ProductForm(forms.Form):
         decimal_places=4,
         required=False,
         initial=Decimal("0.0000"),
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "1"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "1",
+            }
+        ),
     )
     reorder_quantity = forms.DecimalField(
         label=_("Reorder Quantity"),
@@ -92,30 +146,53 @@ class ProductForm(forms.Form):
         decimal_places=4,
         required=False,
         initial=Decimal("0.0000"),
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "1"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "1",
+            }
+        ),
     )
     is_active = forms.BooleanField(
         label=_("Active in catalog"),
         required=False,
         initial=True,
-        widget=forms.CheckboxInput(attrs={"class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"
+            }
+        ),
     )
     track_batch = forms.BooleanField(
         label=_("Track lot / batches"),
         required=False,
         initial=False,
-        widget=forms.CheckboxInput(attrs={"class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"
+            }
+        ),
     )
     track_serial = forms.BooleanField(
         label=_("Track unique serial numbers"),
         required=False,
         initial=False,
-        widget=forms.CheckboxInput(attrs={"class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"
+            }
+        ),
     )
     description = forms.CharField(
         label=_("Description"),
         required=False,
-        widget=forms.Textarea(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all resize-y", "rows": 4, "placeholder": "Provide detailed specifications, features, or operational handling instructions..."}),
+        widget=forms.Textarea(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all resize-y",
+                "rows": 4,
+                "placeholder": "Provide detailed specifications, features, or operational handling instructions...",
+            }
+        ),
     )
 
     def __init__(self, *args: Any, organization_id: int | None = None, **kwargs: Any) -> None:
@@ -164,20 +241,34 @@ class ProductVariantForm(forms.Form):
         max_digits=18,
         decimal_places=4,
         required=False,
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "0.01"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "0.01",
+            }
+        ),
     )
     selling_price_override = forms.DecimalField(
         label=_("Selling Price Override"),
         max_digits=18,
         decimal_places=4,
         required=False,
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "0.01"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "0.01",
+            }
+        ),
     )
     is_active = forms.BooleanField(
         label=_("Active"),
         required=False,
         initial=True,
-        widget=forms.CheckboxInput(attrs={"class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"
+            }
+        ),
     )
 
 
@@ -198,7 +289,11 @@ class CategoryForm(forms.Form):
     parent_id = forms.IntegerField(
         label=_("Parent Category"),
         required=False,
-        widget=forms.Select(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"}),
+        widget=forms.Select(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"
+            }
+        ),
     )
     description = forms.CharField(
         label=_("Description"),
@@ -209,7 +304,11 @@ class CategoryForm(forms.Form):
         label=_("Active"),
         required=False,
         initial=True,
-        widget=forms.CheckboxInput(attrs={"class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"
+            }
+        ),
     )
 
     def __init__(self, *args: Any, organization_id: int | None = None, **kwargs: Any) -> None:
@@ -261,7 +360,11 @@ class PriceListForm(forms.Form):
     is_default = forms.BooleanField(
         label=_("Default Price List"),
         required=False,
-        widget=forms.CheckboxInput(attrs={"class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"
+            }
+        ),
     )
     description = forms.CharField(
         label=_("Description"),
@@ -275,20 +378,34 @@ class PriceListItemForm(forms.Form):
 
     product_id = forms.IntegerField(
         label=_("Product"),
-        widget=forms.Select(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"}),
+        widget=forms.Select(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all cursor-pointer"
+            }
+        ),
     )
     price = forms.DecimalField(
         label=_("Special Price"),
         max_digits=18,
         decimal_places=4,
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "0.01"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "0.01",
+            }
+        ),
     )
     min_quantity = forms.DecimalField(
         label=_("Minimum Quantity"),
         max_digits=18,
         decimal_places=4,
         initial=Decimal("1.0000"),
-        widget=forms.NumberInput(attrs={"class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all", "step": "1"}),
+        widget=forms.NumberInput(
+            attrs={
+                "class": "w-full px-4 py-3.5 text-base font-medium rounded-xl border border-line bg-surface text-ink placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs transition-all",
+                "step": "1",
+            }
+        ),
     )
 
     def __init__(self, *args: Any, organization_id: int | None = None, **kwargs: Any) -> None:
@@ -312,5 +429,9 @@ class CsvImportForm(forms.Form):
         label=_("Update existing products matching SKU"),
         required=False,
         initial=True,
-        widget=forms.CheckboxInput(attrs={"class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "w-5 h-5 rounded-md border-line text-indigo-600 focus:ring-indigo-500 bg-surface transition-all cursor-pointer"
+            }
+        ),
     )

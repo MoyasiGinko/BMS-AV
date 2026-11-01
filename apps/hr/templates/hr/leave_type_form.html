@@ -21,7 +21,7 @@
             {% if is_edit %}{% trans "Edit Leave Policy" %}: <span class="text-indigo-600 dark:text-indigo-400">{{ leave_type.name }}</span>{% else %}{% trans "Create Leave Type" %}{% endif %}
         </h1>
         <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
-            {% trans "Configure organizational leave entitlement quotas, compensation eligibility, and approval governance." %}
+            {% trans "Leave allowances, pay rules, and approval steps." %}
         </p>
     </div>
 
@@ -48,7 +48,7 @@
                 <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
                     <div class="border-b border-line pb-4">
                         <h2 class="text-lg font-bold text-ink">{% trans "Policy Definition" %}</h2>
-                        <p class="text-xs text-muted mt-0.5">{% trans "Policy name, system code, and annual entitlement days." %}</p>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Policy name, code, and annual days." %}</p>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">

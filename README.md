@@ -9,7 +9,7 @@
 [![CI / Quality Gate](https://img.shields.io/badge/gate-make%20verify%20%7C%20PASSED-success.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An enterprise-grade, multi-tenant SaaS Business Management Platform (ERP) built with a modern, high-performance Django full-stack architecture. Server-rendered templates, HTMX 2, Alpine.js 3, and Tailwind CSS 4 deliver a responsive, reactive single-page feel without single-page app complexity, coupled with a versioned Django REST Framework (DRF) API, OAuth2 authorization server, and transactional outbox webhooks.
+A multi-tenant business management platform (POS, sales, inventory, purchasing, accounting, CRM, HR, reports) on Django, HTMX, and Tailwind CSS. Built with server-rendered templates, HTMX partials, a versioned REST API, and transactional outbox events.
 
 ---
 
@@ -55,43 +55,20 @@ An enterprise-grade, multi-tenant SaaS Business Management Platform (ERP) built 
 
 ---
 
-## 🔑 Demo Login Credentials
+## 📦 Demo Data & Local Accounts
 
-The platform includes pre-seeded, multi-role demo accounts with realistic historical ledgers, stock, POS registers, and employee workflows. All demo accounts use the standard password **`demo12345`**.
+Demo data is created locally via the demo seed command and is never run in production:
 
-- **Live Railway Deployment**: [https://bms-av-production.up.railway.app/accounts/login/](https://bms-av-production.up.railway.app/accounts/login/)
-- **Local Development**: [http://localhost:8000/accounts/login/](http://localhost:8000/accounts/login/)
+```bash
+make seed
+# or: uv run python manage.py seed_demo
+```
+This seeds sample businesses with branches, product catalogs, inventory, and POS shifts.
 
-### 👑 Platform Superadmin & Back-Office Control Plane
-*Global administrative access (`is_staff=True`, `is_superuser=True`) across all tenants, back-office operations, and Django administration.*
-
-| Role | Email Address | Password | Capabilities & Direct Links |
-|---|---|---|---|
-| **Superadmin** | `admin@businessos.com` | `demo12345` | Access to the internal **[Back-Office](/backoffice/)** portal (tenant provisioning, subscription overrides, staff impersonation, audit logs) and **[Django Admin](/admin/)**. |
-
-> **Tip**: You can also provision custom superuser accounts locally anytime via `uv run python manage.py createsuperuser`.
-
-### 1. Small Shop: **Artisan Bakery & Cafe** (`slug: small-shop`)
-*Plan: **Starter** | Focus: High-velocity POS counter checkouts, retail inventory, cash/card split tenders, and customer invoicing.*
-
-| Role | Email Address | Password | Capabilities & Access |
-|---|---|---|---|
-| **Owner** | `owner@artisanbakery.com` | `demo12345` | Full administrative control, billing, team management, and executive reports. |
-| **Store Manager** | `manager@artisanbakery.com` | `demo12345` | Product catalog, pricing adjustments, inventory restocks, and daily sales auditing. |
-| **Cashier** | `cashier@artisanbakery.com` | `demo12345` | POS register sessions ("Front Counter 1"), barcode scanning, order lookup, and receipts. |
-| **Accountant** | `accountant@artisanbakery.com` | `demo12345` | General ledger, journal entries, tax reporting, and customer payment allocations. |
-
-### 2. Growing Company: **Apex Industrial Wholesale** (`slug: growing-company`)
-*Plan: **Growth** | Focus: Multi-warehouse logistics, B2B purchasing & 3-way matching, quotes & recurring billing, CRM pipeline, and HR/Payroll.*
-
-| Role | Email Address | Password | Capabilities & Access |
-|---|---|---|---|
-| **Owner / CEO** | `owner@apexwholesale.com` | `demo12345` | Complete company-wide visibility across all branches, warehouses, and financial books. |
-| **Sales Manager** | `sales@apexwholesale.com` | `demo12345` | CRM leads, drag-and-drop deal pipeline, sales quotes, and customer accounts. |
-| **Procurement / Buyer**| `buyer@apexwholesale.com` | `demo12345` | Vendor management, purchase orders, goods receipts, and accounts payable bills. |
-| **Senior Accountant** | `accountant@apexwholesale.com` | `demo12345` | Balance sheet, P&L, trial balance, bank reconciliation, and recurring billing rules. |
-| **Warehouse Manager** | `warehouse@apexwholesale.com` | `demo12345` | Multi-warehouse stock transfers, lot/batch tracking, adjustments, and reorder levels. |
-
+To create an administrative account locally:
+```bash
+uv run python manage.py createsuperuser
+```
 ---
 
 ## 🚀 Quickstart Guide

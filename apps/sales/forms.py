@@ -31,7 +31,9 @@ class QuoteFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(QuoteStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
+            attrs={
+                "class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"
+            }
         ),
     )
     search = forms.CharField(
@@ -52,7 +54,9 @@ class OrderFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(SalesOrderStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
+            attrs={
+                "class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"
+            }
         ),
     )
     search = forms.CharField(
@@ -73,7 +77,9 @@ class InvoiceFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(InvoiceStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
+            attrs={
+                "class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"
+            }
         ),
     )
     search = forms.CharField(
@@ -94,7 +100,9 @@ class CreditNoteFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(CreditNoteStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
+            attrs={
+                "class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"
+            }
         ),
     )
     search = forms.CharField(
@@ -277,14 +285,18 @@ class PaymentFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(PaymentStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
+            attrs={
+                "class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"
+            }
         ),
     )
     payment_method = forms.ChoiceField(
         choices=[("", _("All Methods")), *list(PaymentMethod.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
+            attrs={
+                "class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"
+            }
         ),
     )
     search = forms.CharField(
@@ -359,7 +371,9 @@ class RecurringProfileFilterForm(forms.Form):
         choices=[("", _("All Statuses")), *list(RecurringProfileStatus.choices)],
         required=False,
         widget=forms.Select(
-            attrs={"class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"}
+            attrs={
+                "class": "form-select w-full text-sm font-medium rounded-xl bg-[var(--surface-2)]/50 border border-[var(--border)] text-ink focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent py-2 px-3 shadow-inner transition-all"
+            }
         ),
     )
     search = forms.CharField(

@@ -96,17 +96,15 @@ class OnboardingChecklistWidget(DashboardWidget):
         # Check if user explicitly dismissed the checklist for this workspace
         dismissed = request.session.get(f"dismiss_checklist_{organization.pk}", False)
         manually_triggered = bool(
-            request.GET.get("show_checklist") or request.session.get(f"show_checklist_{organization.pk}", False)
+            request.GET.get("show_checklist")
+            or request.session.get(f"show_checklist_{organization.pk}", False)
         )
 
         if dismissed and not manually_triggered:
             return False
 
         _, all_completed = self._evaluate_steps(organization)
-        if all_completed and not manually_triggered:
-            return False
-
-        return True
+        return not (all_completed and not manually_triggered)
 
     def get_context(self, request: HttpRequest, organization: Any) -> dict[str, Any]:
         steps, all_completed = self._evaluate_steps(organization)

@@ -196,12 +196,12 @@ def handle_send_notification(
     title = _template_string(title_tmpl, context)
     body = _template_string(body_tmpl, context)
 
-    User = get_user_model()
+    user_model = get_user_model()
     target_user = None
 
     user_id = params.get("user_id") or payload.get("user_id") or payload.get("recipient_user_id")
     if user_id:
-        target_user = User.objects.filter(pk=user_id).first()
+        target_user = user_model.objects.filter(pk=user_id).first()
 
     if not target_user:
         # Fall back to actor or first tenant admin

@@ -31,9 +31,7 @@ class SupplierFilterForm(forms.Form):
     is_active = forms.ChoiceField(
         choices=[("", _("All")), ("1", _("Active")), ("0", _("Inactive"))],
         required=False,
-        widget=forms.Select(
-            attrs={"class": "neu-select form-select text-sm rounded-xl"}
-        ),
+        widget=forms.Select(attrs={"class": "neu-select form-select text-sm rounded-xl"}),
     )
 
 
@@ -88,9 +86,7 @@ class PurchaseOrderFilterForm(forms.Form):
     status = forms.ChoiceField(
         choices=[("", _("All Statuses")), *list(PurchaseOrderStatus.choices)],
         required=False,
-        widget=forms.Select(
-            attrs={"class": "neu-select form-select text-sm rounded-xl"}
-        ),
+        widget=forms.Select(attrs={"class": "neu-select form-select text-sm rounded-xl"}),
     )
     search = forms.CharField(
         required=False,
@@ -161,9 +157,7 @@ class SupplierBillFilterForm(forms.Form):
     status = forms.ChoiceField(
         choices=[("", _("All Statuses")), *list(SupplierBillStatus.choices)],
         required=False,
-        widget=forms.Select(
-            attrs={"class": "neu-select form-select text-sm rounded-xl"}
-        ),
+        widget=forms.Select(attrs={"class": "neu-select form-select text-sm rounded-xl"}),
     )
     search = forms.CharField(
         required=False,

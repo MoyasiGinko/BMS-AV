@@ -161,7 +161,7 @@
                     </div>
                 </div>
                 <p class="text-sm text-muted leading-relaxed mb-4">
-                    {% trans "Segments products into Class A (crucial 80% revenue drivers), Class B (moderate 15%), and Class C (low 5% or stagnant). Identifies core revenue generators and candidates for clearance." %}
+                    {% trans "Products grouped by sales: A sells the most, C the least." %}
                 </p>
                 <div class="flex items-center gap-4 text-xs text-muted mb-4">
                     <span>• {{ abc_result.active_revenue_products_count }} {% trans "Active Revenue SKUs" %}</span>
@@ -211,7 +211,7 @@
                     </div>
                 </div>
                 <p class="text-sm text-muted leading-relaxed mb-4">
-                    {% trans "Calculates daily sales velocity (run rate) over lookback windows. Projects days of inventory remaining, stockout risk dates, and recommended purchase order order quantities." %}
+                    {% trans "Days of stock left for each product and how much to reorder." %}
                 </p>
                 <div class="flex items-center gap-4 text-xs text-muted mb-4">
                     <span>• {{ forecast_result.critical_reorders_count }} {% trans "Urgent Reorders" %}</span>

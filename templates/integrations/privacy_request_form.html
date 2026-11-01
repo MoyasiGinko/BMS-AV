@@ -1,7 +1,7 @@
 {% extends "layouts/app.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Submit Data Subject Request" %} - Business OS{% endblock %}
+{% block title %}{% trans "Submit Privacy Request" %} - Business OS{% endblock %}
 
 {% block content %}
 <div class="w-full space-y-8 pb-16">
@@ -16,7 +16,7 @@
             </a>
         </div>
         <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink">
-            {% trans "Submit Data Subject Request" %}
+            {% trans "Submit Privacy Request" %}
         </h1>
         <p class="text-sm sm:text-base text-slate-500 font-medium mt-1.5">
             {% trans "Register a GDPR Subject Access Request (SAR export) or Right to Erasure (anonymization) on behalf of a customer, lead, or contact." %}
@@ -46,7 +46,7 @@
                 <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
                     <div class="border-b border-line pb-4">
                         <h2 class="text-lg font-bold text-ink">{% trans "Subject Identification" %}</h2>
-                        <p class="text-xs text-muted mt-0.5">{% trans "Type of GDPR action and data subject contact coordinates." %}</p>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Request type and customer contact details." %}</p>
                     </div>
 
                     <div class="space-y-6">
@@ -95,7 +95,7 @@
                 <div class="p-7 sm:p-8 rounded-2xl border border-line bg-surface shadow-xs space-y-6">
                     <div class="border-b border-line pb-4">
                         <h2 class="text-lg font-bold text-ink">{% trans "Reason & Audit Verification" %}</h2>
-                        <p class="text-xs text-muted mt-0.5">{% trans "Verification method used to authenticate data subject identity." %}</p>
+                        <p class="text-xs text-muted mt-0.5">{% trans "Method used to verify identity." %}</p>
                     </div>
 
                     <div class="space-y-6">

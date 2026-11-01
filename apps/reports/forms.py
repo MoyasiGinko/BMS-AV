@@ -19,10 +19,7 @@ COMMON_INPUT_CLASS = (
     "px-3.5 py-2 text-sm text-ink "
     "focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-2xs"
 )
-COMMON_CHECKBOX_CLASS = (
-    "h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-500 "
-    "bg-surface"
-)
+COMMON_CHECKBOX_CLASS = "h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-500 bg-surface"
 
 
 class SavedReportForm(forms.ModelForm):

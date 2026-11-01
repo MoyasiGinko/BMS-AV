@@ -7,8 +7,11 @@ class AccountingError(Exception):
     """Base exception for all accounting domain errors."""
 
 
-class PeriodClosed(AccountingError):
+class PeriodClosedError(AccountingError):
     """Raised when an operation attempts to post into a closed fiscal period."""
+
+
+PeriodClosed = PeriodClosedError
 
 
 class UnbalancedEntryError(AccountingError):

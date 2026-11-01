@@ -12,3 +12,18 @@ htmlcov/
 .pytest_cache/
 *.rdb
 railway-skills/
+
+# Generated schemas & version snapshots (built by CI)
+schema.yml
+schema.yaml
+openapi.yaml
+openapi.json
+openapi.yml
+docs/openapi.yml
+docs/openapi.yaml
+docs/openapi.json
+docs/schema.yaml
+docs/schema.yml
+docs/resolved-versions*.txt
+resolved-versions.txt
+pip-freeze.txt

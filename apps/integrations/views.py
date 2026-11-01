@@ -1357,7 +1357,7 @@ def data_subject_request_create_view(request: HttpRequest) -> HttpResponse:
                 verification_notes=form.cleaned_data.get("verification_notes", ""),
                 submitted_by=request.user,
             )
-            messages.success(request, _("Data subject request registered."))
+            messages.success(request, _("Privacy request registered."))
             return redirect("integrations:privacy_request_detail", request_id=req_obj.public_id)
     else:
         form = DataSubjectRequestForm()
@@ -1375,7 +1375,7 @@ def data_subject_request_detail_view(request: HttpRequest, request_id: str) -> H
     org = _get_active_org(request)
     req_obj = selectors.get_data_subject_request(org, request_id=request_id)
     if not req_obj:
-        raise Http404(_("Data subject request not found."))
+        raise Http404(_("Privacy request not found."))
 
     return render(
         request,
@@ -1392,7 +1392,7 @@ def data_subject_request_execute_view(request: HttpRequest, request_id: str) -> 
     org = _get_active_org(request)
     req_obj = selectors.get_data_subject_request(org, request_id=request_id)
     if not req_obj:
-        raise Http404(_("Data subject request not found."))
+        raise Http404(_("Privacy request not found."))
 
     try:
         execute_data_subject_request_task.delay(str(req_obj.public_id))
