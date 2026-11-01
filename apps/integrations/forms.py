@@ -664,7 +664,7 @@ class DataSubjectRequestForm(forms.ModelForm):
                         "dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     ),
                     "rows": 2,
-                    "placeholder": _("Reason or details of the data subject request..."),
+                    "placeholder": _("Reason or details of the privacy request..."),
                 }
             ),
             "verification_notes": forms.Textarea(

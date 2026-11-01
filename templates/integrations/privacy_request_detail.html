@@ -49,7 +49,7 @@
                                 {% trans "Compile SAR Export" %}
                             </button>
                         {% else %}
-                            <button type="submit" onclick="return confirm('{% trans "Are you sure you want to permanently anonymize this data subject? Accounting invoices will retain tax numbers but personal names, emails, and addresses will be scrubbed." %}');" class="inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                            <button type="submit" onclick="return confirm('{% trans "Anonymize this customer? Personal details will be scrubbed while invoice tax data is kept." %}');" class="inline-flex items-center px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md transition-all active:scale-95 cursor-pointer">
                                 {% trans "Execute Anonymization Erasure" %}
                             </button>
                         {% endif %}

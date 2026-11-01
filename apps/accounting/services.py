@@ -83,7 +83,7 @@ class JournalLineInput:
     party_id: str = ""
 
 
-def Dr(
+def dr(
     account: Any,
     amount: Decimal | str | int | float,
     *,
@@ -106,7 +106,7 @@ def Dr(
     )
 
 
-def Cr(
+def cr(
     account: Any,
     amount: Decimal | str | int | float,
     *,
@@ -127,6 +127,10 @@ def Cr(
         party_type=party_type,
         party_id=party_id,
     )
+
+
+Dr = dr
+Cr = cr
 
 
 def resolve_account(*, organization: Organization, account_ref: Any) -> Account:

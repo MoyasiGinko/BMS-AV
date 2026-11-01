@@ -373,9 +373,7 @@ def _calculate_gl_kpi_totals(*, organization_id: int) -> dict[str, Decimal]:
         organization_id=organization_id,
         entry__status=JournalEntry.STATUS_POSTED,
     )
-    acc_totals = lines_qs.values(
-        "account_id", "account__type", "account__name", "account__code"
-    ).annotate(
+    acc_totals = lines_qs.values("account_id", "account__type", "account__name", "account__code").annotate(
         tot_debit=Sum("debit"),
         tot_credit=Sum("credit"),
     )
@@ -445,15 +443,11 @@ def get_accounting_summary(
     effective_assets = total_assets_sum + (bank_balance if bank_balance > 0 else DECIMAL_ZERO)
     working_capital = effective_assets - total_liabilities_sum
     current_ratio = (
-        round(effective_assets / total_liabilities_sum, 2)
-        if total_liabilities_sum > 0
-        else Decimal("0.00")
+        round(effective_assets / total_liabilities_sum, 2) if total_liabilities_sum > 0 else Decimal("0.00")
     )
     quick_assets = ar_balance + bank_balance
     quick_ratio = (
-        round(quick_assets / total_liabilities_sum, 2)
-        if total_liabilities_sum > 0
-        else Decimal("0.00")
+        round(quick_assets / total_liabilities_sum, 2) if total_liabilities_sum > 0 else Decimal("0.00")
     )
     net_income = revenue_sum - expense_sum
 
@@ -468,9 +462,7 @@ def get_accounting_summary(
         ).aggregate(tot=Sum("total_amount"))["tot"]
         or DECIMAL_ZERO
     )
-    accounts_count = Account.all_tenants.filter(
-        organization_id=organization_id, is_active=True
-    ).count()
+    accounts_count = Account.all_tenants.filter(organization_id=organization_id, is_active=True).count()
     unreconciled_tx_count = BankTransaction.all_tenants.filter(
         organization_id=organization_id, is_reconciled=False
     ).count()
@@ -600,10 +592,14 @@ def get_expense_category_breakdown(
         account__type=AccountType.EXPENSE,
     )
 
-    cat_totals = lines_qs.values("account__name", "account__code").annotate(
-        tot_debit=Sum("debit"),
-        tot_credit=Sum("credit"),
-    ).order_by("-tot_debit")
+    cat_totals = (
+        lines_qs.values("account__name", "account__code")
+        .annotate(
+            tot_debit=Sum("debit"),
+            tot_credit=Sum("credit"),
+        )
+        .order_by("-tot_debit")
+    )
 
     total_expenses = DECIMAL_ZERO
     categories: list[dict[str, Any]] = []
@@ -621,20 +617,24 @@ def get_expense_category_breakdown(
         net = (c["tot_debit"] or DECIMAL_ZERO) - (c["tot_credit"] or DECIMAL_ZERO)
         if net > DECIMAL_ZERO:
             total_expenses += net
-            categories.append({
-                "name": c["account__name"],
-                "code": c["account__code"],
-                "amount": float(round(net, 2)),
-            })
+            categories.append(
+                {
+                    "name": c["account__name"],
+                    "code": c["account__code"],
+                    "amount": float(round(net, 2)),
+                }
+            )
 
     top_categories = categories[:limit]
     if len(categories) > limit:
         other_amount = round(sum(c["amount"] for c in categories[limit:]), 2)
-        top_categories.append({
-            "name": "Other Expenses",
-            "code": "9999",
-            "amount": other_amount,
-        })
+        top_categories.append(
+            {
+                "name": "Other Expenses",
+                "code": "9999",
+                "amount": other_amount,
+            }
+        )
 
     tot_float = float(round(total_expenses, 2))
     for idx, cat in enumerate(top_categories):
@@ -652,4 +652,3 @@ def get_expense_category_breakdown(
         "data": [c["amount"] for c in top_categories],
         "colors": [c["color"] for c in top_categories],
     }
-

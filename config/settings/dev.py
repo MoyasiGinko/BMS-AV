@@ -22,6 +22,7 @@ def _is_redis_available() -> bool:
     except OSError:
         return False
 
+
 if not _is_redis_available():
     CACHES = {
         "default": {
@@ -29,5 +30,3 @@ if not _is_redis_available():
             "LOCATION": "dev-locmem",
         }
     }
-
-

@@ -387,7 +387,7 @@ def test_theme_manager_template_locks_preset_inputs_and_exposes_custom(
     assert 'id="sidebar-preset-custom"' in content
 
     # Assert locked banners and disabled input bindings exist
-    assert ':disabled="getActiveMode() !== \'custom\'"' in content
+    assert ":disabled=\"getActiveMode() !== 'custom'\"" in content
     assert "Preset Colors are Locked (Read-Only)" in content
     assert "Unlock &amp; Edit in Custom" in content or "Unlock & Edit in Custom" in content
     assert "Custom Palette Active &amp; Unlocked" in content or "Custom Palette Active & Unlocked" in content

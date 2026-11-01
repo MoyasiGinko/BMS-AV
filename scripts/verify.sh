@@ -15,5 +15,6 @@ step "import contracts";     $RUN lint-imports
 step "tests + coverage";     $RUN pytest -q --cov=apps --cov-report=term-missing:skip-covered --cov-fail-under="${COV_MIN:-80}"
 step "openapi schema";       $RUN python manage.py spectacular --file /tmp/schema.yml --validate --fail-on-warn
 step "deploy check";         DJANGO_SETTINGS_MODULE=config.settings.prod_check $RUN python manage.py check --deploy --fail-level WARNING
+step "ui copy audit";        $RUN python scripts/check_copy.py
 step "dependency health";    $RUN pip check
 printf '\n\033[1;32mVERIFY PASSED\033[0m\n'

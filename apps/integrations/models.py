@@ -1050,8 +1050,8 @@ class DataSubjectRequest(TenantModel):
         return self.impact_summary
 
     class Meta:
-        verbose_name = _("data subject request")
-        verbose_name_plural = _("data subject requests")
+        verbose_name = _("privacy request")
+        verbose_name_plural = _("privacy requests")
         ordering = ["-created_at"]
         indexes: ClassVar[list[models.Index]] = [
             models.Index(

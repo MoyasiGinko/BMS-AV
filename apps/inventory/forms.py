@@ -20,7 +20,11 @@ class StockFilterForm(forms.Form):
     warehouse = forms.ChoiceField(
         label=_("Warehouse"),
         required=False,
-        widget=forms.Select(attrs={"class": "neu-select form-select text-sm rounded-xl px-3.5 py-2.5 font-medium cursor-pointer w-full"}),
+        widget=forms.Select(
+            attrs={
+                "class": "neu-select form-select text-sm rounded-xl px-3.5 py-2.5 font-medium cursor-pointer w-full"
+            }
+        ),
     )
     query = forms.CharField(
         label=_("Search"),
@@ -35,7 +39,11 @@ class StockFilterForm(forms.Form):
     low_stock_only = forms.BooleanField(
         label=_("Low Stock Only"),
         required=False,
-        widget=forms.CheckboxInput(attrs={"class": "form-checkbox rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"}),
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "form-checkbox rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+            }
+        ),
     )
 
     def __init__(self, *args: Any, organization: Organization, **kwargs: Any) -> None:

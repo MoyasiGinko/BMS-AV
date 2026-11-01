@@ -50,8 +50,8 @@ def generate_single_recurring_invoice_task(profile_id: int, actor_id: int | None
         logger.warning(msg)
         return msg
 
-    User = get_user_model()
-    actor = User.objects.filter(pk=actor_id).first() if actor_id else None
+    user_cls = get_user_model()
+    actor = user_cls.objects.filter(pk=actor_id).first() if actor_id else None
 
     invoice = services.generate_single_recurring_invoice(profile=profile, actor=actor)
     return f"Generated invoice {invoice.invoice_number} from recurring profile {profile.title}."

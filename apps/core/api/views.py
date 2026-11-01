@@ -289,7 +289,7 @@ class UserNotificationPreferenceViewSet(TenantScopedViewSet):
             organization_id=org.pk,
             user_id=request.user.pk,
         )
-        STANDARD_CATEGORIES = [
+        standard_categories = [
             "approvals",
             "billing",
             "inventory",
@@ -299,7 +299,7 @@ class UserNotificationPreferenceViewSet(TenantScopedViewSet):
             "system",
         ]
         results = []
-        for cat in STANDARD_CATEGORIES:
+        for cat in standard_categories:
             for ch in ["in_app", "email"]:
                 results.append(
                     {

@@ -838,7 +838,7 @@ def hr_calendar_view(request: HttpRequest) -> HttpResponse:
         year = int(raw_year) if raw_year and raw_year.strip() else now.year
         if not (1900 <= year <= 2100):
             year = now.year
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         year = now.year
 
     try:
@@ -846,7 +846,7 @@ def hr_calendar_view(request: HttpRequest) -> HttpResponse:
         month = int(raw_month) if raw_month and raw_month.strip() else now.month
         if not (1 <= month <= 12):
             month = now.month
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         month = now.month
 
     num_days = calendar.monthrange(year, month)[1]

@@ -13,10 +13,9 @@ Covers:
 from __future__ import annotations
 
 from typing import Any
-
-import pytest
 from unittest.mock import patch
 
+import pytest
 from django.core.cache import cache
 from django.http import HttpRequest
 from django.test import Client, RequestFactory

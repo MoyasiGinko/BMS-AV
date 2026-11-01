@@ -839,7 +839,7 @@ def notifications_settings_view(request: HttpRequest) -> HttpResponse:
 
     can_manage = has_permission(request.user, "settings.manage", organization=org)
 
-    STANDARD_CATEGORIES = [
+    standard_categories = [
         ("billing", _("Subscription & Billing Alerts")),
         ("inventory", _("Low Stock & Reorder Warnings")),
         ("sales", _("New Orders & Large Invoices")),
@@ -850,7 +850,7 @@ def notifications_settings_view(request: HttpRequest) -> HttpResponse:
         if not can_manage:
             raise PermissionDenied(_("You do not have permission to edit notification preferences."))
 
-        for cat_key, _label in STANDARD_CATEGORIES:
+        for cat_key, _label in standard_categories:
             email_val = request.POST.get(f"{cat_key}_email") == "on"
             in_app_val = request.POST.get(f"{cat_key}_in_app") == "on"
 
@@ -876,7 +876,7 @@ def notifications_settings_view(request: HttpRequest) -> HttpResponse:
     pref_map: dict[tuple[str, str], bool] = {(p.category, p.channel): p.is_enabled for p in existing_prefs}
 
     category_items = []
-    for cat_key, cat_label in STANDARD_CATEGORIES:
+    for cat_key, cat_label in standard_categories:
         category_items.append(
             {
                 "key": cat_key,
