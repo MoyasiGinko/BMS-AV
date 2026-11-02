@@ -13,7 +13,7 @@ from apps.accounting import services as accounting_services
 from apps.catalog.models import Product, ProductType, Unit
 from apps.core.tenant_context import tenant_context
 from apps.inventory import services as inventory_services
-from apps.pos import selectors, services
+from apps.pos import printing, selectors, services
 from apps.pos.models import POSShiftStatus
 from apps.tenancy.models import Branch, Membership, Organization, Role, TaxCode, Warehouse
 
@@ -351,6 +351,7 @@ def test_get_system_printers_windows_mock(monkeypatch: pytest.MonkeyPatch) -> No
         returncode = 0
         stdout = fake_output
 
+    monkeypatch.setattr(selectors, "_enum_printers_winspool", lambda: [])
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FakeCompletedProcess())
     printers = selectors._get_windows_printers()
 
@@ -361,3 +362,15 @@ def test_get_system_printers_windows_mock(monkeypatch: pytest.MonkeyPatch) -> No
     assert printers[1]["id"] == "Thermal 80mm USB"
     assert printers[1]["type"] == "usb"
     assert printers[1]["badge"] == "USB"
+
+
+def test_open_drawer_action(pos_view_setup: dict[str, object], monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test manual cash drawer open kick action."""
+    monkeypatch.setattr(printing, "open_cash_drawer", lambda **kwargs: True)
+
+    client: Client = pos_view_setup["client"]  # type: ignore
+    response = client.get("/pos/drawer/open/")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["drawer_opened"] is True

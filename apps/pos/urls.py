@@ -20,4 +20,5 @@ urlpatterns = [
     path("cart/<int:held_cart_id>/resume/", views.resume_cart_action, name="resume_cart"),
     path("printers/", views.printers_view, name="printers"),
     path("printers/test/", views.test_printer_action, name="test_printer"),
+    path("drawer/open/", views.open_drawer_action, name="open_drawer"),
 ]

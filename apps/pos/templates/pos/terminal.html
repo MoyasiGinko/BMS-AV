@@ -156,6 +156,17 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Cash Drawer Quick Kick Button -->
+                <button type="button"
+                        @click="openCashDrawer()"
+                        title="{% trans 'Open cash drawer' %} (F4)"
+                        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border)]/50 bg-[var(--surface-1)] hover:bg-[var(--surface-2)] text-xs font-semibold text-muted hover:text-ink transition-all cursor-pointer">
+                    <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                    <span>{% trans "Drawer" %}</span>
+                </button>
             </div>
         </div>
 
@@ -212,7 +223,13 @@
                 <template x-if="lastSale.printedToOs">
                     <span>
                         <span class="mx-1.5 opacity-60">&bull;</span>
-                        <span class="text-xs text-emerald-100 font-semibold">{% trans "Sent to" %} <span x-text="selectedPrinter"></span></span>
+                        <span class="text-xs text-emerald-100 font-semibold">{% trans "Sent to" %} <span x-text="lastSale.printerName || selectedPrinter"></span></span>
+                    </span>
+                </template>
+                <template x-if="lastSale.drawerOpened">
+                    <span>
+                        <span class="mx-1.5 opacity-60">&bull;</span>
+                        <span class="text-xs text-emerald-100 font-semibold">{% trans "Drawer opened" %}</span>
                     </span>
                 </template>
             </div>
@@ -821,6 +838,14 @@ function posTerminal(config) {
                     barcodeBuffer += e.key;
                 }
             });
+
+            // F4 hotkey to pop cash drawer / locker open
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'F4') {
+                    e.preventDefault();
+                    this.openCashDrawer();
+                }
+            });
         },
 
         setPrinter(id) {
@@ -883,6 +908,16 @@ function posTerminal(config) {
                     this.printReceiptDirect(this.lastSale.receiptUrl);
                 }
             }
+        },
+
+        async openCashDrawer() {
+            try {
+                const res = await fetch('{% url "pos:open_drawer" %}?printer_name=' + encodeURIComponent(this.selectedPrinter || ''));
+                const data = await res.json();
+                if (data.success) {
+                    console.log('Cash drawer kick pulse sent.');
+                }
+            } catch (e) {}
         },
 
         selectPaymentMethod(method) {
@@ -1200,20 +1235,15 @@ function posTerminal(config) {
                     return;
                 }
                 if (result.success) {
-                    if (result.printed_to_os) {
-                        console.log('Direct print spooled to hardware printer:', this.selectedPrinter);
-                    } else {
-                        // Fallback to browser iframe printing
-                        this.printReceiptDirect(result.receipt_url);
-                    }
-
                     // Show success bar and store last sale details
                     const changeAmt = result.change_given !== undefined ? parseFloat(result.change_given).toFixed(2) : Math.max(0, this.amountTenderedInput - this.grandTotal).toFixed(2);
                     this.lastSale = {
                         receiptNumber: result.receipt_number,
                         changeGiven: changeAmt,
                         receiptUrl: result.receipt_url,
-                        printedToOs: !!result.printed_to_os
+                        printedToOs: !!result.printed_to_os,
+                        drawerOpened: !!result.drawer_opened,
+                        printerName: result.printer_name || this.selectedPrinter || ''
                     };
                     this.showSaleSuccessNotification = true;
 

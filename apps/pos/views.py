@@ -216,20 +216,27 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
             notes=data.get("notes", ""),
             actor=request.user,
         )
-        printed_to_os = False
         printer_id = data.get("printer_id")
-        if printer_id:
-            # Spool asynchronously in background thread so checkout completes instantly
-            threading.Thread(
-                target=printing.spool_receipt_to_printer,
-                kwargs={
-                    "organization": org,
-                    "sale": sale,
-                    "printer_name": printer_id,
-                },
-                daemon=True,
-            ).start()
-            printed_to_os = True
+        if not printer_id:
+            sys_printers = selectors.get_system_printers()
+            if sys_printers:
+                printer_id = sys_printers[0]["id"]
+
+        def _spool_and_kick(target_printer: str | None) -> None:
+            # 1. Kick cash drawer / locker open immediately on checkout
+            with contextlib.suppress(Exception):
+                printing.open_cash_drawer(printer_name=target_printer)
+            # 2. Spool receipt directly to hardware OS printer
+            if target_printer:
+                with contextlib.suppress(Exception):
+                    printing.spool_receipt_to_printer(
+                        organization=org,
+                        sale=sale,
+                        printer_name=target_printer,
+                    )
+
+        threading.Thread(target=_spool_and_kick, args=(printer_id,), daemon=True).start()
+        printed_to_os = bool(printer_id)
 
         if is_json:
             return JsonResponse(
@@ -241,6 +248,8 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
                     "change_given": str(sale.change_given),
                     "amount_tendered": str(sale.amount_tendered),
                     "printed_to_os": printed_to_os,
+                    "drawer_opened": True,
+                    "printer_name": printer_id or "",
                 }
             )
         messages.success(request, _("Sale completed: Receipt %s") % sale.receipt_number)
@@ -496,3 +505,15 @@ def test_printer_action(request: HttpRequest) -> HttpResponse:
         daemon=True,
     ).start()
     return JsonResponse({"success": True, "printer_name": printer_name})
+
+
+@permission_required("pos.access")
+def open_drawer_action(request: HttpRequest) -> HttpResponse:
+    """Trigger the cash drawer / locker to kick open via printer kick pulse."""
+    printer_name = request.GET.get("printer_name") or request.POST.get("printer_name")
+    if not printer_name and request.content_type == "application/json":
+        with contextlib.suppress(Exception):
+            printer_name = json.loads(request.body.decode("utf-8")).get("printer_name")
+
+    success = printing.open_cash_drawer(printer_name=printer_name)
+    return JsonResponse({"success": success, "drawer_opened": True})

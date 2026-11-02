@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import ctypes
 import json
 import logging
 import platform
 import shutil
 import subprocess
+from ctypes import wintypes
 from decimal import Decimal
 from typing import Any
 
@@ -242,7 +244,75 @@ def _parse_printer_type(port: str) -> tuple[str, str]:
     return "cable", "Cable"
 
 
+def _enum_printers_winspool() -> list[dict[str, Any]]:
+    """Discover real physical/network printers on Windows via winspool EnumPrintersW."""
+    virtual_keywords = ("pdf", "xps", "onenote", "fax", "anydesk", "document writer")
+    try:
+        winspool = ctypes.WinDLL("winspool.drv")
+        flags = 0x00000002 | 0x00000004  # PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS
+
+        class PRINTER_INFO_2(ctypes.Structure):  # noqa: N801
+            _fields_ = [
+                ("pServerName", wintypes.LPWSTR),
+                ("pPrinterName", wintypes.LPWSTR),
+                ("pShareName", wintypes.LPWSTR),
+                ("pPortName", wintypes.LPWSTR),
+                ("pDriverName", wintypes.LPWSTR),
+                ("pComment", wintypes.LPWSTR),
+                ("pLocation", wintypes.LPWSTR),
+                ("pDevMode", ctypes.c_void_p),
+                ("pSepFile", wintypes.LPWSTR),
+                ("pPrintProcessor", wintypes.LPWSTR),
+                ("pDatatype", wintypes.LPWSTR),
+                ("pParameters", wintypes.LPWSTR),
+                ("pSecurityDescriptor", ctypes.c_void_p),
+                ("Attributes", wintypes.DWORD),
+                ("Priority", wintypes.DWORD),
+                ("DefaultPriority", wintypes.DWORD),
+                ("StartTime", wintypes.DWORD),
+                ("UntilTime", wintypes.DWORD),
+                ("Status", wintypes.DWORD),
+                ("cJobs", wintypes.DWORD),
+                ("AveragePPM", wintypes.DWORD),
+            ]
+
+        needed = wintypes.DWORD()
+        returned = wintypes.DWORD()
+        winspool.EnumPrintersW(flags, None, 2, None, 0, ctypes.byref(needed), ctypes.byref(returned))
+        if needed.value > 0:
+            buf = ctypes.create_string_buffer(needed.value)
+            if winspool.EnumPrintersW(flags, None, 2, buf, needed.value, ctypes.byref(needed), ctypes.byref(returned)):
+                items = ctypes.cast(buf, ctypes.POINTER(PRINTER_INFO_2))
+                fast_printers: list[dict[str, Any]] = []
+                for i in range(returned.value):
+                    p = items[i]
+                    name = p.pPrinterName or ""
+                    driver = p.pDriverName or ""
+                    port = p.pPortName or ""
+                    if any(vk in name.lower() or vk in driver.lower() for vk in virtual_keywords):
+                        continue
+                    ptype, badge = _parse_printer_type(port)
+                    fast_printers.append({
+                        "id": name,
+                        "name": name,
+                        "type": ptype,
+                        "badge": badge,
+                        "port": port,
+                        "driver": driver,
+                    })
+                return fast_printers
+    except Exception as exc:
+        logger.debug("Winspool EnumPrintersW fast path error: %s", exc)
+    return []
+
+
 def _get_windows_printers() -> list[dict[str, Any]]:
+    """Discover real physical/network printers on Windows."""
+    printers = _enum_printers_winspool()
+    if printers:
+        return printers
+
+    virtual_keywords = ("pdf", "xps", "onenote", "fax", "anydesk", "document writer")
     cmd = [
         "powershell",
         "-NoProfile",
@@ -250,14 +320,13 @@ def _get_windows_printers() -> list[dict[str, Any]]:
         "-Command",
         "Get-Printer | Select-Object Name, Type, DriverName, PortName, PrinterStatus | ConvertTo-Json -Compress",
     ]
-    printers: list[dict[str, Any]] = []
+    printers_out: list[dict[str, Any]] = []
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)  # noqa: S603
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=8, check=False)  # noqa: S603
         if res.returncode == 0 and res.stdout.strip():
             data = json.loads(res.stdout)
             if isinstance(data, dict):
                 data = [data]
-            virtual_keywords = ("pdf", "xps", "onenote", "fax", "anydesk", "document writer")
             for p in data:
                 name = p.get("Name") or ""
                 driver = p.get("DriverName") or ""
@@ -265,7 +334,7 @@ def _get_windows_printers() -> list[dict[str, Any]]:
                 if any(vk in name.lower() or vk in driver.lower() for vk in virtual_keywords):
                     continue
                 ptype, badge = _parse_printer_type(port)
-                printers.append({
+                printers_out.append({
                     "id": name,
                     "name": name,
                     "type": ptype,
@@ -275,7 +344,7 @@ def _get_windows_printers() -> list[dict[str, Any]]:
                 })
     except Exception as exc:
         logger.debug("Windows printer discovery error: %s", exc)
-    return printers
+    return printers_out
 
 
 def _get_unix_printers() -> list[dict[str, Any]]:

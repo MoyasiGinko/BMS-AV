@@ -7,15 +7,18 @@ Enables silent background printing directly to physical or network OS printers
 from __future__ import annotations
 
 import contextlib
+import ctypes
 import logging
 import os
 import platform
 import shutil
 import subprocess
 import tempfile
+from ctypes import wintypes
 
 from django.utils import timezone
 
+from apps.pos import selectors
 from apps.pos.models import POSSale
 from apps.tenancy.models import Organization
 
@@ -214,4 +217,83 @@ def spool_test_slip_to_printer(*, organization: Organization, printer_name: str)
         return _spool_windows(slip, printer_name)
     if sys_name in ("Linux", "Darwin"):
         return _spool_unix(slip, printer_name)
+    return False
+
+
+def send_raw_bytes_windows(printer_name: str, data: bytes, doc_name: str = "POS Cash Drawer") -> bool:
+    """Send raw binary command (e.g. ESC/POS drawer kick) directly to Windows print spooler."""
+    try:
+        winspool = ctypes.WinDLL("winspool.drv")
+
+        class DOC_INFO_1(ctypes.Structure):  # noqa: N801
+            _fields_ = [
+                ("pDocName", wintypes.LPWSTR),
+                ("pOutputFile", wintypes.LPWSTR),
+                ("pDatatype", wintypes.LPWSTR),
+            ]
+
+        handle = wintypes.HANDLE()
+        if not winspool.OpenPrinterW(printer_name, ctypes.byref(handle), None):
+            return False
+
+        try:
+            doc_info = DOC_INFO_1(doc_name, None, "RAW")
+            if not winspool.StartDocPrinterW(handle, 1, ctypes.byref(doc_info)):
+                return False
+            try:
+                if not winspool.StartPagePrinter(handle):
+                    return False
+                bytes_written = wintypes.DWORD()
+                success = winspool.WritePrinter(handle, data, len(data), ctypes.byref(bytes_written))
+                winspool.EndPagePrinter(handle)
+                return bool(success and bytes_written.value == len(data))
+            finally:
+                winspool.EndDocPrinter(handle)
+        finally:
+            winspool.ClosePrinter(handle)
+    except Exception as exc:
+        logger.debug("Raw spooling error on Windows to '%s': %s", printer_name, exc)
+        return False
+
+
+def send_raw_bytes_unix(printer_name: str, data: bytes) -> bool:
+    """Send raw binary command to Unix/CUPS print spooler."""
+    lp = shutil.which("lp")
+    if not lp:
+        return False
+    temp_path = ""
+    try:
+        with tempfile.NamedTemporaryFile("wb", delete=False) as tf:
+            tf.write(data)
+            temp_path = tf.name
+        res = subprocess.run([lp, "-d", printer_name, "-o", "raw", temp_path], capture_output=True, timeout=5, check=False)  # noqa: S603
+        return res.returncode == 0
+    except Exception as exc:
+        logger.debug("Raw spooling error on Unix: %s", exc)
+        return False
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            with contextlib.suppress(Exception):
+                os.remove(temp_path)
+
+
+def open_cash_drawer(*, printer_name: str | None = None) -> bool:
+    """Send electrical kick pulse to trigger open the POS cash drawer / locker.
+
+    Sends standard ESC/POS pulses (Pin 2 and Pin 5) to the receipt printer,
+    which triggers the attached RJ11/RJ12 drawer solenoid latch.
+    """
+    kick_pulse = b"\x1b\x70\x00\x19\xfa\x1b\x70\x01\x19\xfa\x07"
+    if not printer_name:
+        printers = selectors.get_system_printers()
+        if printers:
+            printer_name = printers[0]["id"]
+    if not printer_name:
+        return False
+
+    sys_name = platform.system()
+    if sys_name == "Windows":
+        return send_raw_bytes_windows(printer_name, kick_pulse, "Cash Drawer Open")
+    if sys_name in ("Linux", "Darwin"):
+        return send_raw_bytes_unix(printer_name, kick_pulse)
     return False
