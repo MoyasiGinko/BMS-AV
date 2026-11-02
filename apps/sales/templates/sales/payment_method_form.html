@@ -1,0 +1,177 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}
+    {% if is_create %}{% trans "Create payment method" %}{% else %}{% trans "Edit payment method" %}{% endif %} | {{ request.organization.name }}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6 pb-16">
+    <!-- Breadcrumb & Header -->
+    <div class="space-y-1">
+        <nav class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <a href="{% url 'sales:payment_method_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Payment methods" %}</a>
+            <span>/</span>
+            <span class="text-ink font-semibold">{% if is_create %}{% trans "Create" %}{% else %}{% trans "Edit" %}{% endif %}</span>
+        </nav>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">
+            {% if is_create %}{% trans "Create payment method" %}{% else %}{% trans "Edit payment method" %}{% endif %}
+        </h1>
+    </div>
+
+    <!-- Form Card -->
+    <form method="post" class="bg-surface border border-line rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl text-sm font-semibold text-rose-700 dark:text-rose-400">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <!-- Row 1: Name and Code -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    {% trans "Method name" %} <span class="text-rose-600 font-bold">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.name.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.code.id_for_label }}" class="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    {% trans "Code" %}
+                </label>
+                {{ form.code }}
+                {% if form.code.errors %}
+                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.code.errors.0 }}</p>
+                {% else %}
+                <p class="text-xs text-slate-400 mt-1">{% trans "Unique identifier (auto-generated if empty)." %}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Row 2: Method Type and Process Mode -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.method_type.id_for_label }}" class="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    {% trans "Method type" %} <span class="text-rose-600 font-bold">*</span>
+                </label>
+                {{ form.method_type }}
+                {% if form.method_type.errors %}
+                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.method_type.errors.0 }}</p>
+                {% else %}
+                <p class="text-xs text-slate-400 mt-1">{% trans "Determines customer data collected at checkout." %}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.process_mode.id_for_label }}" class="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    {% trans "Process mode" %} <span class="text-rose-600 font-bold">*</span>
+                </label>
+                {{ form.process_mode }}
+                {% if form.process_mode.errors %}
+                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.process_mode.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Row 3: Settlement Account & Fee Rate -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.settlement_account.id_for_label }}" class="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    {% trans "Settlement account" %}
+                </label>
+                {{ form.settlement_account }}
+                {% if form.settlement_account.errors %}
+                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.settlement_account.errors.0 }}</p>
+                {% else %}
+                <p class="text-xs text-slate-400 mt-1">{% trans "General ledger asset account for deposited funds." %}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.fee_rate.id_for_label }}" class="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    {% trans "Fee rate (%)" %}
+                </label>
+                {{ form.fee_rate }}
+                {% if form.fee_rate.errors %}
+                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.fee_rate.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Row 4: Sort Order -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.sort_order.id_for_label }}" class="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    {% trans "Display order" %}
+                </label>
+                {{ form.sort_order }}
+                {% if form.sort_order.errors %}
+                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.sort_order.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Row 5: Flags (Toggles) -->
+        <div class="pt-4 border-t border-line space-y-4">
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="requires_tx_id" id="{{ form.requires_tx_id.id_for_label }}"
+                       {% if form.requires_tx_id.value %}checked{% endif %}
+                       class="mt-0.5 rounded border-line text-indigo-600 focus:ring-indigo-500">
+                <div>
+                    <span class="text-sm font-bold text-ink">{% trans "Require transaction ID" %}</span>
+                    <p class="text-xs text-slate-400">{% trans "Cashier must input a transaction ID or reference before completing checkout." %}</p>
+                </div>
+            </label>
+
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="requires_proof" id="{{ form.requires_proof.id_for_label }}"
+                       {% if form.requires_proof.value %}checked{% endif %}
+                       class="mt-0.5 rounded border-line text-indigo-600 focus:ring-indigo-500">
+                <div>
+                    <span class="text-sm font-bold text-ink">{% trans "Require proof document" %}</span>
+                    <p class="text-xs text-slate-400">{% trans "Requires slip or receipt upload for audit verification." %}</p>
+                </div>
+            </label>
+
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="is_default" id="{{ form.is_default.id_for_label }}"
+                       {% if form.is_default.value %}checked{% endif %}
+                       class="mt-0.5 rounded border-line text-indigo-600 focus:ring-indigo-500">
+                <div>
+                    <span class="text-sm font-bold text-ink">{% trans "Default method" %}</span>
+                    <p class="text-xs text-slate-400">{% trans "Pre-selected payment method on sales screens." %}</p>
+                </div>
+            </label>
+
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" name="is_active" id="{{ form.is_active.id_for_label }}"
+                       {% if form.is_active.value or is_create %}checked{% endif %}
+                       class="mt-0.5 rounded border-line text-indigo-600 focus:ring-indigo-500">
+                <div>
+                    <span class="text-sm font-bold text-ink">{% trans "Active" %}</span>
+                    <p class="text-xs text-slate-400">{% trans "Visible and selectable in point of sale and payments." %}</p>
+                </div>
+            </label>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="flex items-center justify-between pt-6 border-t border-line">
+            <a href="{% url 'sales:payment_method_list' %}"
+               class="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-surface-2 border border-line transition-colors">
+                {% trans "Cancel" %}
+            </a>
+            <button type="submit"
+                    class="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                {% trans "Save" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

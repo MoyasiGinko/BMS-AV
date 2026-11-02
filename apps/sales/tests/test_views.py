@@ -13,7 +13,7 @@ from apps.catalog.models import Product, ProductType, Unit
 from apps.core.tenant_context import tenant_context
 from apps.customers import services as customers_services
 from apps.inventory import services as inventory_services
-from apps.sales.models import InvoiceStatus, QuoteStatus, SalesOrderStatus
+from apps.sales.models import InvoiceStatus, PaymentMethod, QuoteStatus, SalesOrderStatus
 from apps.tenancy.models import Branch, Membership, Organization, Role, Warehouse
 
 
@@ -291,3 +291,69 @@ def test_customer_payment_views(view_setup: dict[str, Any]) -> None:
     receipt_res = client.get(reverse("sales:payment_receipt", kwargs={"public_id": pay.public_id}))
     assert receipt_res.status_code == 200
     assert "PAYMENT RECEIPT" in receipt_res.content.decode()
+
+
+def test_payment_method_views(view_setup: dict[str, Any]) -> None:
+    """Test payment method list, create, edit, toggle, and validation."""
+    client = view_setup["client"]
+    org = view_setup["org"]
+
+    # 1. Payment method list view
+    list_res = client.get(reverse("sales:payment_method_list"))
+    assert list_res.status_code == 200
+    assert "Payment methods" in list_res.content.decode()
+
+    # 2. Payment method create GET
+    create_get = client.get(reverse("sales:payment_method_create"))
+    assert create_get.status_code == 200
+
+    # 3. Create a new payment method (e.g. bKash Merchant)
+    create_post = client.post(
+        reverse("sales:payment_method_create"),
+        {
+            "name": "bKash Merchant",
+            "code": "bkash_merchant",
+            "method_type": "mobile_banking",
+            "process_mode": "manual_verify",
+            "fee_rate": "1.5000",
+            "requires_tx_id": "on",
+            "is_active": "on",
+            "sort_order": "10",
+        },
+    )
+    assert create_post.status_code == 302
+    assert create_post.url == reverse("sales:payment_method_list")
+
+    pm = PaymentMethod.all_tenants.get(organization=org, code="bkash_merchant")
+    assert pm.name == "bKash Merchant"
+    assert pm.method_type == "mobile_banking"
+    assert pm.requires_tx_id is True
+    assert pm.is_active is True
+
+    # 4. Edit payment method
+    edit_get = client.get(reverse("sales:payment_method_edit", kwargs={"public_id": pm.public_id}))
+    assert edit_get.status_code == 200
+
+    edit_post = client.post(
+        reverse("sales:payment_method_edit", kwargs={"public_id": pm.public_id}),
+        {
+            "name": "bKash Official Merchant",
+            "code": "bkash_merchant",
+            "method_type": "mobile_banking",
+            "process_mode": "manual_verify",
+            "fee_rate": "1.2000",
+            "requires_tx_id": "on",
+            "is_active": "on",
+            "sort_order": "5",
+        },
+    )
+    assert edit_post.status_code == 302
+    pm.refresh_from_db()
+    assert pm.name == "bKash Official Merchant"
+    assert pm.sort_order == 5
+
+    # 5. Toggle active status
+    toggle_res = client.post(reverse("sales:payment_method_toggle", kwargs={"public_id": pm.public_id}))
+    assert toggle_res.status_code == 302
+    pm.refresh_from_db()
+    assert pm.is_active is False

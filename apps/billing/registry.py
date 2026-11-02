@@ -179,6 +179,7 @@ registry.register(
         NavItem("Categories", "catalog:category_list", icon="folder", permission="catalog.view"),
         NavItem("Price Lists", "catalog:pricelist_list", icon="tag", permission="catalog.view"),
         NavItem("Units", "catalog:unit_list", icon="scale", permission="catalog.view"),
+        NavItem("Labels", "catalog:product_labels", icon="printer", permission="catalog.view"),
     ],
     permissions=["catalog.view", "catalog.manage"],
 )

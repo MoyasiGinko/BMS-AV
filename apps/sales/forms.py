@@ -1,8 +1,10 @@
 from typing import Any
 
 from django import forms
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
+from apps.accounting.models import Account
 from apps.customers.models import Customer
 from apps.sales.models import (
     CreditNote,
@@ -310,6 +312,53 @@ class PaymentFilterForm(forms.Form):
     )
 
 
+class PaymentMethodForm(forms.ModelForm):
+    """Creation and editing form for organization payment methods."""
+
+    class Meta:
+        model = PaymentMethod
+        fields = [
+            "name",
+            "code",
+            "method_type",
+            "process_mode",
+            "settlement_account",
+            "fee_rate",
+            "requires_tx_id",
+            "requires_proof",
+            "is_default",
+            "is_active",
+            "sort_order",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": _("e.g. bKash Merchant, City Bank POS")}),
+            "code": forms.TextInput(attrs={"placeholder": _("e.g. bkash_merchant, card_city")}),
+            "fee_rate": forms.NumberInput(attrs={"step": "0.0001", "min": "0"}),
+            "sort_order": forms.NumberInput(attrs={"min": "0"}),
+        }
+
+    def __init__(self, *args: Any, organization: Organization | None = None, **kwargs: Any) -> None:
+        self.organization = organization
+        super().__init__(*args, **kwargs)
+        if organization and "settlement_account" in self.fields:
+                _scope_choice_field(
+                    self.fields["settlement_account"],
+                    Account.all_tenants.filter(organization=organization, is_active=True).order_by("code"),
+                )
+
+    def clean_code(self) -> str:
+        code = self.cleaned_data.get("code", "").strip()
+        if not code and self.cleaned_data.get("name"):
+            code = slugify(self.cleaned_data["name"]).replace("-", "_")
+        if self.organization:
+            qs = PaymentMethod.all_tenants.filter(organization=self.organization, code=code)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError(_("A payment method with this code already exists."))
+        return code
+
+
 class PaymentForm(forms.ModelForm):
     """Creation form for recording customer payments."""
 
@@ -318,6 +367,7 @@ class PaymentForm(forms.ModelForm):
         fields = [
             "customer",
             "amount",
+            "payment_method_record",
             "payment_method",
             "payment_date",
             "currency",
@@ -336,6 +386,8 @@ class PaymentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if "currency" in self.fields:
             self.fields["currency"].required = False
+        if "payment_method" in self.fields:
+            self.fields["payment_method"].required = False
         if organization:
             if "customer" in self.fields:
                 _scope_choice_field(
@@ -344,6 +396,11 @@ class PaymentForm(forms.ModelForm):
             if "branch" in self.fields:
                 _scope_choice_field(
                     self.fields["branch"], Branch.all_tenants.filter(organization=organization)
+                )
+            if "payment_method_record" in self.fields:
+                _scope_choice_field(
+                    self.fields["payment_method_record"],
+                    PaymentMethod.all_tenants.filter(organization=organization, is_active=True).order_by("sort_order", "name"),
                 )
 
 

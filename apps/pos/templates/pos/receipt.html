@@ -90,8 +90,13 @@
         <div class="border-b border-dashed border-slate-300 pb-4 space-y-1">
             <div class="font-bold text-[11px] text-slate-700 uppercase">{% trans "Payment Details" %}</div>
             {% for tender in sale.tenders %}
-            <div class="flex justify-between text-slate-600">
-                <span class="capitalize">{{ tender.payment_method|default:"Cash" }}</span>
+            <div class="flex justify-between text-slate-600 items-baseline">
+                <div>
+                    <span class="capitalize font-semibold text-slate-800">{{ tender.payment_method|default:"Cash" }}</span>
+                    {% if tender.reference %}
+                    <div class="text-[10px] text-slate-500 font-mono">{{ tender.reference }}</div>
+                    {% endif %}
+                </div>
                 <span>${{ tender.amount }}</span>
             </div>
             {% endfor %}

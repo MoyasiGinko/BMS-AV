@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from apps.sales import views
+from apps.sales import payment_method_views, views
 
 app_name = "sales"
 
@@ -77,5 +77,18 @@ urlpatterns = [
         "reminders/dispatch-now/",
         views.payment_reminder_dispatch_now,
         name="reminder_dispatch_now",
+    ),
+    # Payment Methods
+    path("payment-methods/", payment_method_views.payment_method_list, name="payment_method_list"),
+    path("payment-methods/create/", payment_method_views.payment_method_create, name="payment_method_create"),
+    path(
+        "payment-methods/<uuid:public_id>/edit/",
+        payment_method_views.payment_method_edit,
+        name="payment_method_edit",
+    ),
+    path(
+        "payment-methods/<uuid:public_id>/toggle/",
+        payment_method_views.payment_method_toggle,
+        name="payment_method_toggle",
     ),
 ]

@@ -16,6 +16,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 
 from apps.catalog.models import Product
+from apps.core.models import NotificationChannel
+from apps.core.notifications import notify_user
 from apps.core.permissions import check_object_scope, permission_required, scope_queryset
 from apps.customers.models import Customer
 from apps.pos import printing, selectors, services
@@ -97,6 +99,7 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
     held_carts = selectors.list_held_carts(organization=org, shift_id=active_shift.pk)
     customers = Customer.all_tenants.filter(organization=org, status="active").order_by("name")[:50]
     system_printers = selectors.get_system_printers()
+    system_scanners = selectors.get_system_scanners()
     payment_methods = selectors.list_active_payment_methods(organization=org)
 
     context = {
@@ -110,6 +113,8 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
         "close_form": POSCloseShiftForm(),
         "system_printers": system_printers,
         "system_printers_json": json.dumps(system_printers),
+        "system_scanners": system_scanners,
+        "system_scanners_json": json.dumps(system_scanners),
         "payment_methods": payment_methods,
         "payment_methods_json": json.dumps(payment_methods),
     }
@@ -156,8 +161,13 @@ def _parse_tenders(raw_payments: Any) -> list[dict[str, Any]]:
     for p in raw_payments:
         method = p.get("payment_method", PaymentMethod.CASH)
         amt = Decimal(str(p.get("amount", "0.0000")))
+        ref = str(p.get("reference", "")).strip()
+        pm_id = p.get("payment_method_id")
         if amt > Decimal("0.0000"):
-            tenders.append({"payment_method": method, "amount": amt})
+            t = {"payment_method": method, "amount": amt, "reference": ref}
+            if pm_id:
+                t["payment_method_id"] = pm_id
+            tenders.append(t)
     return tenders
 
 
@@ -222,12 +232,9 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
             if sys_printers:
                 printer_id = sys_printers[0]["id"]
 
-        def _spool_and_kick(target_printer: str | None) -> None:
-            # 1. Kick cash drawer / locker open immediately on checkout
-            with contextlib.suppress(Exception):
-                printing.open_cash_drawer(printer_name=target_printer)
-            # 2. Spool receipt directly to hardware OS printer
-            if target_printer:
+        printed_to_os = False
+        if printer_id and printer_id != "none":
+            def _spool(target_printer: str) -> None:
                 with contextlib.suppress(Exception):
                     printing.spool_receipt_to_printer(
                         organization=org,
@@ -235,8 +242,31 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
                         printer_name=target_printer,
                     )
 
-        threading.Thread(target=_spool_and_kick, args=(printer_id,), daemon=True).start()
-        printed_to_os = bool(printer_id)
+            threading.Thread(target=_spool, args=(printer_id,), daemon=True).start()
+            printed_to_os = True
+
+        with contextlib.suppress(Exception):
+            notify_user(
+                organization_id=org.pk,
+                user=request.user,
+                category="pos.sale",
+                title=str(_("Sale completed: %s") % sale.receipt_number),
+                body=str(
+                    _("Receipt %(receipt)s for $%(amount)s completed.")
+                    % {
+                        "receipt": sale.receipt_number,
+                        "amount": f"{sale.total_amount:,.2f}",
+                    }
+                ),
+                channel=NotificationChannel.IN_APP,
+                action_url=f"/pos/receipt/{sale.public_id}/",
+                metadata={
+                    "receipt_number": sale.receipt_number,
+                    "total_amount": str(sale.total_amount),
+                    "public_id": str(sale.public_id),
+                },
+                actor=request.user,
+            )
 
         if is_json:
             return JsonResponse(
@@ -248,8 +278,7 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
                     "change_given": str(sale.change_given),
                     "amount_tendered": str(sale.amount_tendered),
                     "printed_to_os": printed_to_os,
-                    "drawer_opened": True,
-                    "printer_name": printer_id or "",
+                    "printer_name": printer_id if printed_to_os else "",
                 }
             )
         messages.success(request, _("Sale completed: Receipt %s") % sale.receipt_number)
@@ -485,6 +514,13 @@ def printers_view(request: HttpRequest) -> HttpResponse:
     """Return live system printers for POS terminal."""
     printers = selectors.get_system_printers()
     return JsonResponse({"printers": printers})
+
+
+@permission_required("pos.access")
+def scanners_view(request: HttpRequest) -> HttpResponse:
+    """Return live system barcode scanners for POS terminal."""
+    scanners = selectors.get_system_scanners()
+    return JsonResponse({"scanners": scanners})
 
 
 @permission_required("pos.access")

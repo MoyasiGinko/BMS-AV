@@ -1,0 +1,825 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Print Labels" %} | {{ request.organization.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+    /* Hide all page chrome when printing */
+    nav, header, aside, .catalog-header, .catalog-tabs, .designer-controls, .preview-panel, #sidebar, .pos-header, button {
+        display: none !important;
+    }
+    body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        color: #000000 !important;
+    }
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    #print-container {
+        display: block !important;
+        visibility: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .print-label-item {
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    .print-roll-break {
+        page-break-after: always !important;
+        break-after: page !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<script id="product-labels-config" type="application/json">{{ labels_config_json|safe }}</script>
+<div class="catalog-page space-y-6"
+     x-data="productLabels(JSON.parse(document.getElementById('product-labels-config').textContent))"
+     x-init="initLabels()">
+
+    <!-- Header (Screen only) -->
+    <div class="catalog-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Print Labels" %}</h1>
+            <p class="text-xs sm:text-sm text-muted mt-1">{% trans "Generate and print custom barcode labels for products." %}</p>
+        </div>
+        <div class="flex items-center gap-2.5">
+            <button type="button"
+                    @click="resetDesign()"
+                    class="neu-btn-ghost px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-muted hover:text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+                {% trans "Reset Design" %}
+            </button>
+            <button type="button"
+                    @click="printLabels()"
+                    :disabled="totalLabels === 0"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition-all cursor-pointer active:scale-98">
+                <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>{% trans "Print" %} (<span x-text="totalLabels"></span>)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="catalog-tabs">
+        {% include "catalog/partials/_navigation_tabs.html" with active_tab="labels" %}
+    </div>
+
+    <!-- Main 3-Column Designer Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- 1. Left Column: Product Selection & Quantities (4 cols) -->
+        <div class="lg:col-span-4 space-y-4">
+            <div class="bg-[var(--surface-1)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4">
+                <div class="flex items-center justify-between border-b border-[var(--border)]/60 pb-3">
+                    <h2 class="text-sm font-extrabold text-ink uppercase tracking-wider">{% trans "Products to Print" %}</h2>
+                    <span class="text-xs font-bold text-muted" x-text="`${printQueue.length} items (${totalLabels} labels)`"></span>
+                </div>
+
+                <!-- Product Search & Add -->
+                <div class="relative" x-data="{ openSearchDropdown: false }">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-muted">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </span>
+                        <input type="text"
+                               x-model="searchQuery"
+                               @focus="openSearchDropdown = true"
+                               @click.away="openSearchDropdown = false"
+                               placeholder="{% trans 'Search by name, SKU, or barcode' %}"
+                               class="w-full pl-9 pr-3 py-2 text-xs sm:text-sm font-medium rounded-xl border border-[var(--border)] bg-[var(--surface-base)] text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+
+                    <!-- Search Dropdown Results -->
+                    <div x-show="openSearchDropdown && filteredProducts.length > 0"
+                         x-cloak
+                         class="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-xl z-30 p-1 space-y-1">
+                        <template x-for="prod in filteredProducts" :key="prod.id">
+                            <button type="button"
+                                    @click="addProduct(prod, 1); openSearchDropdown = false; searchQuery = ''"
+                                    class="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--surface-2)] flex items-center justify-between text-xs transition-colors cursor-pointer">
+                                <div class="min-w-0 pr-2">
+                                    <div class="font-bold text-ink truncate" x-text="prod.name"></div>
+                                    <div class="text-3xs text-muted font-mono" x-text="prod.sku ? `SKU: ${prod.sku}` : ''"></div>
+                                </div>
+                                <div class="shrink-0 text-right">
+                                    <span class="font-mono font-bold text-ink" x-text="`${labelDesign.currencySymbol}${prod.price}`"></span>
+                                    <span class="block text-3xs text-indigo-600 font-extrabold">{% trans "+ Add" %}</span>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Bar -->
+                <div class="flex items-center justify-between gap-2 pt-1 text-2xs">
+                    <button type="button"
+                            @click="addAllProducts()"
+                            class="text-indigo-600 hover:text-indigo-700 font-bold hover:underline cursor-pointer">
+                        {% trans "Add all products" %}
+                    </button>
+                    <button type="button"
+                            x-show="printQueue.length > 0"
+                            @click="clearQueue()"
+                            class="text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer">
+                        {% trans "Clear list" %}
+                    </button>
+                </div>
+
+                <!-- Print Queue List -->
+                <div class="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+                    <template x-for="(item, idx) in printQueue" :key="item.product.id">
+                        <div class="p-3 rounded-xl border border-[var(--border)]/70 bg-[var(--surface-2)]/40 flex items-center justify-between gap-2.5 transition-all"
+                             :class="previewIndex === idx ? 'ring-2 ring-indigo-500/60 bg-[var(--surface-2)]' : ''">
+                            <div class="min-w-0 flex-1 cursor-pointer" @click="previewIndex = idx">
+                                <div class="font-bold text-xs text-ink truncate" x-text="item.product.name"></div>
+                                <div class="flex items-center gap-2 text-3xs text-muted font-mono mt-0.5">
+                                    <span x-text="item.product.barcode || item.product.sku"></span>
+                                    <span>•</span>
+                                    <span class="font-bold text-ink" x-text="`${labelDesign.currencySymbol}${item.product.price}`"></span>
+                                </div>
+                            </div>
+
+                            <!-- Quantity Controls -->
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button"
+                                        @click="item.quantity = Math.max(1, item.quantity - 1)"
+                                        class="w-6 h-6 rounded-lg bg-[var(--surface-base)] border border-[var(--border)] text-ink font-bold flex items-center justify-center hover:bg-[var(--surface-2)] cursor-pointer text-xs">
+                                    -
+                                </button>
+                                <input type="number"
+                                       min="1"
+                                       max="999"
+                                       x-model.number="item.quantity"
+                                       class="w-12 text-center text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-ink py-1">
+                                <button type="button"
+                                        @click="item.quantity = item.quantity + 1"
+                                        class="w-6 h-6 rounded-lg bg-[var(--surface-base)] border border-[var(--border)] text-ink font-bold flex items-center justify-center hover:bg-[var(--surface-2)] cursor-pointer text-xs">
+                                    +
+                                </button>
+                                <button type="button"
+                                        @click="removeProduct(item.product.id)"
+                                        class="w-6 h-6 ml-1 text-muted hover:text-rose-600 rounded-lg flex items-center justify-center cursor-pointer"
+                                        title="{% trans 'Remove' %}">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Empty State -->
+                    <template x-if="printQueue.length === 0">
+                        <div class="py-10 text-center text-muted border border-dashed border-[var(--border)] rounded-xl">
+                            <svg class="w-8 h-8 mx-auto opacity-40 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h10M7 11h6m-8 6h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <p class="text-xs font-medium">{% trans "No products selected." %}</p>
+                            <button type="button"
+                                    @click="addAllProducts()"
+                                    class="mt-2 text-xs font-bold text-indigo-600 hover:underline cursor-pointer">
+                                {% trans "Add all products" %}
+                            </button>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Batch Set Quantities -->
+                <div x-show="printQueue.length > 0" class="pt-3 border-t border-[var(--border)]/60 flex items-center justify-between text-2xs text-muted">
+                    <span class="font-bold uppercase tracking-wider">{% trans "Set all to:" %}</span>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" @click="setAllQuantities(1)" class="px-2 py-1 rounded bg-[var(--surface-base)] border border-[var(--border)] font-bold text-ink hover:border-indigo-500 cursor-pointer">1</button>
+                        <button type="button" @click="setAllQuantities(5)" class="px-2 py-1 rounded bg-[var(--surface-base)] border border-[var(--border)] font-bold text-ink hover:border-indigo-500 cursor-pointer">5</button>
+                        <button type="button" @click="setAllQuantities(10)" class="px-2 py-1 rounded bg-[var(--surface-base)] border border-[var(--border)] font-bold text-ink hover:border-indigo-500 cursor-pointer">10</button>
+                        <button type="button" @click="setAllQuantities(25)" class="px-2 py-1 rounded bg-[var(--surface-base)] border border-[var(--border)] font-bold text-ink hover:border-indigo-500 cursor-pointer">25</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Center Column: Label Designer & Settings (5 cols) -->
+        <div class="lg:col-span-5 space-y-4 designer-controls">
+            <div class="bg-[var(--surface-1)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-5">
+                <div class="border-b border-[var(--border)]/60 pb-3">
+                    <h2 class="text-sm font-extrabold text-ink uppercase tracking-wider">{% trans "Label Design & Dimensions" %}</h2>
+                </div>
+
+                <!-- 1. Dimension Presets -->
+                <div class="space-y-3">
+                    <label class="block text-2xs font-extrabold text-muted uppercase tracking-wider">
+                        {% trans "Size Preset" %}
+                    </label>
+                    <select x-model="labelDesign.preset"
+                            @change="applyPreset(labelDesign.preset)"
+                            class="w-full text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--surface-base)] text-ink py-2.5 px-3">
+                        <option value="50x30">50 mm × 30 mm ({% trans "Standard Barcode" %})</option>
+                        <option value="40x25">40 mm × 25 mm ({% trans "Small Retail / Jewelry" %})</option>
+                        <option value="38x25">38 mm × 25 mm (1.5" × 1")</option>
+                        <option value="60x40">60 mm × 40 mm ({% trans "Large Retail" %})</option>
+                        <option value="100x50">100 mm × 50 mm (4" × 2" {% trans "Shelf / Box" %})</option>
+                        <option value="a4_30">A4 Sheet (30 labels, 3 × 10 grid)</option>
+                        <option value="custom">{% trans "Custom Size" %}</option>
+                    </select>
+
+                    <!-- Custom Width & Height Inputs -->
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                            <label class="block text-3xs font-bold text-muted uppercase mb-1">{% trans "Width (mm)" %}</label>
+                            <input type="number"
+                                   min="15"
+                                   max="220"
+                                   x-model.number="labelDesign.widthMm"
+                                   class="w-full text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-ink py-2 px-3">
+                        </div>
+                        <div>
+                            <label class="block text-3xs font-bold text-muted uppercase mb-1">{% trans "Height (mm)" %}</label>
+                            <input type="number"
+                                   min="10"
+                                   max="220"
+                                   x-model.number="labelDesign.heightMm"
+                                   class="w-full text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-ink py-2 px-3">
+                        </div>
+                    </div>
+
+                    <!-- Output Format / Layout Mode -->
+                    <div class="pt-2">
+                        <label class="block text-3xs font-bold text-muted uppercase mb-1">{% trans "Print Feed" %}</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button"
+                                    @click="labelDesign.pageMode = 'roll'"
+                                    :class="labelDesign.pageMode === 'roll' ? 'bg-indigo-600 text-white font-bold' : 'bg-[var(--surface-2)] text-ink'"
+                                    class="px-3 py-2 rounded-xl text-xs font-semibold text-center border border-[var(--border)] transition-all cursor-pointer">
+                                {% trans "Continuous Roll" %}
+                            </button>
+                            <button type="button"
+                                    @click="labelDesign.pageMode = 'sheet'"
+                                    :class="labelDesign.pageMode === 'sheet' ? 'bg-indigo-600 text-white font-bold' : 'bg-[var(--surface-2)] text-ink'"
+                                    class="px-3 py-2 rounded-xl text-xs font-semibold text-center border border-[var(--border)] transition-all cursor-pointer">
+                                {% trans "A4 Sheet Grid" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Content Elements Toggles -->
+                <div class="border-t border-[var(--border)]/60 pt-4 space-y-3.5">
+                    <span class="block text-2xs font-extrabold text-muted uppercase tracking-wider">
+                        {% trans "Content Elements" %}
+                    </span>
+
+                    <!-- Store Name -->
+                    <div class="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" x-model="labelDesign.showStoreName" class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-xs font-bold text-ink">{% trans "Store Name" %}</span>
+                            </label>
+                            <select x-show="labelDesign.showStoreName" x-model="labelDesign.storeFontSize" class="text-3xs py-1 px-2 rounded border border-[var(--border)] bg-[var(--surface-base)] text-ink">
+                                <option value="8px">Small (8px)</option>
+                                <option value="10px">Medium (10px)</option>
+                                <option value="12px">Large (12px)</option>
+                            </select>
+                        </div>
+                        <input x-show="labelDesign.showStoreName"
+                               type="text"
+                               x-model="labelDesign.storeName"
+                               placeholder="{% trans 'Store name' %}"
+                               class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-ink py-1.5 px-2.5">
+                    </div>
+
+                    <!-- Product Name -->
+                    <div class="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" x-model="labelDesign.showProductName" class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-xs font-bold text-ink">{% trans "Product Name" %}</span>
+                            </label>
+                            <div x-show="labelDesign.showProductName" class="flex items-center gap-1.5">
+                                <button type="button"
+                                        @click="labelDesign.productBold = !labelDesign.productBold"
+                                        :class="labelDesign.productBold ? 'bg-indigo-600 text-white' : 'bg-[var(--surface-base)] text-muted'"
+                                        class="px-2 py-0.5 rounded text-3xs font-extrabold border border-[var(--border)] cursor-pointer">
+                                    B
+                                </button>
+                                <select x-model="labelDesign.productFontSize" class="text-3xs py-1 px-2 rounded border border-[var(--border)] bg-[var(--surface-base)] text-ink">
+                                    <option value="10px">Small (10px)</option>
+                                    <option value="12px">Medium (12px)</option>
+                                    <option value="14px">Large (14px)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barcode & QR Code -->
+                    <div class="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" x-model="labelDesign.showBarcode" class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-xs font-bold text-ink">{% trans "Barcode" %}</span>
+                            </label>
+                            <div x-show="labelDesign.showBarcode" class="flex items-center gap-1.5">
+                                <select x-model="labelDesign.barcodeType" class="text-3xs py-1 px-2 rounded border border-[var(--border)] bg-[var(--surface-base)] text-ink font-semibold">
+                                    <option value="code128">Code 128 (1D)</option>
+                                    <option value="qrcode">QR Code (2D)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div x-show="labelDesign.showBarcode" class="flex items-center justify-between gap-3 text-3xs text-muted pt-1">
+                            <label class="flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" x-model="labelDesign.showCodeText" class="rounded border-[var(--border)] text-indigo-600">
+                                <span>{% trans "Show code digits" %}</span>
+                            </label>
+                            <div class="flex items-center gap-1">
+                                <span>{% trans "Height:" %}</span>
+                                <select x-model.number="labelDesign.barcodeHeight" class="text-3xs py-0.5 px-1.5 rounded border border-[var(--border)] bg-[var(--surface-base)] text-ink">
+                                    <option value="12">12 mm</option>
+                                    <option value="16">16 mm</option>
+                                    <option value="20">20 mm</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Price & SKU -->
+                    <div class="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" x-model="labelDesign.showPrice" class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-xs font-bold text-ink">{% trans "Price" %}</span>
+                            </label>
+                            <div x-show="labelDesign.showPrice" class="flex items-center gap-1.5">
+                                <input type="text"
+                                       x-model="labelDesign.currencySymbol"
+                                       maxlength="4"
+                                       class="w-10 text-center text-3xs font-mono font-bold rounded border border-[var(--border)] bg-[var(--surface-base)] text-ink py-1">
+                                <select x-model="labelDesign.priceFontSize" class="text-3xs py-1 px-2 rounded border border-[var(--border)] bg-[var(--surface-base)] text-ink font-bold">
+                                    <option value="12px">Medium (12px)</option>
+                                    <option value="15px">Large (15px)</option>
+                                    <option value="18px">Extra Large (18px)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" x-model="labelDesign.showSku" class="rounded border-[var(--border)] text-indigo-600">
+                                <span class="text-xs font-medium text-ink">{% trans "SKU code" %}</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Footer Note -->
+                    <div class="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 space-y-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" x-model="labelDesign.showFooter" class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-xs font-bold text-ink">{% trans "Footer Note" %}</span>
+                        </label>
+                        <input x-show="labelDesign.showFooter"
+                               type="text"
+                               x-model="labelDesign.footerText"
+                               placeholder="{% trans 'e.g. VAT Included / Non-Returnable' %}"
+                               class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-ink py-1.5 px-2.5">
+                    </div>
+                </div>
+
+                <!-- 3. Styling & Alignment -->
+                <div class="border-t border-[var(--border)]/60 pt-4 space-y-3">
+                    <span class="block text-2xs font-extrabold text-muted uppercase tracking-wider">
+                        {% trans "Alignment & Border" %}
+                    </span>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-3xs font-bold text-muted uppercase mb-1">{% trans "Text Alignment" %}</label>
+                            <select x-model="labelDesign.textAlign" class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-ink py-1.5 px-2.5">
+                                <option value="center">{% trans "Center" %}</option>
+                                <option value="left">{% trans "Left" %}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-3xs font-bold text-muted uppercase mb-1">{% trans "Cut Border" %}</label>
+                            <select x-model="labelDesign.borderStyle" class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-ink py-1.5 px-2.5">
+                                <option value="none">{% trans "None" %}</option>
+                                <option value="dashed">{% trans "Dashed Guide" %}</option>
+                                <option value="solid">{% trans "Solid Line" %}</option>
+                                <option value="rounded">{% trans "Rounded Card" %}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Right Column: Real-Time Live Preview (3 cols, sticky) -->
+        <div class="lg:col-span-3 space-y-4 preview-panel lg:sticky lg:top-6">
+            <div class="bg-[var(--surface-1)] rounded-2xl border border-[var(--border)] p-4 sm:p-5 shadow-xs space-y-4">
+                <div class="flex items-center justify-between border-b border-[var(--border)]/60 pb-3">
+                    <h2 class="text-sm font-extrabold text-ink uppercase tracking-wider">{% trans "Live Preview" %}</h2>
+                    <span class="px-2 py-0.5 rounded text-3xs font-mono font-bold bg-[var(--surface-2)] text-muted"
+                          x-text="`${labelDesign.widthMm} × ${labelDesign.heightMm} mm`"></span>
+                </div>
+
+                <!-- Product Preview Carousel / Selector -->
+                <div x-show="printQueue.length > 0" class="flex items-center justify-between gap-1 text-2xs text-muted pb-1">
+                    <button type="button"
+                            @click="previewIndex = (previewIndex - 1 + printQueue.length) % printQueue.length"
+                            class="px-2 py-1 rounded bg-[var(--surface-2)] hover:bg-[var(--surface-base)] text-ink font-bold cursor-pointer">
+                        ‹
+                    </button>
+                    <span class="truncate font-semibold" x-text="`${previewIndex + 1} of ${printQueue.length}: ${currentPreviewProduct ? currentPreviewProduct.name : ''}`"></span>
+                    <button type="button"
+                            @click="previewIndex = (previewIndex + 1) % printQueue.length"
+                            class="px-2 py-1 rounded bg-[var(--surface-2)] hover:bg-[var(--surface-base)] text-ink font-bold cursor-pointer">
+                        ›
+                    </button>
+                </div>
+
+                <!-- Label Live Visual Canvas -->
+                <div class="flex items-center justify-center p-3 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-[var(--border)] overflow-hidden min-h-[220px]">
+                    <div id="live-label-preview"
+                         class="bg-white text-black shadow-md flex flex-col justify-between transition-all"
+                         :style="`width: ${labelDesign.widthMm * 3.8}px; min-height: ${labelDesign.heightMm * 3.8}px; padding: 6px; text-align: ${labelDesign.textAlign}; ${getPreviewBorderStyle()}`">
+
+                        <!-- Store Name Header -->
+                        <div x-show="labelDesign.showStoreName"
+                             class="uppercase tracking-wider font-extrabold text-slate-700 truncate"
+                             :style="`font-size: ${labelDesign.storeFontSize};`"
+                             x-text="labelDesign.storeName">
+                        </div>
+
+                        <!-- Product Name -->
+                        <div x-show="labelDesign.showProductName"
+                             class="leading-tight break-words my-1"
+                             :style="`font-size: ${labelDesign.productFontSize}; font-weight: ${labelDesign.productBold ? 'bold' : 'normal'};`"
+                             x-text="currentPreviewProduct ? currentPreviewProduct.name : '{% trans 'Sample Product Name' %}'">
+                        </div>
+
+                        <!-- Barcode Area -->
+                        <div x-show="labelDesign.showBarcode" class="my-1 flex flex-col items-center justify-center">
+                            <template x-if="labelDesign.barcodeType === 'code128'">
+                                <div class="w-full flex justify-center"
+                                     x-html="renderBarcodeSvg(currentPreviewProduct ? (currentPreviewProduct.barcode || currentPreviewProduct.sku) : 'SAMPLE1234')">
+                                </div>
+                            </template>
+                            <template x-if="labelDesign.barcodeType === 'qrcode'">
+                                <div class="w-14 h-14 bg-slate-900 text-white flex items-center justify-center rounded text-3xs font-mono font-bold">
+                                    [QR CODE]
+                                </div>
+                            </template>
+                            <div x-show="labelDesign.showCodeText"
+                                 class="font-mono text-3xs tracking-widest text-slate-800 font-bold mt-0.5"
+                                 x-text="currentPreviewProduct ? (currentPreviewProduct.barcode || currentPreviewProduct.sku) : 'SAMPLE1234'">
+                            </div>
+                        </div>
+
+                        <!-- Price and SKU Footer -->
+                        <div class="mt-auto pt-1 flex items-baseline justify-between border-t border-slate-200">
+                            <span x-show="labelDesign.showSku"
+                                  class="text-3xs font-mono text-slate-600"
+                                  x-text="currentPreviewProduct ? `SKU: ${currentPreviewProduct.sku}` : 'SKU: SAMPLE'"></span>
+                            <span x-show="labelDesign.showPrice"
+                                  class="font-mono font-black text-black ml-auto"
+                                  :style="`font-size: ${labelDesign.priceFontSize};`"
+                                  x-text="`${labelDesign.currencySymbol}${currentPreviewProduct ? currentPreviewProduct.price : '19.99'}`">
+                            </span>
+                        </div>
+
+                        <!-- Custom Footer Note -->
+                        <div x-show="labelDesign.showFooter && labelDesign.footerText"
+                             class="text-3xs text-slate-600 mt-0.5 pt-0.5 border-t border-slate-100 italic"
+                             x-text="labelDesign.footerText">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Print Action Button in Preview Box -->
+                <div class="pt-2">
+                    <button type="button"
+                            @click="printLabels()"
+                            :disabled="totalLabels === 0"
+                            class="w-full py-3 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <span>{% trans "Print All Labels" %} (<span x-text="totalLabels"></span>)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hidden Print Container: Rendered only when printing -->
+    <div id="print-container" style="display: none;">
+        <template x-for="(item, itemIdx) in printQueue" :key="itemIdx">
+            <div>
+                <template x-for="copy in item.quantity" :key="copy">
+                    <div class="print-label-item"
+                         :class="labelDesign.pageMode === 'roll' ? 'print-roll-break' : ''"
+                         :style="getPrintLabelStyle()">
+
+                        <!-- Store Name Header -->
+                        <div x-show="labelDesign.showStoreName"
+                             class="uppercase tracking-wider font-extrabold truncate"
+                             :style="`font-size: ${labelDesign.storeFontSize}; text-align: ${labelDesign.textAlign};`"
+                             x-text="labelDesign.storeName">
+                        </div>
+
+                        <!-- Product Name -->
+                        <div x-show="labelDesign.showProductName"
+                             class="leading-tight break-words my-0.5"
+                             :style="`font-size: ${labelDesign.productFontSize}; font-weight: ${labelDesign.productBold ? 'bold' : 'normal'}; text-align: ${labelDesign.textAlign};`"
+                             x-text="item.product.name">
+                        </div>
+
+                        <!-- Barcode Area -->
+                        <div x-show="labelDesign.showBarcode" class="my-0.5 flex flex-col items-center justify-center">
+                            <div class="w-full flex justify-center"
+                                 x-html="renderBarcodeSvg(item.product.barcode || item.product.sku)">
+                            </div>
+                            <div x-show="labelDesign.showCodeText"
+                                 class="font-mono text-3xs tracking-widest font-bold mt-0.5"
+                                 x-text="item.product.barcode || item.product.sku">
+                            </div>
+                        </div>
+
+                        <!-- Price and SKU Footer -->
+                        <div class="mt-auto pt-0.5 flex items-baseline justify-between border-t border-black/30">
+                            <span x-show="labelDesign.showSku"
+                                  class="text-3xs font-mono"
+                                  x-text="`SKU: ${item.product.sku}`"></span>
+                            <span x-show="labelDesign.showPrice"
+                                  class="font-mono font-black ml-auto"
+                                  :style="`font-size: ${labelDesign.priceFontSize};`"
+                                  x-text="`${labelDesign.currencySymbol}${item.product.price}`">
+                            </span>
+                        </div>
+
+                        <!-- Custom Footer Note -->
+                        <div x-show="labelDesign.showFooter && labelDesign.footerText"
+                             class="text-3xs mt-0.5 pt-0.5 border-t border-black/20 italic"
+                             :style="`text-align: ${labelDesign.textAlign};`"
+                             x-text="labelDesign.footerText">
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </template>
+    </div>
+
+</div>
+
+<script>
+function productLabels(config) {
+    return {
+        allProducts: config.products || [],
+        categories: config.categories || [],
+        searchQuery: '',
+        currencySymbol: config.currencySymbol || '$',
+        selectedCategory: '',
+        preselectedId: config.preselectedId,
+        previewIndex: 0,
+        printQueue: [],
+
+        labelDesign: {
+            preset: '50x30',
+            widthMm: 50,
+            heightMm: 30,
+            pageMode: 'roll', // 'roll' or 'sheet'
+            sheetCols: 3,
+            showStoreName: true,
+            storeName: config.orgName || '',
+            storeFontSize: '10px',
+            showProductName: true,
+            productFontSize: '12px',
+            productBold: true,
+            showBarcode: true,
+            barcodeType: 'code128',
+            barcodeHeight: 16,
+            showCodeText: true,
+            showSku: true,
+            showPrice: true,
+            currencySymbol: config.currencySymbol || '$',
+            priceFontSize: '15px',
+            showFooter: false,
+            footerText: '',
+            textAlign: 'center',
+            borderStyle: 'dashed'
+        },
+
+        initLabels() {
+            if (this.preselectedId) {
+                const found = this.allProducts.find(p => p.id === this.preselectedId);
+                if (found) {
+                    this.printQueue.push({ product: found, quantity: 1 });
+                }
+            } else if (this.allProducts.length > 0) {
+                // Preload top 3 items for convenient initial display
+                this.printQueue.push({ product: this.allProducts[0], quantity: 1 });
+            }
+        },
+
+        get filteredProducts() {
+            if (!this.searchQuery) return [];
+            const q = this.searchQuery.toLowerCase().trim();
+            return this.allProducts.filter(p => {
+                const matchesText = p.name.toLowerCase().includes(q) ||
+                                    p.sku.toLowerCase().includes(q) ||
+                                    p.barcode.toLowerCase().includes(q);
+                return matchesText;
+            }).slice(0, 15);
+        },
+
+        get totalLabels() {
+            return this.printQueue.reduce((acc, item) => acc + (parseInt(item.quantity, 10) || 0), 0);
+        },
+
+        get currentPreviewProduct() {
+            if (this.printQueue.length === 0) return null;
+            const idx = Math.min(this.previewIndex, this.printQueue.length - 1);
+            return this.printQueue[idx].product;
+        },
+
+        addProduct(product, qty = 1) {
+            const existing = this.printQueue.find(i => i.product.id === product.id);
+            if (existing) {
+                existing.quantity += qty;
+            } else {
+                this.printQueue.push({ product: product, quantity: qty });
+            }
+            this.previewIndex = this.printQueue.findIndex(i => i.product.id === product.id);
+        },
+
+        addAllProducts() {
+            this.allProducts.forEach(prod => {
+                if (!this.printQueue.some(i => i.product.id === prod.id)) {
+                    this.printQueue.push({ product: prod, quantity: 1 });
+                }
+            });
+        },
+
+        removeProduct(productId) {
+            this.printQueue = this.printQueue.filter(i => i.product.id !== productId);
+            if (this.previewIndex >= this.printQueue.length) {
+                this.previewIndex = Math.max(0, this.printQueue.length - 1);
+            }
+        },
+
+        setAllQuantities(qty) {
+            this.printQueue.forEach(item => {
+                item.quantity = qty;
+            });
+        },
+
+        clearQueue() {
+            this.printQueue = [];
+            this.previewIndex = 0;
+        },
+
+        applyPreset(preset) {
+            const presets = {
+                '50x30': { width: 50, height: 30, mode: 'roll' },
+                '40x25': { width: 40, height: 25, mode: 'roll' },
+                '38x25': { width: 38, height: 25, mode: 'roll' },
+                '60x40': { width: 60, height: 40, mode: 'roll' },
+                '100x50': { width: 100, height: 50, mode: 'roll' },
+                'a4_30': { width: 63, height: 38, mode: 'sheet', cols: 3 }
+            };
+            if (presets[preset]) {
+                const p = presets[preset];
+                this.labelDesign.widthMm = p.width;
+                this.labelDesign.heightMm = p.height;
+                this.labelDesign.pageMode = p.mode;
+                if (p.cols) this.labelDesign.sheetCols = p.cols;
+            }
+        },
+
+        resetDesign() {
+            this.labelDesign.preset = '50x30';
+            this.applyPreset('50x30');
+            this.labelDesign.showStoreName = true;
+            this.labelDesign.showProductName = true;
+            this.labelDesign.showBarcode = true;
+            this.labelDesign.showCodeText = true;
+            this.labelDesign.showSku = true;
+            this.labelDesign.showPrice = true;
+            this.labelDesign.showFooter = false;
+            this.labelDesign.textAlign = 'center';
+            this.labelDesign.borderStyle = 'dashed';
+        },
+
+        getPreviewBorderStyle() {
+            if (this.labelDesign.borderStyle === 'dashed') return 'border: 1px dashed #94a3b8; border-radius: 4px;';
+            if (this.labelDesign.borderStyle === 'solid') return 'border: 1px solid #334155; border-radius: 4px;';
+            if (this.labelDesign.borderStyle === 'rounded') return 'border: 1px solid #cbd5e1; border-radius: 8px;';
+            return 'border: 1px solid transparent;';
+        },
+
+        getPrintLabelStyle() {
+            const w = this.labelDesign.widthMm;
+            const h = this.labelDesign.heightMm;
+            let border = 'border: none;';
+            if (this.labelDesign.borderStyle === 'dashed') border = 'border: 0.5px dashed #cccccc;';
+            if (this.labelDesign.borderStyle === 'solid') border = 'border: 0.5px solid #000000;';
+
+            if (this.labelDesign.pageMode === 'roll') {
+                return `width: ${w}mm; height: ${h}mm; padding: 1.5mm; display: flex; flex-direction: column; justify-content: space-between; ${border}`;
+            }
+            return `width: ${w}mm; height: ${h}mm; padding: 2mm; display: inline-flex; flex-direction: column; justify-content: space-between; margin: 1mm; vertical-align: top; ${border}`;
+        },
+
+        renderBarcodeSvg(codeText) {
+            return generateCode128Svg(codeText || '0000', this.labelDesign.barcodeHeight);
+        },
+
+        printLabels() {
+            if (this.totalLabels === 0) return;
+
+            // Dynamically inject @page dimensions for thermal roll printer or sheet printer
+            let style = document.getElementById('dynamic-print-style');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'dynamic-print-style';
+                document.head.appendChild(style);
+            }
+
+            if (this.labelDesign.pageMode === 'roll') {
+                style.innerHTML = `@media print { @page { size: ${this.labelDesign.widthMm}mm ${this.labelDesign.heightMm}mm; margin: 0; } }`;
+            } else {
+                style.innerHTML = `@media print { @page { size: A4 portrait; margin: 6mm; } #print-container { display: grid !important; grid-template-columns: repeat(${this.labelDesign.sheetCols}, 1fr); gap: 2mm; } }`;
+            }
+
+            window.print();
+        }
+    };
+}
+
+// Standalone vector Code 128 SVG generator for high-precision barcode printing
+function generateCode128Svg(text, heightMm) {
+    if (!text) return '';
+    const h = heightMm || 16;
+    const patterns = [
+        '212222', '222122', '222221', '121223', '121322', '131222', '122213', '122312', '132212', '221213',
+        '221312', '231212', '112232', '122132', '122231', '113222', '123122', '123221', '223211', '221132',
+        '221231', '213212', '223112', '312131', '311222', '321122', '321221', '312212', '322112', '322211',
+        '212123', '212321', '232121', '111323', '131123', '131321', '112313', '132113', '132311', '211313',
+        '231113', '231311', '112133', '112331', '132131', '113123', '113321', '133121', '313121', '211331',
+        '231131', '213113', '213311', '213131', '311123', '311321', '331121', '312113', '312311', '332111',
+        '314111', '221411', '431111', '111224', '111422', '121124', '121421', '141122', '141221', '112214',
+        '112412', '122114', '122411', '142112', '142211', '241211', '221114', '413111', '241112', '134111',
+        '111242', '121142', '121241', '114212', '124112', '124211', '411212', '421112', '421211', '212141',
+        '214121', '412121', '111143', '111341', '131141', '114113', '114311', '411113', '411311', '113141',
+        '114131', '311141', '411131', '211412', '211214', '211232', '2331112'
+    ];
+    let sanitized = '';
+    for (let i = 0; i < text.length; i++) {
+        const c = text.charCodeAt(i);
+        if (c >= 32 && c <= 126) sanitized += text[i];
+    }
+    if (!sanitized) sanitized = 'ITEM';
+    const values = [];
+    for (let i = 0; i < sanitized.length; i++) {
+        values.push(sanitized.charCodeAt(i) - 32);
+    }
+    let checksum = 104;
+    for (let i = 0; i < values.length; i++) {
+        checksum += (i + 1) * values[i];
+    }
+    checksum = checksum % 103;
+    const symbols = [104, ...values, checksum, 106];
+    let patternStr = '';
+    for (let i = 0; i < symbols.length; i++) {
+        patternStr += patterns[symbols[i]] || '';
+    }
+    let totalModules = 0;
+    for (let i = 0; i < patternStr.length; i++) {
+        totalModules += parseInt(patternStr[i], 10);
+    }
+    let rects = '';
+    let curX = 0;
+    let isBar = true;
+    for (let i = 0; i < patternStr.length; i++) {
+        const w = parseInt(patternStr[i], 10);
+        if (isBar) {
+            rects += `<rect x="${curX}" y="0" width="${w}" height="${h}" fill="#000000" />`;
+        }
+        curX += w;
+        isBar = !isBar;
+    }
+    return `<svg viewBox="0 0 ${totalModules} ${h}" preserveAspectRatio="none" style="width: 100%; height: ${h}mm; max-height: ${h * 3.8}px; display: block; shape-rendering: crispEdges;">${rects}</svg>`;
+}
+</script>
+{% endblock %}

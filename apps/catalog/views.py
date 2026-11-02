@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from decimal import Decimal
 
 from django.contrib import messages
@@ -498,3 +499,53 @@ def import_csv_view(request: HttpRequest) -> HttpResponse:
         messages.error(request, _("Invalid CSV upload form."))
 
     return redirect("catalog:product_list")
+
+
+@login_required
+def product_label_print_view(request: HttpRequest) -> HttpResponse:
+    """Label generating, designing, and printing screen for products."""
+    org = _get_active_org(request)
+    _check_perm(request, "catalog.view", org)
+
+    products_qs = (
+        Product.all_tenants.filter(organization=org, is_active=True)
+        .select_related("category", "unit")
+        .order_by("name")
+    )
+    categories = list_categories(organization_id=org.pk)
+
+    preselected_id = request.GET.get("product_id")
+    preselected_product_id = int(preselected_id) if preselected_id and preselected_id.isdigit() else None
+
+    products_data = [
+        {
+            "id": p.pk,
+            "name": p.name,
+            "sku": p.sku or "",
+            "barcode": p.barcode or p.sku or "",
+            "price": str(p.selling_price) if p.selling_price is not None else "0.00",
+            "category": p.category.name if p.category else "",
+            "category_id": p.category_id,
+            "unit": p.unit.name if p.unit else "",
+        }
+        for p in products_qs
+    ]
+
+    currency_symbol = getattr(org, "currency_symbol", "$") or "$"
+
+    context = {
+        "products_json": json.dumps(products_data),
+        "labels_config_json": json.dumps({
+            "products": products_data,
+            "categories": [{"id": c.pk, "name": c.name} for c in categories],
+            "preselectedId": preselected_product_id,
+            "orgName": org.name,
+            "currencySymbol": currency_symbol,
+        }),
+        "categories": categories,
+        "preselected_product_id": preselected_product_id,
+        "org_name": org.name,
+        "currency_symbol": currency_symbol,
+        "active_tab": "labels",
+    }
+    return render(request, "catalog/product_labels.html", context)

@@ -471,8 +471,14 @@ class BankTransaction(TenantModel):
 
 
 class BankReconciliationStatus(models.TextChoices):
+    DRAFT = "draft", _("Draft")
     IN_PROGRESS = "in_progress", _("In Progress")
+    PENDING_INVESTIGATION = "pending_investigation", _("Pending Investigation")
+    PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+    RESOLVED = "resolved", _("Resolved")
     COMPLETED = "completed", _("Completed")
+    APPROVED = "approved", _("Approved")
+    REOPENED = "reopened", _("Reopened")
 
 
 class BankReconciliation(TenantModel):
@@ -485,6 +491,12 @@ class BankReconciliation(TenantModel):
         verbose_name=_("bank account"),
     )
     statement_date = models.DateField(_("statement date"))
+    opening_balance = models.DecimalField(
+        _("opening balance"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
     statement_ending_balance = models.DecimalField(
         _("statement ending balance"), max_digits=18, decimal_places=4
     )
@@ -498,10 +510,11 @@ class BankReconciliation(TenantModel):
     )
     status = models.CharField(
         _("status"),
-        max_length=20,
+        max_length=32,
         choices=BankReconciliationStatus.choices,
         default=BankReconciliationStatus.IN_PROGRESS,
     )
+    notes = models.TextField(_("notes"), blank=True, default="")
     reconciled_at = models.DateTimeField(_("reconciled at"), null=True, blank=True)
     reconciled_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -511,6 +524,25 @@ class BankReconciliation(TenantModel):
         related_name="+",
         verbose_name=_("reconciled by"),
     )
+    approved_at = models.DateTimeField(_("approved at"), null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name=_("approved by"),
+    )
+    reopened_at = models.DateTimeField(_("reopened at"), null=True, blank=True)
+    reopened_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name=_("reopened by"),
+    )
+    reopening_reason = models.TextField(_("reopening reason"), blank=True, default="")
 
     class Meta:
         verbose_name = _("bank reconciliation")
@@ -759,3 +791,14 @@ class TaxPeriodSummary(TenantModel):
 
     def __str__(self) -> str:
         return f"Tax summary: {self.period_start} to {self.period_end} [Net: {self.net_tax_payable}]"
+
+
+# Reconciliation & Automated Financial Audit models
+from apps.accounting.reconciliation.models import (  # noqa: E402
+    BankStatementImport,
+    DiscrepancyCategory,
+    DiscrepancySeverity,
+    DiscrepancyStatus,
+    ReconciliationAuditTrail,
+    ReconciliationDiscrepancy,
+)

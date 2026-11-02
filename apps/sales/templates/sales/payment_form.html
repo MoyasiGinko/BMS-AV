@@ -102,12 +102,12 @@
                             </div>
 
                             <div>
-                                <label for="{{ form.payment_method.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
-                                    {{ form.payment_method.label }} <span class="text-rose-600 font-black">*</span>
+                                <label for="{{ form.payment_method_record.id_for_label }}" class="block text-sm font-bold text-ink uppercase tracking-wider mb-2">
+                                    {% trans "Payment method" %} <span class="text-rose-600 font-black">*</span>
                                 </label>
-                                {{ form.payment_method }}
-                                {% if form.payment_method.errors %}
-                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.payment_method.errors.0 }}</p>
+                                {{ form.payment_method_record }}
+                                {% if form.payment_method_record.errors %}
+                                <p class="text-xs text-rose-600 font-bold mt-1.5">{{ form.payment_method_record.errors.0 }}</p>
                                 {% endif %}
                             </div>
                         </div>

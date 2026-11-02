@@ -31,6 +31,12 @@
         </div>
 
         <div class="flex items-center gap-2">
+            <a href="{% url 'catalog:product_labels' %}?product_id={{ product.pk }}" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-750 shadow-xs">
+                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                {% trans "Print Labels" %}
+            </a>
             <button type="button" @click="showVariantModal = true" class="inline-flex items-center px-3 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 dark:hover:bg-slate-750 shadow-xs">
                 <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

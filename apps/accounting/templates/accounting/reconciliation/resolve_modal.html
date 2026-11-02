@@ -1,0 +1,194 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Resolve Issue" %}: {{ discrepancy.title }} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6" x-data="{ selectedAction: '{{ discrepancy.available_actions.0|default:'dismiss' }}' }">
+
+    <!-- Header & Return -->
+    <div class="flex items-center justify-between border-b border-line pb-4">
+        <div>
+            <a href="{% url 'accounting:reconciliation_dashboard' %}" class="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1 mb-2">
+                &larr; {% trans "Back to reconciliation" %}
+            </a>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{{ discrepancy.title }}</h1>
+            <p class="text-xs text-muted mt-0.5">{% trans "Resolve detected discrepancy." %}</p>
+        </div>
+        <div class="text-right">
+            <span class="px-2.5 py-1 rounded text-2xs font-extrabold uppercase {% if discrepancy.severity == 'critical' %}bg-rose-600 text-white{% elif discrepancy.severity == 'high' %}bg-amber-500 text-white{% else %}bg-sky-600 text-white{% endif %}">
+                {{ discrepancy.get_severity_display }}
+            </span>
+            <div class="text-xs font-mono font-bold text-rose-600 mt-1">{% trans "Impact" %}: {{ currency_symbol }}{{ discrepancy.financial_impact|intcomma }}</div>
+        </div>
+    </div>
+
+    <!-- Diagnostic Details Card -->
+    <div class="rounded-2xl border border-line bg-surface p-6 shadow-xs space-y-4">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-muted">{% trans "Details" %}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 rounded-xl bg-surface-2 border border-line">
+                <span class="text-3xs font-extrabold uppercase text-muted">{% trans "Possible Cause" %}</span>
+                <p class="text-xs text-ink font-medium mt-1 leading-relaxed">{{ discrepancy.possible_cause|default:_("System detected variance between statement records and general ledger.") }}</p>
+            </div>
+            <div class="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100">
+                <span class="text-3xs font-extrabold uppercase text-indigo-700">{% trans "Recommended Action" %}</span>
+                <p class="text-xs text-ink font-medium mt-1 leading-relaxed">{{ discrepancy.recommended_solution|default:_("Review transaction parameters and apply adjustment entry.") }}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 pt-2">
+            <div class="p-3 rounded-lg border border-line text-center">
+                <span class="text-3xs font-bold text-muted uppercase">{% trans "Expected Value" %}</span>
+                <div class="text-base font-black font-mono text-ink mt-0.5">{{ currency_symbol }}{{ discrepancy.expected_value|default:"0.00" }}</div>
+            </div>
+            <div class="p-3 rounded-lg border border-line text-center">
+                <span class="text-3xs font-bold text-muted uppercase">{% trans "Actual Recorded" %}</span>
+                <div class="text-base font-black font-mono text-ink mt-0.5">{{ currency_symbol }}{{ discrepancy.actual_value|default:"0.00" }}</div>
+            </div>
+            <div class="p-3 rounded-lg border border-rose-200 bg-rose-50/30 text-center">
+                <span class="text-3xs font-bold text-rose-700 uppercase">{% trans "Variance" %}</span>
+                <div class="text-base font-black font-mono text-rose-700 mt-0.5">{{ currency_symbol }}{{ discrepancy.financial_impact|default:"0.00" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side-by-Side Comparison -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Statement Line Details -->
+        <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs space-y-3">
+            <div class="flex items-center justify-between border-b border-line pb-2">
+                <span class="text-xs font-bold text-ink uppercase">{% trans "Bank Statement Line" %}</span>
+                <span class="text-3xs px-2 py-0.5 rounded bg-surface-2 font-mono">{% trans "External" %}</span>
+            </div>
+            {% if discrepancy.bank_transaction %}
+                <div class="text-xs space-y-1.5 font-medium">
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Date" %}:</span> <span class="font-mono">{{ discrepancy.bank_transaction.date }}</span></div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Type" %}:</span> <span class="font-mono uppercase">{{ discrepancy.bank_transaction.transaction_type }}</span></div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Amount" %}:</span> <span class="font-mono font-bold">{{ currency_symbol }}{{ discrepancy.bank_transaction.amount }}</span></div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Payee / Narration" %}:</span> <span>{{ discrepancy.bank_transaction.payee|default:discrepancy.bank_transaction.description }}</span></div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Reference" %}:</span> <span class="font-mono">{{ discrepancy.bank_transaction.reference|default:"-" }}</span></div>
+                </div>
+            {% else %}
+                <div class="text-xs text-muted py-6 text-center">{% trans "No individual statement line linked directly." %}</div>
+            {% endif %}
+        </div>
+
+        <!-- BMS Ledger Entry Details -->
+        <div class="rounded-2xl border border-line bg-surface p-5 shadow-xs space-y-3">
+            <div class="flex items-center justify-between border-b border-line pb-2">
+                <span class="text-xs font-bold text-ink uppercase">{% trans "BMS Book Record" %}</span>
+                <span class="text-3xs px-2 py-0.5 rounded bg-surface-2 font-mono">{% trans "General Ledger" %}</span>
+            </div>
+            {% if discrepancy.journal_entry %}
+                <div class="text-xs space-y-1.5 font-medium">
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Entry No" %}:</span> <span class="font-mono font-bold">{{ discrepancy.journal_entry.entry_number }}</span></div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Date" %}:</span> <span class="font-mono">{{ discrepancy.journal_entry.date }}</span></div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Status" %}:</span> <span class="uppercase">{{ discrepancy.journal_entry.status }}</span></div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Memo" %}:</span> <span>{{ discrepancy.journal_entry.memo }}</span></div>
+                </div>
+            {% elif discrepancy.resolution_journal_entry %}
+                <div class="text-xs space-y-1.5 font-medium">
+                    <div class="text-emerald-700 font-bold">{% trans "Resolved via Journal Entry" %}:</div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Entry No" %}:</span> <span class="font-mono font-bold">{{ discrepancy.resolution_journal_entry.entry_number }}</span></div>
+                    <div class="flex justify-between"><span class="text-muted">{% trans "Date" %}:</span> <span class="font-mono">{{ discrepancy.resolution_journal_entry.date }}</span></div>
+                </div>
+            {% else %}
+                <div class="text-xs text-muted py-6 text-center">{% trans "No matching book entry recorded yet." %}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Action Execution Form -->
+    {% if discrepancy.status != 'resolved' %}
+    <div class="rounded-2xl border border-line bg-surface p-6 shadow-xs space-y-4">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-muted">{% trans "Resolve issue" %}</h2>
+
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+
+            <div>
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">{% trans "Select Action" %}</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                    {% for act in discrepancy.available_actions %}
+                    <label class="p-3 rounded-xl border border-line bg-surface-2/40 hover:bg-surface-2 cursor-pointer flex items-center gap-2"
+                           :class="selectedAction === '{{ act }}' ? 'ring-2 ring-indigo-600 bg-surface' : ''">
+                        <input type="radio" name="action" value="{{ act }}" x-model="selectedAction" class="text-indigo-600">
+                        <span class="text-xs font-bold text-ink">
+                            {% if act == 'record_bank_charges' %}{% trans "Bank Charges" %}
+                            {% elif act == 'create_missing_income' %}{% trans "Record Income" %}
+                            {% elif act == 'create_missing_expense' %}{% trans "Record Expense" %}
+                            {% elif act == 'match_existing' %}{% trans "Match Entry" %}
+                            {% elif act == 'post_adjustment' %}{% trans "Post Adjustment" %}
+                            {% elif act == 'reverse_duplicate' %}{% trans "Reverse Duplicate" %}
+                            {% elif act == 'mark_in_transit' %}{% trans "Mark In-Transit" %}
+                            {% elif act == 'dismiss' %}{% trans "Dismiss" %}
+                            {% else %}{{ act }}
+                            {% endif %}
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Optional Account Override for GL Postings -->
+            <div x-show="['record_bank_charges', 'create_missing_income', 'create_missing_expense', 'post_adjustment'].includes(selectedAction)" class="space-y-1">
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider">{% trans "GL Account Code (Optional Override)" %}</label>
+                <input type="text" name="target_account_code" placeholder="{% trans 'e.g. 5010 (Bank Charges) or 4900 (Interest)' %}" class="w-full text-xs rounded-lg border-line bg-surface-2 p-2">
+            </div>
+
+            <!-- Match Existing Journal Picker -->
+            <div x-show="selectedAction === 'match_existing'" class="space-y-1">
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider">{% trans "Select Matching Journal Entry" %}</label>
+                <select name="target_journal_entry_id" class="w-full text-xs rounded-lg border-line bg-surface-2 p-2">
+                    <option value="">{% trans "Choose journal entry..." %}</option>
+                    {% for jl in candidate_journals %}
+                        <option value="{{ jl.entry.pk }}">
+                            {{ jl.entry.entry_number }} ({{ jl.entry.date }}) - {{ jl.entry.memo }} [${{ jl.debit|default:jl.credit }}]
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Resolution Explanation Notes -->
+            <div>
+                <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">
+                    {% trans "Resolution Explanation & Audit Note" %}
+                    <span class="text-rose-500 font-normal">({% trans "Mandatory for in-transit or dismissal" %})</span>
+                </label>
+                <textarea name="notes" rows="2" placeholder="{% trans 'Document why this action was chosen...' %}" class="w-full text-xs rounded-lg border-line bg-surface-2 p-2.5"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-line">
+                <a href="{% url 'accounting:reconciliation_dashboard' %}" class="px-4 py-2 text-xs font-bold text-muted hover:text-ink">{% trans "Cancel" %}</a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm cursor-pointer">
+                    {% trans "Apply action" %}
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Audit History Timeline -->
+    <div class="rounded-2xl border border-line bg-surface p-6 shadow-xs space-y-3">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-muted">{% trans "Audit history" %}</h2>
+        <div class="space-y-2">
+            {% for log in discrepancy.audit_history.all %}
+            <div class="p-3 rounded-lg bg-surface-2 border border-line text-xs flex items-start justify-between">
+                <div>
+                    <span class="font-bold text-ink uppercase text-3xs tracking-wider">{{ log.action }}</span>
+                    <p class="text-muted mt-0.5">{{ log.description }}</p>
+                </div>
+                <div class="text-right text-3xs text-muted font-mono shrink-0">
+                    <div>{{ log.created_at|date:"Y-m-d H:i" }}</div>
+                    {% if log.actor %}<div>by {{ log.actor.email }}</div>{% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-xs text-muted py-2">{% trans "No previous actions recorded on this issue." %}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

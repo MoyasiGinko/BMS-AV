@@ -646,12 +646,15 @@ def payment_create(request: HttpRequest) -> HttpResponse:
                     except ValueError, TypeError:
                         continue
 
+            pm_rec = payment_data.get("payment_method_record")
+            pm_code = pm_rec.code if pm_rec else payment_data.get("payment_method", "cash")
             try:
                 payment = services.receive_payment(
                     organization=org,
                     customer=customer,
                     amount=amount,
-                    payment_method=payment_data.get("payment_method", "cash"),
+                    payment_method=pm_code,
+                    payment_method_record=pm_rec,
                     payment_date=payment_data.get("payment_date"),
                     allocations=allocations if allocations else None,
                     branch=payment_data.get("branch"),

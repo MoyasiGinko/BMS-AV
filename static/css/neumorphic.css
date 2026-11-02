@@ -225,7 +225,7 @@ html[data-theme="neumorphic"],
   border-bottom: none !important;
   box-shadow: 0 4px 14px rgba(166, 175, 195, 0.45) !important;
   position: relative !important;
-  z-index: 30 !important;
+  z-index: 60 !important;
 }
 
 /* Brand icon box */
@@ -1788,4 +1788,36 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] .pos-status-dot.dot-disconnected {
   background-color: #94A3B8 !important;
   opacity: 0.7 !important;
+}
+
+/* POS Payment Modal Payment Method Selection */
+.pos-payment-method-btn {
+  min-height: 52px !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+[data-theme="neumorphic"] .pos-payment-method-btn {
+  background-color: var(--neu-surface) !important;
+  color: var(--neu-text) !important;
+  border: 1.5px solid var(--border-strong, #BDC3D8) !important;
+  box-shadow: 3px 3px 6px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
+  transition: all 120ms ease !important;
+}
+
+[data-theme="neumorphic"] .pos-payment-method-btn:hover {
+  border-color: #10B981 !important;
+  box-shadow: 4px 4px 8px var(--neu-shadow-dark), -3px -3px 6px var(--neu-shadow-light) !important;
+}
+
+[data-theme="neumorphic"] .pos-payment-method-btn.is-active,
+.pos-payment-method-btn.is-active {
+  background: #059669 !important;
+  color: #FFFFFF !important;
+  border: 2px solid #10B981 !important;
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(5, 150, 105, 0.35) !important;
+}
+
+[data-theme="neumorphic"] .pos-payment-method-btn.is-active * {
+  color: #FFFFFF !important;
 }

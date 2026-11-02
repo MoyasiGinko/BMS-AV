@@ -355,6 +355,7 @@ class POSSale(TenantModel):
                 {
                     "payment_method": alloc.payment.payment_method,
                     "amount": alloc.amount,
+                    "reference": alloc.payment.reference,
                 }
                 for alloc in self.invoice.payment_allocations.select_related("payment").all()
             ]

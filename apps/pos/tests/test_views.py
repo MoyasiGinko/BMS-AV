@@ -11,9 +11,10 @@ from django.utils import timezone
 
 from apps.accounting import services as accounting_services
 from apps.catalog.models import Product, ProductType, Unit
+from apps.core.models import Notification
 from apps.core.tenant_context import tenant_context
 from apps.inventory import services as inventory_services
-from apps.pos import printing, selectors, services
+from apps.pos import devices, printing, selectors, services
 from apps.pos.models import POSShiftStatus
 from apps.tenancy.models import Branch, Membership, Organization, Role, TaxCode, Warehouse
 
@@ -166,6 +167,12 @@ def test_checkout_action_and_receipt(pos_view_setup: dict[str, object]) -> None:
     receipt_res = client.get(data["receipt_url"])
     assert receipt_res.status_code == 200
     assert "pos/receipt.html" in [t.name for t in receipt_res.templates]
+
+    # Verify notification created in notification tray
+    notif = Notification.objects.filter(recipient_user=user, category="pos.sale").first()
+    assert notif is not None
+    assert data["receipt_number"] in notif.title
+    assert notif.action_url == data["receipt_url"]
 
 
 def test_shift_close_flow(pos_view_setup: dict[str, object]) -> None:
@@ -351,14 +358,16 @@ def test_get_system_printers_windows_mock(monkeypatch: pytest.MonkeyPatch) -> No
         returncode = 0
         stdout = fake_output
 
-    monkeypatch.setattr(selectors, "_enum_printers_winspool", lambda: [])
+    monkeypatch.setattr(devices, "_enum_printers_winspool", lambda: [])
+    monkeypatch.setattr(devices, "_is_printer_online", lambda **kwargs: True)
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FakeCompletedProcess())
-    printers = selectors._get_windows_printers()
+    printers = devices._get_windows_printers()
 
     assert len(printers) == 2
     assert printers[0]["id"] == "EPSON82A8C5 (L3250 Series)"
     assert printers[0]["type"] == "wifi"
     assert printers[0]["badge"] == "Wi-Fi"
+    assert printers[0]["is_online"] is True
     assert printers[1]["id"] == "Thermal 80mm USB"
     assert printers[1]["type"] == "usb"
     assert printers[1]["badge"] == "USB"
@@ -374,3 +383,54 @@ def test_open_drawer_action(pos_view_setup: dict[str, object], monkeypatch: pyte
     data = response.json()
     assert data["success"] is True
     assert data["drawer_opened"] is True
+
+
+def test_get_system_scanners_discovery_mock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test barcode scanner device discovery and known vendor identification."""
+    fake_output = json.dumps([
+        {
+            "FriendlyName": "USB Input Device",
+            "InstanceId": "USB\\VID_05E0&PID_1200\\S/N:A0DCFED8E1C445F59D430DC6E09AFBC6_REV:PAACFS00-002-R023",
+        },
+        {
+            "FriendlyName": "Standard Keyboard",
+            "InstanceId": "HID\\VID_048D&PID_C100\\0001",
+        },
+    ])
+
+    class FakeCompletedProcess:
+        returncode = 0
+        stdout = fake_output
+
+    monkeypatch.setattr(devices, "_scan_windows_registry_scanners", lambda: [])
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FakeCompletedProcess())
+    scanners = devices.get_system_scanners()
+
+    assert len(scanners) == 1
+    assert scanners[0]["name"] == "Zebra / Symbol"
+    assert scanners[0]["type"] == "USB"
+    assert scanners[0]["is_online"] is True
+
+
+def test_scanners_view_endpoint(pos_view_setup: dict[str, object], monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test /pos/scanners/ JSON endpoint for live POS barcode scanner status."""
+    mock_scanners = [
+        {
+            "id": "USB\\VID_05E0&PID_1200\\TEST1",
+            "name": "Zebra / Symbol",
+            "type": "USB",
+            "badge": "USB",
+            "vendor": "Zebra / Symbol",
+            "serial": "TEST1",
+            "is_online": True,
+        }
+    ]
+    monkeypatch.setattr(selectors, "get_system_scanners", lambda: mock_scanners)
+
+    client: Client = pos_view_setup["client"]  # type: ignore
+    response = client.get("/pos/scanners/")
+    assert response.status_code == 200
+    data = response.json()
+    assert "scanners" in data
+    assert len(data["scanners"]) == 1
+    assert data["scanners"][0]["name"] == "Zebra / Symbol"

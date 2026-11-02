@@ -823,6 +823,15 @@ class PaymentMethodChoices(models.TextChoices):
     OTHER = "other", _("Other")
 
 
+class PaymentMethodType(models.TextChoices):
+    CASH = "cash", _("Cash")
+    CARD = "card", _("Card")
+    MOBILE_BANKING = "mobile_banking", _("Mobile Banking")
+    BANK_TRANSFER = "bank_transfer", _("Bank Transfer")
+    CHEQUE = "cheque", _("Cheque")
+    OTHER = "other", _("Other")
+
+
 class PaymentProcessMode(models.TextChoices):
     RECORD_ONLY = "record_only", _("Record Only")
     MANUAL_VERIFY = "manual_verify", _("Manual Verification")
@@ -845,6 +854,12 @@ class PaymentMethod(TenantModel):
     public_id = models.UUIDField(default=uuid.uuid7, editable=False, unique=True)
     name = models.CharField(_("Name"), max_length=64)
     code = models.SlugField(_("Code"), max_length=32)
+    method_type = models.CharField(
+        _("Method Type"),
+        max_length=32,
+        choices=PaymentMethodType.choices,
+        default=PaymentMethodType.OTHER,
+    )
     process_mode = models.CharField(
         _("Process Mode"),
         max_length=32,

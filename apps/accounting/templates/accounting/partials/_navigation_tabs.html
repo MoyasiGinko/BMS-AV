@@ -25,13 +25,21 @@
             </svg>
             {% trans "Manual Journals" %}
         </a>
-        <!-- Banking & Reconciliation -->
+        <!-- Banking -->
         <a href="{% url 'accounting:bank_account_list' %}"
            class="neu-subnav-btn {% if active_tab == 'banking' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
             <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
             </svg>
-            {% trans "Banking & Reconciliation" %}
+            {% trans "Banking" %}
+        </a>
+        <!-- Audit & Reconciliation -->
+        <a href="{% url 'accounting:reconciliation_dashboard' %}"
+           class="neu-subnav-btn {% if active_tab == 'reconciliation' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all">
+            <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {% trans "Audit & Reconciliation" %}
         </a>
         <!-- Expenses -->
         <a href="{% url 'accounting:expense_list' %}"

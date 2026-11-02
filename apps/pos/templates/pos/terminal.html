@@ -15,7 +15,7 @@
      class="pos-terminal flex-1 flex flex-col h-full max-h-full bg-[var(--bg)] text-[var(--text)] overflow-hidden min-h-0 text-base">
 
     <!-- Top POS Toolbar -->
-    <header class="h-16 bg-[var(--surface-1)] border-b border-[var(--border)]/70 px-4 sm:px-6 flex items-center justify-between shrink-0">
+    <div role="toolbar" aria-label="{% trans 'POS Toolbar' %}" class="pos-toolbar h-16 bg-[var(--surface-1)] border-b border-[var(--border)]/70 px-4 sm:px-6 flex items-center justify-between shrink-0 relative z-10">
         <div class="flex items-center space-x-3">
             <div class="pos-capsule px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[var(--surface-2)]/60 flex items-center gap-2.5 sm:gap-3">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold bg-emerald-600 text-white shadow-2xs">
@@ -39,7 +39,7 @@
                 <!-- Scanner Status Indicator -->
                 <div class="relative" x-data="{ openScannerMenu: false }">
                     <button type="button"
-                            @click="openScannerMenu = !openScannerMenu"
+                            @click="openScannerMenu = !openScannerMenu; if (openScannerMenu) refreshScanners()"
                             @click.away="openScannerMenu = false"
                             class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer"
                             :class="scannerConnected ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 shadow-2xs' : 'border-[var(--border)]/50 bg-[var(--surface-1)] text-muted hover:text-ink'">
@@ -57,8 +57,8 @@
                     <!-- Scanner Dropdown Menu -->
                     <div x-show="openScannerMenu"
                          x-cloak
-                         class="absolute left-0 mt-2 w-72 rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-2xl p-2 z-50 text-xs">
-                        <div class="px-2.5 py-1.5 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-1.5 flex items-center justify-between">
+                         class="absolute left-0 mt-2 w-80 rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-2xl p-2.5 z-50 text-xs">
+                        <div class="px-2.5 py-1.5 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-2 flex items-center justify-between">
                             <span>{% trans "Barcode Scanner" %}</span>
                             <span class="font-bold text-xs"
                                   :class="scannerConnected ? 'text-emerald-600' : 'text-muted'"
@@ -67,15 +67,22 @@
 
                         <!-- Connected Scanners List -->
                         <template x-if="scannerConnected && connectedScanners.length > 0">
-                            <div class="space-y-1">
+                            <div class="space-y-1 mb-2">
                                 <template x-for="(scanner, idx) in connectedScanners" :key="idx">
                                     <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/80 flex items-center justify-between">
                                         <div class="flex items-center gap-2 min-w-0">
                                             <i class="pos-status-dot dot-connected animate-pulse shrink-0"></i>
-                                            <span class="font-bold text-xs truncate text-ink" x-text="scanner.name"></span>
-                                            <span class="shrink-0 px-1.5 py-0.2 rounded text-3xs font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" x-text="scanner.type || 'USB'"></span>
+                                            <div class="truncate">
+                                                <div class="font-bold text-xs truncate text-ink" x-text="scanner.name"></div>
+                                                <div x-show="scanner.serial" class="text-3xs font-mono text-muted truncate" x-text="'S/N: ' + scanner.serial"></div>
+                                            </div>
                                         </div>
-                                        <span class="text-emerald-600 font-bold text-sm shrink-0 ml-2">✓</span>
+                                        <div class="flex items-center gap-1.5 shrink-0 ml-2">
+                                            <span class="px-1.5 py-0.5 rounded text-3xs font-extrabold"
+                                                  :class="scanner.type === 'Wi-Fi' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'"
+                                                  x-text="scanner.type || 'USB'"></span>
+                                            <span class="text-emerald-600 font-bold text-sm">✓</span>
+                                        </div>
                                     </div>
                                 </template>
                             </div>
@@ -83,27 +90,63 @@
 
                         <!-- Offline State -->
                         <template x-if="!scannerConnected || connectedScanners.length === 0">
-                            <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/40 flex items-center gap-2 text-muted">
+                            <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/40 flex items-center gap-2 text-muted mb-2">
                                 <i class="pos-status-dot dot-disconnected shrink-0"></i>
                                 <span class="font-medium text-xs">{% trans "No scanner connected" %}</span>
                             </div>
                         </template>
+
+                        <!-- Actions -->
+                        <div class="border-t border-[var(--border)]/50 pt-2 space-y-1">
+                            <button type="button"
+                                    @click="pairUsbScanner()"
+                                    class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-[var(--surface-2)] text-ink font-semibold transition-colors cursor-pointer text-start">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    <span>{% trans "Pair USB scanner" %}</span>
+                                </div>
+                                <span class="text-3xs uppercase font-extrabold text-muted">WebHID</span>
+                            </button>
+
+                            <button type="button"
+                                    @click="promptWifiScanner()"
+                                    class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-[var(--surface-2)] text-ink font-semibold transition-colors cursor-pointer text-start">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                                    </svg>
+                                    <span>{% trans "Pair Wi-Fi scanner" %}</span>
+                                </div>
+                                <span class="text-3xs uppercase font-extrabold text-muted">IP / Wi-Fi</span>
+                            </button>
+
+                            <button type="button"
+                                    @click="refreshScanners()"
+                                    class="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-muted hover:text-ink font-bold transition-colors cursor-pointer text-2xs mt-1">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                <span>{% trans "Refresh devices" %}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Printer Status & Switcher Dropdown -->
                 <div class="relative" x-data="{ openPrinterMenu: false }">
                     <button type="button"
-                            @click="openPrinterMenu = !openPrinterMenu"
+                            @click="openPrinterMenu = !openPrinterMenu; if (openPrinterMenu) refreshPrinters()"
                             @click.away="openPrinterMenu = false"
                             class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer"
-                            :class="selectedPrinter ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 shadow-2xs' : 'border-[var(--border)]/50 bg-[var(--surface-1)] text-muted hover:text-ink'">
-                        <svg class="w-3.5 h-3.5 shrink-0" :class="selectedPrinter ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted/60'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            :class="isPrinterOnline(selectedPrinter) ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 shadow-2xs' : 'border-[var(--border)]/50 bg-[var(--surface-1)] text-muted hover:text-ink'">
+                        <svg class="w-3.5 h-3.5 shrink-0" :class="isPrinterOnline(selectedPrinter) ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted/60'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
-                        <i class="pos-status-dot" :class="selectedPrinter ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
-                        <span class="hidden xl:inline" :class="selectedPrinter ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-muted'">{% trans "Printer" %}:</span>
-                        <span class="font-bold max-w-[12rem] truncate" :class="selectedPrinter ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'" x-text="selectedPrinter ? getPrinterShortLabel(selectedPrinter) : '{% trans "No printer" %}'"></span>
+                        <i class="pos-status-dot" :class="isPrinterOnline(selectedPrinter) ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
+                        <span class="hidden xl:inline" :class="isPrinterOnline(selectedPrinter) ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-muted'">{% trans "Printer" %}:</span>
+                        <span class="font-bold max-w-[12rem] truncate" :class="isPrinterOnline(selectedPrinter) ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'" x-text="getPrinterDisplayLabel()"></span>
                         <svg class="w-3 h-3 text-muted ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -116,57 +159,46 @@
                         <div class="px-2.5 py-1.5 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-1.5 flex items-center justify-between">
                             <span>{% trans "Printers" %}</span>
                             <span class="font-bold text-xs"
-                                  :class="selectedPrinter ? 'text-emerald-600' : 'text-muted'"
-                                  x-text="selectedPrinter ? '● {% trans "Online" %}' : '○ {% trans "Offline" %}'"></span>
+                                  :class="isPrinterOnline(selectedPrinter) ? 'text-emerald-600' : 'text-muted'"
+                                  x-text="isPrinterOnline(selectedPrinter) ? '● {% trans "Online" %}' : '○ {% trans "Offline" %}'"></span>
                         </div>
 
                         <!-- Printers List -->
-                        <template x-if="availablePrinters.length > 0">
-                            <div class="space-y-1">
-                                <template x-for="p in availablePrinters" :key="p.id">
-                                    <button type="button"
-                                            @click="setPrinter(p.id); openPrinterMenu = false"
-                                            class="w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-                                            :class="selectedPrinter === p.id ? 'bg-[var(--surface-2)]/80 font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)]' : 'text-ink'">
-                                        <div class="flex items-center gap-2.5 min-w-0">
-                                            <i class="pos-status-dot shrink-0" :class="selectedPrinter === p.id ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
-                                            <div class="flex items-center gap-1.5 font-bold text-xs min-w-0">
-                                                <span class="truncate" x-text="p.name"></span>
-                                                <span class="shrink-0 px-1.5 py-0.2 rounded text-3xs font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" x-text="p.badge || 'Wi-Fi'"></span>
-                                            </div>
+                        <div class="space-y-1">
+                            <!-- Detected Hardware Printers -->
+                            <template x-for="p in availablePrinters" :key="p.id">
+                                <button type="button"
+                                        @click="setPrinter(p.id); openPrinterMenu = false"
+                                        class="w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                                        :class="selectedPrinter === p.id ? 'bg-[var(--surface-2)]/80 font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)]' : 'text-ink'">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <i class="pos-status-dot shrink-0" :class="p.is_online ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
+                                        <div class="flex items-center gap-1.5 font-bold text-xs min-w-0">
+                                            <span class="truncate" x-text="p.name"></span>
+                                            <span class="shrink-0 px-1.5 py-0.2 rounded text-3xs font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" x-text="p.badge || 'Wi-Fi'"></span>
+                                            <span x-show="!p.is_online" class="text-3xs text-amber-600 font-normal">({% trans "Offline" %})</span>
                                         </div>
-                                        <span x-show="selectedPrinter === p.id" class="text-emerald-600 font-bold text-sm shrink-0 ml-2">✓</span>
-                                    </button>
-                                </template>
-                            </div>
-                        </template>
+                                    </div>
+                                    <span x-show="selectedPrinter === p.id" class="text-emerald-600 font-bold text-sm shrink-0 ml-2">✓</span>
+                                </button>
+                            </template>
 
-                        <!-- No Printers Detected -->
-                        <template x-if="availablePrinters.length === 0">
-                            <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/40 flex items-center gap-2 text-muted">
-                                <i class="pos-status-dot dot-disconnected shrink-0"></i>
-                                <span class="font-medium text-xs">{% trans "No printer connected" %}</span>
-                            </div>
-                        </template>
+                            <!-- No Printers Found -->
+                            <template x-if="availablePrinters.length === 0">
+                                <div class="px-2.5 py-3 rounded-lg bg-[var(--surface-2)]/40 flex items-center gap-2 text-muted">
+                                    <i class="pos-status-dot dot-disconnected shrink-0"></i>
+                                    <span class="font-medium text-xs">{% trans "No printer connected" %}</span>
+                                </div>
+                            </template>
+                        </div>
 
                         <!-- Footer -->
                         <div class="mt-1 pt-1.5 border-t border-[var(--border)]/50 px-2.5 py-1 flex items-center justify-end gap-3 text-2xs text-muted">
-                            <button type="button" x-show="selectedPrinter" @click="testPrintReceipt()" class="text-emerald-600 hover:underline font-bold cursor-pointer">{% trans "Test Print" %}</button>
+                            <button type="button" x-show="selectedPrinter && isPrinterOnline(selectedPrinter)" @click="testPrintReceipt()" class="text-emerald-600 hover:underline font-bold cursor-pointer">{% trans "Test Print" %}</button>
                             <button type="button" @click="refreshPrinters()" class="text-[var(--brand-600)] hover:underline font-bold cursor-pointer">{% trans "Refresh" %}</button>
                         </div>
                     </div>
                 </div>
-
-                <!-- Cash Drawer Quick Kick Button -->
-                <button type="button"
-                        @click="openCashDrawer()"
-                        title="{% trans 'Open cash drawer' %} (F4)"
-                        class="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border)]/50 bg-[var(--surface-1)] hover:bg-[var(--surface-2)] text-xs font-semibold text-muted hover:text-ink transition-all cursor-pointer">
-                    <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                    </svg>
-                    <span>{% trans "Drawer" %}</span>
-                </button>
             </div>
         </div>
 
@@ -202,52 +234,78 @@
                 {% trans "End Shift" %}
             </button>
         </div>
-    </header>
+    </div>
 
-    <!-- In-Page Sale Completion Notification (Dismissible & Non-blocking) -->
+    <!-- Floating Toast Notification (Top Right, Non-blocking, Dismissible) -->
     <div x-show="showSaleSuccessNotification"
          x-cloak
-         class="bg-emerald-600 text-white px-4 py-2.5 flex items-center justify-between text-sm shadow-md shrink-0 z-40 transition-all">
-        <div class="flex items-center gap-2.5">
-            <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">✓</span>
-            <div>
-                <span class="font-bold">{% trans "Sale completed!" %}</span>
-                <span class="mx-1.5 opacity-60">&bull;</span>
-                <span>{% trans "Receipt" %}: <strong class="font-mono underline" x-text="lastSale.receiptNumber"></strong></span>
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="opacity-0 translate-y-[-12px] scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95"
+         class="fixed top-20 right-6 z-50 w-88 max-w-[calc(100vw-3rem)] bg-[var(--surface-1)] text-[var(--text)] border border-emerald-500/40 shadow-2xl rounded-2xl p-4 flex flex-col gap-3 pointer-events-auto backdrop-blur-md">
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
+                    <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                    </svg>
+                </span>
+                <div>
+                    <div class="font-bold text-sm text-[var(--text)]">{% trans "Sale completed" %}</div>
+                    <div class="text-xs text-[var(--text-muted)] mt-0.5">
+                        {% trans "Receipt" %}: <strong class="font-mono text-[var(--text)]" x-text="lastSale.receiptNumber"></strong>
+                    </div>
+                </div>
+            </div>
+            <button type="button"
+                    @click="showSaleSuccessNotification = false"
+                    class="text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded-lg transition-colors cursor-pointer"
+                    aria-label="{% trans 'Close' %}">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Optional Change & Printer info -->
+        <template x-if="parseFloat(lastSale.changeGiven) > 0 || lastSale.printedToOs">
+            <div class="text-xs text-[var(--text-muted)] bg-[var(--surface-2)]/60 rounded-xl px-3 py-2 flex flex-col gap-1 border border-[var(--border)]/40">
                 <template x-if="parseFloat(lastSale.changeGiven) > 0">
-                    <span>
-                        <span class="mx-1.5 opacity-60">&bull;</span>
-                        {% trans "Change" %}: <strong class="font-mono text-emerald-200 font-black">$<span x-text="lastSale.changeGiven"></span></strong>
-                    </span>
+                    <div class="flex items-center justify-between">
+                        <span>{% trans "Change" %}</span>
+                        <strong class="font-mono text-emerald-600 dark:text-emerald-400 font-bold">$<span x-text="lastSale.changeGiven"></span></strong>
+                    </div>
                 </template>
                 <template x-if="lastSale.printedToOs">
-                    <span>
-                        <span class="mx-1.5 opacity-60">&bull;</span>
-                        <span class="text-xs text-emerald-100 font-semibold">{% trans "Sent to" %} <span x-text="lastSale.printerName || selectedPrinter"></span></span>
-                    </span>
-                </template>
-                <template x-if="lastSale.drawerOpened">
-                    <span>
-                        <span class="mx-1.5 opacity-60">&bull;</span>
-                        <span class="text-xs text-emerald-100 font-semibold">{% trans "Drawer opened" %}</span>
-                    </span>
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span>{% trans "Printer" %}</span>
+                        <span class="font-medium text-[var(--text)] truncate max-w-[150px]" x-text="lastSale.printerName || selectedPrinter"></span>
+                    </div>
                 </template>
             </div>
-        </div>
-        <div class="flex items-center gap-2">
+        </template>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2 pt-1">
             <button type="button"
                     @click="printReceiptDirect(lastSale.receiptUrl)"
-                    class="px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer">
+                    class="flex-1 py-1.5 px-3 rounded-xl bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-[var(--text)] font-semibold text-xs flex items-center justify-center gap-1.5 border border-[var(--border)]/60 transition-colors cursor-pointer">
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
                 <span>{% trans "Reprint" %}</span>
             </button>
-            <button type="button"
-                    @click="showSaleSuccessNotification = false"
-                    class="text-white/80 hover:text-white text-base font-bold ml-1 cursor-pointer">
-                &times;
-            </button>
+            <a :href="lastSale.receiptUrl"
+               target="_blank"
+               class="flex-1 py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                <span>{% trans "View receipt" %}</span>
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+            </a>
         </div>
     </div>
 
@@ -508,21 +566,21 @@
 
 
 
-    <!-- TENDER & PAYMENT MODAL (Clean, Modern & Intuitive) -->
+    <!-- TENDER & PAYMENT MODAL (Clean, Accessible & High Contrast) -->
     <div x-show="openTenderModal"
          x-cloak
          class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
         <div @click.away="openTenderModal = false"
              class="bg-[var(--surface-1)] rounded-2xl shadow-2xl max-w-md w-full border border-[var(--border)] overflow-hidden transition-all">
-            <!-- Modal Header with Total Due -->
-            <div class="p-5 sm:p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex justify-between items-center shadow-sm">
+            <!-- Modal Header with Total Due (Clean, Accessible & High Contrast) -->
+            <div class="px-6 py-5 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface-1)]">
                 <div>
-                    <h3 class="text-xl sm:text-2xl font-black tracking-tight">{% trans "Payment" %}</h3>
-                    <p class="text-xs text-white/90 mt-0.5 font-medium">{% trans "Select method and enter amount received" %}</p>
+                    <h3 class="text-xl sm:text-2xl font-black text-[var(--text)] tracking-tight">{% trans "Payment" %}</h3>
+                    <p class="text-xs text-[var(--text-muted)] mt-0.5 font-medium">{% trans "Select method and enter amount received" %}</p>
                 </div>
                 <div class="text-right">
-                    <span class="text-2xs uppercase tracking-wider font-extrabold text-emerald-100">{% trans "Total Due" %}</span>
-                    <div class="text-2xl sm:text-3xl font-black font-mono leading-none mt-0.5">
+                    <span class="text-xs uppercase tracking-wider font-bold text-[var(--text-muted)]">{% trans "Total Due" %}</span>
+                    <div class="text-2xl sm:text-3xl font-black font-mono text-[var(--text)] leading-tight mt-0.5">
                         $<span x-text="formatDec(grandTotal)"></span>
                     </div>
                 </div>
@@ -531,38 +589,46 @@
             <div class="p-5 sm:p-6 space-y-5">
                 <!-- 1. Choose Payment Method -->
                 <div>
-                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                    <label class="block text-xs font-bold text-[var(--text)] uppercase tracking-wider mb-2.5">
                         {% trans "Payment Method" %}
                     </label>
-                    <div class="grid grid-cols-2 gap-2 sm:gap-2.5">
+                    <div class="grid grid-cols-2 gap-2.5">
                         <template x-for="pm in paymentMethods" :key="pm.code">
                             <button type="button"
                                     @click="selectPaymentMethod(pm.code)"
-                                    :class="selectedMethod === pm.code ? 'bg-emerald-600 text-white ring-2 ring-emerald-500 font-extrabold shadow-sm' : 'bg-[var(--surface-2)]/80 text-ink hover:bg-[var(--surface-2)] font-bold'"
-                                    class="p-3 rounded-xl flex items-center gap-2.5 transition-all text-left cursor-pointer border border-[var(--border)]/50">
-                                <span class="w-5 h-5 shrink-0 flex items-center justify-center">
-                                    <template x-if="pm.code === 'cash'">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                    </template>
-                                    <template x-if="pm.code.includes('card')">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                        </svg>
-                                    </template>
-                                    <template x-if="pm.code.includes('mobile') || pm.code.includes('bkash') || pm.code.includes('nagad') || pm.code.includes('online')">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
-                                    </template>
-                                    <template x-if="!['cash'].includes(pm.code) && !pm.code.includes('card') && !pm.code.includes('mobile') && !pm.code.includes('bkash') && !pm.code.includes('nagad') && !pm.code.includes('online')">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-                                        </svg>
-                                    </template>
+                                    :class="selectedMethod === pm.code ? 'is-active bg-emerald-600 text-white border-emerald-600 font-extrabold shadow-md' : 'bg-[var(--surface-2)] text-[var(--text)] border-[var(--border)] font-semibold hover:border-emerald-500'"
+                                    class="pos-payment-method-btn px-3.5 py-3 rounded-xl flex items-center justify-between gap-2.5 transition-all text-left cursor-pointer border">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span class="w-5 h-5 shrink-0 flex items-center justify-center">
+                                        <template x-if="pm.code === 'cash'">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                        </template>
+                                        <template x-if="pm.code.includes('card')">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                            </svg>
+                                        </template>
+                                        <template x-if="pm.code.includes('mobile') || pm.code.includes('bkash') || pm.code.includes('nagad') || pm.code.includes('online')">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
+                                        </template>
+                                        <template x-if="!['cash'].includes(pm.code) && !pm.code.includes('card') && !pm.code.includes('mobile') && !pm.code.includes('bkash') && !pm.code.includes('nagad') && !pm.code.includes('online')">
+                                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                            </svg>
+                                        </template>
+                                    </span>
+                                    <span class="text-sm truncate" x-text="pm.name"></span>
+                                </div>
+                                <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors"
+                                      :class="selectedMethod === pm.code ? 'bg-white text-emerald-700' : 'border-2 border-[var(--border-strong,#94a3b8)] bg-transparent'">
+                                    <svg x-show="selectedMethod === pm.code" class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
                                 </span>
-                                <span class="text-sm truncate" x-text="pm.name"></span>
                             </button>
                         </template>
                     </div>
@@ -571,17 +637,17 @@
                 <!-- 2. Amount Customer Put / Tendered -->
                 <div>
                     <div class="flex items-center justify-between mb-1.5">
-                        <label for="pos-amount-tendered-input" class="text-xs font-bold text-muted uppercase tracking-wider">
+                        <label for="pos-amount-tendered-input" class="text-xs font-bold text-[var(--text)] uppercase tracking-wider">
                             {% trans "Amount Received" %}
                         </label>
                         <button type="button"
                                 @click="amountTenderedInput = grandTotal"
-                                class="text-2xs font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline cursor-pointer">
+                                class="text-xs font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline px-2 py-0.5 rounded-md hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
                             {% trans "Exact Amount" %}
                         </button>
                     </div>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-muted font-mono text-xl font-bold">$</span>
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-[var(--text-muted)] font-mono text-xl font-bold">$</span>
                         <input id="pos-amount-tendered-input"
                                type="number"
                                step="0.01"
@@ -589,40 +655,166 @@
                                x-ref="tenderedInput"
                                x-model.number="amountTenderedInput"
                                @focus="$event.target.select()"
-                               class="w-full pl-9 pr-4 py-3 text-2xl font-mono font-black rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 text-ink shadow-inner focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
+                               class="w-full pl-9 pr-4 py-3 text-2xl font-mono font-black rounded-xl border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] shadow-inner focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all">
                     </div>
                 </div>
 
+                <!-- Dynamic Additional Information -->
+                <div x-show="currentMethodType !== 'cash' || (currentPaymentMethod && currentPaymentMethod.requires_tx_id)"
+                     class="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 space-y-3 transition-all">
+
+                    <!-- Card Details -->
+                    <template x-if="currentMethodType === 'card'">
+                        <div class="space-y-2.5">
+                            <div class="text-xs font-bold text-[var(--text)] uppercase tracking-wider flex items-center justify-between">
+                                <span>{% trans "Card details" %}</span>
+                                <span x-show="currentPaymentMethod && currentPaymentMethod.requires_tx_id" class="text-rose-600 text-3xs font-extrabold">{% trans "Required" %}</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">{% trans "Network" %}</label>
+                                    <select x-model="tenderCardBrand" class="w-full text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                        <option value="visa">Visa</option>
+                                        <option value="mastercard">Mastercard</option>
+                                        <option value="amex">Amex</option>
+                                        <option value="unionpay">UnionPay</option>
+                                        <option value="other">{% trans "Other" %}</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">{% trans "Last 4 digits" %}</label>
+                                    <input type="text" maxlength="4" placeholder="4242" x-model="tenderCardLast4"
+                                           class="w-full text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                </div>
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">
+                                        {% trans "Approval code" %}
+                                        <span x-show="currentPaymentMethod && currentPaymentMethod.requires_tx_id" class="text-rose-600 font-bold">*</span>
+                                    </label>
+                                    <input type="text" placeholder="AUTH-8910" x-model="tenderCardAuthCode"
+                                           class="w-full text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Mobile Banking Details -->
+                    <template x-if="currentMethodType === 'mobile_banking'">
+                        <div class="space-y-2.5">
+                            <div class="text-xs font-bold text-[var(--text)] uppercase tracking-wider flex items-center justify-between">
+                                <span>{% trans "Mobile banking details" %}</span>
+                                <span x-show="currentPaymentMethod && currentPaymentMethod.requires_tx_id" class="text-rose-600 text-3xs font-extrabold">{% trans "Required" %}</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">{% trans "Sender mobile" %}</label>
+                                    <input type="tel" placeholder="017XXXXXXXX" x-model="tenderMobileSender"
+                                           class="w-full text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                </div>
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">
+                                        {% trans "Transaction ID" %}
+                                        <span x-show="currentPaymentMethod && currentPaymentMethod.requires_tx_id" class="text-rose-600 font-bold">*</span>
+                                    </label>
+                                    <input type="text" placeholder="9K7X819Z" x-model="tenderTrxId"
+                                           class="w-full text-xs font-mono font-bold uppercase rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Bank Transfer Details -->
+                    <template x-if="currentMethodType === 'bank_transfer'">
+                        <div class="space-y-2.5">
+                            <div class="text-xs font-bold text-[var(--text)] uppercase tracking-wider flex items-center justify-between">
+                                <span>{% trans "Bank transfer details" %}</span>
+                                <span x-show="currentPaymentMethod && currentPaymentMethod.requires_tx_id" class="text-rose-600 text-3xs font-extrabold">{% trans "Required" %}</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">{% trans "Bank name" %}</label>
+                                    <input type="text" placeholder="{% trans 'Bank name' %}" x-model="tenderBankName"
+                                           class="w-full text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                </div>
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">
+                                        {% trans "Deposit reference" %}
+                                        <span x-show="currentPaymentMethod && currentPaymentMethod.requires_tx_id" class="text-rose-600 font-bold">*</span>
+                                    </label>
+                                    <input type="text" placeholder="DEP-98124" x-model="tenderBankRef"
+                                           class="w-full text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Cheque Details -->
+                    <template x-if="currentMethodType === 'cheque'">
+                        <div class="space-y-2.5">
+                            <div class="text-xs font-bold text-[var(--text)] uppercase tracking-wider flex items-center justify-between">
+                                <span>{% trans "Cheque details" %}</span>
+                                <span x-show="currentPaymentMethod && currentPaymentMethod.requires_tx_id" class="text-rose-600 text-3xs font-extrabold">{% trans "Required" %}</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">{% trans "Bank name" %}</label>
+                                    <input type="text" placeholder="{% trans 'Bank name' %}" x-model="tenderBankName"
+                                           class="w-full text-xs font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                </div>
+                                <div>
+                                    <label class="block text-3xs font-bold text-[var(--text-muted)] uppercase mb-1">
+                                        {% trans "Cheque number" %}
+                                        <span x-show="currentPaymentMethod && currentPaymentMethod.requires_tx_id" class="text-rose-600 font-bold">*</span>
+                                    </label>
+                                    <input type="text" placeholder="CHQ-001928" x-model="tenderChequeNo"
+                                           class="w-full text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Generic / Other with TxID required -->
+                    <template x-if="['other', 'cash'].includes(currentMethodType) && currentPaymentMethod && currentPaymentMethod.requires_tx_id">
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-[var(--text)] uppercase tracking-wider">
+                                {% trans "Transaction reference" %} <span class="text-rose-600 font-bold">*</span>
+                            </label>
+                            <input type="text" placeholder="{% trans 'Reference or transaction ID' %}" x-model="tenderGenericRef"
+                                   class="w-full text-xs font-mono font-bold rounded-lg border border-[var(--border)] bg-[var(--surface-base)] text-[var(--text)] py-2 px-2.5">
+                        </div>
+                    </template>
+                </div>
+
                 <!-- 3. Change Due / Balance Display -->
-                <div class="p-4 rounded-xl border flex items-center justify-between shadow-xs transition-colors"
-                     :class="isPaymentSufficient ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60'">
+                <div class="p-4 rounded-xl border flex items-center justify-between transition-colors"
+                     :class="isPaymentSufficient ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'">
                     <div>
                         <span class="text-xs uppercase font-extrabold tracking-wider"
                               :class="isPaymentSufficient ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'"
                               x-text="isPaymentSufficient ? '{% trans "Change to Return" %}' : '{% trans "Remaining Due" %}'">
                         </span>
                         <div class="text-2xl sm:text-3xl font-black font-mono mt-0.5"
-                             :class="isPaymentSufficient ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
+                             :class="isPaymentSufficient ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'">
                             $<span x-text="formatDec(isPaymentSufficient ? changeDue : remainingDue)"></span>
                         </div>
                     </div>
                     <div class="text-right">
-                        <span class="text-3xs uppercase font-bold text-muted tracking-wider">{% trans "Method" %}</span>
-                        <div class="text-xs font-bold text-ink uppercase tracking-tight mt-0.5" x-text="getMethodLabel(selectedMethod)"></div>
+                        <span class="text-3xs uppercase font-bold text-[var(--text-muted)] tracking-wider">{% trans "Method" %}</span>
+                        <div class="text-xs font-bold text-[var(--text)] uppercase tracking-tight mt-0.5" x-text="getMethodLabel(selectedMethod)"></div>
                     </div>
                 </div>
 
                 <!-- 4. Action Buttons -->
-                <div class="flex items-center justify-end space-x-3 pt-2 border-t border-[var(--border)]/60">
+                <div class="flex items-center justify-end space-x-3 pt-3 border-t border-[var(--border)]">
                     <button type="button"
                             @click="openTenderModal = false"
-                            class="px-4 py-2.5 rounded-xl text-sm font-bold text-muted hover:text-ink hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
+                            class="px-5 py-2.5 rounded-xl text-sm font-bold text-[var(--text)] hover:bg-[var(--surface-2)] border border-[var(--border)] transition-colors cursor-pointer">
                         {% trans "Cancel" %}
                     </button>
                     <button type="button"
                             @click="submitCheckout()"
                             :disabled="isSubmitting || !isPaymentSufficient"
-                            class="inline-flex items-center px-6 py-3 rounded-xl text-base font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer">
+                            class="inline-flex items-center px-6 py-3 rounded-xl text-sm sm:text-base font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer">
                         <svg class="w-4.5 h-4.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
@@ -746,6 +938,15 @@ function posTerminal(config) {
             return def ? def.code : methods[0].code;
         })({{ payment_methods_json|safe|default:'[]' }}),
         amountTenderedInput: 0,
+        tenderCardBrand: 'visa',
+        tenderCardLast4: '',
+        tenderCardAuthCode: '',
+        tenderMobileSender: '',
+        tenderTrxId: '',
+        tenderBankName: '',
+        tenderBankRef: '',
+        tenderChequeNo: '',
+        tenderGenericRef: '',
         availablePrinters: {{ system_printers_json|default:'[]'|safe }},
         selectedPrinter: (function() {
             try {
@@ -759,9 +960,14 @@ function posTerminal(config) {
                 return '';
             }
         })(),
-        scannerConnected: false,
-        scannerStatusText: '{% trans "Ready" %}',
-        connectedScanners: [],
+        scannerConnected: {{ system_scanners_json|default:'[]'|safe }}.length > 0,
+        connectedScanners: {{ system_scanners_json|default:'[]'|safe }},
+        scannerStatusText: (function(scanners) {
+            if (scanners && scanners.length > 0) {
+                return scanners[0].name;
+            }
+            return '{% trans "Offline" %}';
+        })({{ system_scanners_json|default:'[]'|safe }}),
         showSaleSuccessNotification: false,
         lastSale: {
             receiptNumber: '',
@@ -777,6 +983,27 @@ function posTerminal(config) {
             });
 
             this.refreshPrinters();
+            this.refreshScanners();
+            // Live background polling for real-time printer & scanner connectivity
+            setInterval(() => {
+                this.refreshPrinters();
+                this.refreshScanners();
+            }, 8000);
+
+            // Restore saved Wi-Fi scanner if any
+            try {
+                const savedWifi = localStorage.getItem('pos_wifi_scanner');
+                if (savedWifi) {
+                    const ws = JSON.parse(savedWifi);
+                    if (ws && !this.connectedScanners.some(s => s.id === ws.id)) {
+                        this.connectedScanners.push(ws);
+                        this.scannerConnected = true;
+                        if (this.scannerStatusText === '{% trans "Offline" %}') {
+                            this.scannerStatusText = ws.name;
+                        }
+                    }
+                }
+            } catch (e) {}
 
             // Live physical hardware auto-detection via WebHID
             const updateHidScanners = async () => {
@@ -838,14 +1065,6 @@ function posTerminal(config) {
                     barcodeBuffer += e.key;
                 }
             });
-
-            // F4 hotkey to pop cash drawer / locker open
-            window.addEventListener('keydown', (e) => {
-                if (e.key === 'F4') {
-                    e.preventDefault();
-                    this.openCashDrawer();
-                }
-            });
         },
 
         setPrinter(id) {
@@ -853,6 +1072,24 @@ function posTerminal(config) {
             try {
                 localStorage.setItem('pos_active_printer', id);
             } catch (e) {}
+        },
+
+        isPrinterOnline(id) {
+            if (!id) return false;
+            const p = this.availablePrinters.find(x => x.id === id);
+            return p ? Boolean(p.is_online) : false;
+        },
+
+        getPrinterDisplayLabel() {
+            if (!this.selectedPrinter) {
+                return '{% trans "No printer" %}';
+            }
+            const p = this.availablePrinters.find(x => x.id === this.selectedPrinter);
+            if (!p) return '{% trans "No printer" %}';
+            if (!p.is_online) {
+                return p.name + ' ({% trans "Offline" %})';
+            }
+            return p.name;
         },
 
         getPrinterLabel(id) {
@@ -865,6 +1102,80 @@ function posTerminal(config) {
             return p ? p.name : '{% trans "No printer" %}';
         },
 
+        async refreshScanners() {
+            try {
+                const res = await fetch('{% url "pos:scanners" %}');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.scanners) {
+                        const sysScanners = data.scanners;
+                        const manualScanners = (this.connectedScanners || []).filter(s => s.is_manual);
+                        this.connectedScanners = [...sysScanners, ...manualScanners];
+                        if (this.connectedScanners.length > 0) {
+                            this.scannerConnected = true;
+                            if (this.scannerStatusText === '{% trans "Offline" %}') {
+                                this.scannerStatusText = this.connectedScanners[0].name;
+                            }
+                        } else {
+                            this.scannerConnected = false;
+                            this.scannerStatusText = '{% trans "Offline" %}';
+                        }
+                    }
+                }
+            } catch (e) {}
+        },
+
+        async pairUsbScanner() {
+            if (!('hid' in navigator)) {
+                alert('{% trans "WebHID is not supported in this browser. System automatic device discovery is active." %}');
+                return;
+            }
+            try {
+                const devs = await navigator.hid.requestDevice({ filters: [] });
+                if (devs && devs.length > 0) {
+                    const dev = devs[0];
+                    const name = dev.productName || '{% trans "USB Barcode Scanner" %}';
+                    const sc = {
+                        id: dev.productId ? ('hid_' + dev.productId) : ('hid_' + Date.now()),
+                        name: name,
+                        type: 'USB',
+                        vendor: dev.manufacturerName || 'HID',
+                        is_online: true,
+                        is_manual: true
+                    };
+                    if (!this.connectedScanners.some(s => s.id === sc.id)) {
+                        this.connectedScanners.push(sc);
+                    }
+                    this.scannerConnected = true;
+                    this.scannerStatusText = name;
+                }
+            } catch (e) {}
+        },
+
+        promptWifiScanner() {
+            const ip = prompt('{% trans "Enter Wi-Fi scanner IP or address:" %}', '192.168.1.50');
+            if (ip && ip.trim()) {
+                const host = ip.trim();
+                const scanner = {
+                    id: 'wifi_' + host,
+                    name: '{% trans "Wi-Fi Scanner" %} (' + host + ')',
+                    type: 'Wi-Fi',
+                    vendor: 'Network',
+                    serial: host,
+                    is_online: true,
+                    is_manual: true
+                };
+                if (!this.connectedScanners.some(s => s.id === scanner.id)) {
+                    this.connectedScanners.push(scanner);
+                }
+                this.scannerConnected = true;
+                this.scannerStatusText = scanner.name;
+                try {
+                    localStorage.setItem('pos_wifi_scanner', JSON.stringify(scanner));
+                } catch (e) {}
+            }
+        },
+
         async refreshPrinters() {
             try {
                 const res = await fetch('{% url "pos:printers" %}');
@@ -875,12 +1186,12 @@ function posTerminal(config) {
                         const saved = localStorage.getItem('pos_active_printer');
                         if (saved && this.availablePrinters.some(p => p.id === saved)) {
                             this.selectedPrinter = saved;
-                        } else if (this.availablePrinters.length > 0) {
+                        } else if (this.availablePrinters.length > 0 && (!this.selectedPrinter || !this.availablePrinters.some(p => p.id === this.selectedPrinter))) {
                             this.selectedPrinter = this.availablePrinters[0].id;
                             try {
                                 localStorage.setItem('pos_active_printer', this.selectedPrinter);
                             } catch (e) {}
-                        } else {
+                        } else if (this.availablePrinters.length === 0) {
                             this.selectedPrinter = '';
                         }
                     }
@@ -908,16 +1219,6 @@ function posTerminal(config) {
                     this.printReceiptDirect(this.lastSale.receiptUrl);
                 }
             }
-        },
-
-        async openCashDrawer() {
-            try {
-                const res = await fetch('{% url "pos:open_drawer" %}?printer_name=' + encodeURIComponent(this.selectedPrinter || ''));
-                const data = await res.json();
-                if (data.success) {
-                    console.log('Cash drawer kick pulse sent.');
-                }
-            } catch (e) {}
         },
 
         selectPaymentMethod(method) {
@@ -1073,9 +1374,37 @@ function posTerminal(config) {
             return this.roundMoney(this.subtotal + this.taxTotal);
         },
 
+        get currentPaymentMethod() {
+            return this.paymentMethods.find(m => m.code === this.selectedMethod) || null;
+        },
+
+        get currentMethodType() {
+            const pm = this.currentPaymentMethod;
+            return pm ? (pm.method_type || 'other') : 'other';
+        },
+
+        get isAdditionalInfoValid() {
+            const pm = this.currentPaymentMethod;
+            if (!pm) return true;
+            const mtype = pm.method_type || 'other';
+
+            if (pm.requires_tx_id) {
+                if (mtype === 'card' && !this.tenderCardAuthCode.trim() && !this.tenderCardLast4.trim()) return false;
+                if (mtype === 'mobile_banking' && !this.tenderTrxId.trim()) return false;
+                if (mtype === 'bank_transfer' && !this.tenderBankRef.trim()) return false;
+                if (mtype === 'cheque' && !this.tenderChequeNo.trim()) return false;
+                if (['other', 'cash'].includes(mtype) && !this.tenderGenericRef.trim()) return false;
+            }
+
+            if (mtype === 'card' && this.tenderCardLast4.trim()) {
+                if (!/^\d{4}$/.test(this.tenderCardLast4.trim())) return false;
+            }
+            return true;
+        },
+
         get isPaymentSufficient() {
             const tendered = this.roundMoney(this.amountTenderedInput);
-            return tendered >= (this.grandTotal - 0.001);
+            return tendered >= (this.grandTotal - 0.001) && this.isAdditionalInfoValid;
         },
 
         get changeDue() {
@@ -1188,9 +1517,39 @@ function posTerminal(config) {
             }
             this.isSubmitting = true;
 
+            let refStr = '';
+            const mtype = this.currentMethodType;
+            if (mtype === 'card') {
+                const parts = [];
+                if (this.tenderCardBrand) parts.push(this.tenderCardBrand.toUpperCase());
+                if (this.tenderCardLast4) parts.push(`*${this.tenderCardLast4}`);
+                if (this.tenderCardAuthCode) parts.push(`Auth: ${this.tenderCardAuthCode}`);
+                refStr = parts.join(' ');
+            } else if (mtype === 'mobile_banking') {
+                const parts = [];
+                if (this.tenderMobileSender) parts.push(`From: ${this.tenderMobileSender}`);
+                if (this.tenderTrxId) parts.push(`TrxID: ${this.tenderTrxId}`);
+                refStr = parts.join(' | ');
+            } else if (mtype === 'bank_transfer') {
+                const parts = [];
+                if (this.tenderBankName) parts.push(this.tenderBankName);
+                if (this.tenderBankRef) parts.push(`Ref: ${this.tenderBankRef}`);
+                refStr = parts.join(' - ');
+            } else if (mtype === 'cheque') {
+                const parts = [];
+                if (this.tenderBankName) parts.push(this.tenderBankName);
+                if (this.tenderChequeNo) parts.push(`Cheque #${this.tenderChequeNo}`);
+                refStr = parts.join(' - ');
+            } else if (this.tenderGenericRef) {
+                refStr = this.tenderGenericRef.trim();
+            }
+
+            const pm = this.currentPaymentMethod;
             const payments = [
                 {
                     payment_method: this.selectedMethod,
+                    payment_method_id: pm ? pm.id : null,
+                    reference: refStr,
                     amount: this.grandTotal.toFixed(4)
                 }
             ];
@@ -1235,17 +1594,19 @@ function posTerminal(config) {
                     return;
                 }
                 if (result.success) {
-                    // Show success bar and store last sale details
+                    // Show success toast and store last sale details
                     const changeAmt = result.change_given !== undefined ? parseFloat(result.change_given).toFixed(2) : Math.max(0, this.amountTenderedInput - this.grandTotal).toFixed(2);
                     this.lastSale = {
                         receiptNumber: result.receipt_number,
                         changeGiven: changeAmt,
                         receiptUrl: result.receipt_url,
                         printedToOs: !!result.printed_to_os,
-                        drawerOpened: !!result.drawer_opened,
                         printerName: result.printer_name || this.selectedPrinter || ''
                     };
                     this.showSaleSuccessNotification = true;
+
+                    // Trigger refresh of topbar notification tray
+                    document.body.dispatchEvent(new CustomEvent('refreshUnreadCount'));
 
                     // Reset cart and modal
                     this.cart = [];
@@ -1254,10 +1615,11 @@ function posTerminal(config) {
                     this.openTenderModal = false;
                     this.isSubmitting = false;
 
-                    // Auto dismiss notification after 10s
-                    setTimeout(() => {
+                    // Auto dismiss toast after 8s
+                    clearTimeout(this._saleNotificationTimeout);
+                    this._saleNotificationTimeout = setTimeout(() => {
                         this.showSaleSuccessNotification = false;
-                    }, 10000);
+                    }, 8000);
                 } else {
                     alert('Checkout failed: ' + (result.error || 'Validation error'));
                     this.isSubmitting = false;

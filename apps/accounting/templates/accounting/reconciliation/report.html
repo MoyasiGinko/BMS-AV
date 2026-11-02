@@ -1,0 +1,193 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Reconciliation Audit Report" %} | {{ report.bank_account.name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+    nav, header, aside, #sidebar, .pos-header, .no-print {
+        display: none !important;
+    }
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    main {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .print-sheet {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Screen-only Action Toolbar -->
+    <div class="no-print flex items-center justify-between border-b border-line pb-4">
+        <a href="{% url 'accounting:reconciliation_dashboard' %}" class="text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1">
+            &larr; {% trans "Back to reconciliation" %}
+        </a>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="window.print()" class="px-4 py-2 bg-surface border border-line rounded-xl text-xs font-bold text-ink hover:bg-slate-100 shadow-xs cursor-pointer inline-flex items-center gap-2">
+                <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                {% trans "Print" %}
+            </button>
+            {% if report.reconciliation.status != 'completed' %}
+            <form method="post" action="{% url 'accounting:reconciliation_finalize' pk=report.reconciliation.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer">
+                    {% trans "Finalize" %}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Formal Printable Audit Sheet -->
+    <div class="print-sheet rounded-2xl border border-line bg-surface p-8 shadow-xs space-y-6">
+        <!-- Report Header -->
+        <div class="border-b-2 border-slate-900 pb-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight text-slate-900 uppercase">{{ request.organization.name }}</h1>
+                    <h2 class="text-base font-bold text-slate-700 mt-1">{% trans "Reconciliation report" %}</h2>
+                    <p class="text-xs text-slate-500 font-medium">{{ report.bank_account.bank_name }} &bull; Acct: {{ report.bank_account.account_number }} &bull; GL {{ report.gl_account.code }}</p>
+                </div>
+                <div class="text-right text-xs">
+                    <div class="font-bold text-slate-800">{% trans "Statement Date" %}: <span class="font-mono">{{ report.statement_date }}</span></div>
+                    <div class="text-slate-500 mt-0.5">{% trans "Cycle Status" %}: <strong class="uppercase font-mono">{{ report.reconciliation.get_status_display }}</strong></div>
+                    {% if report.reconciliation.reconciled_at %}
+                    <div class="text-slate-500 mt-0.5">{% trans "Finalized" %}: {{ report.reconciliation.reconciled_at|date:"Y-m-d H:i" }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Primary Reconciliation Formula -->
+        <div class="space-y-3 font-mono text-xs">
+            <div class="flex justify-between p-2.5 rounded bg-surface-2 font-bold text-slate-900">
+                <span>{% trans "1. Statement Ending Balance" %}</span>
+                <span>{{ currency_symbol }}{{ report.statement_ending_balance|intcomma }}</span>
+            </div>
+
+            <div class="pl-4 space-y-1">
+                <div class="flex justify-between text-slate-600">
+                    <span>{% trans "Plus: Deposits in Transit (Timing Differences)" %}</span>
+                    <span>+{{ currency_symbol }}{{ report.in_transit_total|intcomma }}</span>
+                </div>
+            </div>
+
+            <div class="flex justify-between p-2.5 rounded border border-line font-bold">
+                <span>{% trans "Adjusted Institutional Balance" %}</span>
+                <span>{{ currency_symbol }}{{ report.statement_ending_balance|intcomma }}</span>
+            </div>
+
+            <div class="flex justify-between p-2.5 rounded bg-surface-2 font-bold text-slate-900 mt-4">
+                <span>{% trans "2. General Ledger Book Balance" %}</span>
+                <span>{{ currency_symbol }}{{ report.book_balance|intcomma }}</span>
+            </div>
+
+            <div class="flex justify-between p-3 rounded-xl border-2 {% if report.difference == 0 %}border-emerald-600 bg-emerald-50/40 text-emerald-800{% else %}border-rose-600 bg-rose-50/40 text-rose-800{% endif %} font-black text-sm">
+                <span>{% trans "Unreconciled difference" %}</span>
+                <span>{{ currency_symbol }}{{ report.difference|intcomma }}</span>
+            </div>
+        </div>
+
+        <!-- Section 2: Summary of Cleared Items -->
+        <div class="pt-4 border-t border-line space-y-3">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">{% trans "Cleared Transactions Breakdown" %}</h3>
+            <div class="grid grid-cols-2 gap-4 text-xs font-mono">
+                <div class="p-3 rounded border border-line">
+                    <span class="text-3xs uppercase text-slate-500 font-bold block">{% trans "Total Cleared Deposits" %}</span>
+                    <span class="text-sm font-bold text-emerald-700 mt-1 block">{{ currency_symbol }}{{ report.total_cleared_deposits|intcomma }}</span>
+                </div>
+                <div class="p-3 rounded border border-line">
+                    <span class="text-3xs uppercase text-slate-500 font-bold block">{% trans "Total Cleared Withdrawals" %}</span>
+                    <span class="text-sm font-bold text-slate-800 mt-1 block">{{ currency_symbol }}{{ report.total_cleared_withdrawals|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: In-Transit Timing Differences -->
+        {% if report.in_transit_items %}
+        <div class="pt-4 border-t border-line space-y-2">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">{% trans "Legitimate In-Transit Items" %}</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-xs font-mono divide-y divide-line">
+                    <thead>
+                        <tr class="text-slate-500 text-3xs uppercase font-bold text-left">
+                            <th class="py-2">{% trans "Reference" %}</th>
+                            <th class="py-2">{% trans "Description" %}</th>
+                            <th class="py-2 text-right">{% trans "Amount" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line text-slate-700">
+                        {% for itm in report.in_transit_items %}
+                        <tr>
+                            <td class="py-2">{{ itm.title }}</td>
+                            <td class="py-2 text-3xs">{{ itm.resolution_notes|default:itm.description }}</td>
+                            <td class="py-2 text-right font-bold">{{ currency_symbol }}{{ itm.financial_impact|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Section 4: Authorized Adjustments -->
+        {% if report.resolved_adjustments %}
+        <div class="pt-4 border-t border-line space-y-2">
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">{% trans "Resolved Adjustments & Postings" %}</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-xs font-mono divide-y divide-line">
+                    <thead>
+                        <tr class="text-slate-500 text-3xs uppercase font-bold text-left">
+                            <th class="py-2">{% trans "Discrepancy" %}</th>
+                            <th class="py-2">{% trans "Action Taken" %}</th>
+                            <th class="py-2">{% trans "Journal Entry" %}</th>
+                            <th class="py-2 text-right">{% trans "Amount" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line text-slate-700">
+                        {% for adj in report.resolved_adjustments %}
+                        <tr>
+                            <td class="py-2 font-bold">{{ adj.title }}</td>
+                            <td class="py-2 uppercase text-3xs">{{ adj.resolution_action_taken }}</td>
+                            <td class="py-2 font-bold text-indigo-600">{{ adj.resolution_journal_entry.entry_number }}</td>
+                            <td class="py-2 text-right">{{ currency_symbol }}{{ adj.financial_impact|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Sign-Off Block -->
+        <div class="pt-10 border-t-2 border-slate-900 grid grid-cols-2 gap-8 text-xs text-slate-700">
+            <div>
+                <span class="text-3xs uppercase font-bold text-slate-500 block">{% trans "Prepared By (Accountant)" %}</span>
+                <div class="border-b border-slate-400 mt-8 mb-1"></div>
+                <div class="font-bold">{{ report.reconciliation.reconciled_by.email|default:"Staff Accountant" }}</div>
+                <div class="text-3xs text-slate-500">{% trans "Date" %}: {{ report.reconciliation.reconciled_at|date:"Y-m-d"|default:"Pending" }}</div>
+            </div>
+            <div>
+                <span class="text-3xs uppercase font-bold text-slate-500 block">{% trans "Approved By (Finance Manager / Auditor)" %}</span>
+                <div class="border-b border-slate-400 mt-8 mb-1"></div>
+                <div class="font-bold">{{ report.reconciliation.approved_by.email|default:"Finance Manager" }}</div>
+                <div class="text-3xs text-slate-500">{% trans "Date" %}: {{ report.reconciliation.approved_at|date:"Y-m-d"|default:"Pending" }}</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

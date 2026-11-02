@@ -1279,6 +1279,7 @@ def receive_payment(
     customer: Customer,
     amount: Decimal,
     payment_method: str = PaymentMethod.CASH,
+    payment_method_record: PaymentMethod | None = None,
     payment_date: datetime.date | None = None,
     allocations: list[dict[str, Any]] | None = None,
     branch: Branch | None = None,
@@ -1356,7 +1357,7 @@ def receive_payment(
 
     # 5. Create Payment record
     unallocated = amount - total_allocated
-    pm_rec = PaymentMethod.all_tenants.filter(organization=organization, code=payment_method).first()
+    pm_rec = payment_method_record or PaymentMethod.all_tenants.filter(organization=organization, code=payment_method).first()
     payment = Payment.objects.create(
         organization=organization,
         payment_number=payment_number,

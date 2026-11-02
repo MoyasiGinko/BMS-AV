@@ -43,7 +43,7 @@ from apps.pos.models import (
     POSShiftStatus,
 )
 from apps.sales import services as sales_services
-from apps.sales.models import PaymentMethod
+from apps.sales.models import Invoice, PaymentMethod
 from apps.tenancy.models import Branch, Organization, Warehouse
 
 DECIMAL_ZERO = Decimal("0.0000")
@@ -247,6 +247,56 @@ def _get_or_create_walk_in_customer(organization: Organization, actor: Any) -> C
     return customer
 
 
+def _process_pos_tenders(
+    *,
+    organization: Organization,
+    invoice: Invoice,
+    payments: list[dict[str, Any]],
+    sale_customer: Any,
+    register: Any,
+    actor: Any,
+) -> tuple[Decimal, Decimal, Decimal, list[str]]:
+    """Process tenders, receive payments, and calculate shift cash/card/other deltas."""
+    remaining_to_allocate = invoice.grand_total
+    tender_summaries: list[str] = []
+    shift_cash_delta = DECIMAL_ZERO
+    shift_card_delta = DECIMAL_ZERO
+    shift_other_delta = DECIMAL_ZERO
+
+    for p_item in payments:
+        raw_amt = Decimal(str(p_item.get("amount", DECIMAL_ZERO)))
+        if raw_amt <= DECIMAL_ZERO:
+            continue
+
+        method = p_item.get("payment_method", PaymentMethod.CASH)
+        ref = str(p_item.get("reference", "")).strip()
+        tender_label = f"{method} ({ref}): ${raw_amt}" if ref else f"{method}: ${raw_amt}"
+        tender_summaries.append(tender_label)
+
+        alloc_amt = min(raw_amt, remaining_to_allocate)
+        if alloc_amt > DECIMAL_ZERO:
+            sales_services.receive_payment(
+                organization=organization,
+                customer=sale_customer,
+                amount=alloc_amt,
+                payment_method=method,
+                allocations=[{"invoice_id": invoice.id, "amount": alloc_amt}],
+                branch=register.branch,
+                reference=ref or f"POS-{register.code}",
+                actor=actor,
+            )
+            remaining_to_allocate -= alloc_amt
+
+        if method in (PaymentMethod.CASH, "cash"):
+            shift_cash_delta += alloc_amt
+        elif method in (PaymentMethod.CREDIT_CARD, PaymentMethod.DEBIT_CARD, "card", "credit_card", "debit_card"):
+            shift_card_delta += alloc_amt
+        else:
+            shift_other_delta += alloc_amt
+
+    return shift_cash_delta, shift_card_delta, shift_other_delta, tender_summaries
+
+
 @transaction.atomic
 def checkout_pos_sale(
     *,
@@ -301,44 +351,14 @@ def checkout_pos_sale(
     change_given = max(DECIMAL_ZERO, tendered_input.quantize(Decimal("0.01")) - invoice.grand_total.quantize(Decimal("0.01")))
 
     # 4. Receive and allocate payments against invoice
-    # If customer paid more in cash than total, record the exact invoice allocation
-    remaining_to_allocate = min(invoice.grand_total, total_paid)
-    tender_summaries: list[str] = []
-
-    shift_cash_delta = DECIMAL_ZERO
-    shift_card_delta = DECIMAL_ZERO
-    shift_other_delta = DECIMAL_ZERO
-
-    for p_item in payments:
-        raw_amt = Decimal(str(p_item.get("amount", DECIMAL_ZERO)))
-        if raw_amt <= DECIMAL_ZERO:
-            continue
-
-        method = p_item.get("payment_method", PaymentMethod.CASH)
-        tender_summaries.append(f"{method}: ${raw_amt}")
-
-        # Amount to apply to invoice for this tender
-        alloc_amt = min(raw_amt, remaining_to_allocate)
-        if alloc_amt > DECIMAL_ZERO:
-            sales_services.receive_payment(
-                organization=organization,
-                customer=sale_customer,
-                amount=alloc_amt,
-                payment_method=method,
-                allocations=[{"invoice_id": invoice.id, "amount": alloc_amt}],
-                branch=register.branch,
-                reference=f"POS-{register.code}",
-                actor=actor,
-            )
-            remaining_to_allocate -= alloc_amt
-
-        # Tally shift cash / card collected
-        if method in (PaymentMethod.CASH, "cash"):
-            shift_cash_delta += alloc_amt
-        elif method in (PaymentMethod.CREDIT_CARD, PaymentMethod.DEBIT_CARD, "card", "credit_card", "debit_card"):
-            shift_card_delta += alloc_amt
-        else:
-            shift_other_delta += alloc_amt
+    shift_cash_delta, shift_card_delta, shift_other_delta, tender_summaries = _process_pos_tenders(
+        organization=organization,
+        invoice=invoice,
+        payments=payments,
+        sale_customer=sale_customer,
+        register=register,
+        actor=actor,
+    )
 
     invoice.refresh_from_db()
 

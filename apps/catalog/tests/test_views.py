@@ -289,3 +289,69 @@ def test_export_and_import_csv_views(catalog_setup: dict[str, object]) -> None:
     )
     assert res_imp.status_code == 302
     assert Product.all_tenants.filter(organization=org, sku="IMP-01").exists()
+
+
+@pytest.mark.django_db
+def test_product_labels_view_accessible(catalog_setup: dict[str, object]) -> None:
+    """Test product label printing and designer screen loads with active products."""
+    client: Client = catalog_setup["client"]  # type: ignore[assignment]
+    org: Organization = catalog_setup["org"]  # type: ignore[assignment]
+    unit: Unit = catalog_setup["unit"]  # type: ignore[assignment]
+    headers: dict[str, str] = catalog_setup["headers"]  # type: ignore[assignment]
+
+    create_product(
+        organization=org,
+        sku="LBL-01",
+        name="Label Test Product",
+        unit=unit,
+        selling_price=Decimal("25.5000"),
+        barcode="8901234567890",
+    )
+
+    # Test both registered URL patterns
+    res1 = client.get(reverse("catalog:product_labels"), **headers)
+    assert res1.status_code == 200
+    assert "products_json" in res1.context
+    assert "active_tab" in res1.context
+    assert res1.context["active_tab"] == "labels"
+    assert "LBL-01" in res1.context["products_json"]
+    assert "8901234567890" in res1.context["products_json"]
+    assert "Print Labels" in res1.content.decode()
+
+    res2 = client.get(reverse("catalog:label_print"), **headers)
+    assert res2.status_code == 200
+
+
+@pytest.mark.django_db
+def test_product_labels_view_preselected_product(catalog_setup: dict[str, object]) -> None:
+    """Test navigating to labels screen with a preselected product."""
+    client: Client = catalog_setup["client"]  # type: ignore[assignment]
+    org: Organization = catalog_setup["org"]  # type: ignore[assignment]
+    unit: Unit = catalog_setup["unit"]  # type: ignore[assignment]
+    headers: dict[str, str] = catalog_setup["headers"]  # type: ignore[assignment]
+
+    prod = create_product(
+        organization=org,
+        sku="PRE-01",
+        name="Preselected Item",
+        unit=unit,
+        selling_price=Decimal("12.0000"),
+    )
+
+    url = f"{reverse('catalog:product_labels')}?product_id={prod.pk}"
+    res = client.get(url, **headers)
+    assert res.status_code == 200
+    assert res.context["preselected_product_id"] == prod.pk
+
+
+@pytest.mark.django_db
+def test_product_labels_view_permission_denied(catalog_setup: dict[str, object]) -> None:
+    """Test unauthorized access to label printing is blocked."""
+    headers: dict[str, str] = catalog_setup["headers"]  # type: ignore[assignment]
+
+    unprivileged_user = User.objects.create_user(email="no_perm_user@example.com", password="Password123!")
+    client = Client()
+    client.force_login(unprivileged_user)
+
+    res = client.get(reverse("catalog:product_labels"), **headers)
+    assert res.status_code == 403

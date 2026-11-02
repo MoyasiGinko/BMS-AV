@@ -48,7 +48,7 @@
        1. TOPBAR / FULL-WIDTH HEADER
        Spans full width across top; hosts Brand, Global Switchers & Utility Actions
        ========================================================================= -->
-  <header class="w-full h-16 bg-transparent border-b border-[var(--border)]/40 px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 z-40 backdrop-blur-md">
+  <header class="global-topbar w-full h-16 bg-transparent border-b border-[var(--border)]/40 px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 relative z-50 backdrop-blur-md">
     <!-- Left: Mobile Menu Toggle, Brand Logo & Title, Sidebar Collapse Button, Tenant Switcher -->
     <div class="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
       <!-- Mobile hamburger toggle button -->
@@ -532,6 +532,14 @@
             >
               <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
               <span x-show="!sidebarCollapsed" class="truncate">Banking & Reconciliation</span>
+            </a>
+            <a
+              href="{% url 'sales:payment_method_list' %}"
+              class="flex items-center gap-3.5 px-3 py-2.5 text-[15px] font-medium rounded-xl transition-colors {% if '/sales/payment-methods/' in request.path or '/accounting/payment-methods/' in request.path %}bg-[var(--brand-50)] text-[var(--brand-700)] font-medium border-l-[3px] border-[var(--brand-600)]{% else %}text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]{% endif %}"
+              title="Payment Methods"
+            >
+              <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              <span x-show="!sidebarCollapsed" class="truncate">Payment Methods</span>
             </a>
             <a
               href="{% url 'accounting:expense_list' %}"

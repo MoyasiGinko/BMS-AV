@@ -1,0 +1,355 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Audit & Reconciliation" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{ showImportModal: false, selectedDiscrepancy: null }">
+
+    <!-- Top Navigation Subtabs -->
+    {% include "accounting/partials/_navigation_tabs.html" with active_tab="reconciliation" %}
+
+    <!-- Header & Action Toolbar -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-line pb-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Reconciliation" %}</h1>
+            <p class="text-xs text-muted mt-1">{% trans "Audit transactions and resolve discrepancies." %}</p>
+        </div>
+        <div class="flex items-center gap-2.5 flex-wrap">
+            <form method="post" action="{% url 'accounting:reconciliation_audit_scan' %}">
+                {% csrf_token %}
+                {% if selected_bank_account %}
+                    <input type="hidden" name="bank_account_id" value="{{ selected_bank_account.pk }}">
+                {% endif %}
+                <button type="submit" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-ink bg-surface border border-line hover:bg-slate-100 shadow-xs cursor-pointer">
+                    <svg class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    {% trans "Run audit" %}
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'accounting:reconciliation_auto_match' %}">
+                {% csrf_token %}
+                {% if selected_bank_account %}
+                    <input type="hidden" name="bank_account_id" value="{{ selected_bank_account.pk }}">
+                {% endif %}
+                <button type="submit" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {% trans "Match transactions" %}
+                </button>
+            </form>
+
+            <button type="button" @click="showImportModal = true" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-ink bg-surface border border-line hover:bg-slate-100 shadow-xs cursor-pointer">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                {% trans "Import statement" %}
+            </button>
+        </div>
+    </div>
+
+    <!-- 10 Centralized Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <!-- 1. Total Reviewed -->
+        <a href="?bank_account={{ selected_bank_account.pk|default:'' }}" class="p-4 rounded-xl border border-line bg-surface hover:border-indigo-500/40 shadow-xs transition-all block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-muted">{% trans "Reviewed" %}</span>
+            <div class="text-xl font-black font-mono text-ink mt-1">{{ metrics.total_reviewed|intcomma }}</div>
+            <span class="text-3xs text-muted">{% trans "Statement lines" %}</span>
+        </a>
+
+        <!-- 2. Successfully Matched -->
+        <a href="?status=resolved&bank_account={{ selected_bank_account.pk|default:'' }}" class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-50/20 hover:border-emerald-500 shadow-xs transition-all block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-emerald-700">{% trans "Matched" %}</span>
+            <div class="text-xl font-black font-mono text-emerald-700 mt-1">{{ metrics.matched_count|intcomma }}</div>
+            <span class="text-3xs text-emerald-600">{% trans "Matched with ledger" %}</span>
+        </a>
+
+        <!-- 3. Unmatched -->
+        <a href="?status=detected&bank_account={{ selected_bank_account.pk|default:'' }}" class="p-4 rounded-xl border border-amber-500/30 bg-amber-50/20 hover:border-amber-500 shadow-xs transition-all block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-amber-700">{% trans "Unmatched" %}</span>
+            <div class="text-xl font-black font-mono text-amber-700 mt-1">{{ metrics.unmatched_count|intcomma }}</div>
+            <span class="text-3xs text-amber-600">{% trans "Needs review" %}</span>
+        </a>
+
+        <!-- 4. Mismatched -->
+        <a href="?category=amount_mismatch&bank_account={{ selected_bank_account.pk|default:'' }}" class="p-4 rounded-xl border border-rose-500/30 bg-rose-50/20 hover:border-rose-500 shadow-xs transition-all block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-rose-700">{% trans "Mismatched" %}</span>
+            <div class="text-xl font-black font-mono text-rose-700 mt-1">{{ metrics.mismatched_count|intcomma }}</div>
+            <span class="text-3xs text-rose-600">{% trans "Amount or date difference" %}</span>
+        </a>
+
+        <!-- 5. Duplicate Candidates -->
+        <a href="?category=duplicate&bank_account={{ selected_bank_account.pk|default:'' }}" class="p-4 rounded-xl border border-purple-500/30 bg-purple-50/20 hover:border-purple-500 shadow-xs transition-all block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-purple-700">{% trans "Duplicates" %}</span>
+            <div class="text-xl font-black font-mono text-purple-700 mt-1">{{ metrics.duplicate_count|intcomma }}</div>
+            <span class="text-3xs text-purple-600">{% trans "Potential duplicates" %}</span>
+        </a>
+
+        <!-- 6. Missing Ledger Entries -->
+        <a href="?category=missing_in_bms&bank_account={{ selected_bank_account.pk|default:'' }}" class="p-4 rounded-xl border border-indigo-500/30 bg-indigo-50/20 hover:border-indigo-500 shadow-xs transition-all block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-indigo-700">{% trans "Missing in ledger" %}</span>
+            <div class="text-xl font-black font-mono text-indigo-700 mt-1">{{ metrics.missing_ledger_count|intcomma }}</div>
+            <span class="text-3xs text-indigo-600">{% trans "Unrecorded transactions" %}</span>
+        </a>
+
+        <!-- 7. Pending Investigations -->
+        <a href="?status=investigating&bank_account={{ selected_bank_account.pk|default:'' }}" class="p-4 rounded-xl border border-sky-500/30 bg-sky-50/20 hover:border-sky-500 shadow-xs transition-all block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-sky-700">{% trans "Investigating" %}</span>
+            <div class="text-xl font-black font-mono text-sky-700 mt-1">{{ metrics.pending_investigation_count|intcomma }}</div>
+            <span class="text-3xs text-sky-600">{% trans "Pending review" %}</span>
+        </a>
+
+        <!-- 8. Unresolved Discrepancies -->
+        <a href="?status=detected&bank_account={{ selected_bank_account.pk|default:'' }}" class="p-4 rounded-xl border border-rose-600/40 bg-surface hover:border-rose-600 shadow-xs transition-all block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-rose-600">{% trans "Open issues" %}</span>
+            <div class="text-xl font-black font-mono text-rose-600 mt-1">{{ metrics.unresolved_discrepancy_count|intcomma }}</div>
+            <span class="text-3xs text-muted">{% trans "Requires action" %}</span>
+        </a>
+
+        <!-- 9. Reconciled Amount -->
+        <div class="p-4 rounded-xl border border-line bg-surface shadow-xs block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-muted">{% trans "Reconciled" %}</span>
+            <div class="text-xl font-black font-mono text-ink mt-1">{{ currency_symbol }}{{ metrics.reconciled_amount|intcomma }}</div>
+            <span class="text-3xs text-muted">{% trans "Matched volume" %}</span>
+        </div>
+
+        <!-- 10. Discrepancy Amount -->
+        <div class="p-4 rounded-xl border border-rose-500/40 bg-surface shadow-xs block">
+            <span class="text-3xs uppercase font-extrabold tracking-wider text-rose-600">{% trans "Discrepancies" %}</span>
+            <div class="text-xl font-black font-mono text-rose-600 mt-1">{{ currency_symbol }}{{ metrics.total_discrepancy_amount|intcomma }}</div>
+            <span class="text-3xs text-muted">{% trans "Total variance" %}</span>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="p-4 rounded-xl border border-line bg-surface shadow-xs space-y-3">
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            <div>
+                <label class="block text-3xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Bank Account" %}</label>
+                <select name="bank_account" class="w-full text-xs rounded-lg border-line bg-surface-2 px-2.5 py-1.5 font-medium" onchange="this.form.submit()">
+                    <option value="">{% trans "All Accounts" %}</option>
+                    {% for ba in bank_accounts %}
+                        <option value="{{ ba.pk }}" {% if selected_bank_account.pk == ba.pk %}selected{% endif %}>
+                            {{ ba.name }} ({{ ba.account_number }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-3xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Category" %}</label>
+                <select name="category" class="w-full text-xs rounded-lg border-line bg-surface-2 px-2.5 py-1.5 font-medium" onchange="this.form.submit()">
+                    <option value="">{% trans "All Categories" %}</option>
+                    {% for cat_val, cat_label in category_choices %}
+                        <option value="{{ cat_val }}" {% if category_filter == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-3xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Severity" %}</label>
+                <select name="severity" class="w-full text-xs rounded-lg border-line bg-surface-2 px-2.5 py-1.5 font-medium" onchange="this.form.submit()">
+                    <option value="">{% trans "All Severities" %}</option>
+                    {% for sev_val, sev_label in severity_choices %}
+                        <option value="{{ sev_val }}" {% if severity_filter == sev_val %}selected{% endif %}>{{ sev_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-3xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Status" %}</label>
+                <select name="status" class="w-full text-xs rounded-lg border-line bg-surface-2 px-2.5 py-1.5 font-medium" onchange="this.form.submit()">
+                    <option value="">{% trans "All Statuses" %}</option>
+                    {% for st_val, st_label in status_choices %}
+                        <option value="{{ st_val }}" {% if status_filter == st_val %}selected{% endif %}>{{ st_label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-3xs font-bold uppercase tracking-wider text-muted mb-1">{% trans "Search" %}</label>
+                <div class="flex gap-1.5">
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="{% trans 'Search description...' %}" class="w-full text-xs rounded-lg border-line bg-surface-2 px-2.5 py-1.5 font-medium">
+                    <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold cursor-pointer">{% trans "Filter" %}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Discrepancies Resolution Center List -->
+    <div class="rounded-2xl border border-line bg-surface shadow-xs overflow-hidden">
+        <div class="p-5 border-b border-line flex items-center justify-between">
+            <div>
+                <h2 class="text-base font-bold text-ink">{% trans "Discrepancies" %}</h2>
+                <p class="text-xs text-muted mt-0.5">{% trans "Differences needing resolution." %}</p>
+            </div>
+            <span class="text-xs font-mono font-bold text-muted">{{ discrepancies|length }} {% trans "items" %}</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-line text-sm">
+                <thead class="bg-surface-2 text-muted">
+                    <tr>
+                        <th class="px-5 py-3.5 text-left font-bold uppercase text-3xs tracking-wider">{% trans "Severity" %}</th>
+                        <th class="px-5 py-3.5 text-left font-bold uppercase text-3xs tracking-wider">{% trans "Category" %}</th>
+                        <th class="px-5 py-3.5 text-left font-bold uppercase text-3xs tracking-wider">{% trans "Issue / Description" %}</th>
+                        <th class="px-5 py-3.5 text-right font-bold uppercase text-3xs tracking-wider">{% trans "Financial Impact" %}</th>
+                        <th class="px-5 py-3.5 text-center font-bold uppercase text-3xs tracking-wider">{% trans "Status" %}</th>
+                        <th class="px-5 py-3.5 text-right font-bold uppercase text-3xs tracking-wider">{% trans "Resolution Action" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line text-ink">
+                    {% for d in discrepancies %}
+                    <tr class="hover:bg-surface-2/60 transition-colors">
+                        <td class="px-5 py-4 whitespace-nowrap">
+                            {% if d.severity == 'critical' %}
+                                <span class="px-2 py-0.5 rounded text-3xs font-extrabold uppercase bg-rose-600 text-white">{% trans "Critical" %}</span>
+                            {% elif d.severity == 'high' %}
+                                <span class="px-2 py-0.5 rounded text-3xs font-bold uppercase bg-amber-500 text-white">{% trans "High" %}</span>
+                            {% elif d.severity == 'medium' %}
+                                <span class="px-2 py-0.5 rounded text-3xs font-bold uppercase bg-sky-600 text-white">{% trans "Medium" %}</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded text-3xs font-medium uppercase bg-slate-200 text-slate-800">{% trans "Low" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-xs font-medium text-muted">
+                            {{ d.get_category_display }}
+                        </td>
+                        <td class="px-5 py-4 text-xs">
+                            <div class="font-bold text-ink">{{ d.title }}</div>
+                            <div class="text-3xs text-muted mt-0.5 line-clamp-1">{{ d.description }}</div>
+                            {% if d.bank_account %}
+                                <div class="text-3xs text-indigo-600 font-mono mt-0.5">{{ d.bank_account.name }} &bull; GL {{ d.bank_account.gl_account.code }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-right font-mono font-bold text-xs {% if d.financial_impact > 0 %}text-rose-600{% else %}text-muted{% endif %}">
+                            {{ currency_symbol }}{{ d.financial_impact|intcomma }}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-center">
+                            {% if d.status == 'resolved' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-bold bg-emerald-100 text-emerald-800">{% trans "Resolved" %}</span>
+                            {% elif d.status == 'dismissed' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-bold bg-slate-100 text-slate-700">{% trans "In-Transit" %}</span>
+                            {% elif d.status == 'pending_approval' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-bold bg-amber-100 text-amber-800">{% trans "Needs Approval" %}</span>
+                            {% elif d.status == 'investigating' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-bold bg-sky-100 text-sky-800">{% trans "Investigating" %}</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-bold bg-rose-100 text-rose-800">{% trans "Detected" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-4 whitespace-nowrap text-right text-xs">
+                            <a href="{% url 'accounting:reconciliation_discrepancy_resolve' pk=d.pk %}"
+                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer">
+                                {% if d.status == 'resolved' %}
+                                    {% trans "View" %}
+                                {% else %}
+                                    {% trans "Resolve" %} &rarr;
+                                {% endif %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-muted text-xs">
+                            {% trans "No discrepancies found. All accounts and statements are balanced and reconciled." %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Reconciliations Section -->
+    <div class="rounded-2xl border border-line bg-surface shadow-xs p-5">
+        <div class="flex items-center justify-between border-b border-line pb-3 mb-4">
+            <div>
+                <h3 class="text-base font-bold text-ink">{% trans "Reconciliation cycles" %}</h3>
+                <p class="text-xs text-muted">{% trans "Past statements and verification reports." %}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for rec in reconciliations %}
+            <div class="p-4 rounded-xl border border-line bg-surface-2/40 hover:bg-surface-2 transition-all space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-xs text-ink">{{ rec.bank_account.name }}</span>
+                    <span class="px-2 py-0.5 rounded text-3xs font-bold uppercase {% if rec.status == 'completed' %}bg-emerald-100 text-emerald-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                        {{ rec.get_status_display }}
+                    </span>
+                </div>
+                <div class="text-xs text-muted flex justify-between font-mono">
+                    <span>{% trans "Statement" %}: {{ rec.statement_date }}</span>
+                    <span>{% trans "Diff" %}: {{ currency_symbol }}{{ rec.difference }}</span>
+                </div>
+                <div class="pt-2 border-t border-line/60 flex items-center justify-between text-xs font-bold">
+                    <a href="{% url 'accounting:reconciliation_report' pk=rec.pk %}" class="text-indigo-600 hover:underline">
+                        {% trans "View Report" %} &rarr;
+                    </a>
+                    {% if rec.status == 'completed' %}
+                        <form method="post" action="{% url 'accounting:reconciliation_reopen' pk=rec.pk %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="reason" value="Reopened by supervisor">
+                            <button type="submit" class="text-3xs text-rose-600 hover:underline cursor-pointer">{% trans "Reopen" %}</button>
+                        </form>
+                    {% else %}
+                        <form method="post" action="{% url 'accounting:reconciliation_finalize' pk=rec.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-xs text-emerald-600 hover:underline cursor-pointer">{% trans "Finalize" %}</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-3 text-center py-6 text-xs text-muted">
+                {% trans "No reconciliation cycles recorded yet." %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Import Statement Modal -->
+    <div x-show="showImportModal"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+         @keydown.escape.window="showImportModal = false">
+        <div class="bg-surface rounded-2xl border border-line shadow-2xl max-w-lg w-full p-6 space-y-4"
+             @click.outside="showImportModal = false">
+            <div class="flex items-center justify-between border-b border-line pb-3">
+                <h3 class="text-base font-bold text-ink">{% trans "Import Bank Statement" %}</h3>
+                <button type="button" @click="showImportModal = false" class="text-muted hover:text-ink cursor-pointer">&times;</button>
+            </div>
+
+            <form method="post" action="{% url 'accounting:reconciliation_import_statement' %}" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">{% trans "Target Bank Account" %}</label>
+                    <select name="bank_account_id" class="w-full text-xs rounded-lg border-line bg-surface-2 px-3 py-2" required>
+                        {% for ba in bank_accounts %}
+                            <option value="{{ ba.pk }}">{{ ba.name }} ({{ ba.account_number }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-1">{% trans "Statement File (CSV)" %}</label>
+                    <input type="file" name="statement_file" accept=".csv" required class="w-full text-xs border border-line rounded-lg p-2 bg-surface-2">
+                    <p class="text-3xs text-muted mt-1">{% trans "Columns supported: date, description, reference, deposit, withdrawal, amount." %}</p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-line">
+                    <button type="button" @click="showImportModal = false" class="px-4 py-2 text-xs font-bold text-muted hover:text-ink">{% trans "Cancel" %}</button>
+                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs cursor-pointer">
+                        {% trans "Import" %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Payment methods" %} | {{ request.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-6 pb-16">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-ink">{% trans "Payment methods" %}</h1>
+            <p class="text-sm text-slate-500 font-medium mt-1">
+                {% trans "Manage payment channels, settlement accounts, and transaction verification rules." %}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'sales:payment_method_create' %}"
+               class="inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+                {% trans "Create method" %}
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div class="p-4 rounded-xl border border-line bg-surface shadow-xs">
+            <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Total methods" %}</span>
+            <div class="text-2xl font-black text-ink mt-1">{{ total_count }}</div>
+        </div>
+        <div class="p-4 rounded-xl border border-line bg-surface shadow-xs">
+            <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Active channels" %}</span>
+            <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{{ active_count }}</div>
+        </div>
+        <div class="p-4 rounded-xl border border-line bg-surface shadow-xs col-span-2 sm:col-span-1">
+            <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Settlement linkage" %}</span>
+            <div class="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                {{ payment_methods|length }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-surface border border-line rounded-2xl shadow-xs overflow-hidden">
+        {% if payment_methods %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-line bg-surface-2/40 text-xs font-bold text-muted uppercase tracking-wider">
+                        <th scope="col" class="py-3.5 px-4">{% trans "Name" %}</th>
+                        <th scope="col" class="py-3.5 px-4">{% trans "Code" %}</th>
+                        <th scope="col" class="py-3.5 px-4">{% trans "Type" %}</th>
+                        <th scope="col" class="py-3.5 px-4">{% trans "Process mode" %}</th>
+                        <th scope="col" class="py-3.5 px-4">{% trans "Settlement account" %}</th>
+                        <th scope="col" class="py-3.5 px-4">{% trans "Fee rate" %}</th>
+                        <th scope="col" class="py-3.5 px-4 text-center">{% trans "Tx ID rule" %}</th>
+                        <th scope="col" class="py-3.5 px-4 text-center">{% trans "Status" %}</th>
+                        <th scope="col" class="py-3.5 px-4 text-right">{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-line font-medium text-ink">
+                    {% for pm in payment_methods %}
+                    <tr class="hover:bg-surface-2/30 transition-colors">
+                        <td class="py-3.5 px-4">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-ink">{{ pm.name }}</span>
+                                {% if pm.is_default %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-extrabold uppercase tracking-wider bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                                    {% trans "Default" %}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-xs text-slate-500">{{ pm.code }}</td>
+                        <td class="py-3.5 px-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold
+                                {% if pm.method_type == 'cash' %}bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800
+                                {% elif pm.method_type == 'card' %}bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-400 border border-sky-200 dark:border-sky-800
+                                {% elif pm.method_type == 'mobile_banking' %}bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400 border border-violet-200 dark:border-violet-800
+                                {% elif pm.method_type == 'bank_transfer' %}bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 border border-blue-200 dark:border-blue-800
+                                {% elif pm.method_type == 'cheque' %}bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200 dark:border-amber-800
+                                {% else %}bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700{% endif %}">
+                                {{ pm.get_method_type_display }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-xs text-slate-600 dark:text-slate-400">
+                            {{ pm.get_process_mode_display }}
+                        </td>
+                        <td class="py-3.5 px-4 text-xs">
+                            {% if pm.settlement_account %}
+                            <span class="font-mono text-slate-700 dark:text-slate-300">{{ pm.settlement_account.code }} - {{ pm.settlement_account.name }}</span>
+                            {% else %}
+                            <span class="text-slate-400 italic">{% trans "Not assigned" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-xs">
+                            {% if pm.fee_rate > 0 %}
+                            {{ pm.fee_rate }}%
+                            {% else %}
+                            <span class="text-slate-400">0%</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if pm.requires_tx_id %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-extrabold uppercase tracking-wider bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800">
+                                {% trans "Required" %}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-400 text-xs font-normal">{% trans "Optional" %}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if pm.is_active %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                                {% trans "Active" %}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-3xs font-extrabold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                {% trans "Inactive" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="inline-flex items-center gap-2">
+                                <a href="{% url 'sales:payment_method_edit' pm.public_id %}"
+                                   class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-surface-2 border border-line transition-colors"
+                                   title="{% trans 'Edit method' %}">
+                                    {% trans "Edit" %}
+                                </a>
+                                <form method="post" action="{% url 'sales:payment_method_toggle' pm.public_id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="px-2.5 py-1 rounded-lg text-xs font-bold transition-colors border
+                                            {% if pm.is_active %}text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/50{% else %}text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50{% endif %}">
+                                        {% if pm.is_active %}{% trans "Deactivate" %}{% else %}{% trans "Activate" %}{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center space-y-4">
+            <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-base font-bold text-ink">{% trans "No payment methods yet." %}</p>
+                <p class="text-sm text-slate-500 mt-1">{% trans "Create cash, card, bank, or mobile banking payment channels." %}</p>
+            </div>
+            <a href="{% url 'sales:payment_method_create' %}"
+               class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all cursor-pointer">
+                {% trans "Create method" %}
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
