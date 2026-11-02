@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import json
+import logging
+import platform
+import shutil
+import subprocess
 from decimal import Decimal
 from typing import Any
 
@@ -17,7 +22,10 @@ from apps.pos.models import (
     POSShift,
     POSShiftStatus,
 )
+from apps.sales.models import PaymentMethod, PaymentProcessMode
 from apps.tenancy.models import Organization, Warehouse
+
+logger = logging.getLogger(__name__)
 
 
 def list_registers(
@@ -223,3 +231,119 @@ def get_pos_categories(
         organization=organization,
         is_active=True,
     ).order_by("name")
+
+
+def _parse_printer_type(port: str) -> tuple[str, str]:
+    port_lower = port.lower()
+    if any(k in port_lower for k in ("wsd", "tcp", "ip", "net")):
+        return "wifi", "Wi-Fi"
+    if "usb" in port_lower:
+        return "usb", "USB"
+    return "cable", "Cable"
+
+
+def _get_windows_printers() -> list[dict[str, Any]]:
+    cmd = [
+        "powershell",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-Printer | Select-Object Name, Type, DriverName, PortName, PrinterStatus | ConvertTo-Json -Compress",
+    ]
+    printers: list[dict[str, Any]] = []
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=5, check=False)  # noqa: S603
+        if res.returncode == 0 and res.stdout.strip():
+            data = json.loads(res.stdout)
+            if isinstance(data, dict):
+                data = [data]
+            virtual_keywords = ("pdf", "xps", "onenote", "fax", "anydesk", "document writer")
+            for p in data:
+                name = p.get("Name") or ""
+                driver = p.get("DriverName") or ""
+                port = p.get("PortName") or ""
+                if any(vk in name.lower() or vk in driver.lower() for vk in virtual_keywords):
+                    continue
+                ptype, badge = _parse_printer_type(port)
+                printers.append({
+                    "id": name,
+                    "name": name,
+                    "type": ptype,
+                    "badge": badge,
+                    "port": port,
+                    "driver": driver,
+                })
+    except Exception as exc:
+        logger.debug("Windows printer discovery error: %s", exc)
+    return printers
+
+
+def _get_unix_printers() -> list[dict[str, Any]]:
+    lpstat_bin = shutil.which("lpstat")
+    if not lpstat_bin:
+        return []
+    printers: list[dict[str, Any]] = []
+    try:
+        res = subprocess.run([lpstat_bin, "-p"], capture_output=True, text=True, timeout=5, check=False)  # noqa: S603
+        for line in res.stdout.splitlines():
+            if line.startswith("printer "):
+                pname = line.split()[1]
+                printers.append({
+                    "id": pname,
+                    "name": pname,
+                    "type": "network",
+                    "badge": "Network",
+                    "port": "",
+                    "driver": "",
+                })
+    except Exception as exc:
+        logger.debug("Unix printer discovery error: %s", exc)
+    return printers
+
+
+def get_system_printers() -> list[dict[str, Any]]:
+    """Discover real physical/network printers connected to the host system.
+
+    Filters out virtual software drivers (OneNote, XPS, Fax, PDF printers)
+    and identifies connection type: 'wifi' (WSD / TCP/IP), 'usb' (USB port),
+    or 'cable' / 'network'.
+    """
+    sys_name = platform.system()
+    if sys_name == "Windows":
+        return _get_windows_printers()
+    if sys_name in ("Linux", "Darwin"):
+        return _get_unix_printers()
+    return []
+
+
+def list_active_payment_methods(*, organization: Organization) -> list[dict[str, Any]]:
+    """List active payment methods configured for this tenant organization."""
+    methods = list(
+        PaymentMethod.all_tenants.filter(organization=organization, is_active=True).order_by("sort_order", "name")
+    )
+    if not methods:
+        defaults = [
+            {"name": "Cash", "code": "cash", "process_mode": PaymentProcessMode.RECORD_ONLY, "is_default": True, "sort_order": 1},
+            {"name": "Card", "code": "card", "process_mode": PaymentProcessMode.RECORD_ONLY, "is_default": False, "sort_order": 2},
+            {"name": "Mobile Pay", "code": "mobile_pay", "process_mode": PaymentProcessMode.RECORD_ONLY, "is_default": False, "sort_order": 3},
+            {"name": "Bank Transfer", "code": "bank_transfer", "process_mode": PaymentProcessMode.RECORD_ONLY, "is_default": False, "sort_order": 4},
+        ]
+        methods = []
+        for d in defaults:
+            pm, _ = PaymentMethod.all_tenants.get_or_create(
+                organization=organization,
+                code=d["code"],
+                defaults=d,
+            )
+            methods.append(pm)
+
+    return [
+        {
+            "id": pm.pk,
+            "code": pm.code,
+            "name": pm.name,
+            "process_mode": pm.process_mode,
+            "is_default": pm.is_default,
+        }
+        for pm in methods
+    ]

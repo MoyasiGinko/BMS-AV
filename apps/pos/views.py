@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import contextlib
 import json
+import threading
 from decimal import Decimal
 from typing import Any
 
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -16,7 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.catalog.models import Product
 from apps.core.permissions import check_object_scope, permission_required, scope_queryset
 from apps.customers.models import Customer
-from apps.pos import selectors, services
+from apps.pos import printing, selectors, services
 from apps.pos.exceptions import POSError
 from apps.pos.forms import (
     POSCloseShiftForm,
@@ -94,6 +96,8 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
     categories = selectors.get_pos_categories(organization=org)
     held_carts = selectors.list_held_carts(organization=org, shift_id=active_shift.pk)
     customers = Customer.all_tenants.filter(organization=org, status="active").order_by("name")[:50]
+    system_printers = selectors.get_system_printers()
+    payment_methods = selectors.list_active_payment_methods(organization=org)
 
     context = {
         "shift": active_shift,
@@ -104,6 +108,10 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
         "held_carts": held_carts,
         "customers": customers,
         "close_form": POSCloseShiftForm(),
+        "system_printers": system_printers,
+        "system_printers_json": json.dumps(system_printers),
+        "payment_methods": payment_methods,
+        "payment_methods_json": json.dumps(payment_methods),
     }
 
     if request.headers.get("HX-Request") == "true":
@@ -208,6 +216,21 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
             notes=data.get("notes", ""),
             actor=request.user,
         )
+        printed_to_os = False
+        printer_id = data.get("printer_id")
+        if printer_id:
+            # Spool asynchronously in background thread so checkout completes instantly
+            threading.Thread(
+                target=printing.spool_receipt_to_printer,
+                kwargs={
+                    "organization": org,
+                    "sale": sale,
+                    "printer_name": printer_id,
+                },
+                daemon=True,
+            ).start()
+            printed_to_os = True
+
         if is_json:
             return JsonResponse(
                 {
@@ -215,6 +238,9 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
                     "receipt_number": sale.receipt_number,
                     "sale_public_id": str(sale.public_id),
                     "receipt_url": f"/pos/receipt/{sale.public_id}/",
+                    "change_given": str(sale.change_given),
+                    "amount_tendered": str(sale.amount_tendered),
+                    "printed_to_os": printed_to_os,
                 }
             )
         messages.success(request, _("Sale completed: Receipt %s") % sale.receipt_number)
@@ -241,6 +267,9 @@ def receipt_view(request: HttpRequest, public_id: str) -> HttpResponse:
     lines = invoice.lines.select_related("product").all()
     payments = invoice.payments.all() if hasattr(invoice, "payments") else []
 
+    is_raw = request.GET.get("raw") == "1" or request.GET.get("autoprint") == "1"
+    layout_template = "layouts/base.html" if is_raw else "layouts/app.html"
+
     context = {
         "org": org,
         "sale": sale,
@@ -249,8 +278,17 @@ def receipt_view(request: HttpRequest, public_id: str) -> HttpResponse:
         "invoice": invoice,
         "lines": lines,
         "payments": payments,
+        "is_raw": is_raw,
+        "layout_template": layout_template,
     }
-    return render(request, "pos/receipt.html", context)
+    response = render(request, "pos/receipt.html", context)
+
+    # Allow same-origin framing so POS terminal iframe can trigger direct receipt print
+    csp = dict(getattr(settings, "SECURE_CSP", {}))
+    csp["frame-ancestors"] = ["'self'"]
+    response._csp_config = csp
+    response["X-Frame-Options"] = "SAMEORIGIN"
+    return response
 
 
 @permission_required("pos.shift_open")
@@ -431,3 +469,30 @@ def resume_cart_action(request: HttpRequest, held_cart_id: int) -> HttpResponse:
         return JsonResponse({"success": True, "cart": cart_data})
     except Exception as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
+
+
+@permission_required("pos.access")
+def printers_view(request: HttpRequest) -> HttpResponse:
+    """Return live system printers for POS terminal."""
+    printers = selectors.get_system_printers()
+    return JsonResponse({"printers": printers})
+
+
+@permission_required("pos.access")
+def test_printer_action(request: HttpRequest) -> HttpResponse:
+    """Send a test print slip directly to the chosen OS hardware printer."""
+    org = _get_org(request)
+    printer_name = request.GET.get("printer_name") or request.POST.get("printer_name")
+    if not printer_name and request.content_type == "application/json":
+        with contextlib.suppress(Exception):
+            printer_name = json.loads(request.body.decode("utf-8")).get("printer_name")
+
+    if not printer_name:
+        return JsonResponse({"success": False, "error": str(_("No printer specified."))}, status=400)
+
+    threading.Thread(
+        target=printing.spool_test_slip_to_printer,
+        kwargs={"organization": org, "printer_name": printer_name},
+        daemon=True,
+    ).start()
+    return JsonResponse({"success": True, "printer_name": printer_name})

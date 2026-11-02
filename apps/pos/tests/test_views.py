@@ -1,6 +1,7 @@
 """View and HTMX integration tests for the Point of Sale (POS) module."""
 
 import json
+import subprocess
 from decimal import Decimal
 
 import pytest
@@ -12,7 +13,7 @@ from apps.accounting import services as accounting_services
 from apps.catalog.models import Product, ProductType, Unit
 from apps.core.tenant_context import tenant_context
 from apps.inventory import services as inventory_services
-from apps.pos import services
+from apps.pos import selectors, services
 from apps.pos.models import POSShiftStatus
 from apps.tenancy.models import Branch, Membership, Organization, Role, TaxCode, Warehouse
 
@@ -308,3 +309,55 @@ def test_checkout_insufficient_stock_returns_json_error(pos_view_setup: dict[str
     data = res.json()
     assert data["success"] is False
     assert "Cannot issue" in data["error"] or "stock" in data["error"].lower()
+
+
+def test_printers_api_endpoint(client: Client, pos_view_setup: dict[str, object]) -> None:
+    """Test live system printers endpoint."""
+    user = pos_view_setup["user"]
+    client.force_login(user)
+
+    res = client.get("/pos/printers/")
+    assert res.status_code == 200
+    data = res.json()
+    assert "printers" in data
+    assert isinstance(data["printers"], list)
+
+
+def test_get_system_printers_windows_mock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test Windows printer parsing and virtual driver filtering."""
+
+    fake_output = json.dumps([
+        {
+            "Name": "EPSON82A8C5 (L3250 Series)",
+            "DriverName": "Microsoft IPP Class Driver",
+            "PortName": "WSD-54f78017",
+            "PrinterStatus": 3,
+        },
+        {
+            "Name": "Thermal 80mm USB",
+            "DriverName": "POS Receipt Driver",
+            "PortName": "USB001",
+            "PrinterStatus": 3,
+        },
+        {
+            "Name": "Microsoft Print to PDF",
+            "DriverName": "Microsoft Print To PDF",
+            "PortName": "PORTPROMPT:",
+            "PrinterStatus": 3,
+        },
+    ])
+
+    class FakeCompletedProcess:
+        returncode = 0
+        stdout = fake_output
+
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: FakeCompletedProcess())
+    printers = selectors._get_windows_printers()
+
+    assert len(printers) == 2
+    assert printers[0]["id"] == "EPSON82A8C5 (L3250 Series)"
+    assert printers[0]["type"] == "wifi"
+    assert printers[0]["badge"] == "Wi-Fi"
+    assert printers[1]["id"] == "Thermal 80mm USB"
+    assert printers[1]["type"] == "usb"
+    assert printers[1]["badge"] == "USB"

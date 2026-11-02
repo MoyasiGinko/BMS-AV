@@ -116,8 +116,13 @@
                     {{ product.selling_price|money:request.organization.currency }}
                 </span>
                 {% else %}
-                <span class="pos-price-val text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors leading-tight">
-                    {{ product.selling_price|money:request.organization.currency }}
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="pos-price-val text-base sm:text-lg lg:text-xl font-black font-mono text-ink group-hover:text-[var(--brand-600)] dark:group-hover:text-[var(--brand-400)] transition-colors leading-tight">
+                        {{ product.selling_price|money:request.organization.currency }}
+                    </span>
+                </div>
+                <span class="text-xs sm:text-sm font-mono mt-0.5 invisible select-none" aria-hidden="true">
+                    &nbsp;
                 </span>
                 {% endif %}
             </div>

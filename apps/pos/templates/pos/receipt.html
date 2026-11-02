@@ -1,10 +1,11 @@
-{% extends "layouts/app.html" %}
+{% extends layout_template|default:"layouts/app.html" %}
 {% load i18n %}
 
 {% block title %}{% trans "Receipt" %} #{{ sale.receipt_number }} | {{ request.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto py-6">
+<div class="max-w-md mx-auto py-4 sm:py-6">
+    {% if not is_raw %}
     <!-- Action buttons above receipt -->
     <div class="mb-4 flex items-center justify-between no-print">
         <a href="{% url 'pos:terminal' %}"
@@ -23,6 +24,7 @@
             {% trans "Print Receipt" %}
         </button>
     </div>
+    {% endif %}
 
     <!-- 80mm Receipt Card -->
     <div id="receipt-paper" class="bg-white text-slate-900 border border-slate-200 rounded-2xl shadow-xl p-6 sm:p-8 font-mono text-xs space-y-4">
@@ -117,6 +119,25 @@
     </div>
 </div>
 
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const format = params.get('format') || '80mm';
+    const paper = document.getElementById('receipt-paper');
+    if (paper && format === '58mm') {
+        paper.classList.remove('max-w-md');
+        paper.classList.add('max-w-[58mm]');
+        paper.style.width = '58mm';
+    }
+    if (params.get('autoprint') === '1' || window.self !== window.top) {
+        setTimeout(() => {
+            window.focus();
+            window.print();
+        }, 150);
+    }
+});
+</script>
+
 <style>
 @media print {
     body * {
@@ -132,9 +153,9 @@
         position: absolute;
         left: 0;
         top: 0;
-        width: 80mm;
+        width: var(--receipt-width, 80mm);
         margin: 0;
-        padding: 10px;
+        padding: 6px;
         box-shadow: none;
         border: none;
     }

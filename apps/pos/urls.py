@@ -18,4 +18,6 @@ urlpatterns = [
     path("registers/new/", views.register_create_view, name="register_create"),
     path("cart/hold/", views.hold_cart_action, name="hold_cart"),
     path("cart/<int:held_cart_id>/resume/", views.resume_cart_action, name="resume_cart"),
+    path("printers/", views.printers_view, name="printers"),
+    path("printers/test/", views.test_printer_action, name="test_printer"),
 ]

@@ -1267,7 +1267,7 @@ def post_credit_note(
 
 def _resolve_payment_cash_or_bank(payment_method: str) -> str:
     """Return GL account mapping key for payment method ('cash' or 'bank')."""
-    if payment_method == PaymentMethod.CASH:
+    if payment_method in (PaymentMethod.CASH, "cash"):
         return "cash"
     return "bank"
 
@@ -1356,6 +1356,7 @@ def receive_payment(
 
     # 5. Create Payment record
     unallocated = amount - total_allocated
+    pm_rec = PaymentMethod.all_tenants.filter(organization=organization, code=payment_method).first()
     payment = Payment.objects.create(
         organization=organization,
         payment_number=payment_number,
@@ -1363,6 +1364,7 @@ def receive_payment(
         branch=branch,
         payment_date=pay_date,
         payment_method=payment_method,
+        payment_method_record=pm_rec,
         amount=amount,
         allocated_amount=total_allocated,
         unallocated_amount=unallocated,

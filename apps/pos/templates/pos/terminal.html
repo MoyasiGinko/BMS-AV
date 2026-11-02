@@ -16,10 +16,10 @@
 
     <!-- Top POS Toolbar -->
     <header class="h-16 bg-[var(--surface-1)] border-b border-[var(--border)]/70 px-4 sm:px-6 flex items-center justify-between shrink-0">
-        <div class="flex items-center space-x-3.5">
-            <div class="pos-capsule px-4 py-2 rounded-xl bg-[var(--surface-2)]/60 flex items-center gap-3">
+        <div class="flex items-center space-x-3">
+            <div class="pos-capsule px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-[var(--surface-2)]/60 flex items-center gap-2.5 sm:gap-3">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs sm:text-sm font-bold bg-emerald-600 text-white shadow-2xs">
-                    <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                    <i class="pos-status-dot dot-connected animate-pulse"></i>
                     {{ register.code }}
                 </span>
                 <span class="text-sm font-bold text-ink hidden sm:inline">
@@ -32,6 +32,129 @@
                 <span class="h-4 w-px bg-[var(--border)] hidden sm:inline"></span>
                 <div class="text-xs sm:text-sm text-muted hidden sm:inline">
                     {% trans "Cashier" %}: <strong class="text-ink font-bold">{{ shift.cashier.get_full_name|default:shift.cashier.email }}</strong>
+                </div>
+
+                <span class="h-4 w-px bg-[var(--border)] hidden md:inline"></span>
+
+                <!-- Scanner Status Indicator -->
+                <div class="relative" x-data="{ openScannerMenu: false }">
+                    <button type="button"
+                            @click="openScannerMenu = !openScannerMenu"
+                            @click.away="openScannerMenu = false"
+                            class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer"
+                            :class="scannerConnected ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 shadow-2xs' : 'border-[var(--border)]/50 bg-[var(--surface-1)] text-muted hover:text-ink'">
+                        <svg class="w-3.5 h-3.5 shrink-0" :class="scannerConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted/60'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                        </svg>
+                        <i class="pos-status-dot" :class="scannerConnected ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
+                        <span class="hidden xl:inline" :class="scannerConnected ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-muted'">{% trans "Scanner" %}:</span>
+                        <span class="font-bold" :class="scannerConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'" x-text="scannerConnected ? scannerStatusText : '{% trans "Offline" %}'"></span>
+                        <svg class="w-3 h-3 text-muted ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <!-- Scanner Dropdown Menu -->
+                    <div x-show="openScannerMenu"
+                         x-cloak
+                         class="absolute left-0 mt-2 w-72 rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-2xl p-2 z-50 text-xs">
+                        <div class="px-2.5 py-1.5 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-1.5 flex items-center justify-between">
+                            <span>{% trans "Barcode Scanner" %}</span>
+                            <span class="font-bold text-xs"
+                                  :class="scannerConnected ? 'text-emerald-600' : 'text-muted'"
+                                  x-text="scannerConnected ? (connectedScanners.length > 1 ? `● ${connectedScanners.length} {% trans "Connected" %}` : '● {% trans "Connected" %}') : '○ {% trans "Offline" %}'"></span>
+                        </div>
+
+                        <!-- Connected Scanners List -->
+                        <template x-if="scannerConnected && connectedScanners.length > 0">
+                            <div class="space-y-1">
+                                <template x-for="(scanner, idx) in connectedScanners" :key="idx">
+                                    <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/80 flex items-center justify-between">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <i class="pos-status-dot dot-connected animate-pulse shrink-0"></i>
+                                            <span class="font-bold text-xs truncate text-ink" x-text="scanner.name"></span>
+                                            <span class="shrink-0 px-1.5 py-0.2 rounded text-3xs font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" x-text="scanner.type || 'USB'"></span>
+                                        </div>
+                                        <span class="text-emerald-600 font-bold text-sm shrink-0 ml-2">✓</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Offline State -->
+                        <template x-if="!scannerConnected || connectedScanners.length === 0">
+                            <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/40 flex items-center gap-2 text-muted">
+                                <i class="pos-status-dot dot-disconnected shrink-0"></i>
+                                <span class="font-medium text-xs">{% trans "No scanner connected" %}</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Printer Status & Switcher Dropdown -->
+                <div class="relative" x-data="{ openPrinterMenu: false }">
+                    <button type="button"
+                            @click="openPrinterMenu = !openPrinterMenu"
+                            @click.away="openPrinterMenu = false"
+                            class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer"
+                            :class="selectedPrinter ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 shadow-2xs' : 'border-[var(--border)]/50 bg-[var(--surface-1)] text-muted hover:text-ink'">
+                        <svg class="w-3.5 h-3.5 shrink-0" :class="selectedPrinter ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted/60'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <i class="pos-status-dot" :class="selectedPrinter ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
+                        <span class="hidden xl:inline" :class="selectedPrinter ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-muted'">{% trans "Printer" %}:</span>
+                        <span class="font-bold max-w-[12rem] truncate" :class="selectedPrinter ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'" x-text="selectedPrinter ? getPrinterShortLabel(selectedPrinter) : '{% trans "No printer" %}'"></span>
+                        <svg class="w-3 h-3 text-muted ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <!-- Printer Dropdown Menu -->
+                    <div x-show="openPrinterMenu"
+                         x-cloak
+                         class="absolute left-0 mt-2 w-80 rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-2xl p-2 z-50 text-xs">
+                        <div class="px-2.5 py-1.5 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-1.5 flex items-center justify-between">
+                            <span>{% trans "Printers" %}</span>
+                            <span class="font-bold text-xs"
+                                  :class="selectedPrinter ? 'text-emerald-600' : 'text-muted'"
+                                  x-text="selectedPrinter ? '● {% trans "Online" %}' : '○ {% trans "Offline" %}'"></span>
+                        </div>
+
+                        <!-- Printers List -->
+                        <template x-if="availablePrinters.length > 0">
+                            <div class="space-y-1">
+                                <template x-for="p in availablePrinters" :key="p.id">
+                                    <button type="button"
+                                            @click="setPrinter(p.id); openPrinterMenu = false"
+                                            class="w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                                            :class="selectedPrinter === p.id ? 'bg-[var(--surface-2)]/80 font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)]' : 'text-ink'">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <i class="pos-status-dot shrink-0" :class="selectedPrinter === p.id ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
+                                            <div class="flex items-center gap-1.5 font-bold text-xs min-w-0">
+                                                <span class="truncate" x-text="p.name"></span>
+                                                <span class="shrink-0 px-1.5 py-0.2 rounded text-3xs font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" x-text="p.badge || 'Wi-Fi'"></span>
+                                            </div>
+                                        </div>
+                                        <span x-show="selectedPrinter === p.id" class="text-emerald-600 font-bold text-sm shrink-0 ml-2">✓</span>
+                                    </button>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- No Printers Detected -->
+                        <template x-if="availablePrinters.length === 0">
+                            <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/40 flex items-center gap-2 text-muted">
+                                <i class="pos-status-dot dot-disconnected shrink-0"></i>
+                                <span class="font-medium text-xs">{% trans "No printer connected" %}</span>
+                            </div>
+                        </template>
+
+                        <!-- Footer -->
+                        <div class="mt-1 pt-1.5 border-t border-[var(--border)]/50 px-2.5 py-1 flex items-center justify-end gap-3 text-2xs text-muted">
+                            <button type="button" x-show="selectedPrinter" @click="testPrintReceipt()" class="text-emerald-600 hover:underline font-bold cursor-pointer">{% trans "Test Print" %}</button>
+                            <button type="button" @click="refreshPrinters()" class="text-[var(--brand-600)] hover:underline font-bold cursor-pointer">{% trans "Refresh" %}</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -69,6 +192,47 @@
             </button>
         </div>
     </header>
+
+    <!-- In-Page Sale Completion Notification (Dismissible & Non-blocking) -->
+    <div x-show="showSaleSuccessNotification"
+         x-cloak
+         class="bg-emerald-600 text-white px-4 py-2.5 flex items-center justify-between text-sm shadow-md shrink-0 z-40 transition-all">
+        <div class="flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">✓</span>
+            <div>
+                <span class="font-bold">{% trans "Sale completed!" %}</span>
+                <span class="mx-1.5 opacity-60">&bull;</span>
+                <span>{% trans "Receipt" %}: <strong class="font-mono underline" x-text="lastSale.receiptNumber"></strong></span>
+                <template x-if="parseFloat(lastSale.changeGiven) > 0">
+                    <span>
+                        <span class="mx-1.5 opacity-60">&bull;</span>
+                        {% trans "Change" %}: <strong class="font-mono text-emerald-200 font-black">$<span x-text="lastSale.changeGiven"></span></strong>
+                    </span>
+                </template>
+                <template x-if="lastSale.printedToOs">
+                    <span>
+                        <span class="mx-1.5 opacity-60">&bull;</span>
+                        <span class="text-xs text-emerald-100 font-semibold">{% trans "Sent to" %} <span x-text="selectedPrinter"></span></span>
+                    </span>
+                </template>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button"
+                    @click="printReceiptDirect(lastSale.receiptUrl)"
+                    class="px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>{% trans "Reprint" %}</span>
+            </button>
+            <button type="button"
+                    @click="showSaleSuccessNotification = false"
+                    class="text-white/80 hover:text-white text-base font-bold ml-1 cursor-pointer">
+                &times;
+            </button>
+        </div>
+    </div>
 
     <!-- Mobile View Switcher (Tabs for < md viewports) -->
     <div class="md:hidden bg-[var(--surface-1)] border-b border-[var(--border)]/60 px-3 py-2.5 flex items-center justify-between shrink-0">
@@ -118,6 +282,7 @@
                            hx-target="#product-grid"
                            hx-swap="outerHTML"
                            hx-include="[name='category']"
+                           @input="handleBarcodeTyping($event)"
                            @keydown.enter.prevent="handleBarcodeInput($event)"
                            class="block w-full h-12 pl-12 pr-4 rounded-xl bg-[var(--surface-2)]/50 text-ink placeholder:text-muted/70 focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent text-sm sm:text-base font-medium transition-all">
                 </div>
@@ -326,110 +491,125 @@
 
 
 
-    <!-- TENDER & PAYMENT MODAL -->
+    <!-- TENDER & PAYMENT MODAL (Clean, Modern & Intuitive) -->
     <div x-show="openTenderModal"
          x-cloak
          class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
         <div @click.away="openTenderModal = false"
-             class="bg-[var(--surface-1)] rounded-2xl shadow-xl max-w-lg w-full border border-[var(--border)] overflow-hidden">
-            <div class="p-6 bg-emerald-600 text-white flex justify-between items-center">
+             class="bg-[var(--surface-1)] rounded-2xl shadow-2xl max-w-md w-full border border-[var(--border)] overflow-hidden transition-all">
+            <!-- Modal Header with Total Due -->
+            <div class="p-5 sm:p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex justify-between items-center shadow-sm">
                 <div>
-                    <h3 class="text-xl sm:text-2xl font-black">{% trans "Payment & Checkout" %}</h3>
-                    <p class="text-xs sm:text-sm text-emerald-100 mt-0.5">{% trans "Select tender method and confirm cash count" %}</p>
+                    <h3 class="text-xl sm:text-2xl font-black tracking-tight">{% trans "Payment" %}</h3>
+                    <p class="text-xs text-white/90 mt-0.5 font-medium">{% trans "Select method and enter amount received" %}</p>
                 </div>
                 <div class="text-right">
-                    <span class="text-xs text-emerald-100 uppercase font-bold tracking-wider">{% trans "Total Due" %}</span>
-                    <div class="text-3xl sm:text-4xl font-black font-mono">$<span x-text="formatDec(grandTotal)"></span></div>
+                    <span class="text-2xs uppercase tracking-wider font-extrabold text-emerald-100">{% trans "Total Due" %}</span>
+                    <div class="text-2xl sm:text-3xl font-black font-mono leading-none mt-0.5">
+                        $<span x-text="formatDec(grandTotal)"></span>
+                    </div>
                 </div>
             </div>
 
-            <div class="p-6 sm:p-7 space-y-6">
-                <!-- Quick Cash Presets -->
+            <div class="p-5 sm:p-6 space-y-5">
+                <!-- 1. Choose Payment Method -->
                 <div>
-                    <label class="block text-xs sm:text-sm font-bold text-muted uppercase tracking-wider mb-2.5">
-                        {% trans "Quick Cash Tender" %}
+                    <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                        {% trans "Payment Method" %}
                     </label>
-                    <div class="grid grid-cols-4 gap-2.5">
-                        <button type="button"
-                                @click="setCashTender(grandTotal)"
-                                class="py-3 px-3 bg-[var(--surface-2)]/70 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl text-xs sm:text-sm font-extrabold font-mono border border-[var(--border)]/50 transition-all shadow-2xs">
-                            {% trans "Exact" %}
-                        </button>
-                        <template x-for="preset in [10, 20, 50, 100]" :key="preset">
+                    <div class="grid grid-cols-2 gap-2 sm:gap-2.5">
+                        <template x-for="pm in paymentMethods" :key="pm.code">
                             <button type="button"
-                                    x-show="preset >= grandTotal"
-                                    @click="setCashTender(preset)"
-                                    class="py-3 px-3 bg-[var(--surface-2)]/70 hover:bg-emerald-50 hover:text-emerald-700 rounded-xl text-xs sm:text-sm font-extrabold font-mono border border-[var(--border)]/50 transition-all shadow-2xs">
-                                $<span x-text="preset"></span>
+                                    @click="selectPaymentMethod(pm.code)"
+                                    :class="selectedMethod === pm.code ? 'bg-emerald-600 text-white ring-2 ring-emerald-500 font-extrabold shadow-sm' : 'bg-[var(--surface-2)]/80 text-ink hover:bg-[var(--surface-2)] font-bold'"
+                                    class="p-3 rounded-xl flex items-center gap-2.5 transition-all text-left cursor-pointer border border-[var(--border)]/50">
+                                <span class="w-5 h-5 shrink-0 flex items-center justify-center">
+                                    <template x-if="pm.code === 'cash'">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                    </template>
+                                    <template x-if="pm.code.includes('card')">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                        </svg>
+                                    </template>
+                                    <template x-if="pm.code.includes('mobile') || pm.code.includes('bkash') || pm.code.includes('nagad') || pm.code.includes('online')">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                    </template>
+                                    <template x-if="!['cash'].includes(pm.code) && !pm.code.includes('card') && !pm.code.includes('mobile') && !pm.code.includes('bkash') && !pm.code.includes('nagad') && !pm.code.includes('online')">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                        </svg>
+                                    </template>
+                                </span>
+                                <span class="text-sm truncate" x-text="pm.name"></span>
                             </button>
                         </template>
                     </div>
                 </div>
 
-                <!-- Tenders Configuration -->
-                <div class="space-y-3.5">
-                    <label class="block text-xs sm:text-sm font-bold text-muted uppercase tracking-wider">
-                        {% trans "Payment Tender Breakdown" %}
-                    </label>
-
-                    <div class="space-y-3">
-                        <div class="flex items-center space-x-3">
-                            <span class="w-28 text-sm font-bold text-muted">{% trans "Cash" %}</span>
-                            <div class="relative flex-1">
-                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-muted font-mono text-base font-bold">$</span>
-                                <input type="number" step="0.01" min="0" x-model.number="tenders.cash"
-                                       class="w-full pl-8 pr-4 py-2.5 text-base font-mono font-bold rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 text-ink shadow-inner focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent">
-                            </div>
-                        </div>
-
-                        <div class="flex items-center space-x-3">
-                            <span class="w-28 text-sm font-bold text-muted">{% trans "Credit Card" %}</span>
-                            <div class="relative flex-1">
-                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-muted font-mono text-base font-bold">$</span>
-                                <input type="number" step="0.01" min="0" x-model.number="tenders.card"
-                                       class="w-full pl-8 pr-4 py-2.5 text-base font-mono font-bold rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 text-ink shadow-inner focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent">
-                            </div>
-                        </div>
-
-                        <div class="flex items-center space-x-3">
-                            <span class="w-28 text-sm font-bold text-muted">{% trans "Bank / Other" %}</span>
-                            <div class="relative flex-1">
-                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-muted font-mono text-base font-bold">$</span>
-                                <input type="number" step="0.01" min="0" x-model.number="tenders.other"
-                                       class="w-full pl-8 pr-4 py-2.5 text-base font-mono font-bold rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 text-ink shadow-inner focus:ring-2 focus:ring-[var(--brand-600)] focus:border-transparent">
-                            </div>
-                        </div>
+                <!-- 2. Amount Customer Put / Tendered -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="pos-amount-tendered-input" class="text-xs font-bold text-muted uppercase tracking-wider">
+                            {% trans "Amount Received" %}
+                        </label>
+                        <button type="button"
+                                @click="amountTenderedInput = grandTotal"
+                                class="text-2xs font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)] hover:underline cursor-pointer">
+                            {% trans "Exact Amount" %}
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-muted font-mono text-xl font-bold">$</span>
+                        <input id="pos-amount-tendered-input"
+                               type="number"
+                               step="0.01"
+                               min="0"
+                               x-ref="tenderedInput"
+                               x-model.number="amountTenderedInput"
+                               @focus="$event.target.select()"
+                               class="w-full pl-9 pr-4 py-3 text-2xl font-mono font-black rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/50 text-ink shadow-inner focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all">
                     </div>
                 </div>
 
-                <!-- Change Due / Balance -->
-                <div class="p-4 sm:p-5 bg-[var(--surface-2)]/40 rounded-2xl border border-[var(--border)]/60 flex items-center justify-between shadow-inner">
+                <!-- 3. Change Due / Balance Display -->
+                <div class="p-4 rounded-xl border flex items-center justify-between shadow-xs transition-colors"
+                     :class="isPaymentSufficient ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60' : 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60'">
                     <div>
-                        <span class="text-xs text-muted uppercase font-bold tracking-wider">{% trans "Change Due" %}</span>
-                        <div class="text-3xl sm:text-4xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
-                            $<span x-text="formatDec(changeDue)"></span>
+                        <span class="text-xs uppercase font-extrabold tracking-wider"
+                              :class="isPaymentSufficient ? 'text-emerald-800 dark:text-emerald-300' : 'text-amber-800 dark:text-amber-300'"
+                              x-text="isPaymentSufficient ? '{% trans "Change to Return" %}' : '{% trans "Remaining Due" %}'">
+                        </span>
+                        <div class="text-2xl sm:text-3xl font-black font-mono mt-0.5"
+                             :class="isPaymentSufficient ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
+                            $<span x-text="formatDec(isPaymentSufficient ? changeDue : remainingDue)"></span>
                         </div>
                     </div>
                     <div class="text-right">
-                        <span class="text-xs text-muted uppercase font-bold tracking-wider">{% trans "Total Tendered" %}</span>
-                        <div class="text-lg sm:text-xl font-bold font-mono text-ink mt-1">
-                            $<span x-text="formatDec(totalTendered)"></span>
-                        </div>
+                        <span class="text-3xs uppercase font-bold text-muted tracking-wider">{% trans "Method" %}</span>
+                        <div class="text-xs font-bold text-ink uppercase tracking-tight mt-0.5" x-text="getMethodLabel(selectedMethod)"></div>
                     </div>
                 </div>
 
-                <!-- Submit / Cancel -->
-                <div class="flex items-center justify-end space-x-3 pt-3 border-t border-[var(--border)]/60">
+                <!-- 4. Action Buttons -->
+                <div class="flex items-center justify-end space-x-3 pt-2 border-t border-[var(--border)]/60">
                     <button type="button"
                             @click="openTenderModal = false"
-                            class="px-5 py-3 rounded-xl text-sm font-bold text-muted hover:text-ink hover:bg-[var(--surface-2)] transition-colors">
+                            class="px-4 py-2.5 rounded-xl text-sm font-bold text-muted hover:text-ink hover:bg-[var(--surface-2)] transition-colors cursor-pointer">
                         {% trans "Cancel" %}
                     </button>
                     <button type="button"
                             @click="submitCheckout()"
-                            :disabled="isSubmitting || totalTendered < grandTotal"
-                            class="inline-flex items-center px-6 py-3.5 rounded-xl text-base font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md disabled:opacity-40 transition-all active:scale-[0.98]">
-                        <span x-show="!isSubmitting">{% trans "Complete Sale & Print Receipt" %}</span>
+                            :disabled="isSubmitting || !isPaymentSufficient"
+                            class="inline-flex items-center px-6 py-3 rounded-xl text-base font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-md hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer">
+                        <svg class="w-4.5 h-4.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <span x-show="!isSubmitting">{% trans "Complete & Print" %}</span>
                         <span x-show="isSubmitting">{% trans "Processing..." %}</span>
                     </button>
                 </div>
@@ -542,10 +722,34 @@ function posTerminal(config) {
         openHeldCartsModal: false,
         openCloseShiftModal: false,
         isSubmitting: false,
-        tenders: {
-            cash: 0,
-            card: 0,
-            other: 0
+        paymentMethods: {{ payment_methods_json|safe|default:'[]' }},
+        selectedMethod: (function(methods) {
+            if (!methods || methods.length === 0) return 'cash';
+            const def = methods.find(m => m.is_default);
+            return def ? def.code : methods[0].code;
+        })({{ payment_methods_json|safe|default:'[]' }}),
+        amountTenderedInput: 0,
+        availablePrinters: {{ system_printers_json|default:'[]'|safe }},
+        selectedPrinter: (function() {
+            try {
+                const saved = localStorage.getItem('pos_active_printer');
+                const printers = {{ system_printers_json|default:'[]'|safe }};
+                if (saved && printers.some(p => p.id === saved)) {
+                    return saved;
+                }
+                return printers.length > 0 ? printers[0].id : '';
+            } catch (e) {
+                return '';
+            }
+        })(),
+        scannerConnected: false,
+        scannerStatusText: '{% trans "Ready" %}',
+        connectedScanners: [],
+        showSaleSuccessNotification: false,
+        lastSale: {
+            receiptNumber: '',
+            changeGiven: '0.00',
+            receiptUrl: ''
         },
 
         init() {
@@ -554,15 +758,179 @@ function posTerminal(config) {
                     this.$refs.barcodeInput.focus();
                 }
             });
+
+            this.refreshPrinters();
+
+            // Live physical hardware auto-detection via WebHID
+            const updateHidScanners = async () => {
+                if (!('hid' in navigator)) return;
+                try {
+                    const devs = await navigator.hid.getDevices();
+                    if (devs && devs.length > 0) {
+                        this.connectedScanners = devs.map(d => ({
+                            name: d.productName || '{% trans "Barcode Scanner" %}',
+                            type: 'USB'
+                        }));
+                        this.scannerConnected = true;
+                        this.scannerStatusText = this.connectedScanners.length > 1
+                            ? `${this.connectedScanners.length} {% trans "Connected" %}`
+                            : '{% trans "Ready" %}';
+                    } else {
+                        // Unplugged or no hardware paired
+                        this.connectedScanners = [];
+                        this.scannerConnected = false;
+                        this.scannerStatusText = '{% trans "Offline" %}';
+                    }
+                } catch (e) {}
+            };
+
+            if ('hid' in navigator) {
+                updateHidScanners();
+                navigator.hid.addEventListener('connect', () => updateHidScanners());
+                navigator.hid.addEventListener('disconnect', () => updateHidScanners());
+            }
+
+            // Global USB/HID barcode scanner detection (keyboard wedge)
+            let barcodeBuffer = '';
+            let lastKeyTime = Date.now();
+            window.addEventListener('keydown', (e) => {
+                const currentTime = Date.now();
+                if (currentTime - lastKeyTime > 100) {
+                    barcodeBuffer = '';
+                }
+                lastKeyTime = currentTime;
+
+                if (e.key === 'Enter') {
+                    if (barcodeBuffer.length >= 3) {
+                        this.scannerConnected = true;
+                        if (this.connectedScanners.length === 0) {
+                            this.connectedScanners = [{
+                                name: '{% trans "Barcode Scanner" %}',
+                                type: 'HID'
+                            }];
+                        }
+                        this.scannerStatusText = '{% trans "Scanned!" %}';
+                        setTimeout(() => {
+                            this.scannerStatusText = this.connectedScanners.length > 1
+                                ? `${this.connectedScanners.length} {% trans "Connected" %}`
+                                : '{% trans "Ready" %}';
+                        }, 1200);
+                    }
+                    barcodeBuffer = '';
+                } else if (e.key.length === 1) {
+                    barcodeBuffer += e.key;
+                }
+            });
+        },
+
+        setPrinter(id) {
+            this.selectedPrinter = id;
+            try {
+                localStorage.setItem('pos_active_printer', id);
+            } catch (e) {}
+        },
+
+        getPrinterLabel(id) {
+            const p = this.availablePrinters.find(x => x.id === id);
+            return p ? p.name : '{% trans "No printer" %}';
+        },
+
+        getPrinterShortLabel(id) {
+            const p = this.availablePrinters.find(x => x.id === id);
+            return p ? p.name : '{% trans "No printer" %}';
+        },
+
+        async refreshPrinters() {
+            try {
+                const res = await fetch('{% url "pos:printers" %}');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.printers) {
+                        this.availablePrinters = data.printers;
+                        const saved = localStorage.getItem('pos_active_printer');
+                        if (saved && this.availablePrinters.some(p => p.id === saved)) {
+                            this.selectedPrinter = saved;
+                        } else if (this.availablePrinters.length > 0) {
+                            this.selectedPrinter = this.availablePrinters[0].id;
+                            try {
+                                localStorage.setItem('pos_active_printer', this.selectedPrinter);
+                            } catch (e) {}
+                        } else {
+                            this.selectedPrinter = '';
+                        }
+                    }
+                }
+            } catch (e) {}
+        },
+
+        async testPrintReceipt() {
+            if (!this.selectedPrinter) {
+                alert('{% trans "No printer selected." %}');
+                return;
+            }
+            try {
+                const res = await fetch('{% url "pos:test_printer" %}?printer_name=' + encodeURIComponent(this.selectedPrinter));
+                const data = await res.json();
+                if (data.success) {
+                    alert('{% trans "Test print sent to" %} ' + this.selectedPrinter);
+                } else if (this.lastSale && this.lastSale.receiptUrl) {
+                    this.printReceiptDirect(this.lastSale.receiptUrl);
+                } else {
+                    alert('{% trans "Printer is ready." %}');
+                }
+            } catch (e) {
+                if (this.lastSale && this.lastSale.receiptUrl) {
+                    this.printReceiptDirect(this.lastSale.receiptUrl);
+                }
+            }
+        },
+
+        selectPaymentMethod(method) {
+            this.selectedMethod = method;
+            if (method !== 'cash') {
+                this.amountTenderedInput = this.grandTotal;
+            }
+        },
+
+        getMethodLabel(method) {
+            const found = this.paymentMethods.find(m => m.code === method);
+            if (found) return found.name;
+            const map = {
+                'cash': '{% trans "Cash" %}',
+                'card': '{% trans "Card" %}',
+                'credit_card': '{% trans "Card" %}',
+                'mobile_pay': '{% trans "Mobile Pay" %}',
+                'online': '{% trans "Mobile Pay" %}',
+                'bank_transfer': '{% trans "Bank Transfer" %}'
+            };
+            return map[method] || method;
         },
 
         handleBarcodeInput(event) {
+            this.scannerConnected = true;
+            try {
+                localStorage.setItem('pos_scanner_connected', 'true');
+            } catch (e) {}
+            this.scannerStatusText = '{% trans "Scanned!" %}';
+            setTimeout(() => {
+                this.scannerStatusText = '{% trans "Ready" %}';
+            }, 1200);
+
             const firstProductBtn = document.querySelector('#product-grid button');
             if (firstProductBtn) {
                 firstProductBtn.click();
                 if (this.$refs.barcodeInput) {
                     this.$refs.barcodeInput.value = '';
                 }
+            }
+        },
+
+        handleBarcodeTyping(event) {
+            if (event.target.value && event.target.value.length >= 3) {
+                this.scannerConnected = true;
+                try {
+                    localStorage.setItem('pos_scanner_connected', 'true');
+                } catch (e) {}
             }
         },
 
@@ -626,64 +994,75 @@ function posTerminal(config) {
             }
         },
 
+        roundMoney(val) {
+            return Math.round((parseFloat(val) || 0) * 100) / 100;
+        },
+
         getItemDiscountAmount(item) {
-            const gross = item.price * item.quantity;
-            const itemDisc = gross * ((item.discount_percent || 0) / 100);
+            const gross = this.roundMoney(item.price * item.quantity);
+            const itemDisc = this.roundMoney(gross * ((item.discount_percent || 0) / 100));
             const afterItemDisc = gross - itemDisc;
-            const orderDisc = afterItemDisc * ((this.orderDiscountPercent || 0) / 100);
-            return itemDisc + orderDisc;
+            const orderDisc = this.roundMoney(afterItemDisc * ((this.orderDiscountPercent || 0) / 100));
+            return this.roundMoney(itemDisc + orderDisc);
         },
 
         getItemTotal(item) {
-            const gross = item.price * item.quantity;
-            return Math.max(0, gross - this.getItemDiscountAmount(item));
+            const gross = this.roundMoney(item.price * item.quantity);
+            return Math.max(0, this.roundMoney(gross - this.getItemDiscountAmount(item)));
         },
 
         get grossSubtotal() {
-            return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const sum = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            return this.roundMoney(sum);
         },
 
         get discountTotal() {
-            return this.cart.reduce((sum, item) => sum + this.getItemDiscountAmount(item), 0);
+            const sum = this.cart.reduce((sum, item) => sum + this.getItemDiscountAmount(item), 0);
+            return this.roundMoney(sum);
         },
 
         get subtotal() {
-            return this.cart.reduce((sum, item) => sum + this.getItemTotal(item), 0);
+            const sum = this.cart.reduce((sum, item) => sum + this.getItemTotal(item), 0);
+            return this.roundMoney(sum);
         },
 
         get taxTotal() {
-            return this.cart.reduce((sum, item) => {
+            const sum = this.cart.reduce((sum, item) => {
                 const lineTotal = this.getItemTotal(item);
-                return sum + (lineTotal * (item.tax_rate / 100));
+                return sum + (lineTotal * ((item.tax_rate || 0) / 100));
             }, 0);
+            return this.roundMoney(sum);
         },
 
         get grandTotal() {
-            return this.subtotal + this.taxTotal;
+            return this.roundMoney(this.subtotal + this.taxTotal);
         },
 
-        get totalTendered() {
-            return (parseFloat(this.tenders.cash) || 0) +
-                   (parseFloat(this.tenders.card) || 0) +
-                   (parseFloat(this.tenders.other) || 0);
+        get isPaymentSufficient() {
+            const tendered = this.roundMoney(this.amountTenderedInput);
+            return tendered >= (this.grandTotal - 0.001);
         },
 
         get changeDue() {
-            const total = this.grandTotal;
-            const tendered = this.totalTendered;
-            return Math.max(0, tendered - total);
+            const diff = this.roundMoney(this.amountTenderedInput) - this.grandTotal;
+            return Math.max(0, this.roundMoney(diff));
+        },
+
+        get remainingDue() {
+            const diff = this.grandTotal - this.roundMoney(this.amountTenderedInput);
+            return Math.max(0, this.roundMoney(diff));
         },
 
         setupTenders() {
-            this.tenders.cash = parseFloat(this.grandTotal.toFixed(2));
-            this.tenders.card = 0;
-            this.tenders.other = 0;
-        },
-
-        setCashTender(amount) {
-            this.tenders.cash = parseFloat(amount);
-            this.tenders.card = 0;
-            this.tenders.other = 0;
+            const def = this.paymentMethods.find(m => m.is_default);
+            this.selectedMethod = def ? def.code : (this.paymentMethods.length > 0 ? this.paymentMethods[0].code : 'cash');
+            this.amountTenderedInput = this.grandTotal;
+            this.$nextTick(() => {
+                if (this.$refs.tenderedInput) {
+                    this.$refs.tenderedInput.focus();
+                    this.$refs.tenderedInput.select();
+                }
+            });
         },
 
         formatDec(val) {
@@ -745,25 +1124,47 @@ function posTerminal(config) {
             }
         },
 
+        printReceiptDirect(receiptUrl) {
+            if (!receiptUrl) return;
+            const formatParam = this.selectedPrinter === 'thermal_58' ? '58mm' : '80mm';
+            const fullUrl = receiptUrl + (receiptUrl.includes('?') ? '&' : '?') + 'autoprint=1&format=' + formatParam;
+            let iframe = document.getElementById('pos-print-frame');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'pos-print-frame';
+                iframe.style.position = 'fixed';
+                iframe.style.top = '-9999px';
+                iframe.style.left = '-9999px';
+                iframe.style.width = '350px';
+                iframe.style.height = '600px';
+                iframe.style.border = 'none';
+                iframe.style.opacity = '0.01';
+                iframe.style.pointerEvents = 'none';
+                document.body.appendChild(iframe);
+            }
+            iframe.src = fullUrl;
+        },
+
         async submitCheckout() {
             if (this.isSubmitting) return;
+            if (!this.isPaymentSufficient) {
+                alert('{% trans "Amount received is less than total due." %}');
+                return;
+            }
             this.isSubmitting = true;
 
-            const payments = [];
-            if (this.tenders.cash > 0) {
-                payments.push({ payment_method: 'cash', amount: Math.min(this.tenders.cash, this.grandTotal).toFixed(4) });
-            }
-            if (this.tenders.card > 0) {
-                payments.push({ payment_method: 'credit_card', amount: this.tenders.card.toFixed(4) });
-            }
-            if (this.tenders.other > 0) {
-                payments.push({ payment_method: 'bank_transfer', amount: this.tenders.other.toFixed(4) });
-            }
+            const payments = [
+                {
+                    payment_method: this.selectedMethod,
+                    amount: this.grandTotal.toFixed(4)
+                }
+            ];
 
             const payload = {
                 shift_id: this.shiftId,
                 customer_id: this.selectedCustomerId || null,
-                amount_tendered: this.totalTendered.toFixed(4),
+                amount_tendered: (parseFloat(this.amountTenderedInput) || 0).toFixed(4),
+                printer_id: this.selectedPrinter || '',
                 lines: this.cart.map(i => {
                     const gross = i.price * i.quantity;
                     const totalDisc = this.getItemDiscountAmount(i);
@@ -799,7 +1200,34 @@ function posTerminal(config) {
                     return;
                 }
                 if (result.success) {
-                    window.location.href = result.receipt_url;
+                    if (result.printed_to_os) {
+                        console.log('Direct print spooled to hardware printer:', this.selectedPrinter);
+                    } else {
+                        // Fallback to browser iframe printing
+                        this.printReceiptDirect(result.receipt_url);
+                    }
+
+                    // Show success bar and store last sale details
+                    const changeAmt = result.change_given !== undefined ? parseFloat(result.change_given).toFixed(2) : Math.max(0, this.amountTenderedInput - this.grandTotal).toFixed(2);
+                    this.lastSale = {
+                        receiptNumber: result.receipt_number,
+                        changeGiven: changeAmt,
+                        receiptUrl: result.receipt_url,
+                        printedToOs: !!result.printed_to_os
+                    };
+                    this.showSaleSuccessNotification = true;
+
+                    // Reset cart and modal
+                    this.cart = [];
+                    this.orderDiscountPercent = 0;
+                    this.selectedCustomerId = '';
+                    this.openTenderModal = false;
+                    this.isSubmitting = false;
+
+                    // Auto dismiss notification after 10s
+                    setTimeout(() => {
+                        this.showSaleSuccessNotification = false;
+                    }, 10000);
                 } else {
                     alert('Checkout failed: ' + (result.error || 'Validation error'));
                     this.isSubmitting = false;

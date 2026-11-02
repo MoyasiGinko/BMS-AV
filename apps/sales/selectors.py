@@ -132,6 +132,7 @@ def list_invoices(
     qs = (
         Invoice.all_tenants.filter(organization=organization)
         .select_related("customer", "branch", "warehouse", "order", "journal_entry")
+        .prefetch_related("pos_sales")
         .order_by("-invoice_date", "-id")
     )
     if status:

@@ -33,6 +33,18 @@
             </p>
         </div>
         <div class="flex items-center gap-2">
+            {% with pos_sale=invoice.pos_sales.first %}
+            {% if pos_sale %}
+            <a href="{% url 'pos:receipt' public_id=pos_sale.public_id %}"
+               target="_blank"
+               class="inline-flex items-center px-3.5 py-2 border border-emerald-300 dark:border-emerald-800 rounded-lg text-sm font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 transition-colors shadow-2xs">
+                <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                {% trans "POS Receipt" %} ({{ pos_sale.receipt_number }})
+            </a>
+            {% endif %}
+            {% endwith %}
             <a href="{% url 'sales:invoice_print' public_id=invoice.public_id %}" target="_blank" class="inline-flex items-center px-3.5 py-2 border border-line rounded-lg text-sm font-medium text-muted bg-surface hover:bg-slate-50 transition-colors">
                 <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />

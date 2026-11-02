@@ -287,9 +287,9 @@ def checkout_pos_sale(
             actor=actor,
         )
 
-        # Validate tenders vs grand_total before posting
+        # Validate tenders vs grand_total before posting (comparing with standard cent tolerance)
         total_paid = sum(Decimal(str(p.get("amount", DECIMAL_ZERO))) for p in payments)
-        if total_paid < invoice.grand_total:
+        if total_paid.quantize(Decimal("0.01")) < invoice.grand_total.quantize(Decimal("0.01")):
             raise InsufficientTenderError(
                 f"Total payment tendered (${total_paid}) is less than invoice total (${invoice.grand_total})."
             )
@@ -298,11 +298,11 @@ def checkout_pos_sale(
         invoice.refresh_from_db()
 
     tendered_input = Decimal(str(amount_tendered)) if amount_tendered is not None else total_paid
-    change_given = max(DECIMAL_ZERO, tendered_input - invoice.grand_total)
+    change_given = max(DECIMAL_ZERO, tendered_input.quantize(Decimal("0.01")) - invoice.grand_total.quantize(Decimal("0.01")))
 
     # 4. Receive and allocate payments against invoice
     # If customer paid more in cash than total, record the exact invoice allocation
-    remaining_to_allocate = invoice.grand_total
+    remaining_to_allocate = min(invoice.grand_total, total_paid)
     tender_summaries: list[str] = []
 
     shift_cash_delta = DECIMAL_ZERO
@@ -333,9 +333,9 @@ def checkout_pos_sale(
             remaining_to_allocate -= alloc_amt
 
         # Tally shift cash / card collected
-        if method == PaymentMethod.CASH:
+        if method in (PaymentMethod.CASH, "cash"):
             shift_cash_delta += alloc_amt
-        elif method in (PaymentMethod.CREDIT_CARD, PaymentMethod.DEBIT_CARD):
+        elif method in (PaymentMethod.CREDIT_CARD, PaymentMethod.DEBIT_CARD, "card", "credit_card", "debit_card"):
             shift_card_delta += alloc_amt
         else:
             shift_other_delta += alloc_amt

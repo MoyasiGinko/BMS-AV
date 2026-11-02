@@ -1563,10 +1563,10 @@ html[data-theme="spatial"],
 /* ==========================================================================
    Universal High-Contrast Accessible Badges & Status Pills
    ========================================================================== */
-[data-theme="neumorphic"] span[class*="bg-emerald-"],
-[data-theme="neumorphic"] span[class*="bg-green-"],
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="emerald"],
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="green"],
+[data-theme="neumorphic"] span[class*="bg-emerald-"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
+[data-theme="neumorphic"] span[class*="bg-green-"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="emerald"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="green"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
 [data-theme="neumorphic"] .badge-success,
 [data-theme="neumorphic"] .status-pill-success {
   background-color: #059669 !important;
@@ -1577,17 +1577,17 @@ html[data-theme="spatial"],
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
-[data-theme="neumorphic"] span[class*="bg-emerald-"] *,
-[data-theme="neumorphic"] span[class*="bg-green-"] *,
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="emerald"] *,
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="green"] * {
+[data-theme="neumorphic"] span[class*="bg-emerald-"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]) *,
+[data-theme="neumorphic"] span[class*="bg-green-"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]) *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="emerald"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]) *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="green"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]) * {
   color: #FFFFFF !important;
 }
 
-[data-theme="neumorphic"] span[class*="bg-rose-"],
-[data-theme="neumorphic"] span[class*="bg-red-"],
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="rose"],
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="red"],
+[data-theme="neumorphic"] span[class*="bg-rose-"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
+[data-theme="neumorphic"] span[class*="bg-red-"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="rose"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="red"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
 [data-theme="neumorphic"] .badge-danger,
 [data-theme="neumorphic"] .status-pill-danger {
   background-color: #E11D48 !important;
@@ -1598,10 +1598,10 @@ html[data-theme="spatial"],
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
-[data-theme="neumorphic"] span[class*="bg-rose-"] *,
-[data-theme="neumorphic"] span[class*="bg-red-"] *,
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="rose"] *,
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="red"] * {
+[data-theme="neumorphic"] span[class*="bg-rose-"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]) *,
+[data-theme="neumorphic"] span[class*="bg-red-"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]) *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="rose"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]) *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="red"]:not(.pos-status-dot):not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]) * {
   color: #FFFFFF !important;
 }
 
@@ -1754,4 +1754,38 @@ html[data-theme="spatial"],
   color: #FFFFFF !important;
   border-color: var(--neu-accent-fill) !important;
   box-shadow: 2px 2px 4px var(--neu-shadow-dark) !important;
+}
+
+/* POS Hardware status indicator dots (strict circular geometry, no pill padding) */
+.pos-status-dot,
+[data-theme="neumorphic"] .pos-status-dot,
+[data-theme="neumorphic"] span.pos-status-dot,
+[data-theme="neumorphic"] i.pos-status-dot {
+  width: 7px !important;
+  height: 7px !important;
+  min-width: 7px !important;
+  max-width: 7px !important;
+  min-height: 7px !important;
+  max-height: 7px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  display: inline-block !important;
+  box-shadow: none !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+
+.pos-status-dot.dot-connected,
+[data-theme="neumorphic"] .pos-status-dot.dot-connected {
+  background-color: #10B981 !important;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.7) !important;
+}
+
+.pos-status-dot.dot-disconnected,
+[data-theme="neumorphic"] .pos-status-dot.dot-disconnected {
+  background-color: #94A3B8 !important;
+  opacity: 0.7 !important;
 }
