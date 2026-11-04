@@ -2,7 +2,15 @@ import json
 import urllib.parse
 from typing import Any
 
+from django.apps import apps as django_apps
 from django.http import HttpRequest
+
+from apps.core.permissions import get_user_allowed_branch_ids
+from apps.core.system_mode import (
+    get_deployment_mode,
+    is_dedicated_mode,
+    is_system_initialized,
+)
 
 ALLOWED_THEMES = {"fast", "dark", "spatial", "neumorphic"}
 
@@ -272,16 +280,53 @@ def theme_context(request: HttpRequest) -> dict[str, Any]:
 
 def deployment_context(request: HttpRequest) -> dict[str, Any]:
     """Provide deployment mode and system setup status to templates."""
-    from apps.core.system_mode import (
-        get_deployment_mode,
-        is_dedicated_mode,
-        is_system_initialized,
-    )
-
     dedicated = is_dedicated_mode()
     return {
         "deployment_mode": get_deployment_mode(),
         "is_dedicated_mode": dedicated,
         "is_saas_mode": not dedicated,
         "system_initialized": is_system_initialized(),
+    }
+
+
+def branch_context(request: HttpRequest) -> dict[str, Any]:
+    """Provide active branch and list of available branches for the active organization."""
+    org = getattr(request, "organization", None) or getattr(request, "tenant", None)
+    user = getattr(request, "user", None)
+    if not org or not user or not getattr(user, "is_authenticated", False):
+        return {
+            "current_branch": None,
+            "available_branches": [],
+            "has_multiple_branches": False,
+        }
+
+    if not django_apps.is_installed("apps.tenancy"):
+        return {
+            "current_branch": None,
+            "available_branches": [],
+            "has_multiple_branches": False,
+        }
+
+    branch_model: Any = django_apps.get_app_config("tenancy").get_model("Branch")
+    if branch_model is None:
+        return {
+            "current_branch": None,
+            "available_branches": [],
+            "has_multiple_branches": False,
+        }
+
+    allowed_ids = get_user_allowed_branch_ids(user, organization=org)
+    qs = branch_model.all_tenants.filter(organization=org, is_active=True).order_by(
+        "-is_headquarters", "name"
+    )
+    if allowed_ids is not None:
+        qs = qs.filter(id__in=allowed_ids)
+
+    branches = list(qs)
+    current_branch = getattr(request, "branch", None)
+
+    return {
+        "current_branch": current_branch,
+        "available_branches": branches,
+        "has_multiple_branches": len(branches) > 1,
     }

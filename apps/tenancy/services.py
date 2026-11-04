@@ -18,6 +18,7 @@ from apps.core.events import publish
 from apps.core.exceptions import ConflictError, RecordNotFoundError, ValidationError
 from apps.core.hooks import run_provisioning_hooks
 from apps.core.models import NumberSequence
+from apps.core.permissions import get_user_allowed_branch_ids
 from apps.tenancy.models import (
     Branch,
     Currency,
@@ -458,9 +459,43 @@ def switch_organization(*, user: AbstractBaseUser, organization_id: int, session
         raise ValidationError(_("You are not an active member of this organization."))
 
     session["active_org_id"] = organization_id
+    session["active_branch_id"] = None
     if hasattr(session, "modified"):
         session.modified = True
     return membership.organization
+
+
+def switch_branch(
+    *,
+    user: AbstractBaseUser,
+    organization: Organization,
+    branch_id: int | str | None,
+    session: Any,
+) -> Branch | None:
+    """Verify branch existence and access, then switch active branch in session."""
+    if branch_id in (None, "", "all", 0, "0"):
+        session["active_branch_id"] = None
+        if hasattr(session, "modified"):
+            session.modified = True
+        return None
+
+    try:
+        b_id = int(branch_id)
+    except (ValueError, TypeError) as err:
+        raise ValidationError(_("Invalid branch specified.")) from err
+
+    branch = Branch.all_tenants.filter(organization=organization, pk=b_id, is_active=True).first()
+    if branch is None:
+        raise ValidationError(_("Branch not found or inactive."))
+
+    allowed = get_user_allowed_branch_ids(user, organization=organization)
+    if allowed is not None and branch.pk not in allowed:
+        raise ValidationError(_("You do not have access to this branch."))
+
+    session["active_branch_id"] = branch.pk
+    if hasattr(session, "modified"):
+        session.modified = True
+    return branch
 
 
 # ---------------------------------------------------------------------------

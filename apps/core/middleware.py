@@ -13,9 +13,15 @@ from typing import TYPE_CHECKING, Any
 
 from django.apps import apps
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 
+from apps.core.permissions import get_user_allowed_branch_ids
+from apps.core.system_mode import (
+    get_primary_organization,
+    is_dedicated_mode,
+    is_system_initialized,
+)
 from apps.core.tenant_context import (
     set_current_request_id,
     set_current_user_id,
@@ -110,24 +116,20 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        from apps.core.system_mode import (
-            is_dedicated_mode,
-            is_system_initialized,
-        )
-
-        if not is_system_initialized():
-            if not any(request.path.startswith(prefix) for prefix in SETUP_EXEMPT_PREFIXES):
-                if request.path.startswith("/api/"):
-                    from django.http import JsonResponse
-                    return JsonResponse(
-                        {"error": "system_not_initialized", "message": "System setup is required at /setup/."},
-                        status=503,
-                    )
-                return redirect("/setup/")
+        if not is_system_initialized() and not any(
+            request.path.startswith(prefix) for prefix in SETUP_EXEMPT_PREFIXES
+        ):
+            if request.path.startswith("/api/"):
+                return JsonResponse(
+                    {"error": "system_not_initialized", "message": "System setup is required at /setup/."},
+                    status=503,
+                )
+            return redirect("/setup/")
 
         org = self.resolve_tenant(request)
         request.organization = org  # type: ignore[attr-defined]
         request.tenant = org  # type: ignore[attr-defined]
+        request.branch = self.resolve_branch(request, org)  # type: ignore[attr-defined]
 
         user = getattr(request, "user", None)
         user_id = getattr(user, "pk", None) if getattr(user, "is_authenticated", False) else None
@@ -147,6 +149,42 @@ class TenantMiddleware:
         finally:
             set_current_user_id(None)
 
+    def resolve_branch(self, request: HttpRequest, org: Model | None) -> Model | None:
+        """Resolve active branch from session for current organization and user."""
+        if org is None or not apps.is_installed("apps.tenancy"):
+            return None
+
+        user = getattr(request, "user", None)
+        if not user or not getattr(user, "is_authenticated", False):
+            return None
+
+        session = getattr(request, "session", None)
+        active_branch_id = session.get("active_branch_id") if session else None
+
+        branch_model: Any = apps.get_app_config("tenancy").get_model("Branch")
+        if branch_model is None:
+            return None
+
+        allowed_ids = get_user_allowed_branch_ids(user, organization=org)
+
+        if active_branch_id:
+            branch = branch_model.all_tenants.filter(
+                organization=org, pk=active_branch_id, is_active=True
+            ).first()
+            if branch and (allowed_ids is None or branch.pk in allowed_ids):
+                return branch
+            if session:
+                session["active_branch_id"] = None
+
+        if allowed_ids and len(allowed_ids) == 1:
+            single_branch = branch_model.all_tenants.filter(
+                organization=org, pk=allowed_ids[0], is_active=True
+            ).first()
+            if single_branch:
+                return single_branch
+
+        return None
+
     def is_tenant_required(self, request: HttpRequest) -> bool:
         """Return True if the requested path requires an active tenant."""
         return all(not request.path.startswith(prefix) for prefix in EXEMPT_PREFIXES)
@@ -155,11 +193,6 @@ class TenantMiddleware:
         """Resolve organization by header first, then subdomain, then active user membership fallback."""
         if not apps.is_installed("apps.tenancy"):
             return None
-
-        from apps.core.system_mode import (
-            get_primary_organization,
-            is_dedicated_mode,
-        )
 
         # In dedicated mode, auto-bind the primary organization
         if is_dedicated_mode():

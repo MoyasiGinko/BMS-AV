@@ -12,6 +12,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 
+from apps.core.exceptions import ValidationError as CoreValidationError
 from apps.tenancy.forms import (
     OnboardingStep1Form,
     OnboardingStep2Form,
@@ -23,7 +24,12 @@ from apps.tenancy.selectors import (
     get_user_membership,
     list_user_organizations,
 )
-from apps.tenancy.services import accept_invitation, provision_organization, switch_organization
+from apps.tenancy.services import (
+    accept_invitation,
+    provision_organization,
+    switch_branch,
+    switch_organization,
+)
 
 
 @login_required
@@ -112,10 +118,41 @@ def switch_organization_view(request: HttpRequest, organization_id: int) -> Http
     try:
         switch_organization(user=user, organization_id=org.pk, session=request.session)
         messages.success(request, _("Switched to %(org)s") % {"org": org.name})
-    except ValidationError as err:
+    except (ValidationError, CoreValidationError) as err:
         messages.error(request, str(err))
 
     next_url = request.GET.get("next", "/")
+    return redirect(next_url)
+
+
+@login_required
+def switch_branch_view(request: HttpRequest, branch_id: str | None = None) -> HttpResponse:
+    """Switch active branch stored in the session."""
+    user = request.user
+    assert isinstance(user, AbstractBaseUser)
+
+    org = getattr(request, "organization", None)
+    if org is None:
+        return redirect("/")
+
+    target_id = branch_id or request.POST.get("branch_id") or request.GET.get("branch_id")
+    try:
+        switched = switch_branch(
+            user=user,
+            organization=org,
+            branch_id=target_id,
+            session=request.session,
+        )
+        if switched:
+            messages.success(request, _("Switched to %(branch)s") % {"branch": switched.name})
+        else:
+            messages.success(request, _("Switched to all branches"))
+    except (ValidationError, CoreValidationError) as err:
+        messages.error(request, str(err))
+
+    next_url = request.POST.get("next") or request.GET.get("next") or request.META.get("HTTP_REFERER") or "/"
+    if not next_url.startswith("/"):
+        next_url = "/"
     return redirect(next_url)
 
 
@@ -147,7 +184,7 @@ def accept_invitation_view(request: HttpRequest, token: str) -> HttpResponse:
                 },
             )
             return redirect("/")
-        except ValidationError as err:
+        except (ValidationError, CoreValidationError) as err:
             messages.error(request, str(err))
 
     return render(

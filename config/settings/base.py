@@ -104,6 +104,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.theme_context",
                 "apps.core.context_processors.deployment_context",
+                "apps.core.context_processors.branch_context",
             ],
         },
     },
