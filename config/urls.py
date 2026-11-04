@@ -47,6 +47,7 @@ urlpatterns = [
     path("healthz/", healthz_view),
     path("readyz", readyz_view, name="readyz"),
     path("readyz/", readyz_view),
+    path("setup/", include("apps.core.setup.urls", namespace="setup")),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("accounts/2fa/", include("allauth.mfa.urls")),

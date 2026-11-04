@@ -48,7 +48,7 @@
                         </svg>
                         <i class="pos-status-dot" :class="scannerConnected ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
                         <span class="hidden xl:inline" :class="scannerConnected ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-muted'">{% trans "Scanner" %}:</span>
-                        <span class="font-bold" :class="scannerConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'" x-text="scannerConnected ? scannerStatusText : '{% trans "Offline" %}'"></span>
+                        <span class="font-bold max-w-[12rem] truncate" :class="scannerConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'" x-text="scannerConnected ? scannerStatusText : '{% trans "Offline" %}'"></span>
                         <svg class="w-3 h-3 text-muted ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -960,13 +960,23 @@ function posTerminal(config) {
                 return '';
             }
         })(),
-        scannerConnected: {{ system_scanners_json|default:'[]'|safe }}.length > 0,
-        connectedScanners: {{ system_scanners_json|default:'[]'|safe }},
+        scannerConnected: true,
+        connectedScanners: (function(scanners) {
+            if (scanners && scanners.length > 0) return scanners;
+            return [{
+                id: 'system_auto_hid',
+                name: '{% trans "Barcode Scanner (USB / HID)" %}',
+                type: 'USB',
+                badge: 'Auto',
+                vendor: 'System',
+                is_online: true
+            }];
+        })({{ system_scanners_json|default:'[]'|safe }}),
         scannerStatusText: (function(scanners) {
             if (scanners && scanners.length > 0) {
                 return scanners[0].name;
             }
-            return '{% trans "Offline" %}';
+            return '{% trans "Barcode Scanner" %}';
         })({{ system_scanners_json|default:'[]'|safe }}),
         showSaleSuccessNotification: false,
         lastSale: {
@@ -1011,19 +1021,19 @@ function posTerminal(config) {
                 try {
                     const devs = await navigator.hid.getDevices();
                     if (devs && devs.length > 0) {
-                        this.connectedScanners = devs.map(d => ({
-                            name: d.productName || '{% trans "Barcode Scanner" %}',
-                            type: 'USB'
+                        const hidScanners = devs.map(d => ({
+                            id: 'hid_' + (d.productId || Date.now()),
+                            name: d.productName || '{% trans "USB Barcode Scanner" %}',
+                            type: 'USB',
+                            badge: 'HID',
+                            vendor: d.manufacturerName || 'HID',
+                            is_online: true,
+                            is_manual: false
                         }));
+                        const otherScanners = (this.connectedScanners || []).filter(s => !s.id || !s.id.startsWith('hid_'));
+                        this.connectedScanners = [...hidScanners, ...otherScanners];
                         this.scannerConnected = true;
-                        this.scannerStatusText = this.connectedScanners.length > 1
-                            ? `${this.connectedScanners.length} {% trans "Connected" %}`
-                            : '{% trans "Ready" %}';
-                    } else {
-                        // Unplugged or no hardware paired
-                        this.connectedScanners = [];
-                        this.scannerConnected = false;
-                        this.scannerStatusText = '{% trans "Offline" %}';
+                        this.scannerStatusText = this.connectedScanners[0].name;
                     }
                 } catch (e) {}
             };
@@ -1055,9 +1065,9 @@ function posTerminal(config) {
                         }
                         this.scannerStatusText = '{% trans "Scanned!" %}';
                         setTimeout(() => {
-                            this.scannerStatusText = this.connectedScanners.length > 1
-                                ? `${this.connectedScanners.length} {% trans "Connected" %}`
-                                : '{% trans "Ready" %}';
+                            this.scannerStatusText = (this.connectedScanners && this.connectedScanners.length > 0 && this.connectedScanners[0].name)
+                                ? this.connectedScanners[0].name
+                                : '{% trans "Barcode Scanner" %}';
                         }, 1200);
                     }
                     barcodeBuffer = '';
@@ -1113,12 +1123,20 @@ function posTerminal(config) {
                         this.connectedScanners = [...sysScanners, ...manualScanners];
                         if (this.connectedScanners.length > 0) {
                             this.scannerConnected = true;
-                            if (this.scannerStatusText === '{% trans "Offline" %}') {
+                            if (!this.scannerStatusText || this.scannerStatusText === '{% trans "Offline" %}') {
                                 this.scannerStatusText = this.connectedScanners[0].name;
                             }
                         } else {
-                            this.scannerConnected = false;
-                            this.scannerStatusText = '{% trans "Offline" %}';
+                            this.scannerConnected = true;
+                            this.scannerStatusText = '{% trans "Barcode Scanner" %}';
+                            this.connectedScanners = [{
+                                id: 'system_auto_hid',
+                                name: '{% trans "Barcode Scanner (USB / HID)" %}',
+                                type: 'USB',
+                                badge: 'Auto',
+                                vendor: 'System',
+                                is_online: true
+                            }];
                         }
                     }
                 }

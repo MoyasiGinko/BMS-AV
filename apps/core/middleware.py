@@ -30,6 +30,7 @@ RESERVED_SUBDOMAINS = frozenset({"www", "api", "admin", "app", "mail", "static",
 
 # Path prefixes that do not require an active tenant (no redirect)
 EXEMPT_PREFIXES = (
+    "/setup/",
     "/api/",
     "/accounts/",
     "/tenancy/",
@@ -44,6 +45,16 @@ EXEMPT_PREFIXES = (
     "/settings/theme/",
 )
 
+
+
+SETUP_EXEMPT_PREFIXES = (
+    "/setup/",
+    "/static/",
+    "/media/",
+    "/healthz",
+    "/readyz",
+    "/favicon.ico",
+)
 
 class RequestIdMiddleware:
     """Ensures each request has an X-Request-ID assigned and attached to response headers."""
@@ -99,8 +110,24 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
+        from apps.core.system_mode import (
+            is_dedicated_mode,
+            is_system_initialized,
+        )
+
+        if not is_system_initialized():
+            if not any(request.path.startswith(prefix) for prefix in SETUP_EXEMPT_PREFIXES):
+                if request.path.startswith("/api/"):
+                    from django.http import JsonResponse
+                    return JsonResponse(
+                        {"error": "system_not_initialized", "message": "System setup is required at /setup/."},
+                        status=503,
+                    )
+                return redirect("/setup/")
+
         org = self.resolve_tenant(request)
         request.organization = org  # type: ignore[attr-defined]
+        request.tenant = org  # type: ignore[attr-defined]
 
         user = getattr(request, "user", None)
         user_id = getattr(user, "pk", None) if getattr(user, "is_authenticated", False) else None
@@ -128,6 +155,17 @@ class TenantMiddleware:
         """Resolve organization by header first, then subdomain, then active user membership fallback."""
         if not apps.is_installed("apps.tenancy"):
             return None
+
+        from apps.core.system_mode import (
+            get_primary_organization,
+            is_dedicated_mode,
+        )
+
+        # In dedicated mode, auto-bind the primary organization
+        if is_dedicated_mode():
+            primary_org = get_primary_organization()
+            if primary_org is not None:
+                return primary_org
 
         org_model: Any = apps.get_app_config("tenancy").get_model("Organization")
         if org_model is None:

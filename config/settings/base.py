@@ -18,6 +18,7 @@ SECRET_KEY = env("SECRET_KEY", default="dev-only-insecure-secret-key-change-me")
 DEBUG = env.bool("DEBUG", default=False)
 ALLOWED_HOSTS: list[str] = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", ".localhost"])
 BASE_DOMAIN = env("BASE_DOMAIN", default="localhost")
+DEPLOYMENT_MODE = env("DEPLOYMENT_MODE", default=None)
 
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -102,6 +103,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.core.context_processors.theme_context",
+                "apps.core.context_processors.deployment_context",
             ],
         },
     },

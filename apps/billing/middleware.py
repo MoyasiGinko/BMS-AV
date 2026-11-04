@@ -36,6 +36,11 @@ class SubscriptionReadOnlyMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
+        from apps.core.system_mode import is_dedicated_mode
+
+        if is_dedicated_mode():
+            return self.get_response(request)
+
         org = getattr(request, "organization", None)
         if org is None:
             return self.get_response(request)

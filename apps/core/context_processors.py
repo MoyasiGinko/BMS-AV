@@ -268,3 +268,20 @@ def theme_context(request: HttpRequest) -> dict[str, Any]:
             },
         ],
     }
+
+
+def deployment_context(request: HttpRequest) -> dict[str, Any]:
+    """Provide deployment mode and system setup status to templates."""
+    from apps.core.system_mode import (
+        get_deployment_mode,
+        is_dedicated_mode,
+        is_system_initialized,
+    )
+
+    dedicated = is_dedicated_mode()
+    return {
+        "deployment_mode": get_deployment_mode(),
+        "is_dedicated_mode": dedicated,
+        "is_saas_mode": not dedicated,
+        "system_initialized": is_system_initialized(),
+    }

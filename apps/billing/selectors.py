@@ -33,8 +33,14 @@ def get_available_plans() -> QuerySet[Plan]:
 def get_organization_modules(organization: Any) -> set[str]:
     """Return set of module keys entitled to the organization.
 
-    Includes all core modules plus plan-entitled modules.
+    Includes all core modules plus plan-entitled modules. In dedicated mode,
+    all registry modules are entitled without subscription restrictions.
     """
+    from apps.core.system_mode import is_dedicated_mode
+
+    if is_dedicated_mode():
+        return {mod.key for mod in registry.all()}
+
     enabled_keys = {mod.key for mod in registry.all() if mod.is_core}
 
     sub = get_active_subscription(organization)

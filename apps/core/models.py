@@ -404,3 +404,60 @@ class Notification(TenantModel):
         if isinstance(self.metadata, dict):
             return str(self.metadata.get("action_url") or "")
         return ""
+
+
+class SystemConfiguration(models.Model):
+    """Platform deployment configuration and initialization state."""
+
+    MODE_DEDICATED = "dedicated"
+    MODE_SAAS = "saas"
+    MODE_CHOICES = [
+        (MODE_DEDICATED, _("Single Business (Dedicated)")),
+        (MODE_SAAS, _("SaaS Platform (Multi-Tenant)")),
+    ]
+
+    deployment_mode = models.CharField(
+        _("deployment mode"),
+        max_length=16,
+        choices=MODE_CHOICES,
+        default=MODE_DEDICATED,
+    )
+    is_initialized = models.BooleanField(_("is initialized"), default=False)
+    system_name = models.CharField(_("system name"), max_length=128, default="Business OS")
+    primary_organization = models.ForeignKey(
+        "tenancy.Organization",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name=_("primary organization"),
+        help_text=_("The single organization used when operating in Dedicated mode."),
+    )
+    allow_public_signup = models.BooleanField(
+        _("allow public signup"),
+        default=False,
+        help_text=_("Whether self-service public user registration is enabled."),
+    )
+    setup_completed_at = models.DateTimeField(_("setup completed at"), null=True, blank=True)
+    setup_completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name=_("setup completed by"),
+    )
+
+    class Meta:
+        verbose_name = _("system configuration")
+        verbose_name_plural = _("system configuration")
+
+    def __str__(self) -> str:
+        status = "Initialized" if self.is_initialized else "Uninitialized"
+        return f"System ({self.get_deployment_mode_display()} - {status})"
+
+    @classmethod
+    def get_solo(cls) -> "SystemConfiguration":
+        """Get or create singleton configuration."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

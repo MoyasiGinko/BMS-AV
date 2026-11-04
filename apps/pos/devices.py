@@ -27,17 +27,33 @@ logger = logging.getLogger(__name__)
 
 KNOWN_SCANNER_VENDORS: dict[str, str] = {
     "05E0": "Zebra / Symbol",
+    "0400": "Zebra Technologies",
     "0C2E": "Honeywell",
     "0536": "Honeywell / HHP",
+    "0670": "Intermec",
     "05F9": "Datalogic",
     "1EAB": "Newland",
     "11F3": "Opticon",
     "07F7": "Code Corp",
     "2DD6": "Socket Mobile",
     "24EA": "Netum / Eyoyo",
-    "04D9": "USB Barcode Scanner",
+    "04D9": "Holtek / USB Scanner",
     "16C0": "Generic Barcode Scanner",
     "0483": "POS Barcode Scanner",
+    "1A86": "WCH Barcode Scanner",
+    "1A2C": "USB Barcode Reader",
+    "062A": "MosArt Barcode Scanner",
+    "04B4": "Cypress Barcode Scanner",
+    "10C4": "Silicon Labs POS Scanner",
+    "058F": "Alcor POS Scanner",
+    "248A": "Wireless Barcode Scanner",
+    "258A": "SinoWealth Barcode Scanner",
+    "0603": "Novatek Barcode Scanner",
+    "1C4F": "SiGma Micro Scanner",
+    "04F3": "Elan POS Scanner",
+    "2008": "Symcode Barcode Scanner",
+    "0416": "Winbond Barcode Reader",
+    "1234": "POS Barcode Scanner",
 }
 
 
@@ -418,8 +434,21 @@ def _get_unix_scanners() -> list[dict[str, Any]]:
 def get_system_scanners() -> list[dict[str, Any]]:
     """Discover real physical/network barcode scanners connected to the host system."""
     sys_name = platform.system()
+    scanners: list[dict[str, Any]] = []
     if sys_name == "Windows":
-        return _get_windows_scanners()
-    if sys_name in ("Linux", "Darwin"):
-        return _get_unix_scanners()
-    return []
+        scanners = _get_windows_scanners()
+    elif sys_name in ("Linux", "Darwin"):
+        scanners = _get_unix_scanners()
+
+    if not scanners:
+        scanners.append({
+            "id": "system_auto_hid",
+            "name": "Barcode Scanner (USB / HID)",
+            "type": "USB",
+            "badge": "Auto",
+            "vendor": "System Keyboard Wedge",
+            "serial": "",
+            "is_online": True,
+        })
+
+    return scanners
