@@ -274,7 +274,7 @@ def product_edit_view(request: HttpRequest, pk: int) -> HttpResponse:
             "cost_price": product.cost_price,
             "selling_price": product.selling_price,
             "discount_percent": product.discount_percent,
-            "tax_code_id": product.tax_code_id,
+            "tax_code_id": product.tax_code.pk if product.tax_code else None,
             "reorder_level": product.reorder_level,
             "reorder_quantity": product.reorder_quantity,
             "is_active": product.is_active,

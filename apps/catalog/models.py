@@ -121,6 +121,10 @@ class ProductType(models.TextChoices):
 class Product(TenantModel):
     """Core commercial product item."""
 
+    category_id: int | None
+    unit_id: int
+    tax_code_id: int | None
+
     sku = models.CharField(_("SKU"), max_length=64)
     barcode = models.CharField(_("barcode / UPC / EAN"), max_length=64, blank=True, default="")
     name = models.CharField(_("product name"), max_length=255)
