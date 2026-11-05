@@ -42,96 +42,82 @@
                             @click="openScannerMenu = !openScannerMenu; if (openScannerMenu) refreshScanners()"
                             @click.away="openScannerMenu = false"
                             class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer"
-                            :class="scannerConnected ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 shadow-2xs' : 'border-[var(--border)]/50 bg-[var(--surface-1)] text-muted hover:text-ink'">
-                        <svg class="w-3.5 h-3.5 shrink-0" :class="scannerConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted/60'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            :class="isScannerOnline(selectedScanner) ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 shadow-2xs' : 'border-[var(--border)]/50 bg-[var(--surface-1)] text-muted hover:text-ink'">
+                        <svg class="w-3.5 h-3.5 shrink-0" :class="isScannerOnline(selectedScanner) ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted/60'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                         </svg>
-                        <i class="pos-status-dot" :class="scannerConnected ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
-                        <span class="hidden xl:inline" :class="scannerConnected ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-muted'">{% trans "Scanner" %}:</span>
-                        <span class="font-bold max-w-[12rem] truncate" :class="scannerConnected ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'" x-text="scannerConnected ? scannerStatusText : '{% trans "Offline" %}'"></span>
+                        <i class="pos-status-dot" :class="isScannerOnline(selectedScanner) ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
+                        <span class="hidden xl:inline" :class="isScannerOnline(selectedScanner) ? 'text-emerald-700 dark:text-emerald-400 font-bold' : 'text-muted'">{% trans "Scanner" %}:</span>
+                        <span class="font-bold max-w-[12rem] truncate" :class="isScannerOnline(selectedScanner) ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'" x-text="getScannerDisplayLabel()"></span>
                         <svg class="w-3 h-3 text-muted ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
 
-                    <!-- Scanner Dropdown Menu -->
+                    <!-- Scanner Status & Info Dropdown Menu -->
                     <div x-show="openScannerMenu"
                          x-cloak
-                         class="absolute left-0 mt-2 w-80 rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-2xl p-2.5 z-50 text-xs">
-                        <div class="px-2.5 py-1.5 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-2 flex items-center justify-between">
+                         class="absolute left-0 mt-2 w-80 rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-2xl p-3 z-50 text-xs">
+                        <div class="px-1 py-1 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-2 flex items-center justify-between">
                             <span>{% trans "Barcode Scanner" %}</span>
-                            <span class="font-bold text-xs"
-                                  :class="scannerConnected ? 'text-emerald-600' : 'text-muted'"
-                                  x-text="scannerConnected ? (connectedScanners.length > 1 ? `● ${connectedScanners.length} {% trans "Connected" %}` : '● {% trans "Connected" %}') : '○ {% trans "Offline" %}'"></span>
+                            <span class="font-bold text-xs flex items-center gap-1.5"
+                                  :class="isScannerOnline(selectedScanner) ? 'text-emerald-600' : 'text-muted'">
+                                <span class="w-2 h-2 rounded-full"
+                                      :class="isScannerOnline(selectedScanner) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400 dark:bg-slate-600'"></span>
+                                <span x-text="isScannerOnline(selectedScanner) ? '{% trans "Connected & Ready" %}' : '{% trans "Not Connected" %}'"></span>
+                            </span>
                         </div>
 
-                        <!-- Connected Scanners List -->
-                        <template x-if="scannerConnected && connectedScanners.length > 0">
-                            <div class="space-y-1 mb-2">
-                                <template x-for="(scanner, idx) in connectedScanners" :key="idx">
-                                    <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/80 flex items-center justify-between">
-                                        <div class="flex items-center gap-2 min-w-0">
-                                            <i class="pos-status-dot dot-connected animate-pulse shrink-0"></i>
-                                            <div class="truncate">
-                                                <div class="font-bold text-xs truncate text-ink" x-text="scanner.name"></div>
-                                                <div x-show="scanner.serial" class="text-3xs font-mono text-muted truncate" x-text="'S/N: ' + scanner.serial"></div>
-                                            </div>
-                                        </div>
-                                        <div class="flex items-center gap-1.5 shrink-0 ml-2">
-                                            <span class="px-1.5 py-0.5 rounded text-3xs font-extrabold"
-                                                  :class="scanner.type === 'Wi-Fi' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'"
-                                                  x-text="scanner.type || 'USB'"></span>
-                                            <span class="text-emerald-600 font-bold text-sm">✓</span>
-                                        </div>
+                        <!-- Scanner Connection Status Card -->
+                        <div class="p-3 rounded-lg border space-y-2"
+                             :class="isScannerOnline(selectedScanner) ? 'bg-[var(--surface-2)]/60 border-[var(--border)]/50' : 'bg-[var(--surface-2)]/30 border-[var(--border)]/40'">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="font-bold text-xs flex items-center gap-1.5"
+                                         :class="isScannerOnline(selectedScanner) ? 'text-ink' : 'text-muted'">
+                                        <span x-text="isScannerOnline(selectedScanner) ? getScannerDisplayLabel() : '{% trans "No scanner detected" %}'"></span>
+                                        <span class="px-1.5 py-0.2 rounded text-3xs font-extrabold"
+                                              :class="isScannerOnline(selectedScanner) ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'"
+                                              x-text="isScannerOnline(selectedScanner) ? '{% trans "Auto" %}' : '{% trans "Offline" %}'"></span>
                                     </div>
-                                </template>
+                                    <div class="text-3xs text-muted mt-0.5"
+                                         x-text="isScannerOnline(selectedScanner) ? '{% trans "USB · 2.4GHz · Bluetooth · Wi-Fi" %}' : '{% trans "Plug in any USB, wireless, or Bluetooth scanner" %}'">
+                                    </div>
+                                </div>
+                                <span x-show="isScannerOnline(selectedScanner)" class="text-emerald-600 font-bold text-sm">✓</span>
+                                <span x-show="!isScannerOnline(selectedScanner)" class="text-muted font-bold text-xs">○</span>
                             </div>
-                        </template>
 
-                        <!-- Offline State -->
-                        <template x-if="!scannerConnected || connectedScanners.length === 0">
-                            <div class="px-2.5 py-2 rounded-lg bg-[var(--surface-2)]/40 flex items-center gap-2 text-muted mb-2">
-                                <i class="pos-status-dot dot-disconnected shrink-0"></i>
-                                <span class="font-medium text-xs">{% trans "No scanner connected" %}</span>
+                            <div class="border-t border-[var(--border)]/40 pt-2 flex items-center justify-between text-2xs">
+                                <span class="text-muted">{% trans "Last Scan" %}:</span>
+                                <span class="font-mono font-bold text-ink" x-text="lastScannedCode || '{% trans "None yet" %}'"></span>
                             </div>
-                        </template>
+                        </div>
+
+                        <div class="mt-2.5 px-1 text-3xs text-muted flex items-start gap-1.5">
+                            <svg class="w-3.5 h-3.5 shrink-0 mt-0.5"
+                                 :class="isScannerOnline(selectedScanner) ? 'text-emerald-600' : 'text-muted'"
+                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span x-text="isScannerOnline(selectedScanner) ? '{% trans "Global Capture: Scan any barcode anytime without selecting the search box." %}' : '{% trans "Connect a scanner or scan a barcode to activate automatically." %}'"></span>
+                        </div>
 
                         <!-- Actions -->
-                        <div class="border-t border-[var(--border)]/50 pt-2 space-y-1">
-                            <button type="button"
-                                    @click="pairUsbScanner()"
-                                    class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-[var(--surface-2)] text-ink font-semibold transition-colors cursor-pointer text-start">
-                                <div class="flex items-center gap-2">
-                                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                    <span>{% trans "Pair USB scanner" %}</span>
-                                </div>
-                                <span class="text-3xs uppercase font-extrabold text-muted">WebHID</span>
-                            </button>
-
-                            <button type="button"
-                                    @click="promptWifiScanner()"
-                                    class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-[var(--surface-2)] text-ink font-semibold transition-colors cursor-pointer text-start">
-                                <div class="flex items-center gap-2">
-                                    <svg class="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
-                                    </svg>
-                                    <span>{% trans "Pair Wi-Fi scanner" %}</span>
-                                </div>
-                                <span class="text-3xs uppercase font-extrabold text-muted">IP / Wi-Fi</span>
-                            </button>
-
-                            <button type="button"
-                                    @click="refreshScanners()"
-                                    class="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] text-muted hover:text-ink font-bold transition-colors cursor-pointer text-2xs mt-1">
-                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        <div class="mt-3 pt-2 border-t border-[var(--border)]/50 flex items-center justify-between">
+                            <button type="button" @click="testScanBeep()" class="px-2.5 py-1 rounded bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink font-semibold transition-colors cursor-pointer text-2xs flex items-center gap-1">
+                                <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 18.75a6.75 6.75 0 110-13.5 6.75 6.75 0 010 13.5z" />
                                 </svg>
-                                <span>{% trans "Refresh devices" %}</span>
+                                {% trans "Test Beep" %}
+                            </button>
+                            <button type="button" @click="refreshScanners()" class="text-[var(--brand-600)] hover:underline font-bold text-2xs cursor-pointer">
+                                {% trans "Refresh" %}
                             </button>
                         </div>
                     </div>
+
+
                 </div>
 
                 <!-- Printer Status & Switcher Dropdown -->
@@ -960,24 +946,25 @@ function posTerminal(config) {
                 return '';
             }
         })(),
-        scannerConnected: true,
-        connectedScanners: (function(scanners) {
-            if (scanners && scanners.length > 0) return scanners;
-            return [{
-                id: 'system_auto_hid',
-                name: '{% trans "Barcode Scanner (USB / HID)" %}',
-                type: 'USB',
-                badge: 'Auto',
-                vendor: 'System',
-                is_online: true
-            }];
-        })({{ system_scanners_json|default:'[]'|safe }}),
-        scannerStatusText: (function(scanners) {
-            if (scanners && scanners.length > 0) {
-                return scanners[0].name;
+        availableScanners: (function() {
+            const list = {{ system_scanners_json|default:'[]'|safe }};
+            return (list && list.length > 0) ? list : [];
+        })(),
+        selectedScanner: (function() {
+            try {
+                const saved = localStorage.getItem('pos_active_scanner');
+                const list = {{ system_scanners_json|default:'[]'|safe }};
+                if (saved && list.some(s => s.id === saved && s.is_online)) {
+                    return saved;
+                }
+                const firstOnline = list.find(s => s.is_online);
+                return firstOnline ? firstOnline.id : '';
+            } catch (e) {
+                return '';
             }
-            return '{% trans "Barcode Scanner" %}';
-        })({{ system_scanners_json|default:'[]'|safe }}),
+        })(),
+        scannerFeedbackText: '',
+        lastScannedCode: '',
         showSaleSuccessNotification: false,
         lastSale: {
             receiptNumber: '',
@@ -1030,10 +1017,11 @@ function posTerminal(config) {
                             is_online: true,
                             is_manual: false
                         }));
-                        const otherScanners = (this.connectedScanners || []).filter(s => !s.id || !s.id.startsWith('hid_'));
-                        this.connectedScanners = [...hidScanners, ...otherScanners];
-                        this.scannerConnected = true;
-                        this.scannerStatusText = this.connectedScanners[0].name;
+                        const otherScanners = (this.availableScanners || []).filter(s => !s.id || !s.id.startsWith('hid_'));
+                        this.availableScanners = [...hidScanners, ...otherScanners];
+                        if (!this.selectedScanner || !this.availableScanners.some(s => s.id === this.selectedScanner)) {
+                            this.selectedScanner = this.availableScanners[0].id;
+                        }
                     }
                 } catch (e) {}
             };
@@ -1044,34 +1032,49 @@ function posTerminal(config) {
                 navigator.hid.addEventListener('disconnect', () => updateHidScanners());
             }
 
-            // Global USB/HID barcode scanner detection (keyboard wedge)
+            // Global hardware barcode scanner capture (keyboard wedge)
             let barcodeBuffer = '';
             let lastKeyTime = Date.now();
-            window.addEventListener('keydown', (e) => {
-                const currentTime = Date.now();
-                if (currentTime - lastKeyTime > 100) {
-                    barcodeBuffer = '';
-                }
-                lastKeyTime = currentTime;
+            let keyIntervals = [];
+
+            window.addEventListener('keydown', async (e) => {
+                const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+                if (targetTag === 'textarea') return;
+
+                const now = Date.now();
+                const interval = now - lastKeyTime;
+                lastKeyTime = now;
 
                 if (e.key === 'Enter') {
                     if (barcodeBuffer.length >= 3) {
-                        this.scannerConnected = true;
-                        if (this.connectedScanners.length === 0) {
-                            this.connectedScanners = [{
-                                name: '{% trans "Barcode Scanner" %}',
-                                type: 'HID'
-                            }];
+                        const avgInterval = keyIntervals.length > 0
+                            ? (keyIntervals.reduce((a, b) => a + b, 0) / keyIntervals.length)
+                            : 100;
+                        const isBarcodeInput = Boolean(e.target && typeof e.target.getAttribute === 'function' && e.target.getAttribute('x-ref') === 'barcodeInput');
+                        const isFastBurst = avgInterval < 75;
+
+                        if (isFastBurst || isBarcodeInput) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const codeToScan = barcodeBuffer.trim();
+                            barcodeBuffer = '';
+                            keyIntervals = [];
+                            if (this.$refs.barcodeInput) {
+                                this.$refs.barcodeInput.value = '';
+                            }
+                            await this.scanAndAddToCart(codeToScan);
+                            return;
                         }
-                        this.scannerStatusText = '{% trans "Scanned!" %}';
-                        setTimeout(() => {
-                            this.scannerStatusText = (this.connectedScanners && this.connectedScanners.length > 0 && this.connectedScanners[0].name)
-                                ? this.connectedScanners[0].name
-                                : '{% trans "Barcode Scanner" %}';
-                        }, 1200);
                     }
                     barcodeBuffer = '';
-                } else if (e.key.length === 1) {
+                    keyIntervals = [];
+                } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                    if (interval > 150) {
+                        barcodeBuffer = '';
+                        keyIntervals = [];
+                    } else {
+                        keyIntervals.push(interval);
+                    }
                     barcodeBuffer += e.key;
                 }
             });
@@ -1112,31 +1115,77 @@ function posTerminal(config) {
             return p ? p.name : '{% trans "No printer" %}';
         },
 
+        setScanner(id) {
+            this.selectedScanner = id;
+            try {
+                localStorage.setItem('pos_active_scanner', id);
+            } catch (e) {}
+        },
+
+        isScannerOnline(id) {
+            if (this.lastScannedCode) return true;
+            if (!id) return this.availableScanners.some(s => Boolean(s.is_online));
+            const s = this.availableScanners.find(x => x.id === id);
+            return s ? Boolean(s.is_online) : false;
+        },
+
+        getScannerDisplayLabel() {
+            if (this.scannerFeedbackText) {
+                return this.scannerFeedbackText;
+            }
+            if (this.isScannerOnline(this.selectedScanner)) {
+                const s = this.availableScanners.find(x => x.id === this.selectedScanner && x.is_online) || this.availableScanners.find(x => x.is_online);
+                if (s && s.name) {
+                    return s.name;
+                }
+                if (this.lastScannedCode) {
+                    return '{% trans "Active" %} (' + this.lastScannedCode + ')';
+                }
+                return '{% trans "Scanner Connected" %}';
+            }
+            return '{% trans "No Scanner" %}';
+        },
+
+        testScanBeep() {
+            this.scannerFeedbackText = '{% trans "Scanned!" %}';
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1760, ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.12);
+            } catch (e) {}
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+            setTimeout(() => {
+                this.scannerFeedbackText = '';
+            }, 1200);
+        },
+
         async refreshScanners() {
             try {
                 const res = await fetch('{% url "pos:scanners" %}');
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.scanners) {
-                        const sysScanners = data.scanners;
-                        const manualScanners = (this.connectedScanners || []).filter(s => s.is_manual);
-                        this.connectedScanners = [...sysScanners, ...manualScanners];
-                        if (this.connectedScanners.length > 0) {
-                            this.scannerConnected = true;
-                            if (!this.scannerStatusText || this.scannerStatusText === '{% trans "Offline" %}') {
-                                this.scannerStatusText = this.connectedScanners[0].name;
-                            }
+                        const sysScanners = data.scanners || [];
+                        const manualScanners = (this.availableScanners || []).filter(s => s.is_manual);
+                        this.availableScanners = [...sysScanners, ...manualScanners];
+                        const saved = localStorage.getItem('pos_active_scanner');
+                        if (saved && this.availableScanners.some(s => s.id === saved && s.is_online)) {
+                            this.selectedScanner = saved;
+                        } else if (this.availableScanners.length > 0) {
+                            const firstOnline = this.availableScanners.find(s => s.is_online);
+                            this.selectedScanner = firstOnline ? firstOnline.id : '';
                         } else {
-                            this.scannerConnected = true;
-                            this.scannerStatusText = '{% trans "Barcode Scanner" %}';
-                            this.connectedScanners = [{
-                                id: 'system_auto_hid',
-                                name: '{% trans "Barcode Scanner (USB / HID)" %}',
-                                type: 'USB',
-                                badge: 'Auto',
-                                vendor: 'System',
-                                is_online: true
-                            }];
+                            this.selectedScanner = '';
                         }
                     }
                 }
@@ -1157,15 +1206,15 @@ function posTerminal(config) {
                         id: dev.productId ? ('hid_' + dev.productId) : ('hid_' + Date.now()),
                         name: name,
                         type: 'USB',
+                        badge: 'HID',
                         vendor: dev.manufacturerName || 'HID',
                         is_online: true,
                         is_manual: true
                     };
-                    if (!this.connectedScanners.some(s => s.id === sc.id)) {
-                        this.connectedScanners.push(sc);
+                    if (!this.availableScanners.some(s => s.id === sc.id)) {
+                        this.availableScanners.push(sc);
                     }
-                    this.scannerConnected = true;
-                    this.scannerStatusText = name;
+                    this.setScanner(sc.id);
                 }
             } catch (e) {}
         },
@@ -1178,16 +1227,16 @@ function posTerminal(config) {
                     id: 'wifi_' + host,
                     name: '{% trans "Wi-Fi Scanner" %} (' + host + ')',
                     type: 'Wi-Fi',
+                    badge: 'Wi-Fi',
                     vendor: 'Network',
                     serial: host,
                     is_online: true,
                     is_manual: true
                 };
-                if (!this.connectedScanners.some(s => s.id === scanner.id)) {
-                    this.connectedScanners.push(scanner);
+                if (!this.availableScanners.some(s => s.id === scanner.id)) {
+                    this.availableScanners.push(scanner);
                 }
-                this.scannerConnected = true;
-                this.scannerStatusText = scanner.name;
+                this.setScanner(scanner.id);
                 try {
                     localStorage.setItem('pos_wifi_scanner', JSON.stringify(scanner));
                 } catch (e) {}
@@ -1260,32 +1309,50 @@ function posTerminal(config) {
             return map[method] || method;
         },
 
-        handleBarcodeInput(event) {
-            this.scannerConnected = true;
-            try {
-                localStorage.setItem('pos_scanner_connected', 'true');
-            } catch (e) {}
-            this.scannerStatusText = '{% trans "Scanned!" %}';
-            setTimeout(() => {
-                this.scannerStatusText = '{% trans "Ready" %}';
-            }, 1200);
-
-            const firstProductBtn = document.querySelector('#product-grid button');
-            if (firstProductBtn) {
-                firstProductBtn.click();
+        async handleBarcodeInput(event) {
+            const query = (this.$refs.barcodeInput ? this.$refs.barcodeInput.value : '').trim();
+            if (query) {
                 if (this.$refs.barcodeInput) {
                     this.$refs.barcodeInput.value = '';
                 }
+                await this.scanAndAddToCart(query);
             }
         },
 
-        handleBarcodeTyping(event) {
-            if (event.target.value && event.target.value.length >= 3) {
-                this.scannerConnected = true;
-                try {
-                    localStorage.setItem('pos_scanner_connected', 'true');
-                } catch (e) {}
+        async scanAndAddToCart(barcode) {
+            if (!barcode) return;
+            const cleanCode = String(barcode).trim();
+            if (!cleanCode) return;
+
+            this.lastScannedCode = cleanCode;
+            this.scannerFeedbackText = '{% trans "Scanning" %}...';
+            this.testScanBeep();
+
+            try {
+                const res = await fetch('{% url "pos:lookup" %}?query=' + encodeURIComponent(cleanCode));
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.found && data.product) {
+                        this.addToCart(data.product);
+                        this.scannerFeedbackText = data.product.name + ' (+1)';
+                    } else {
+                        this.scannerFeedbackText = '{% trans "Not found" %}: ' + cleanCode;
+                    }
+                } else {
+                    this.scannerFeedbackText = '{% trans "Not found" %}: ' + cleanCode;
+                }
+            } catch (err) {
+                console.error('Scan lookup error', err);
+                this.scannerFeedbackText = '{% trans "Scan error" %}';
             }
+
+            setTimeout(() => {
+                this.scannerFeedbackText = '';
+            }, 2200);
+        },
+
+        handleBarcodeTyping(event) {
+            // Typing triggers instant catalog search filtering via HTMX
         },
 
         addToCart(item) {

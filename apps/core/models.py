@@ -457,7 +457,7 @@ class SystemConfiguration(models.Model):
         return f"System ({self.get_deployment_mode_display()} - {status})"
 
     @classmethod
-    def get_solo(cls) -> "SystemConfiguration":
+    def get_solo(cls) -> SystemConfiguration:
         """Get or create singleton configuration."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj

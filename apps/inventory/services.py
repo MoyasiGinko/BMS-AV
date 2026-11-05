@@ -51,7 +51,11 @@ from apps.inventory.models import (
     Batch,
     BatchStock,
     CountStatus,
+    DiscrepancyType,
+    InventoryLocation,
+    InventoryReconciliationIncident,
     MovementType,
+    ReconciliationIncidentStatus,
     ReservationStatus,
     SerialNumber,
     SerialStatus,
@@ -68,6 +72,16 @@ from apps.inventory.models import (
     TransferStatus,
 )
 from apps.tenancy.models import Organization, Warehouse
+from apps.warehouses.services import (
+    create_inventory_location as create_inventory_location,
+    create_supply_route as create_supply_route,
+    delete_inventory_location as delete_inventory_location,
+    delete_supply_route as delete_supply_route,
+    get_or_create_location_for_warehouse as get_or_create_location_for_warehouse,
+    get_preferred_supply_route as get_preferred_supply_route,
+    update_inventory_location as update_inventory_location,
+    update_supply_route as update_supply_route,
+)
 
 DECIMAL_ZERO = Decimal("0.0000")
 
@@ -91,14 +105,17 @@ def _get_or_create_stock_level(
         .first()
     )
     if level is None:
+        loc = get_or_create_location_for_warehouse(warehouse)
         level, _ = StockLevel.all_tenants.get_or_create(
             organization=organization,
             warehouse=warehouse,
             product=product,
             variant=variant,
             defaults={
+                "location": loc,
                 "on_hand": DECIMAL_ZERO,
                 "reserved": DECIMAL_ZERO,
+                "in_transit": DECIMAL_ZERO,
                 "avg_cost": DECIMAL_ZERO,
             },
         )
@@ -113,6 +130,10 @@ def _get_or_create_stock_level(
             .first()
         )
         assert level is not None
+    elif level.location_id is None:
+        loc = get_or_create_location_for_warehouse(warehouse)
+        level.location = loc
+        level.save(update_fields=["location", "updated_at"])
     return level
 
 
@@ -375,6 +396,7 @@ def receive_stock(
     movement = StockMovement.objects.create(
         organization=organization,
         warehouse=warehouse,
+        location=level.location,
         product=product,
         variant=variant,
         type=movement_type,
@@ -650,6 +672,7 @@ def issue_stock(
     movement = StockMovement.objects.create(
         organization=organization,
         warehouse=warehouse,
+        location=level.location,
         product=product,
         variant=variant,
         type=movement_type,
@@ -834,6 +857,9 @@ def _check_branch_permission(
     if getattr(actor, "is_superuser", False) or getattr(actor, "is_staff", False):
         return
 
+    if branch is None:
+        return
+
     allowed = get_user_allowed_branch_ids(actor, organization=organization)
     if allowed is not None:
         branch_id = getattr(branch, "pk", getattr(branch, "id", branch))
@@ -879,12 +905,16 @@ def create_stock_transfer(
     )
 
     is_inter = source_warehouse.branch_id != destination_warehouse.branch_id
+    source_loc = get_or_create_location_for_warehouse(source_warehouse)
+    dest_loc = get_or_create_location_for_warehouse(destination_warehouse)
 
     transfer = StockTransfer.objects.create(
         organization=organization,
         transfer_number=transfer_num,
         source_warehouse=source_warehouse,
         destination_warehouse=destination_warehouse,
+        source_location=source_loc,
+        destination_location=dest_loc,
         source_branch=source_warehouse.branch,
         destination_branch=destination_warehouse.branch,
         is_inter_branch=is_inter,
@@ -905,20 +935,15 @@ def create_stock_transfer(
             product=prod,
             variant=var,
             quantity=q,
+            quantity_requested=q,
         )
 
     return transfer
 
 
-@transaction.atomic
-def dispatch_stock_transfer(
-    *,
-    organization: Organization,
-    transfer: StockTransfer | int,
-    actor: Any = None,
+def _resolve_transfer_for_update(
+    *, organization: Organization, transfer: StockTransfer | int
 ) -> StockTransfer:
-    """Dispatch a draft stock transfer, issuing stock from source into transit."""
-    target_transfer: StockTransfer
     if isinstance(transfer, int):
         tf = (
             StockTransfer.all_tenants.select_for_update()
@@ -927,13 +952,100 @@ def dispatch_stock_transfer(
         )
         if tf is None:
             raise TransferError(f"StockTransfer {transfer} not found.")
-        target_transfer = tf
-    else:
-        tf_obj = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
-        assert tf_obj is not None
-        target_transfer = tf_obj
+        return tf
+    tf_obj = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
+    assert tf_obj is not None
+    return tf_obj
 
+
+@transaction.atomic
+def submit_stock_transfer(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    actor: Any = None,
+) -> StockTransfer:
+    """Submit a draft stock transfer for management approval."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
     if target_transfer.status != TransferStatus.DRAFT:
+        raise TransferError(f"Cannot submit transfer in status '{target_transfer.get_status_display()}'.")
+    target_transfer.status = TransferStatus.PENDING_APPROVAL
+    target_transfer.save(update_fields=["status", "updated_at"])
+    return target_transfer
+
+
+@transaction.atomic
+def approve_stock_transfer(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    actor: Any = None,
+) -> StockTransfer:
+    """Approve a pending stock transfer."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    if target_transfer.status not in {TransferStatus.DRAFT, TransferStatus.PENDING_APPROVAL}:
+        raise TransferError(f"Cannot approve transfer in status '{target_transfer.get_status_display()}'.")
+    target_transfer.status = TransferStatus.APPROVED
+    target_transfer.approved_by = actor
+    target_transfer.approved_at = timezone.now()
+    target_transfer.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
+    return target_transfer
+
+
+@transaction.atomic
+def reject_stock_transfer(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    reason: str = "",
+    actor: Any = None,
+) -> StockTransfer:
+    """Reject a pending stock transfer."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    if target_transfer.status not in {TransferStatus.DRAFT, TransferStatus.PENDING_APPROVAL}:
+        raise TransferError(f"Cannot reject transfer in status '{target_transfer.get_status_display()}'.")
+    target_transfer.status = TransferStatus.REJECTED
+    target_transfer.rejected_by = actor
+    target_transfer.rejected_at = timezone.now()
+    target_transfer.rejection_reason = reason
+    target_transfer.save(update_fields=["status", "rejected_by", "rejected_at", "rejection_reason", "updated_at"])
+    return target_transfer
+
+
+@transaction.atomic
+def cancel_stock_transfer(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    actor: Any = None,
+) -> StockTransfer:
+    """Cancel a transfer before dispatch."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    if target_transfer.status in {
+        TransferStatus.DISPATCHED,
+        TransferStatus.IN_TRANSIT,
+        TransferStatus.PARTIALLY_RECEIVED,
+        TransferStatus.COMPLETED,
+    }:
+        raise TransferError("Cannot cancel an in-transit or completed transfer.")
+    target_transfer.status = TransferStatus.CANCELLED
+    target_transfer.save(update_fields=["status", "updated_at"])
+    return target_transfer
+
+
+@transaction.atomic
+def dispatch_stock_transfer(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    carrier: str = "",
+    tracking_number: str = "",
+    dispatched_lines: list[dict[str, Any]] | None = None,
+    actor: Any = None,
+) -> StockTransfer:
+    """Dispatch a stock transfer: issues inventory from source and puts into destination in-transit."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    if target_transfer.status not in {TransferStatus.DRAFT, TransferStatus.APPROVED}:
         raise TransferError(f"Cannot dispatch transfer in status '{target_transfer.get_status_display()}'.")
 
     _check_branch_permission(
@@ -947,13 +1059,25 @@ def dispatch_stock_transfer(
     if not lines:
         raise TransferError("Cannot dispatch a transfer with no lines.")
 
+    dispatch_map: dict[int, Decimal] = {}
+    if dispatched_lines:
+        for dl in dispatched_lines:
+            line_id = dl.get("line_id") or dl.get("id")
+            qty = Decimal(str(dl.get("quantity_dispatched", dl.get("quantity", 0))))
+            if line_id:
+                dispatch_map[int(line_id)] = qty
+
     for line in lines:
-        issue_stock(
+        dispatch_qty = dispatch_map.get(line.id, line.quantity)
+        if dispatch_qty <= DECIMAL_ZERO:
+            continue
+
+        mov = issue_stock(
             organization=organization,
             warehouse=target_transfer.source_warehouse,
             product=line.product,
             variant=line.variant,
-            quantity=line.quantity,
+            quantity=dispatch_qty,
             movement_type=MovementType.TRANSFER_OUT,
             reference_type="inventory.StockTransfer",
             reference_id=str(target_transfer.pk),
@@ -963,11 +1087,30 @@ def dispatch_stock_transfer(
             ),
             actor=actor,
         )
+        line.quantity_dispatched = dispatch_qty
+        line.unit_cost = mov.unit_cost
+        line.save(update_fields=["quantity_dispatched", "unit_cost", "updated_at"])
+
+        # Track in_transit quantity on destination stock level
+        dest_level = _get_or_create_stock_level(
+            organization=organization,
+            warehouse=target_transfer.destination_warehouse,
+            product=line.product,
+            variant=line.variant,
+        )
+        dest_level.in_transit += dispatch_qty
+        dest_level.save(update_fields=["in_transit", "updated_at"])
 
     target_transfer.status = TransferStatus.IN_TRANSIT
     target_transfer.dispatched_at = timezone.now()
     target_transfer.dispatched_by = actor
-    target_transfer.save(update_fields=["status", "dispatched_at", "dispatched_by", "updated_at"])
+    if carrier:
+        target_transfer.carrier = carrier
+    if tracking_number:
+        target_transfer.tracking_number = tracking_number
+    target_transfer.save(
+        update_fields=["status", "dispatched_at", "dispatched_by", "carrier", "tracking_number", "updated_at"]
+    )
 
     publish(
         StockTransferDispatched(
@@ -985,30 +1128,114 @@ def dispatch_stock_transfer(
     return target_transfer
 
 
+def _receive_transfer_line(
+    *,
+    organization: Organization,
+    target_transfer: StockTransfer,
+    line: StockTransferLine,
+    qty_received: Decimal,
+    qty_damaged: Decimal,
+    qty_missing: Decimal,
+    actor: Any,
+) -> None:
+    accounted = qty_received + qty_damaged + qty_missing
+    if accounted <= DECIMAL_ZERO:
+        return
+
+    unit_cost = (
+        line.unit_cost if line.unit_cost > DECIMAL_ZERO else (line.product.cost_price or DECIMAL_ZERO)
+    )
+
+    # Receive total accounted intake into destination warehouse
+    receive_stock(
+        organization=organization,
+        warehouse=target_transfer.destination_warehouse,
+        product=line.product,
+        variant=line.variant,
+        quantity=accounted,
+        unit_cost=unit_cost,
+        movement_type=MovementType.TRANSFER_IN,
+        reference_type="inventory.StockTransfer",
+        reference_id=str(target_transfer.pk),
+        notes=(
+            f"Received transfer {target_transfer.transfer_number} from "
+            f"{target_transfer.source_warehouse.name}"
+        ),
+        actor=actor,
+    )
+
+    # Immediately write off damaged in-transit goods
+    if qty_damaged > DECIMAL_ZERO:
+        adjust_stock(
+            organization=organization,
+            warehouse=target_transfer.destination_warehouse,
+            reason=AdjustmentReason.IN_TRANSIT_LOSS,
+            lines=[{"product": line.product, "variant": line.variant, "quantity": -qty_damaged}],
+            notes=f"Damaged in-transit for transfer {target_transfer.transfer_number}",
+            actor=actor,
+        )
+
+    # Immediately write off missing in-transit goods
+    if qty_missing > DECIMAL_ZERO:
+        adjust_stock(
+            organization=organization,
+            warehouse=target_transfer.destination_warehouse,
+            reason=AdjustmentReason.SHRINKAGE,
+            lines=[{"product": line.product, "variant": line.variant, "quantity": -qty_missing}],
+            notes=f"Missing in-transit for transfer {target_transfer.transfer_number}",
+            actor=actor,
+        )
+
+    dest_level = _get_or_create_stock_level(
+        organization=organization,
+        warehouse=target_transfer.destination_warehouse,
+        product=line.product,
+        variant=line.variant,
+    )
+    dest_level.in_transit = max(DECIMAL_ZERO, dest_level.in_transit - accounted)
+    dest_level.save(update_fields=["in_transit", "updated_at"])
+
+    line.quantity_received += qty_received
+    line.quantity_damaged += qty_damaged
+    line.quantity_missing += qty_missing
+    line.save(
+        update_fields=["quantity_received", "quantity_damaged", "quantity_missing", "updated_at"]
+    )
+
+
+def _build_receipt_map(
+    receipt_lines: list[dict[str, Any]] | None,
+) -> dict[int, dict[str, Decimal]]:
+    receipt_map: dict[int, dict[str, Decimal]] = {}
+    if not receipt_lines:
+        return receipt_map
+    for rl in receipt_lines:
+        line_id = rl.get("line_id") or rl.get("id")
+        if line_id:
+            receipt_map[int(line_id)] = {
+                "received": Decimal(str(rl.get("quantity_received", 0))),
+                "damaged": Decimal(str(rl.get("quantity_damaged", 0))),
+                "missing": Decimal(str(rl.get("quantity_missing", 0))),
+            }
+    return receipt_map
+
+
 @transaction.atomic
 def receive_stock_transfer(
     *,
     organization: Organization,
     transfer: StockTransfer | int,
+    receipt_lines: list[dict[str, Any]] | None = None,
+    notes: str = "",
     actor: Any = None,
 ) -> StockTransfer:
-    """Receive an in-transit stock transfer at the destination warehouse."""
-    target_transfer: StockTransfer
-    if isinstance(transfer, int):
-        tf = (
-            StockTransfer.all_tenants.select_for_update()
-            .filter(organization=organization, pk=transfer)
-            .first()
-        )
-        if tf is None:
-            raise TransferError(f"StockTransfer {transfer} not found.")
-        target_transfer = tf
-    else:
-        tf_obj = StockTransfer.all_tenants.select_for_update().filter(pk=transfer.pk).first()
-        assert tf_obj is not None
-        target_transfer = tf_obj
-
-    if target_transfer.status != TransferStatus.IN_TRANSIT:
+    """Receive an in-transit transfer with support for partial, damaged, and missing quantities."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    if target_transfer.status not in {
+        TransferStatus.IN_TRANSIT,
+        TransferStatus.DISPATCHED,
+        TransferStatus.PARTIALLY_RECEIVED,
+    }:
         raise TransferError(f"Cannot receive transfer in status '{target_transfer.get_status_display()}'.")
 
     _check_branch_permission(
@@ -1022,45 +1249,58 @@ def receive_stock_transfer(
     if not lines:
         raise TransferError("Cannot receive a transfer with no lines.")
 
-    for line in lines:
-        out_mov = (
-            StockMovement.all_tenants.filter(
-                organization=organization,
-                reference_type="inventory.StockTransfer",
-                reference_id=str(target_transfer.pk),
-                warehouse=target_transfer.source_warehouse,
-                product=line.product,
-                variant=line.variant,
-                type=MovementType.TRANSFER_OUT,
-            )
-            .order_by("-id")
-            .first()
-        )
-        unit_cost = out_mov.unit_cost if out_mov else (line.product.cost_price or DECIMAL_ZERO)
+    receipt_map = _build_receipt_map(receipt_lines)
+    all_fully_accounted = True
 
-        receive_stock(
+    for line in lines:
+        dispatched = (
+            line.quantity_dispatched if line.quantity_dispatched > DECIMAL_ZERO else line.quantity
+        )
+        rec_data = receipt_map.get(line.id)
+        if rec_data:
+            qty_received = rec_data["received"]
+            qty_damaged = rec_data["damaged"]
+            qty_missing = rec_data["missing"]
+        else:
+            qty_received = (
+                dispatched - line.quantity_received - line.quantity_damaged - line.quantity_missing
+            )
+            qty_damaged = DECIMAL_ZERO
+            qty_missing = DECIMAL_ZERO
+
+        if (qty_received + qty_damaged + qty_missing) <= DECIMAL_ZERO:
+            all_fully_accounted = False
+            continue
+
+        _receive_transfer_line(
             organization=organization,
-            warehouse=target_transfer.destination_warehouse,
-            product=line.product,
-            variant=line.variant,
-            quantity=line.quantity,
-            unit_cost=unit_cost,
-            movement_type=MovementType.TRANSFER_IN,
-            reference_type="inventory.StockTransfer",
-            reference_id=str(target_transfer.pk),
-            notes=(
-                f"Received transfer {target_transfer.transfer_number} from "
-                f"{target_transfer.source_warehouse.name}"
-            ),
+            target_transfer=target_transfer,
+            line=line,
+            qty_received=qty_received,
+            qty_damaged=qty_damaged,
+            qty_missing=qty_missing,
             actor=actor,
         )
 
+        if (line.quantity_received + line.quantity_damaged + line.quantity_missing) < dispatched:
+            all_fully_accounted = False
+            all_fully_accounted = False
+
     now = timezone.now()
-    target_transfer.status = TransferStatus.COMPLETED
     target_transfer.received_at = now
     target_transfer.received_by = actor
-    target_transfer.completed_at = now
-    target_transfer.save(update_fields=["status", "received_at", "received_by", "completed_at", "updated_at"])
+    if all_fully_accounted:
+        target_transfer.status = TransferStatus.COMPLETED
+        target_transfer.completed_at = now
+    else:
+        target_transfer.status = TransferStatus.PARTIALLY_RECEIVED
+
+    if notes:
+        target_transfer.notes = f"{target_transfer.notes}\n{notes}".strip()
+
+    target_transfer.save(
+        update_fields=["status", "received_at", "received_by", "completed_at", "notes", "updated_at"]
+    )
 
     publish(
         StockTransferReceived(
@@ -1116,7 +1356,7 @@ def transfer_stock(
         branch=source_warehouse.branch,
         action_label="transfer stock out of",
     )
-    if source_warehouse.branch_id != destination_warehouse.branch_id:
+    if destination_warehouse.branch and source_warehouse.branch_id != destination_warehouse.branch_id:
         _check_branch_permission(
             actor=actor,
             organization=organization,
@@ -1133,12 +1373,16 @@ def transfer_stock(
 
     now = timezone.now()
     is_inter = source_warehouse.branch_id != destination_warehouse.branch_id
+    source_loc = get_or_create_location_for_warehouse(source_warehouse)
+    dest_loc = get_or_create_location_for_warehouse(destination_warehouse)
 
     transfer = StockTransfer.objects.create(
         organization=organization,
         transfer_number=transfer_num,
         source_warehouse=source_warehouse,
         destination_warehouse=destination_warehouse,
+        source_location=source_loc,
+        destination_location=dest_loc,
         source_branch=source_warehouse.branch,
         destination_branch=destination_warehouse.branch,
         is_inter_branch=is_inter,
@@ -1195,6 +1439,10 @@ def transfer_stock(
             product=product,
             variant=variant,
             quantity=qty,
+            quantity_requested=qty,
+            quantity_dispatched=qty,
+            quantity_received=qty,
+            unit_cost=out_movement.unit_cost,
         )
 
     publish(
@@ -1240,14 +1488,19 @@ def adjust_stock(
         padding=5,
     )
 
+    now = timezone.now()
+    loc = get_or_create_location_for_warehouse(warehouse)
     adjustment = StockAdjustment.objects.create(
         organization=organization,
         adjustment_number=adj_num,
         warehouse=warehouse,
+        location=loc,
         reason=reason,
         status="confirmed",
         notes=notes,
-        confirmed_at=timezone.now(),
+        confirmed_at=now,
+        approved_at=now,
+        approved_by=actor,
         created_by=actor,
     )
 
@@ -1610,3 +1863,322 @@ def reconcile_inventory(
         "reconciled_at": timezone.now().isoformat(),
         "is_consistent": len(discrepancies) == 0,
     }
+
+
+# Re-exported from apps.warehouses.services for backwards compatibility
+
+
+@transaction.atomic
+def process_customer_return(
+    *,
+    organization: Organization,
+    product: Product,
+    quantity: Decimal,
+    warehouse: Warehouse | None = None,
+    location: InventoryLocation | None = None,
+    variant: ProductVariant | None = None,
+    unit_cost: Decimal | None = None,
+    disposition: str = "sellable",
+    reference_type: str = "CustomerReturn",
+    reference_id: str = "",
+    notes: str = "",
+    actor: Any = None,
+) -> StockMovement:
+    """Process customer returned items with condition disposition and stock routing."""
+    if warehouse is None and location is not None:
+        warehouse = location.warehouse
+    if warehouse is None:
+        raise InvalidMovement("A valid warehouse or location is required for processing returns.")
+
+    if quantity <= DECIMAL_ZERO:
+        raise InvalidMovement("Return quantity must be positive.")
+
+    cost = (
+        unit_cost
+        if (unit_cost is not None and unit_cost >= DECIMAL_ZERO)
+        else (product.cost_price or DECIMAL_ZERO)
+    )
+
+    if disposition == "sellable":
+        return receive_stock(
+            organization=organization,
+            warehouse=warehouse,
+            product=product,
+            variant=variant,
+            quantity=quantity,
+            unit_cost=cost,
+            movement_type=MovementType.RETURN_IN,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            notes=f"Customer return (sellable): {notes}".strip(),
+            actor=actor,
+        )
+    elif disposition in {"quarantine", "inspection"}:
+        mov = receive_stock(
+            organization=organization,
+            warehouse=warehouse,
+            product=product,
+            variant=variant,
+            quantity=quantity,
+            unit_cost=cost,
+            movement_type=MovementType.RETURN_IN,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            notes=f"Customer return (under inspection): {notes}".strip(),
+            actor=actor,
+        )
+        reserve_stock(
+            organization=organization,
+            warehouse=warehouse,
+            product=product,
+            variant=variant,
+            quantity=quantity,
+            reference_type="ReturnInspection",
+            reference_id=str(mov.pk),
+            notes="Quarantine hold pending inspection",
+            actor=actor,
+        )
+        return mov
+    elif disposition in {"damaged", "scrap"}:
+        mov = receive_stock(
+            organization=organization,
+            warehouse=warehouse,
+            product=product,
+            variant=variant,
+            quantity=quantity,
+            unit_cost=cost,
+            movement_type=MovementType.RETURN_IN,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            notes=f"Customer return (damaged): {notes}".strip(),
+            actor=actor,
+        )
+        adjust_stock(
+            organization=organization,
+            warehouse=warehouse,
+            reason=AdjustmentReason.RETURN_INSPECTION_SCRAP,
+            lines=[{"product": product, "variant": variant, "quantity": -quantity}],
+            notes=f"Scrapped returned damaged goods (Ref: {reference_id})",
+            actor=actor,
+        )
+        return mov
+    else:
+        raise InvalidMovement(f"Unknown return disposition '{disposition}'.")
+
+
+def reconcile_inventory_integrity(
+    *,
+    organization: Organization,
+    warehouse: Warehouse | None = None,
+    location: InventoryLocation | None = None,
+    actor: Any = None,
+) -> list[InventoryReconciliationIncident]:
+    """Audit scanner to detect ledger-balance discrepancies, overdue transfers, and negative inventory."""
+    incidents: list[InventoryReconciliationIncident] = []
+
+    levels_qs = (
+        StockLevel.all_tenants.filter(organization=organization)
+        .select_related("product", "warehouse", "location")
+    )
+    if warehouse is not None:
+        levels_qs = levels_qs.filter(warehouse=warehouse)
+    if location is not None:
+        levels_qs = levels_qs.filter(location=location)
+
+    allow_negative = getattr(getattr(organization, "settings_obj", None), "allow_negative_stock", False)
+
+    for level in levels_qs:
+        ledger_sum = (
+            StockMovement.all_tenants.filter(
+                organization=organization,
+                warehouse=level.warehouse,
+                product=level.product,
+                variant=level.variant,
+            ).aggregate(tot=Sum("quantity"))["tot"]
+            or DECIMAL_ZERO
+        )
+
+        diff = level.on_hand - ledger_sum
+        if abs(diff) > Decimal("0.0001"):
+            inc_num = generate_next_number(
+                organization_id=organization.pk, name="reconciliation", prefix="REC-", padding=5
+            )
+            inc, _ = InventoryReconciliationIncident.objects.get_or_create(
+                organization=organization,
+                location=level.location,
+                warehouse=level.warehouse,
+                product=level.product,
+                discrepancy_type=DiscrepancyType.LEDGER_BALANCE_MISMATCH,
+                status=ReconciliationIncidentStatus.OPEN,
+                defaults={
+                    "incident_number": inc_num,
+                    "expected_quantity": ledger_sum,
+                    "actual_quantity": level.on_hand,
+                    "variance": diff,
+                    "severity": "high" if abs(diff) > Decimal("10.0000") else "medium",
+                    "description": (
+                        f"Ledger sum ({ledger_sum}) does not match on-hand balance "
+                        f"({level.on_hand}) for {level.product.name}."
+                    ),
+                    "created_by": actor,
+                },
+            )
+            incidents.append(inc)
+
+        if not allow_negative and level.on_hand < DECIMAL_ZERO:
+            inc_num = generate_next_number(
+                organization_id=organization.pk, name="reconciliation", prefix="REC-", padding=5
+            )
+            inc, _ = InventoryReconciliationIncident.objects.get_or_create(
+                organization=organization,
+                location=level.location,
+                warehouse=level.warehouse,
+                product=level.product,
+                discrepancy_type=DiscrepancyType.NEGATIVE_INVENTORY,
+                status=ReconciliationIncidentStatus.OPEN,
+                defaults={
+                    "incident_number": inc_num,
+                    "expected_quantity": DECIMAL_ZERO,
+                    "actual_quantity": level.on_hand,
+                    "variance": level.on_hand,
+                    "severity": "high",
+                    "description": (
+                        f"Negative stock level detected ({level.on_hand}) where "
+                        f"negative inventory is disallowed."
+                    ),
+                    "created_by": actor,
+                },
+            )
+            incidents.append(inc)
+
+    return incidents
+
+
+@transaction.atomic
+def resolve_reconciliation_incident(
+    *,
+    organization: Organization,
+    incident: InventoryReconciliationIncident | int,
+    action: str = "adjust_balance",
+    notes: str = "",
+    actor: Any = None,
+) -> InventoryReconciliationIncident:
+    """Resolve an inventory reconciliation incident with auditable adjustments."""
+    target_inc: InventoryReconciliationIncident
+    if isinstance(incident, int):
+        target_inc = (
+            InventoryReconciliationIncident.all_tenants.select_for_update().filter(pk=incident).first()
+        )
+        if target_inc is None:
+            raise InvalidMovement(f"Incident {incident} not found.")
+    else:
+        target_inc = (
+            InventoryReconciliationIncident.all_tenants.select_for_update()
+            .filter(pk=incident.pk)
+            .first()
+        )
+        assert target_inc is not None
+
+    if target_inc.status == ReconciliationIncidentStatus.RESOLVED:
+        return target_inc
+
+    if action == "adjust_balance":
+        wh = target_inc.warehouse
+        if wh is None and target_inc.location is not None:
+            wh = target_inc.location.warehouse
+
+        now = timezone.now()
+        adj_num = generate_next_number(
+            organization_id=organization.pk,
+            name="adjustments",
+            prefix="ADJ-",
+            padding=5,
+        )
+        adj = StockAdjustment.objects.create(
+            organization=organization,
+            adjustment_number=adj_num,
+            warehouse=wh,
+            location=target_inc.location or get_or_create_location_for_warehouse(wh),
+            reason=AdjustmentReason.RECONCILIATION_VARIANCE,
+            status="confirmed",
+            notes=f"Audited resolution of Incident {target_inc.incident_number}: {notes}".strip(),
+            confirmed_at=now,
+            approved_at=now,
+            approved_by=actor,
+            created_by=actor,
+        )
+
+        if target_inc.discrepancy_type == DiscrepancyType.LEDGER_BALANCE_MISMATCH:
+            level = _get_or_create_stock_level(
+                organization=organization,
+                warehouse=wh,
+                product=target_inc.product,
+            )
+            level.on_hand = target_inc.expected_quantity
+            level.save(update_fields=["on_hand", "updated_at"])
+            StockAdjustmentLine.objects.create(
+                organization=organization,
+                adjustment=adj,
+                product=target_inc.product,
+                quantity=target_inc.expected_quantity - target_inc.actual_quantity,
+            )
+        else:
+            StockAdjustmentLine.objects.create(
+                organization=organization,
+                adjustment=adj,
+                product=target_inc.product,
+                quantity=-target_inc.variance,
+            )
+            if target_inc.variance > DECIMAL_ZERO:
+                issue_stock(
+                    organization=organization,
+                    warehouse=wh,
+                    product=target_inc.product,
+                    quantity=target_inc.variance,
+                    movement_type=MovementType.ADJUSTMENT_OUT,
+                    reference_type="inventory.StockAdjustment",
+                    reference_id=str(adj.pk),
+                    notes=f"Adjustment for Incident {target_inc.incident_number}",
+                    actor=actor,
+                )
+            elif target_inc.variance < DECIMAL_ZERO:
+                receive_stock(
+                    organization=organization,
+                    warehouse=wh,
+                    product=target_inc.product,
+                    quantity=-target_inc.variance,
+                    unit_cost=target_inc.product.cost_price or DECIMAL_ZERO,
+                    movement_type=MovementType.ADJUSTMENT_IN,
+                    reference_type="inventory.StockAdjustment",
+                    reference_id=str(adj.pk),
+                    notes=f"Adjustment for Incident {target_inc.incident_number}",
+                    actor=actor,
+                )
+
+        target_inc.adjustment = adj
+        target_inc.status = ReconciliationIncidentStatus.RESOLVED
+        target_inc.resolved_by = actor
+        target_inc.resolved_at = now
+        target_inc.resolution_notes = notes
+        target_inc.save(
+            update_fields=[
+                "adjustment",
+                "status",
+                "resolved_by",
+                "resolved_at",
+                "resolution_notes",
+                "updated_at",
+            ]
+        )
+    elif action == "dismiss":
+        target_inc.status = ReconciliationIncidentStatus.DISMISSED
+        target_inc.resolved_by = actor
+        target_inc.resolved_at = timezone.now()
+        target_inc.resolution_notes = f"Dismissed: {notes}".strip()
+        target_inc.save(
+            update_fields=["status", "resolved_by", "resolved_at", "resolution_notes", "updated_at"]
+        )
+    else:
+        raise InvalidMovement(f"Invalid reconciliation action '{action}'.")
+
+    return target_inc

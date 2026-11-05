@@ -74,7 +74,14 @@ class Role(TenantModel):
     def __str__(self) -> str:
         return self.name
 
+    @property
+    def is_superadmin(self) -> bool:
+        """Check if this role is the hardcoded Superadmin authority role."""
+        return self.name.strip().lower() in ("superadmin", "super admin", "owner")
+
     def has_permission(self, code: str) -> bool:
+        if self.is_superadmin:
+            return True
         perms = self.permissions or []
         if "*" in perms:
             return True
@@ -138,6 +145,12 @@ class Branch(TenantModel):
     is_active = models.BooleanField(default=True)
     address = models.TextField(_("address"), blank=True, default="")
     phone = models.CharField(_("phone"), max_length=32, blank=True, default="")
+    warehouses = models.ManyToManyField(
+        "tenancy.Warehouse",
+        through="tenancy.BranchWarehouse",
+        related_name="linked_branches",
+        blank=True,
+    )
 
     class Meta:
         verbose_name = _("branch")
@@ -219,16 +232,24 @@ class Department(TenantModel):
 
 
 class Warehouse(TenantModel):
-    """Inventory storage location belonging to a branch."""
+    """Inventory storage location, either central or co-located with a branch."""
 
     name = models.CharField(_("warehouse name"), max_length=128)
     code = models.CharField(_("code"), max_length=32, blank=True, default="")
     branch = models.ForeignKey(
         "tenancy.Branch",
-        on_delete=models.CASCADE,
-        related_name="warehouses",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="co_located_warehouses",
+        help_text=_("Physical branch where this warehouse is on premise, or null if central."),
     )
-    is_default = models.BooleanField(_("default warehouse"), default=False)
+    is_central = models.BooleanField(
+        _("central distribution warehouse"),
+        default=False,
+        help_text=_("Designates a central distribution hub that supplies multiple branches."),
+    )
+    is_default = models.BooleanField(_("organization default warehouse"), default=False)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -244,6 +265,55 @@ class Warehouse(TenantModel):
 
     def __str__(self) -> str:
         return self.name
+
+
+class BranchWarehouse(TenantModel):
+    """Authorized warehouse linked to a branch with operational privileges and priority."""
+
+    branch = models.ForeignKey(
+        "tenancy.Branch",
+        on_delete=models.CASCADE,
+        related_name="branch_warehouses",
+    )
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.CASCADE,
+        related_name="warehouse_branches",
+    )
+    is_default = models.BooleanField(
+        _("default warehouse for this branch"),
+        default=False,
+        help_text=_("Primary warehouse used for sales and fulfillment at this branch."),
+    )
+    can_sell = models.BooleanField(
+        _("can sell from this warehouse"),
+        default=True,
+        help_text=_("Branch can fulfill customer orders and POS sales from this warehouse."),
+    )
+    can_replenish = models.BooleanField(
+        _("can request stock from this warehouse"),
+        default=True,
+        help_text=_("Branch can request stock replenishment transfers from this warehouse."),
+    )
+    priority = models.PositiveSmallIntegerField(
+        _("fulfillment priority"),
+        default=1,
+        help_text=_("Lower numbers have higher priority during inventory allocation."),
+    )
+
+    class Meta:
+        verbose_name = _("branch warehouse mapping")
+        verbose_name_plural = _("branch warehouse mappings")
+        ordering = ("priority", "warehouse__name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "branch", "warehouse"],
+                name="unique_org_branch_warehouse",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.branch.name} <-> {self.warehouse.name}"
 
 
 def _default_invitation_token() -> str:

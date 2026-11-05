@@ -434,3 +434,40 @@ def test_scanners_view_endpoint(pos_view_setup: dict[str, object], monkeypatch: 
     assert "scanners" in data
     assert len(data["scanners"]) == 1
     assert data["scanners"][0]["name"] == "Zebra / Symbol"
+
+
+def test_product_lookup_view_barcode_and_sku(pos_view_setup: dict[str, object]) -> None:
+    """Test /pos/lookup/ instant product resolution by barcode and SKU."""
+    client: Client = pos_view_setup["client"]  # type: ignore
+    prod: Product = pos_view_setup["prod"]  # type: ignore
+
+    # Set barcode on product
+    prod.barcode = "8901234567890"
+    prod.save()
+
+    # 1. Lookup by Barcode
+    res = client.get("/pos/lookup/", {"query": "8901234567890"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["found"] is True
+    assert data["product"]["id"] == prod.pk
+    assert data["product"]["sku"] == "LATTE-01"
+    assert data["product"]["barcode"] == "8901234567890"
+    assert data["product"]["name"] == "Latte Cup"
+
+    # 2. Lookup by SKU
+    res = client.get("/pos/lookup/", {"query": "LATTE-01"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["found"] is True
+    assert data["product"]["id"] == prod.pk
+
+    # 3. Non-existent barcode
+    res = client.get("/pos/lookup/", {"query": "9999999999999"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["found"] is False
+
+    # 4. Empty query returns 400
+    res = client.get("/pos/lookup/", {"query": ""})
+    assert res.status_code == 400

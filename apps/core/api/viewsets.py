@@ -79,8 +79,11 @@ class TenantScopedViewSet(viewsets.GenericViewSet):
         # 2. Existing request.organization resolved by TenantMiddleware
         org = getattr(request, "organization", None)
         if org is not None:
-            self._validate_membership(user, org)
-            return org
+            try:
+                self._validate_membership(user, org)
+                return org
+            except TenantAccessError:
+                pass
 
         # 3. User default membership fallback
         if user and user.is_authenticated and apps.is_installed("apps.tenancy"):

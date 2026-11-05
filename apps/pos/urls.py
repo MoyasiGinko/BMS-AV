@@ -20,6 +20,7 @@ urlpatterns = [
     path("cart/<int:held_cart_id>/resume/", views.resume_cart_action, name="resume_cart"),
     path("printers/", views.printers_view, name="printers"),
     path("scanners/", views.scanners_view, name="scanners"),
+    path("lookup/", views.product_lookup_view, name="lookup"),
     path("printers/test/", views.test_printer_action, name="test_printer"),
     path("drawer/open/", views.open_drawer_action, name="open_drawer"),
 ]

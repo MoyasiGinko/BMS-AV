@@ -58,6 +58,7 @@ urlpatterns = [
     path("backoffice/", include("apps.backoffice.urls", namespace="backoffice")),
     path("catalog/", include("apps.catalog.urls", namespace="catalog")),
     path("inventory/", include("apps.inventory.urls", namespace="inventory")),
+    path("warehouses/", include("apps.warehouses.urls", namespace="warehouses")),
     path("customers/", include("apps.customers.urls", namespace="customers")),
     path("sales/", include("apps.sales.urls", namespace="sales")),
     path("pos/", include("apps.pos.urls", namespace="pos")),

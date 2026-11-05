@@ -1,0 +1,315 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Branches" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div
+  x-data="{
+    modalOpen: false,
+    isEdit: false,
+    branchId: '',
+    name: '',
+    code: '',
+    address: '',
+    phone: '',
+    isHeadquarters: false,
+    isActive: true,
+    openCreate() {
+      this.isEdit = false;
+      this.branchId = '';
+      this.name = '';
+      this.code = '';
+      this.address = '';
+      this.phone = '';
+      this.isHeadquarters = false;
+      this.isActive = true;
+      this.modalOpen = true;
+    },
+    openEdit(id, name, code, addr, phone, isHq, isActive) {
+      this.isEdit = true;
+      this.branchId = id;
+      this.name = name;
+      this.code = code;
+      this.address = addr;
+      this.phone = phone;
+      this.isHeadquarters = isHq;
+      this.isActive = isActive;
+      this.modalOpen = true;
+    }
+  }"
+  class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+>
+  <!-- Module Sub-Navigation Bar -->
+  <div class="flex items-center gap-2 border-b border-[var(--border)] pb-3 overflow-x-auto">
+    <a
+      href="{% url 'warehouses:list' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      {% trans "Warehouses" %}
+    </a>
+    <a
+      href="{% url 'warehouses:branch_list' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-colors bg-[var(--brand-50)] text-[var(--brand-700)] shadow-xs"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      {% trans "Branches" %}
+    </a>
+    <a
+      href="{% url 'warehouses:location_list' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+      {% trans "Locations & Bins" %}
+    </a>
+    <a
+      href="{% url 'warehouses:route_list' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+      {% trans "Supply Routes" %}
+    </a>
+  </div>
+
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
+    <div>
+      <h1 class="text-xl font-bold text-[var(--text)]">{% trans "Operating branches" %}</h1>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Retail outlets, sales counters, and headquarters conducting business." %}
+      </p>
+    </div>
+    {% if can_manage %}
+      <button
+        type="button"
+        @click="openCreate()"
+        class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        {% trans "Create branch" %}
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- KPI Overview Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Total branches" %}</div>
+      <div class="text-2xl font-bold text-[var(--text)] mt-1.5">{{ total_branches }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Configured outlets" %}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Headquarters" %}</div>
+      <div class="text-lg font-bold text-[var(--brand-600)] mt-1.5 truncate">{{ hq_branch.name|default:"Not designated" }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Primary operational location" %}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Active outlets" %}</div>
+      <div class="text-2xl font-bold text-emerald-600 mt-1.5">{{ active_branches }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Selling and serving customers" %}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Fulfillment warehouses" %}</div>
+      <div class="text-2xl font-bold text-blue-600 mt-1.5">{{ warehouses.count }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Connected storage facilities" %}</div>
+    </div>
+  </div>
+
+  <!-- Branches Table -->
+  <div class="space-y-3">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-[var(--text)]">{% trans "Branch directory" %}</h2>
+    </div>
+
+    <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+              <th class="py-3 px-4">{% trans "Branch name" %}</th>
+              <th class="py-3 px-4">{% trans "Code" %}</th>
+              <th class="py-3 px-4">{% trans "Role" %}</th>
+              <th class="py-3 px-4">{% trans "Contact & address" %}</th>
+              <th class="py-3 px-4">{% trans "Fulfillment warehouses" %}</th>
+              <th class="py-3 px-4">{% trans "Status" %}</th>
+              {% if can_manage %}
+                <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]">
+            {% for branch in branches %}
+              <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+                <td class="py-3 px-4 font-semibold text-[var(--text)]">
+                  {{ branch.name }}
+                </td>
+                <td class="py-3 px-4 font-mono text-xs text-[var(--text-muted)]">
+                  {{ branch.code|default:"—" }}
+                </td>
+                <td class="py-3 px-4">
+                  {% if branch.is_headquarters %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-50)] text-[var(--brand-700)] border border-[var(--brand-200)]">
+                      {% trans "Headquarters" %}
+                    </span>
+                  {% else %}
+                    <span class="text-xs text-[var(--text-subtle)]">{% trans "Outlet" %}</span>
+                  {% endif %}
+                </td>
+                <td class="py-3 px-4 text-xs text-[var(--text-muted)] max-w-xs">
+                  {% if branch.phone %}<span class="block font-medium text-[var(--text)]">{{ branch.phone }}</span>{% endif %}
+                  <span class="block truncate">{{ branch.address|default:"—" }}</span>
+                </td>
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    {% for mapping in mappings %}
+                      {% if mapping.branch_id == branch.id %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium {% if mapping.is_default %}bg-emerald-500/10 text-emerald-700 border border-emerald-500/20{% else %}bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]{% endif %}" title="Priority: {{ mapping.priority }}">
+                          {{ mapping.warehouse.name }}
+                          {% if mapping.is_default %}&bull; {% trans "Primary" %}{% endif %}
+                        </span>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </td>
+                <td class="py-3 px-4">
+                  {% if branch.is_active %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      {% trans "Active" %}
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                      {% trans "Inactive" %}
+                    </span>
+                  {% endif %}
+                </td>
+                {% if can_manage %}
+                  <td class="py-3 px-4 text-right">
+                    <div class="inline-flex items-center gap-2">
+                      <button
+                        type="button"
+                        @click="openEdit('{{ branch.id }}', '{{ branch.name|escapejs }}', '{{ branch.code|escapejs }}', '{{ branch.address|escapejs }}', '{{ branch.phone|escapejs }}', {{ branch.is_headquarters|yesno:'true,false' }}, {{ branch.is_active|yesno:'true,false' }})"
+                        class="text-xs font-semibold text-[var(--brand-600)] hover:text-[var(--brand-700)] transition-colors"
+                      >
+                        {% trans "Edit" %}
+                      </button>
+                      {% if not branch.is_headquarters %}
+                        <form method="post" action="{% url 'warehouses:branch_list' %}" class="inline" onsubmit="return confirm('{% trans 'Delete this branch?' %}');">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="delete">
+                          <input type="hidden" name="branch_id" value="{{ branch.id }}">
+                          <button type="submit" class="text-xs text-rose-500 hover:text-rose-600 font-medium">
+                            {% trans "Delete" %}
+                          </button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </td>
+                {% endif %}
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="py-8 text-center text-sm text-[var(--text-muted)]">
+                  {% trans "No branches yet." %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create / Edit Branch Modal -->
+  <div
+    x-show="modalOpen"
+    x-cloak
+    class="fixed inset-0 z-50 overflow-y-auto"
+    aria-labelledby="branch-modal-title"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="flex items-center justify-center min-h-screen p-4 text-center">
+      <div
+        x-show="modalOpen"
+        x-transition:enter="ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs"
+        @click="modalOpen = false"
+      ></div>
+
+      <div
+        x-show="modalOpen"
+        x-transition:enter="ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+        x-transition:leave="ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        class="relative inline-block w-full max-w-md p-6 overflow-hidden text-left align-middle transition-all transform bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl z-10"
+      >
+        <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+          <h3 class="text-base font-bold text-[var(--text)]" id="branch-modal-title">
+            <span x-text="isEdit ? '{% trans 'Edit branch' %}' : '{% trans 'Create branch' %}'"></span>
+          </h3>
+          <button @click="modalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <form method="post" action="{% url 'warehouses:branch_list' %}" class="mt-4 space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save">
+          <input type="hidden" name="branch_id" :value="branchId">
+
+          <div>
+            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Branch name" %} *</label>
+            <input type="text" name="name" x-model="name" required class="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-500)] outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Branch code" %}</label>
+            <input type="text" name="code" x-model="code" placeholder="e.g. BR-DHD" class="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-500)] outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Phone" %}</label>
+            <input type="text" name="phone" x-model="phone" placeholder="+880..." class="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-500)] outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Address" %}</label>
+            <textarea name="address" x-model="address" rows="2" class="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-500)] outline-none"></textarea>
+          </div>
+
+          <div class="space-y-2 pt-2 border-t border-[var(--border)]">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="is_headquarters" x-model="isHeadquarters" class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
+              <span class="text-xs text-[var(--text)] font-medium">{% trans "Designate as headquarters branch" %}</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="is_active" x-model="isActive" class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
+              <span class="text-xs text-[var(--text)] font-medium">{% trans "Active outlet" %}</span>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--border)]">
+            <button type="button" @click="modalOpen = false" class="px-4 py-2 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors">
+              {% trans "Cancel" %}
+            </button>
+            <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs">
+              {% trans "Save branch" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

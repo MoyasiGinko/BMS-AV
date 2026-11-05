@@ -1,0 +1,298 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Supply Routes" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div
+  x-data="{
+    modalOpen: false,
+    srcId: '',
+    dstId: '',
+    priority: 1,
+    leadTime: 0,
+    isPreferred: false,
+    canAutoReplenish: false,
+    notes: '',
+    openCreate() {
+      this.srcId = '{{ locations.0.pk|default:'' }}';
+      this.dstId = '{{ locations.1.pk|default:'' }}';
+      this.priority = 1;
+      this.leadTime = 0;
+      this.isPreferred = false;
+      this.canAutoReplenish = false;
+      this.notes = '';
+      this.modalOpen = true;
+    }
+  }"
+  class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+>
+  <!-- Module Sub-Navigation Bar -->
+  <div class="flex items-center gap-2 border-b border-[var(--border)] pb-3 overflow-x-auto">
+    <a
+      href="{% url 'warehouses:list' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      {% trans "Warehouses" %}
+    </a>
+    <a
+      href="{% url 'warehouses:branch_list' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      {% trans "Branches" %}
+    </a>
+    <a
+      href="{% url 'warehouses:location_list' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+      {% trans "Locations & Bins" %}
+    </a>
+    <a
+      href="{% url 'warehouses:route_list' %}"
+      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-colors bg-[var(--brand-50)] text-[var(--brand-700)] shadow-xs"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+      {% trans "Supply Routes" %}
+    </a>
+  </div>
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
+    <div>
+      <h1 class="text-xl font-bold text-[var(--text)]">{% trans "Dynamic Stock Supply Routes" %}</h1>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Replenishment matrix connecting source warehouses, distribution hubs, and branch outlets." %}
+      </p>
+    </div>
+    {% if can_manage %}
+      <button
+        type="button"
+        @click="openCreate()"
+        class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        {% trans "Configure route" %}
+      </button>
+    {% endif %}
+  </div>
+
+  <!-- Metrics -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Active supply routes" %}</div>
+      <div class="text-2xl font-bold text-[var(--text)] mt-1">{{ total_routes }}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Preferred primary routes" %}</div>
+      <div class="text-2xl font-bold text-emerald-600 mt-1">{{ preferred_count }}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Fulfillment nodes" %}</div>
+      <div class="text-2xl font-bold text-[var(--brand-600)] mt-1">{{ locations.count }}</div>
+    </div>
+  </div>
+
+  <!-- Routes Table -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-[var(--text)]">
+        <thead class="bg-[var(--surface-2)] text-[var(--text-subtle)] font-semibold border-b border-[var(--border)]">
+          <tr>
+            <th class="px-4 py-3">{% trans "Source (Supplying node)" %}</th>
+            <th class="px-4 py-3">{% trans "Destination (Receiving node)" %}</th>
+            <th class="px-4 py-3">{% trans "Priority" %}</th>
+            <th class="px-4 py-3">{% trans "Lead time" %}</th>
+            <th class="px-4 py-3">{% trans "Auto replenish" %}</th>
+            <th class="px-4 py-3">{% trans "Status" %}</th>
+            <th class="px-4 py-3 text-right">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for r in routes %}
+            <tr class="hover:bg-[var(--surface-2)]/60 transition-colors">
+              <td class="px-4 py-3 font-semibold text-[var(--text)]">
+                <div class="flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-[var(--brand-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                  <span>{{ r.source_location.name }}</span>
+                </div>
+                <div class="text-[11px] text-[var(--text-muted)] font-normal">{{ r.source_location.get_location_type_display }}</div>
+              </td>
+              <td class="px-4 py-3 font-semibold text-[var(--text)]">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[var(--brand-600)]">→</span>
+                  <span>{{ r.destination_location.name }}</span>
+                </div>
+                <div class="text-[11px] text-[var(--text-muted)] font-normal">{{ r.destination_location.get_location_type_display }}</div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold {% if r.priority == 1 %}bg-indigo-50 text-indigo-700{% else %}bg-slate-100 text-slate-700{% endif %}">
+                  P{{ r.priority }}
+                </span>
+                {% if r.is_preferred %}
+                  <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                    {% trans "Preferred" %}
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-[var(--text-muted)]">
+                {{ r.lead_time_days }} {% trans "days" %}
+              </td>
+              <td class="px-4 py-3">
+                {% if r.can_auto_replenish %}
+                  <span class="text-emerald-600 font-semibold text-xs">✓ {% trans "Enabled" %}</span>
+                {% else %}
+                  <span class="text-[var(--text-subtle)] text-xs">{% trans "Manual only" %}</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3">
+                {% if r.is_active %}
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    {% trans "Active" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    {% trans "Inactive" %}
+                  </span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-right">
+                {% if can_manage %}
+                  <form method="post" class="inline" onsubmit="return confirm('{% trans "Delete this supply route?" %}');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete" />
+                    <input type="hidden" name="route_id" value="{{ r.pk }}" />
+                    <button type="submit" class="p-1 rounded text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-[var(--text-muted)]">
+                {% trans "No stock supply routes configured." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Route Configuration Modal -->
+  <div
+    x-show="modalOpen"
+    x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+  >
+    <div
+      @click.away="modalOpen = false"
+      class="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl space-y-4"
+    >
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+        <h3 class="text-base font-bold text-[var(--text)]">{% trans "Configure Supply Route" %}</h3>
+        <button type="button" @click="modalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)] text-lg">✕</button>
+      </div>
+
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+
+        <div>
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Source location / warehouse" %} *</label>
+          <select
+            name="source_location_id"
+            x-model="srcId"
+            required
+            class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+          >
+            {% for l in locations %}
+              <option value="{{ l.pk }}">{{ l.name }} ({{ l.get_location_type_display }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Destination location / outlet" %} *</label>
+          <select
+            name="destination_location_id"
+            x-model="dstId"
+            required
+            class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+          >
+            {% for l in locations %}
+              <option value="{{ l.pk }}">{{ l.name }} ({{ l.get_location_type_display }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Priority (1 = highest)" %}</label>
+            <input
+              type="number"
+              name="priority"
+              x-model="priority"
+              min="1"
+              max="99"
+              class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Lead time (days)" %}</label>
+            <input
+              type="number"
+              name="lead_time_days"
+              x-model="leadTime"
+              min="0"
+              class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 pt-1">
+          <label class="flex items-center gap-2 text-xs font-medium text-[var(--text)] cursor-pointer">
+            <input type="checkbox" name="is_preferred" x-model="isPreferred" class="rounded text-[var(--brand-600)]" />
+            {% trans "Preferred route" %}
+          </label>
+          <label class="flex items-center gap-2 text-xs font-medium text-[var(--text)] cursor-pointer">
+            <input type="checkbox" name="can_auto_replenish" x-model="canAutoReplenish" class="rounded text-[var(--brand-600)]" />
+            {% trans "Auto replenish" %}
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Notes" %}</label>
+          <textarea
+            name="notes"
+            x-model="notes"
+            rows="2"
+            class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+          ></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
+          <button
+            type="button"
+            @click="modalOpen = false"
+            class="px-4 py-2 text-xs font-semibold rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-2)]"
+          >
+            {% trans "Cancel" %}
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]"
+          >
+            {% trans "Save route" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

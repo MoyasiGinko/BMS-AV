@@ -120,3 +120,24 @@ def test_switch_branch_view_forbidden_different_org(client: Client) -> None:
     response = client.get(url)
     assert response.status_code == 302
     assert client.session.get("active_branch_id") is None
+
+
+@pytest.mark.django_db
+def test_warehouses_and_branches_settings_redirect(client: Client) -> None:
+    u = User.objects.create_user(email="wh_owner@test.com", password=TEST_PASS)
+    org = create_organization(name="Warehouse Corp", slug="warehouse-corp", owner=u)
+
+    client.login(email="wh_owner@test.com", password=TEST_PASS)
+    session = client.session
+    session["active_org_id"] = org.pk
+    session.save()
+
+    url_wh = reverse("settings:warehouses")
+    res_wh = client.get(url_wh)
+    assert res_wh.status_code == 302
+    assert res_wh.url == reverse("warehouses:list")
+
+    url_br = reverse("settings:branches")
+    res_br = client.get(url_br)
+    assert res_br.status_code == 302
+    assert res_br.url == reverse("warehouses:branch_list")

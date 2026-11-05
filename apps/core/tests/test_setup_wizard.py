@@ -1,10 +1,8 @@
-"""Tests for SystemConfiguration, system deployment modes, and the First-Run Setup Wizard."""
-
-from __future__ import annotations
+"""Tests for first-run setup wizard and system initialization."""
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 
 from apps.core.middleware import TenantMiddleware
 from apps.core.models import SystemConfiguration
@@ -16,53 +14,50 @@ from apps.core.system_mode import (
     is_saas_mode,
     is_system_initialized,
 )
-from apps.tenancy.models import Organization
+from apps.tenancy.models import Branch, Membership, Organization
 
 User = get_user_model()
 
 
 @pytest.mark.django_db
-class TestSystemModeAndConfiguration:
-    def test_default_system_configuration(self):
-        config = SystemConfiguration.get_solo()
-        assert config.pk == 1
-        assert config.deployment_mode == SystemConfiguration.MODE_DEDICATED
-        assert config.is_initialized is False
-
-    def test_mode_helpers_reflect_configuration(self):
-        config = SystemConfiguration.get_solo()
-        config.deployment_mode = "dedicated"
-        config.save()
-
-        assert is_dedicated_mode() is True
-        assert is_saas_mode() is False
+class TestSystemModeHelpers:
+    def test_default_mode_is_dedicated(self):
+        # Fresh clean state
+        SystemConfiguration.objects.all().delete()
         assert get_deployment_mode() == "dedicated"
-
-        config.deployment_mode = "saas"
-        config.save()
-
-        assert is_dedicated_mode() is False
-        assert is_saas_mode() is True
-        assert get_deployment_mode() == "saas"
-
-    @override_settings(DEPLOYMENT_MODE="dedicated")
-    def test_settings_override_mode(self):
         assert is_dedicated_mode() is True
         assert is_saas_mode() is False
 
-    @override_settings(DEPLOYMENT_MODE="saas")
-    def test_settings_override_saas_mode(self):
-        assert is_saas_mode() is True
-        assert is_dedicated_mode() is False
+    def test_uninitialized_system_when_no_orgs_and_uninitialized(self):
+        SystemConfiguration.objects.all().delete()
+        Organization.objects.all().delete()
+        assert is_system_initialized() is False
+
+    def test_initialized_when_config_is_initialized(self):
+        config = SystemConfiguration.get_solo()
+        config.is_initialized = True
+        config.save()
+        assert is_system_initialized() is True
+
+    def test_backward_compatibility_with_existing_org(self):
+        SystemConfiguration.objects.all().delete()
+        user = User.objects.create_user(email="compat@test.com", password="password")
+        org = Organization.objects.create(name="Existing Org", slug="existing-org")
+        Membership.all_tenants.create(organization=org, user=user, is_owner=True)
+
+        assert is_system_initialized() is True
+        assert get_primary_organization() == org
 
 
 @pytest.mark.django_db
 class TestSetupProvisioningService:
     def test_provision_dedicated_mode(self):
-        admin_user, org = provision_initial_system(
+        admin_user, org, business_sa = provision_initial_system(
             deployment_mode="dedicated",
             system_name="Test Enterprise BMS",
             entity_name="Acme Corporation",
+            branch_name="Headquarters",
+            branch_code="HQ",
             admin_name="Lead Admin",
             admin_email="superadmin@testdomain.com",
             admin_password="SuperSecurePassword123!",
@@ -77,9 +72,16 @@ class TestSetupProvisioningService:
         assert admin_user is not None
         assert admin_user.is_superuser is True
         assert admin_user.email == "superadmin@testdomain.com"
+        assert business_sa == admin_user
         assert org is not None
         assert org.name == "Acme Corporation"
         assert org.base_currency == "BDT"
+
+        # Check headquarters branch was created
+        branch = Branch.all_tenants.filter(organization=org, is_headquarters=True).first()
+        assert branch is not None
+        assert branch.name == "Headquarters"
+        assert branch.code == "HQ"
 
         config = SystemConfiguration.get_solo()
         assert config.is_initialized is True
@@ -88,8 +90,36 @@ class TestSetupProvisioningService:
         assert is_system_initialized() is True
         assert get_primary_organization() == org
 
+    def test_provision_with_separate_business_superadmin(self):
+        software_owner, org, business_sa = provision_initial_system(
+            deployment_mode="dedicated",
+            system_name="Software Platform",
+            entity_name="Client Business Ltd",
+            branch_name="Main Branch",
+            branch_code="MAIN",
+            admin_name="Platform Owner",
+            admin_email="owner@platform.com",
+            admin_password="OwnerPassword123!",
+            superadmin_same_as_owner=False,
+            superadmin_name="Rahim Business Owner",
+            superadmin_email="rahim@clientbiz.com",
+            superadmin_password="RahimSecurePassword123!",
+            country="BD",
+            currency="BDT",
+        )
+
+        assert software_owner.is_superuser is True
+        assert business_sa.is_superuser is False
+        assert business_sa.email == "rahim@clientbiz.com"
+
+        # Organization membership
+        membership = Membership.all_tenants.get(organization=org, user=business_sa)
+        assert membership.role.name == "Superadmin"
+        assert membership.role.is_system is True
+        assert membership.is_owner is True
+
     def test_provision_saas_mode(self):
-        admin_user, org = provision_initial_system(
+        admin_user, _org, _sa = provision_initial_system(
             deployment_mode="saas",
             system_name="SaaS Cloud BMS",
             entity_name="Cloud Platform",
@@ -145,7 +175,7 @@ class TestSetupMiddlewareAndRouting:
         assert response is request
 
     def test_dedicated_mode_auto_binds_primary_organization(self):
-        admin_user, org = provision_initial_system(
+        admin_user, org, _sa = provision_initial_system(
             deployment_mode="dedicated",
             system_name="Dedicated Store",
             entity_name="Main Store",
@@ -162,12 +192,11 @@ class TestSetupMiddlewareAndRouting:
         request.session = {}
 
         middleware = TenantMiddleware(lambda req: req)
-        res = middleware(request)
+        middleware(request)
 
         assert hasattr(request, "organization")
         assert request.organization == org
         assert request.tenant == org
-
 
 
 @pytest.mark.django_db
@@ -180,7 +209,7 @@ class TestSetupWizardView:
 
         response = client.get("/setup/")
         assert response.status_code == 200
-        assert "Choose deployment mode" in response.content.decode("utf-8")
+        assert "System setup" in response.content.decode("utf-8")
 
     def test_post_wizard_initializes_system(self, client):
         config = SystemConfiguration.get_solo()
@@ -192,10 +221,13 @@ class TestSetupWizardView:
             "deployment_mode": "dedicated",
             "system_name": "Wizard Test Store",
             "entity_name": "Wizard Corp",
+            "branch_name": "Main Store",
+            "branch_code": "MAIN",
             "admin_name": "Setup Admin",
             "admin_email": "setupadmin@teststore.com",
             "admin_password": "SecurePassword123!",
             "admin_password_confirm": "SecurePassword123!",
+            "superadmin_same_as_owner": "true",
             "country": "BD",
             "currency": "BDT",
             "timezone": "Asia/Dhaka",

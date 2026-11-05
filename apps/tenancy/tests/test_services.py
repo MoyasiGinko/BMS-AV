@@ -33,7 +33,7 @@ def test_create_organization_provisioning() -> None:
     # Default roles created
     roles = Role.all_tenants.filter(organization=org)
     role_names = set(roles.values_list("name", flat=True))
-    assert {"Owner", "Admin", "Manager", "Accountant", "Cashier", "HR", "Viewer"}.issubset(role_names)
+    assert {"Superadmin", "Admin", "Manager", "Accountant", "Cashier", "HR", "Viewer"}.issubset(role_names)
 
     # Headquarters branch created
     branch = Branch.all_tenants.filter(organization=org, is_headquarters=True).first()

@@ -11,6 +11,8 @@ from django.utils import timezone
 from apps.inventory.models import (
     Batch,
     BatchStock,
+    InventoryLocation,
+    InventoryReconciliationIncident,
     SerialNumber,
     SerialStatus,
     StockAdjustment,
@@ -22,6 +24,14 @@ from apps.inventory.models import (
     StockTransfer,
 )
 from apps.tenancy.models import Organization, Warehouse
+from apps.warehouses.selectors import (
+    get_inventory_location as get_inventory_location,
+    get_location_hierarchy as get_location_hierarchy,
+    get_preferred_supply_route as get_preferred_supply_route,
+    get_supply_route as get_supply_route,
+    list_inventory_locations as list_inventory_locations,
+    list_supply_routes as list_supply_routes,
+)
 
 DECIMAL_ZERO = Decimal("0.0000")
 
@@ -496,3 +506,46 @@ def get_reorder_suggestions(
         )
 
     return suggestions
+
+
+# Re-exported from apps.warehouses.selectors for backwards compatibility
+
+
+def list_reconciliation_incidents(
+    *,
+    organization: Organization,
+    status: str | None = None,
+    discrepancy_type: str | None = None,
+    location: InventoryLocation | None = None,
+    warehouse: Warehouse | None = None,
+) -> QuerySet[InventoryReconciliationIncident]:
+    """List inventory reconciliation incidents with filtering."""
+    qs = InventoryReconciliationIncident.all_tenants.filter(
+        organization=organization
+    ).select_related("location", "warehouse", "product", "resolved_by", "adjustment")
+
+    if status:
+        qs = qs.filter(status=status)
+    if discrepancy_type:
+        qs = qs.filter(discrepancy_type=discrepancy_type)
+    if location is not None:
+        qs = qs.filter(location=location)
+    if warehouse is not None:
+        qs = qs.filter(warehouse=warehouse)
+
+    return qs.order_by("-created_at")
+
+
+def get_reconciliation_incident(
+    *,
+    organization: Organization,
+    incident_id: int,
+) -> InventoryReconciliationIncident | None:
+    """Retrieve a single reconciliation incident by ID."""
+    return (
+        InventoryReconciliationIncident.all_tenants.filter(
+            organization=organization, pk=incident_id
+        )
+        .select_related("location", "warehouse", "product", "resolved_by", "adjustment")
+        .first()
+    )

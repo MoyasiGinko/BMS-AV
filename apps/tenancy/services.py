@@ -15,12 +15,13 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.core.events import publish
-from apps.core.exceptions import ConflictError, RecordNotFoundError, ValidationError
+from apps.core.exceptions import ConflictError, PermissionDeniedError, RecordNotFoundError, ValidationError
 from apps.core.hooks import run_provisioning_hooks
 from apps.core.models import NumberSequence
 from apps.core.permissions import get_user_allowed_branch_ids
 from apps.tenancy.models import (
     Branch,
+    BranchWarehouse,
     Currency,
     Department,
     Invitation,
@@ -32,14 +33,24 @@ from apps.tenancy.models import (
     TaxCode,
     Warehouse,
 )
+from apps.warehouses.services import (  # noqa: F401
+    create_warehouse,
+    delete_warehouse,
+    link_warehouse_to_branch,
+    set_branch_default_warehouse,
+    unlink_warehouse_from_branch,
+    update_warehouse,
+)
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
+    "Superadmin": ["*"],
     "Owner": ["*"],
     "Admin": [
         "catalog.*",
         "inventory.*",
+        "warehouses.*",
         "sales.*",
         "purchasing.*",
         "customers.*",
@@ -59,6 +70,7 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
     "Manager": [
         "catalog.*",
         "inventory.*",
+        "warehouses.*",
         "sales.*",
         "purchasing.*",
         "customers.*",
@@ -79,6 +91,7 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
         "accounting.*",
         "sales.view",
         "purchasing.view",
+        "warehouses.view",
         "reports.*",
         "customers.view",
         "payroll.view",
@@ -92,6 +105,7 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
         "sales.create",
         "customers.view",
         "catalog.view",
+        "warehouses.view",
     ],
     "HR": [
         "hr.*",
@@ -103,6 +117,7 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
     "Viewer": [
         "catalog.view",
         "inventory.view",
+        "warehouses.view",
         "sales.view",
         "customers.view",
         "reports.view",
@@ -118,19 +133,47 @@ DEFAULT_ROLES_PERMISSIONS: dict[str, list[str]] = {
 
 @transaction.atomic
 def seed_default_roles(*, organization: Organization) -> dict[str, Role]:
-    """Seed system roles and permission codes for an organization."""
+    """Seed roles for an organization.
+
+    'Superadmin' is the single hardcoded system role (is_system=True) directly
+    below superuser, with full authority across all modules.
+    All other roles are dynamic starter roles (is_system=False) that can be
+    renamed, customized with module permissions, or deleted.
+    """
     created_roles: dict[str, Role] = {}
+
+    # 1. Hardcoded Superadmin role (highest authority from user perspective)
+    superadmin_role, _created = Role.all_tenants.get_or_create(
+        organization=organization,
+        name="Superadmin",
+        defaults={
+            "description": _("Highest authority below superuser. Full access to all modules and settings."),
+            "permissions": ["*"],
+            "is_system": True,
+        },
+    )
+    if not superadmin_role.is_system or superadmin_role.permissions != ["*"]:
+        superadmin_role.is_system = True
+        superadmin_role.permissions = ["*"]
+        superadmin_role.save(update_fields=["is_system", "permissions"])
+    created_roles["Superadmin"] = superadmin_role
+    created_roles["Owner"] = superadmin_role  # Backwards compatibility alias
+
+    # 2. Dynamic starter roles (is_system=False)
     for role_name, perms in DEFAULT_ROLES_PERMISSIONS.items():
-        role, _ = Role.all_tenants.get_or_create(
+        if role_name in ("Superadmin", "Owner"):
+            continue
+        role, _created = Role.all_tenants.get_or_create(
             organization=organization,
             name=role_name,
             defaults={
                 "description": f"Standard {role_name} role",
                 "permissions": perms,
-                "is_system": True,
+                "is_system": False,
             },
         )
         created_roles[role_name] = role
+
     return created_roles
 
 
@@ -172,6 +215,12 @@ def invite_member(
 ) -> Invitation:
     """Send an invitation email to join an organization with a specific role."""
     normalized_email = email.lower().strip()
+
+    # Only software owner (superuser) can invite someone directly with Superadmin role
+    if getattr(role, "is_system", False) or getattr(role, "name", "").strip().lower() in ("superadmin", "super admin"):
+        is_actor_superuser = bool(actor and getattr(actor, "is_superuser", False))
+        if not is_actor_superuser:
+            raise PermissionDeniedError(_("Only the software owner (superuser) can set or invite the Superadmin role."))
 
     # Check existing active membership
     if Membership.all_tenants.filter(organization=organization, user__email=normalized_email).exists():
@@ -254,11 +303,12 @@ def provision_organization(
     # 1. Seed system roles
     roles = seed_default_roles(organization=org)
 
-    # 2. Assign owner membership
+    # 2. Assign Superadmin membership
+    superadmin_role = roles.get("Superadmin") or roles.get("Owner")
     Membership.all_tenants.create(
         organization=org,
         user=owner,
-        role=roles["Owner"],
+        role=superadmin_role,
         is_owner=True,
         status=Membership.STATUS_ACTIVE,
     )
@@ -278,6 +328,15 @@ def provision_organization(
         name=warehouse_name.strip() or "Main Warehouse",
         code=warehouse_code.strip() or "WH-MAIN",
         is_default=True,
+    )
+    BranchWarehouse.all_tenants.create(
+        organization=org,
+        branch=branch,
+        warehouse=warehouse,
+        is_default=True,
+        can_sell=True,
+        can_replenish=True,
+        priority=1,
     )
 
     # 5. Seed organization settings
@@ -445,6 +504,17 @@ def accept_invitation(*, token: str, user: AbstractBaseUser) -> Membership:
 
 def switch_organization(*, user: AbstractBaseUser, organization_id: int, session: Any) -> Organization:
     """Verify membership and switch the active organization stored in the session."""
+    # Software owner (superuser) can switch to any active organization
+    if getattr(user, "is_superuser", False):
+        org = Organization.objects.filter(pk=organization_id, is_active=True).first()
+        if org is None:
+            raise ValidationError(_("Organization does not exist or is inactive."))
+        session["active_org_id"] = organization_id
+        session["active_branch_id"] = None
+        if hasattr(session, "modified"):
+            session.modified = True
+        return org
+
     membership = (
         Membership.all_tenants.filter(
             user=user,
@@ -617,65 +687,9 @@ def delete_branch(*, branch: Branch, actor: Any = None) -> None:
     """Delete branch with safety validation against headquarters or linked warehouses."""
     if branch.is_headquarters:
         raise ValidationError(_("Cannot delete headquarters branch."))
-    if branch.warehouses.exists():
+    if branch.co_located_warehouses.exists() or branch.branch_warehouses.exists():
         raise ValidationError(_("Cannot delete branch that has associated warehouses."))
     branch.delete()
-
-
-@transaction.atomic
-def create_warehouse(
-    *,
-    organization: Organization,
-    branch: Branch,
-    name: str,
-    code: str = "",
-    is_default: bool = False,
-    actor: Any = None,
-) -> Warehouse:
-    """Create a storage warehouse attached to a branch."""
-    if is_default:
-        Warehouse.all_tenants.filter(organization=organization, is_default=True).update(is_default=False)
-    return Warehouse.objects.create(
-        organization=organization,
-        branch=branch,
-        name=name.strip(),
-        code=code.strip().upper(),
-        is_default=is_default,
-        created_by=actor if getattr(actor, "is_authenticated", False) else None,
-    )
-
-
-@transaction.atomic
-def update_warehouse(
-    *,
-    warehouse: Warehouse,
-    name: str,
-    branch: Branch,
-    code: str = "",
-    is_default: bool = False,
-    is_active: bool = True,
-    actor: Any = None,
-) -> Warehouse:
-    """Update warehouse attributes."""
-    if is_default and not warehouse.is_default:
-        Warehouse.all_tenants.filter(organization=warehouse.organization, is_default=True).update(
-            is_default=False
-        )
-    warehouse.name = name.strip()
-    warehouse.branch = branch
-    warehouse.code = code.strip().upper()
-    warehouse.is_default = is_default
-    warehouse.is_active = is_active
-    warehouse.save()
-    return warehouse
-
-
-@transaction.atomic
-def delete_warehouse(*, warehouse: Warehouse, actor: Any = None) -> None:
-    """Delete warehouse with safety guard against default warehouse removal."""
-    if warehouse.is_default:
-        raise ValidationError(_("Cannot delete default warehouse."))
-    warehouse.delete()
 
 
 @transaction.atomic
@@ -733,12 +747,15 @@ def create_custom_role(
     permissions: list[str] | None = None,
     actor: Any = None,
 ) -> Role:
-    """Create a user-defined custom role with specified permission codes."""
-    if Role.all_tenants.filter(organization=organization, name__iexact=name.strip()).exists():
-        raise ConflictError(_("A role with name '%(name)s' already exists.") % {"name": name})
+    """Create a dynamic user-defined role with specified module permissions."""
+    clean_name = name.strip()
+    if clean_name.lower() in ("superadmin", "super admin"):
+        raise ConflictError(_("The 'Superadmin' role is reserved as the hardcoded authority role."))
+    if Role.all_tenants.filter(organization=organization, name__iexact=clean_name).exists():
+        raise ConflictError(_("A role with name '%(name)s' already exists.") % {"name": clean_name})
     return Role.objects.create(
         organization=organization,
-        name=name.strip(),
+        name=clean_name,
         description=description.strip(),
         permissions=permissions or [],
         is_system=False,
@@ -755,23 +772,33 @@ def update_custom_role(
     permissions: list[str] | None = None,
     actor: Any = None,
 ) -> Role:
-    """Update role details and permissions."""
-    if role.is_system and role.name != name.strip():
-        raise ValidationError(_("Cannot rename system roles."))
-    role.name = name.strip()
+    """Update dynamic role details and module permissions."""
+    clean_name = name.strip()
+    if role.is_superadmin:
+        if clean_name.lower() not in ("superadmin", "super admin"):
+            raise ValidationError(_("Cannot rename the hardcoded Superadmin role."))
+        role.description = description.strip() or role.description
+        role.permissions = ["*"]
+        role.save()
+        return role
+
+    if clean_name.lower() in ("superadmin", "super admin"):
+        raise ValidationError(_("Cannot rename a dynamic role to 'Superadmin'."))
+
+    role.name = clean_name
     role.description = description.strip()
-    if not role.is_system or role.name != "Owner":
-        role.permissions = permissions or []
+    role.permissions = permissions or []
     role.save()
     return role
 
 
 @transaction.atomic
 def delete_custom_role(*, role: Role, actor: Any = None) -> None:
-    """Delete custom role, guarding against system roles and roles in active use."""
-    if role.is_system:
-        raise ValidationError(_("System default roles cannot be deleted."))
-    if role.memberships.exists():
+    """Delete dynamic role. Superadmin is hardcoded and cannot be deleted."""
+    if role.is_superadmin or role.is_system or role.name.lower() in ("superadmin", "super admin"):
+        raise ValidationError(_("The Superadmin role is hardcoded and cannot be deleted."))
+    # all_tenants is required here to reliably check membership across service callers
+    if Membership.all_tenants.filter(organization=role.organization, role=role).exists():
         raise ValidationError(_("Cannot delete role with assigned active members."))
     role.delete()
 
@@ -794,6 +821,18 @@ def update_member_role(
     """Change a member's role or status."""
     if membership.is_owner and status != Membership.STATUS_ACTIVE:
         raise ValidationError(_("Organization owner cannot be suspended."))
+
+    is_system_role_involved = (
+        getattr(role, "is_system", False)
+        or (membership.role and getattr(membership.role, "is_system", False))
+        or getattr(role, "name", "").strip().lower() in ("superadmin", "super admin")
+        or (membership.role and getattr(membership.role, "name", "").strip().lower() in ("superadmin", "super admin"))
+    )
+    if is_system_role_involved:
+        is_actor_superuser = bool(actor and getattr(actor, "is_superuser", False))
+        if not is_actor_superuser:
+            raise PermissionDeniedError(_("Only the software owner (superuser) can set or change the Superadmin role."))
+
     membership.role = role
     membership.status = status
     membership.save(update_fields=["role", "status", "updated_at"])
@@ -805,6 +844,17 @@ def remove_member(*, membership: Membership, actor: Any = None) -> None:
     """Remove member from organization, preventing owner removal."""
     if membership.is_owner:
         raise ValidationError(_("Organization owner cannot be removed."))
+
+    is_superadmin_member = (
+        getattr(membership, "is_owner", False)
+        or (membership.role and getattr(membership.role, "is_system", False))
+        or (membership.role and getattr(membership.role, "name", "").strip().lower() in ("superadmin", "super admin"))
+    )
+    if is_superadmin_member:
+        is_actor_superuser = bool(actor and getattr(actor, "is_superuser", False))
+        if not is_actor_superuser:
+            raise PermissionDeniedError(_("Only the software owner (superuser) can remove a Superadmin."))
+
     membership.delete()
 
 

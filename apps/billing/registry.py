@@ -220,6 +220,32 @@ registry.register(
 )
 
 registry.register(
+    "warehouses",
+    name="Warehouses & Branches",
+    description="Storage facilities, central distribution hubs, retail branches, and fulfillment mappings",
+    icon="building-office",
+    sort_order=45,
+    nav_items=[
+        NavItem(
+            "Warehouses",
+            "warehouses:list",
+            icon="building-office",
+            permission="warehouses.view",
+        ),
+        NavItem(
+            "Branches",
+            "warehouses:branch_list",
+            icon="building-storefront",
+            permission="warehouses.view",
+        ),
+    ],
+    permissions=[
+        "warehouses.view",
+        "warehouses.manage",
+    ],
+)
+
+registry.register(
     "customers",
     name="Customers",
     description="Customer accounts, contact directory, and balances",

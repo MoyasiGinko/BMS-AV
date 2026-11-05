@@ -20,7 +20,16 @@ from apps.tenancy.models import (
     OrganizationSettings,
     Role,
     TaxCode,
-    Warehouse,
+)
+from apps.warehouses.selectors import (  # noqa: F401
+    get_branch_warehouse_mapping,
+    get_default_warehouse_for_branch,
+    get_warehouse_by_id,
+    list_branch_warehouse_mappings,
+    list_branch_warehouses,
+    list_branches_for_warehouse,
+    list_organization_warehouses,
+    list_warehouses,
 )
 
 
@@ -60,13 +69,7 @@ def list_organization_branches(*, organization_id: int) -> QuerySet[Branch]:
     return Branch.all_tenants.filter(organization_id=organization_id, is_active=True).order_by("name")
 
 
-def list_organization_warehouses(*, organization_id: int) -> QuerySet[Warehouse]:
-    """Return all warehouses belonging to an organization."""
-    return (
-        Warehouse.all_tenants.filter(organization_id=organization_id, is_active=True)
-        .select_related("branch")
-        .order_by("name")
-    )
+
 
 
 def get_organization_settings(*, organization_id: int) -> OrganizationSettings | None:
@@ -139,10 +142,7 @@ def get_branch_by_id(*, organization_id: int, branch_id: Any) -> Branch | None:
     return _filter_by_id_or_uuid(qs, branch_id)
 
 
-def get_warehouse_by_id(*, organization_id: int, warehouse_id: Any) -> Warehouse | None:
-    """Retrieve warehouse by public_id or integer PK within organization."""
-    qs = Warehouse.all_tenants.filter(organization_id=organization_id).select_related("branch")
-    return _filter_by_id_or_uuid(qs, warehouse_id)
+
 
 
 def get_department_by_id(*, organization_id: int, department_id: Any) -> Department | None:
@@ -179,3 +179,4 @@ def get_number_sequence_by_id(*, organization_id: int, sequence_id: Any) -> Numb
     """Retrieve number sequence by public_id or integer PK within organization."""
     qs = NumberSequence.all_tenants.filter(organization_id=organization_id)
     return _filter_by_id_or_uuid(qs, sequence_id)
+

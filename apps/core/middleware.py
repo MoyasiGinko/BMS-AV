@@ -190,21 +190,15 @@ class TenantMiddleware:
         return all(not request.path.startswith(prefix) for prefix in EXEMPT_PREFIXES)
 
     def resolve_tenant(self, request: HttpRequest) -> Model | None:
-        """Resolve organization by header first, then subdomain, then active user membership fallback."""
+        """Resolve organization by header first, then subdomain, then active user membership, then dedicated mode fallback."""
         if not apps.is_installed("apps.tenancy"):
             return None
-
-        # In dedicated mode, auto-bind the primary organization
-        if is_dedicated_mode():
-            primary_org = get_primary_organization()
-            if primary_org is not None:
-                return primary_org
 
         org_model: Any = apps.get_app_config("tenancy").get_model("Organization")
         if org_model is None:
             return None
 
-        # 1. Header (essential for API clients: X-Organization-ID or X-Tenant-ID)
+        # 1. Header (essential for API clients and cross-tenant tests: X-Organization-ID or X-Tenant-ID)
         org = self._resolve_from_header(request, org_model)
         if org is not None:
             return org
@@ -215,7 +209,17 @@ class TenantMiddleware:
             return org
 
         # 3. User membership / active session
-        return self._resolve_from_user(request, org_model)
+        org = self._resolve_from_user(request, org_model)
+        if org is not None:
+            return org
+
+        # 4. In dedicated mode without explicit header/user, auto-bind the primary organization
+        if is_dedicated_mode():
+            primary_org = get_primary_organization()
+            if primary_org is not None:
+                return primary_org
+
+        return None
 
     def _resolve_from_header(self, request: HttpRequest, org_model: Any) -> Model | None:
         header_val = (

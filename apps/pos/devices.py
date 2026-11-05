@@ -70,6 +70,7 @@ def _is_printer_online(
     *,
     name: str,
     port: str,
+    location: str = "",
     ptype: str,
     status_flags: int = 0,
     attr_flags: int = 0,
@@ -81,7 +82,8 @@ def _is_printer_online(
     if ptype == "usb":
         return True
 
-    ip_match = re.search(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})", port)
+    combined_str = f"{port} {location} {name}"
+    ip_match = re.search(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})", combined_str)
     target_ip = ip_match.group(1) if ip_match else None
 
     if not target_ip:
@@ -100,14 +102,17 @@ def _is_printer_online(
                             break
 
     if target_ip:
-        for port_num in (9100, 80, 631):
+        for port_num in (9100, 80, 631, 515):
             with contextlib.suppress(Exception), socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.3)
+                s.settimeout(0.35)
                 s.connect((target_ip, port_num))
                 return True
         return False
 
-    return True
+    if ptype in ("wifi", "network"):
+        return False
+
+    return False
 
 
 def _enum_printers_winspool() -> list[dict[str, Any]]:
@@ -158,9 +163,11 @@ def _enum_printers_winspool() -> list[dict[str, Any]]:
                     if any(vk in name.lower() or vk in driver.lower() for vk in virtual_keywords):
                         continue
                     ptype, badge = _parse_printer_type(port)
+                    location = p.pLocation or ""
                     is_online = _is_printer_online(
                         name=name,
                         port=port,
+                        location=location,
                         ptype=ptype,
                         status_flags=p.Status,
                         attr_flags=p.Attributes,
@@ -192,7 +199,7 @@ def _get_windows_printers() -> list[dict[str, Any]]:
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        "Get-Printer | Select-Object Name, Type, DriverName, PortName, PrinterStatus | ConvertTo-Json -Compress",
+        "Get-Printer | Select-Object Name, Type, DriverName, PortName, Location, PrinterStatus | ConvertTo-Json -Compress",
     ]
     printers_out: list[dict[str, Any]] = []
     try:
@@ -211,6 +218,7 @@ def _get_windows_printers() -> list[dict[str, Any]]:
                 is_online = _is_printer_online(
                     name=name,
                     port=port,
+                    location=p.get("Location") or "",
                     ptype=ptype,
                 )
                 printers_out.append({
@@ -282,6 +290,10 @@ def _inspect_usb_device_instance(
     vendor_name: str | None,
 ) -> dict[str, Any] | None:
     """Check a single USB device instance in Windows registry and test presence."""
+    # Skip secondary composite sub-interfaces (keep primary device or MI_00)
+    if "&MI_" in dev_id and not dev_id.endswith("&MI_00"):
+        return None
+
     full_inst = f"USB\\{dev_id}\\{inst_id}"
     friendly_name = _read_registry_friendly_name(dev_path, inst_id)
 
@@ -292,11 +304,12 @@ def _inspect_usb_device_instance(
     if not is_scanner:
         return None
 
-    cfgmgr32 = ctypes.windll.cfgmgr32
-    dev_inst = wintypes.DWORD()
-    cr = cfgmgr32.CM_Locate_DevNodeW(ctypes.byref(dev_inst), full_inst, 0)
-    if cr != 0:
-        return None
+    is_online = False
+    with contextlib.suppress(Exception):
+        cfgmgr32 = ctypes.windll.cfgmgr32
+        dev_inst = wintypes.DWORD()
+        cr = cfgmgr32.CM_Locate_DevNodeW(ctypes.byref(dev_inst), full_inst, 0)
+        is_online = (cr == 0)
 
     name = vendor_name or friendly_name or "Barcode Scanner"
     serial = ""
@@ -310,7 +323,7 @@ def _inspect_usb_device_instance(
         "badge": "USB",
         "vendor": vendor_name or "Generic",
         "serial": serial,
-        "is_online": True,
+        "is_online": is_online,
     }
 
 
@@ -434,21 +447,20 @@ def _get_unix_scanners() -> list[dict[str, Any]]:
 def get_system_scanners() -> list[dict[str, Any]]:
     """Discover real physical/network barcode scanners connected to the host system."""
     sys_name = platform.system()
-    scanners: list[dict[str, Any]] = []
+    raw_scanners: list[dict[str, Any]] = []
     if sys_name == "Windows":
-        scanners = _get_windows_scanners()
+        raw_scanners = _get_windows_scanners()
     elif sys_name in ("Linux", "Darwin"):
-        scanners = _get_unix_scanners()
+        raw_scanners = _get_unix_scanners()
 
-    if not scanners:
-        scanners.append({
-            "id": "system_auto_hid",
-            "name": "Barcode Scanner (USB / HID)",
-            "type": "USB",
-            "badge": "Auto",
-            "vendor": "System Keyboard Wedge",
-            "serial": "",
-            "is_online": True,
-        })
+    # Deduplicate scanners by vendor and serial or ID
+    seen_keys: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for s in raw_scanners:
+        dedup_key = f"{s.get('vendor')}_{s.get('name')}_{s.get('serial')}"
+        if dedup_key not in seen_keys:
+            seen_keys.add(dedup_key)
+            deduped.append(s)
 
-    return scanners
+    # Only return actively connected online scanners; never return offline registry remnants
+    return [s for s in deduped if s.get("is_online")]

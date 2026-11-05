@@ -38,24 +38,6 @@
         </span>
       </a>
       <a
-        href="{% url 'settings:branches' %}"
-        class="neu-subnav-btn {% if active_tab == 'branches' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
-      >
-        <span class="flex items-center gap-2">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          {% trans "Branches" %}
-        </span>
-      </a>
-      <a
-        href="{% url 'settings:warehouses' %}"
-        class="neu-subnav-btn {% if active_tab == 'warehouses' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
-      >
-        <span class="flex items-center gap-2">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-          {% trans "Warehouses" %}
-        </span>
-      </a>
-      <a
         href="{% url 'settings:departments' %}"
         class="neu-subnav-btn {% if active_tab == 'departments' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4 py-2 rounded-xl text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
       >

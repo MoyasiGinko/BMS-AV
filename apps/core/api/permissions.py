@@ -22,13 +22,14 @@ from apps.core.permissions import (
 
 def _get_request_org(request: Request, view: Any) -> Any:
     """Helper to extract active organization from request or view."""
-    org = getattr(request, "organization", None)
-    if org is None and hasattr(view, "get_tenant"):
+    if hasattr(view, "get_tenant"):
         try:
             org = view.get_tenant()
+            if org:
+                return org
         except Exception:
-            org = None
-    return org
+            pass
+    return getattr(request, "organization", None)
 
 
 class HasFeatureEntitlement(BasePermission):

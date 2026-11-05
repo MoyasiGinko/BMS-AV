@@ -24,17 +24,181 @@ class MovementType(models.TextChoices):
     RETURN_OUT = "return_out", _("Return Out")
 
 
+class LocationType(models.TextChoices):
+    CENTRAL_WAREHOUSE = "central_warehouse", _("Central Warehouse")
+    REGIONAL_WAREHOUSE = "regional_warehouse", _("Regional Warehouse")
+    BRANCH_WAREHOUSE = "branch_warehouse", _("Branch Warehouse")
+    RETAIL_OUTLET = "retail_outlet", _("Retail Outlet")
+    SUB_LOCATION = "sub_location", _("Sub-Location / Bin / Shelf / Zone")
+    TRANSIT = "transit", _("In-Transit Virtual Location")
+    QUARANTINE = "quarantine", _("Quarantine / Inspection")
+    DAMAGED = "damaged", _("Damaged Goods Storage")
+
+
+class InventoryLocation(TenantModel):
+    """Unified location entity supporting warehouses, branches, retail outlets, zones, bins."""
+
+    name = models.CharField(_("name"), max_length=255)
+    code = models.CharField(_("location code"), max_length=64, blank=True, default="")
+    location_type = models.CharField(
+        _("location type"),
+        max_length=32,
+        choices=LocationType.choices,
+        default=LocationType.BRANCH_WAREHOUSE,
+    )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="children",
+        verbose_name=_("parent location"),
+    )
+    branch = models.ForeignKey(
+        "tenancy.Branch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inventory_locations",
+        verbose_name=_("branch"),
+    )
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inventory_locations",
+        verbose_name=_("linked warehouse"),
+    )
+    is_stock_holding = models.BooleanField(
+        _("is stock holding"),
+        default=True,
+        help_text=_("Designates whether products can be stored directly at this location node."),
+    )
+    is_active = models.BooleanField(_("is active"), default=True)
+    address = models.TextField(_("physical address"), blank=True, default="")
+    notes = models.TextField(_("notes"), blank=True, default="")
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("inventory location")
+        verbose_name_plural = _("inventory locations")
+        ordering = ["name"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "parent", "name"],
+                name="uniq_location_org_parent_name",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "location_type"]),
+            models.Index(fields=["organization", "branch"]),
+            models.Index(fields=["organization", "warehouse"]),
+            models.Index(fields=["organization", "is_stock_holding", "is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.full_path
+
+    @property
+    def full_path(self) -> str:
+        names = [self.name]
+        curr = self.parent
+        visited = {self.id}
+        while curr:
+            if curr.id in visited:
+                break
+            visited.add(curr.id)
+            names.append(curr.name)
+            curr = curr.parent
+        return " > ".join(reversed(names))
+
+    def get_descendant_ids(self) -> list[int]:
+        ids = [self.id]
+        for child in self.children.filter(is_active=True):
+            ids.extend(child.get_descendant_ids())
+        return ids
+
+
+class StockSupplyRoute(TenantModel):
+    """Dynamic M:N supply route defining allowed replenishment from source to destination."""
+
+    source_location = models.ForeignKey(
+        InventoryLocation,
+        on_delete=models.CASCADE,
+        related_name="outbound_supply_routes",
+        verbose_name=_("source location"),
+    )
+    destination_location = models.ForeignKey(
+        InventoryLocation,
+        on_delete=models.CASCADE,
+        related_name="inbound_supply_routes",
+        verbose_name=_("destination location"),
+    )
+    priority = models.PositiveSmallIntegerField(
+        _("priority"),
+        default=1,
+        help_text=_("Order of preference (1 = primary / preferred)."),
+    )
+    is_preferred = models.BooleanField(
+        _("is preferred route"),
+        default=False,
+    )
+    lead_time_days = models.PositiveSmallIntegerField(
+        _("lead time in days"),
+        default=0,
+    )
+    can_auto_replenish = models.BooleanField(
+        _("allow automated replenishment"),
+        default=False,
+    )
+    is_active = models.BooleanField(
+        _("is active"),
+        default=True,
+    )
+    notes = models.TextField(_("notes"), blank=True, default="")
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("stock supply route")
+        verbose_name_plural = _("stock supply routes")
+        ordering = ["destination_location", "priority"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "source_location", "destination_location"],
+                name="uniq_supply_route_org_src_dst",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "destination_location", "priority"]),
+            models.Index(fields=["organization", "source_location"]),
+        ]
+
+    def __str__(self) -> str:
+        preferred = " [Preferred]" if self.is_preferred else ""
+        return f"{self.source_location.name} -> {self.destination_location.name} (P{self.priority}){preferred}"
+
+
 class AdjustmentReason(models.TextChoices):
     DAMAGE = "damage", _("Damaged Goods")
     SPOILAGE = "spoilage", _("Spoilage / Expiry")
     SHRINKAGE = "shrinkage", _("Shrinkage / Theft")
     COUNT_VARIANCE = "count_variance", _("Cycle Count Variance")
     CORRECTION = "correction", _("Correction / Other")
+    IN_TRANSIT_LOSS = "in_transit_loss", _("In-Transit Loss / Damage")
+    RETURN_INSPECTION_SCRAP = "return_inspection_scrap", _("Return Inspection Scrap")
+    RECONCILIATION_VARIANCE = "reconciliation_variance", _("Reconciliation Variance")
 
 
 class TransferStatus(models.TextChoices):
     DRAFT = "draft", _("Draft")
+    PENDING_APPROVAL = "pending_approval", _("Pending Approval")
+    APPROVED = "approved", _("Approved")
+    REJECTED = "rejected", _("Rejected")
+    DISPATCHED = "dispatched", _("Dispatched")
     IN_TRANSIT = "in_transit", _("In Transit")
+    PARTIALLY_RECEIVED = "partially_received", _("Partially Received")
+    RECEIVED = "received", _("Received")
     COMPLETED = "completed", _("Completed")
     CANCELLED = "cancelled", _("Cancelled")
 
@@ -76,6 +240,14 @@ class StockLevel(TenantModel):
         related_name="stock_levels",
         verbose_name=_("warehouse"),
     )
+    location = models.ForeignKey(
+        "inventory.InventoryLocation",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="stock_levels",
+        verbose_name=_("inventory location"),
+    )
     on_hand = models.DecimalField(
         _("on hand quantity"),
         max_digits=18,
@@ -84,6 +256,12 @@ class StockLevel(TenantModel):
     )
     reserved = models.DecimalField(
         _("reserved quantity"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    in_transit = models.DecimalField(
+        _("in-transit quantity"),
         max_digits=18,
         decimal_places=4,
         default=Decimal("0.0000"),
@@ -122,7 +300,9 @@ class StockLevel(TenantModel):
         ]
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["organization", "warehouse", "product"]),
+            models.Index(fields=["organization", "location", "product"]),
             models.Index(fields=["organization", "on_hand"]),
+            models.Index(fields=["organization", "in_transit"]),
         ]
 
     def __str__(self) -> str:
@@ -170,6 +350,22 @@ class StockMovement(TenantModel):
         on_delete=models.PROTECT,
         related_name="stock_movements",
         verbose_name=_("warehouse"),
+    )
+    location = models.ForeignKey(
+        "inventory.InventoryLocation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="stock_movements",
+        verbose_name=_("inventory location"),
+    )
+    destination_location = models.ForeignKey(
+        "inventory.InventoryLocation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="inbound_stock_movements",
+        verbose_name=_("destination location"),
     )
     type = models.CharField(
         _("movement type"),
@@ -231,6 +427,7 @@ class StockMovement(TenantModel):
         ordering = ["-occurred_at", "-id"]
         indexes: ClassVar[list[models.Index]] = [
             models.Index(fields=["organization", "warehouse", "product", "-occurred_at"]),
+            models.Index(fields=["organization", "location", "product", "-occurred_at"]),
             models.Index(fields=["organization", "reference_type", "reference_id"]),
             models.Index(fields=["organization", "type", "-occurred_at"]),
             models.Index(fields=["organization", "batch"]),
@@ -332,6 +529,22 @@ class StockTransfer(TenantModel):
         related_name="transfers_in",
         verbose_name=_("destination warehouse"),
     )
+    source_location = models.ForeignKey(
+        "inventory.InventoryLocation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="transfers_out",
+        verbose_name=_("source location"),
+    )
+    destination_location = models.ForeignKey(
+        "inventory.InventoryLocation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="transfers_in",
+        verbose_name=_("destination location"),
+    )
     source_branch = models.ForeignKey(
         "tenancy.Branch",
         on_delete=models.PROTECT,
@@ -359,6 +572,37 @@ class StockTransfer(TenantModel):
         default=TransferStatus.DRAFT,
     )
     notes = models.TextField(_("notes"), blank=True, default="")
+    tracking_number = models.CharField(
+        _("tracking / consignment number"),
+        max_length=128,
+        blank=True,
+        default="",
+    )
+    carrier = models.CharField(
+        _("carrier / driver"),
+        max_length=128,
+        blank=True,
+        default="",
+    )
+    approved_at = models.DateTimeField(_("approved at"), null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_stock_transfers",
+        verbose_name=_("approved by"),
+    )
+    rejected_at = models.DateTimeField(_("rejected at"), null=True, blank=True)
+    rejected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rejected_stock_transfers",
+        verbose_name=_("rejected by"),
+    )
+    rejection_reason = models.TextField(_("rejection reason"), blank=True, default="")
     dispatched_at = models.DateTimeField(_("dispatched at"), null=True, blank=True)
     dispatched_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -401,7 +645,11 @@ class StockTransfer(TenantModel):
 
     @property
     def is_in_transit(self) -> bool:
-        return self.status == TransferStatus.IN_TRANSIT
+        return self.status in {
+            TransferStatus.DISPATCHED,
+            TransferStatus.IN_TRANSIT,
+            TransferStatus.PARTIALLY_RECEIVED,
+        }
 
 
 class StockTransferLine(TenantModel):
@@ -430,6 +678,49 @@ class StockTransferLine(TenantModel):
         max_digits=18,
         decimal_places=4,
     )
+    quantity_requested = models.DecimalField(
+        _("quantity requested"),
+        max_digits=18,
+        decimal_places=4,
+        null=True,
+        blank=True,
+    )
+    quantity_dispatched = models.DecimalField(
+        _("quantity dispatched"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    quantity_received = models.DecimalField(
+        _("quantity received"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    quantity_damaged = models.DecimalField(
+        _("quantity damaged"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    quantity_missing = models.DecimalField(
+        _("quantity missing"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    unit_cost = models.DecimalField(
+        _("unit cost"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    notes = models.CharField(
+        _("notes"),
+        max_length=255,
+        blank=True,
+        default="",
+    )
 
     class Meta:
         base_manager_name = "all_tenants"
@@ -451,6 +742,14 @@ class StockAdjustment(TenantModel):
         related_name="adjustments",
         verbose_name=_("warehouse"),
     )
+    location = models.ForeignKey(
+        "inventory.InventoryLocation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="adjustments",
+        verbose_name=_("inventory location"),
+    )
     reason = models.CharField(
         _("reason"),
         max_length=32,
@@ -464,6 +763,15 @@ class StockAdjustment(TenantModel):
     )
     notes = models.TextField(_("notes"), blank=True, default="")
     confirmed_at = models.DateTimeField(_("confirmed at"), null=True, blank=True)
+    approved_at = models.DateTimeField(_("approved at"), null=True, blank=True)
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_stock_adjustments",
+        verbose_name=_("approved by"),
+    )
 
     class Meta:
         base_manager_name = "all_tenants"
@@ -847,3 +1155,117 @@ class StockCostLayer(TenantModel):
             f"{self.product.name} @ {self.warehouse.name}: {self.remaining_quantity}/"
             f"{self.initial_quantity} @ ${self.unit_cost}"
         )
+
+
+class DiscrepancyType(models.TextChoices):
+    LEDGER_BALANCE_MISMATCH = "ledger_balance_mismatch", _("Ledger vs Balance Mismatch")
+    PHYSICAL_COUNT_VARIANCE = "physical_count_variance", _("Physical Count Variance")
+    UNRECEIVED_TRANSFER = "unreceived_transfer", _("Unreceived or Overdue Transfer")
+    NEGATIVE_INVENTORY = "negative_inventory", _("Negative Inventory Anomaly")
+    DUPLICATE_MOVEMENT = "duplicate_movement", _("Suspected Duplicate Movement")
+    MISSING_REFERENCE = "missing_reference", _("Missing Transaction Reference")
+
+
+class ReconciliationIncidentStatus(models.TextChoices):
+    OPEN = "open", _("Open")
+    INVESTIGATING = "investigating", _("Under Investigation")
+    RESOLVED = "resolved", _("Resolved")
+    DISMISSED = "dismissed", _("Dismissed")
+
+
+class InventoryReconciliationIncident(TenantModel):
+    """Tracks audit and integrity discrepancies detected in inventory for auditable resolution."""
+
+    incident_number = models.CharField(_("incident number"), max_length=64)
+    location = models.ForeignKey(
+        "inventory.InventoryLocation",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reconciliation_incidents",
+        verbose_name=_("location"),
+    )
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reconciliation_incidents",
+        verbose_name=_("warehouse"),
+    )
+    product = models.ForeignKey(
+        "catalog.Product",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="reconciliation_incidents",
+        verbose_name=_("product"),
+    )
+    discrepancy_type = models.CharField(
+        _("discrepancy type"),
+        max_length=32,
+        choices=DiscrepancyType.choices,
+    )
+    severity = models.CharField(_("severity"), max_length=16, default="medium")
+    status = models.CharField(
+        _("status"),
+        max_length=32,
+        choices=ReconciliationIncidentStatus.choices,
+        default=ReconciliationIncidentStatus.OPEN,
+    )
+    expected_quantity = models.DecimalField(
+        _("expected quantity"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    actual_quantity = models.DecimalField(
+        _("actual quantity"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    variance = models.DecimalField(
+        _("variance"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    description = models.TextField(_("description"), blank=True, default="")
+    resolution_notes = models.TextField(_("resolution notes"), blank=True, default="")
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_reconciliation_incidents",
+        verbose_name=_("resolved by"),
+    )
+    resolved_at = models.DateTimeField(_("resolved at"), null=True, blank=True)
+    adjustment = models.ForeignKey(
+        StockAdjustment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reconciliation_incidents",
+        verbose_name=_("resolution adjustment"),
+    )
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("inventory reconciliation incident")
+        verbose_name_plural = _("inventory reconciliation incidents")
+        ordering = ["-created_at"]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "status", "-created_at"]),
+            models.Index(fields=["organization", "discrepancy_type"]),
+            models.Index(fields=["organization", "location", "product"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.incident_number}: {self.get_discrepancy_type_display()} ({self.get_status_display()})"
+
+
+# Canonical aliases for ERP domain clarity
+InventoryBalance = StockLevel
+InventoryLedger = StockMovement

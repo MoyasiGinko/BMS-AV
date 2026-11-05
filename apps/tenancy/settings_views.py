@@ -17,19 +17,18 @@ from django.views.decorators.http import require_http_methods
 from apps.core import selectors as core_selectors
 from apps.core import services as core_services
 from apps.core.api.throttling import get_organization_rate_limit
+from apps.core.exceptions import PermissionDeniedError
 from apps.core.exceptions import ValidationError as DomainValidationError
 from apps.core.metrics import get_metric_count
-from apps.core.permissions import has_permission, list_permissions
+from apps.core.permissions import get_permissions_by_module, has_permission, list_permissions
 from apps.tenancy import selectors, services
 from apps.tenancy.forms import (
-    BranchForm,
     CurrencyForm,
     DepartmentForm,
     InviteMemberForm,
     OrganizationProfileForm,
     OrganizationSettingsForm,
     TaxCodeForm,
-    WarehouseForm,
 )
 from apps.tenancy.models import Membership, Organization
 
@@ -146,77 +145,8 @@ def general_settings_view(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_http_methods(["GET", "POST"])
 def branches_settings_view(request: HttpRequest) -> HttpResponse:
-    """List and manage operating branches."""
-    org_res = _get_active_org(request)
-    if isinstance(org_res, HttpResponseRedirect):
-        return org_res
-    org = org_res
-
-    if not has_permission(request.user, "settings.view", organization=org):
-        raise PermissionDenied(_("You do not have permission to view branches."))
-
-    can_manage = has_permission(request.user, "branches.manage", organization=org)
-
-    if request.method == "POST":
-        if not can_manage:
-            raise PermissionDenied(_("You do not have permission to manage branches."))
-
-        action = request.POST.get("action")
-        if action == "delete":
-            branch_id = request.POST.get("branch_id")
-            branch = selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
-            if branch:
-                try:
-                    services.delete_branch(branch=branch, actor=request.user)
-                    messages.success(request, _("Branch '%(name)s' deleted.") % {"name": branch.name})
-                except ValidationError as exc:
-                    messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
-            return redirect("settings:branches")
-
-        form = BranchForm(request.POST)
-        if form.is_valid():
-            branch_id = request.POST.get("branch_id")
-            if branch_id:
-                branch = selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
-                if branch:
-                    services.update_branch(
-                        branch=branch,
-                        name=form.cleaned_data["name"],
-                        code=form.cleaned_data["code"],
-                        address=form.cleaned_data["address"],
-                        phone=form.cleaned_data["phone"],
-                        is_headquarters=form.cleaned_data["is_headquarters"],
-                        is_active=form.cleaned_data["is_active"],
-                        actor=request.user,
-                    )
-                    messages.success(request, _("Branch '%(name)s' updated.") % {"name": branch.name})
-            else:
-                new_branch = services.create_branch(
-                    organization=org,
-                    name=form.cleaned_data["name"],
-                    code=form.cleaned_data["code"],
-                    address=form.cleaned_data["address"],
-                    phone=form.cleaned_data["phone"],
-                    is_headquarters=form.cleaned_data["is_headquarters"],
-                    actor=request.user,
-                )
-                messages.success(request, _("Branch '%(name)s' created.") % {"name": new_branch.name})
-            return redirect("settings:branches")
-    else:
-        form = BranchForm()
-
-    branches = selectors.list_organization_branches(organization_id=org.pk)
-    return render(
-        request,
-        "settings/branches.html",
-        {
-            "organization": org,
-            "branches": branches,
-            "form": form,
-            "can_manage": can_manage,
-            "active_tab": "branches",
-        },
-    )
+    """Redirect to dedicated Warehouses & Branches module."""
+    return redirect("warehouses:branch_list")
 
 
 # ---------------------------------------------------------------------------
@@ -224,91 +154,11 @@ def branches_settings_view(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------------------
 
 
-def _handle_warehouse_post(request: HttpRequest, org: Organization) -> HttpResponse:
-    action = request.POST.get("action")
-    if action == "delete":
-        wh_id = request.POST.get("warehouse_id")
-        warehouse = selectors.get_warehouse_by_id(organization_id=org.pk, warehouse_id=wh_id)
-        if warehouse:
-            try:
-                services.delete_warehouse(warehouse=warehouse, actor=request.user)
-                messages.success(request, _("Warehouse '%(name)s' deleted.") % {"name": warehouse.name})
-            except ValidationError as exc:
-                messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
-        return redirect("settings:warehouses")
-
-    form = WarehouseForm(request.POST)
-    if not form.is_valid():
-        return redirect("settings:warehouses")
-
-    branch_id = form.cleaned_data["branch_id"]
-    branch = selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
-    if not branch:
-        messages.error(request, _("Invalid branch selected."))
-        return redirect("settings:warehouses")
-
-    wh_id = request.POST.get("warehouse_id")
-    if wh_id:
-        wh = selectors.get_warehouse_by_id(organization_id=org.pk, warehouse_id=wh_id)
-        if wh:
-            services.update_warehouse(
-                warehouse=wh,
-                name=form.cleaned_data["name"],
-                branch=branch,
-                code=form.cleaned_data["code"],
-                is_default=form.cleaned_data["is_default"],
-                is_active=form.cleaned_data["is_active"],
-                actor=request.user,
-            )
-            messages.success(request, _("Warehouse '%(name)s' updated.") % {"name": wh.name})
-    else:
-        new_wh = services.create_warehouse(
-            organization=org,
-            branch=branch,
-            name=form.cleaned_data["name"],
-            code=form.cleaned_data["code"],
-            is_default=form.cleaned_data["is_default"],
-            actor=request.user,
-        )
-        messages.success(request, _("Warehouse '%(name)s' created.") % {"name": new_wh.name})
-    return redirect("settings:warehouses")
-
-
 @login_required
 @require_http_methods(["GET", "POST"])
 def warehouses_settings_view(request: HttpRequest) -> HttpResponse:
-    """List and manage warehouses and locations."""
-    org_res = _get_active_org(request)
-    if isinstance(org_res, HttpResponseRedirect):
-        return org_res
-    org = org_res
-
-    if not has_permission(request.user, "settings.view", organization=org):
-        raise PermissionDenied(_("You do not have permission to view warehouses."))
-
-    can_manage = has_permission(request.user, "warehouses.manage", organization=org)
-    branches = selectors.list_organization_branches(organization_id=org.pk)
-
-    if request.method == "POST":
-        if not can_manage:
-            raise PermissionDenied(_("You do not have permission to manage warehouses."))
-        return _handle_warehouse_post(request, org)
-
-    form = WarehouseForm()
-
-    warehouses = selectors.list_organization_warehouses(organization_id=org.pk)
-    return render(
-        request,
-        "settings/warehouses.html",
-        {
-            "organization": org,
-            "warehouses": warehouses,
-            "branches": branches,
-            "form": form,
-            "can_manage": can_manage,
-            "active_tab": "warehouses",
-        },
-    )
+    """Redirect to dedicated Warehouses & Branches module."""
+    return redirect("warehouses:list")
 
 
 # ---------------------------------------------------------------------------
@@ -366,7 +216,7 @@ def departments_settings_view(request: HttpRequest) -> HttpResponse:
                             actor=request.user,
                         )
                         messages.success(request, _("Department '%(name)s' updated.") % {"name": dept.name})
-                    except ValidationError as exc:
+                    except (ValidationError, PermissionDeniedError) as exc:
                         messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
             else:
                 new_dept = services.create_department(
@@ -423,7 +273,7 @@ def _handle_user_invite(request: HttpRequest, org: Organization) -> None:
             request,
             _("Invitation sent to %(email)s.") % {"email": invite_form.cleaned_data["email"]},
         )
-    except ValidationError as exc:
+    except (ValidationError, PermissionDeniedError) as exc:
         messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
 
 
@@ -451,7 +301,7 @@ def _handle_user_update_role(request: HttpRequest, org: Organization) -> None:
         try:
             services.update_member_role(membership=member, role=role, status=status_val, actor=request.user)
             messages.success(request, _("Member %(user)s updated.") % {"user": member.user.email})
-        except ValidationError as exc:
+        except (ValidationError, PermissionDeniedError) as exc:
             messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
 
 
@@ -464,7 +314,7 @@ def _handle_user_remove_member(request: HttpRequest, org: Organization) -> None:
         try:
             services.remove_member(membership=member, actor=request.user)
             messages.success(request, _("Member %(user)s removed.") % {"user": member.user.email})
-        except ValidationError as exc:
+        except (ValidationError, PermissionDeniedError) as exc:
             messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
 
 
@@ -496,7 +346,9 @@ def users_settings_view(request: HttpRequest) -> HttpResponse:
         raise PermissionDenied(_("You do not have permission to view team members."))
 
     can_manage = has_permission(request.user, "users.manage", organization=org)
-    roles = selectors.list_organization_roles(organization_id=org.pk)
+    all_roles = selectors.list_organization_roles(organization_id=org.pk)
+    is_software_owner = bool(getattr(request.user, "is_superuser", False))
+    selectable_roles = all_roles if is_software_owner else [r for r in all_roles if not r.is_system]
 
     if request.method == "POST":
         if not can_manage:
@@ -513,7 +365,9 @@ def users_settings_view(request: HttpRequest) -> HttpResponse:
             "organization": org,
             "memberships": memberships,
             "invitations": invitations,
-            "roles": roles,
+            "roles": selectable_roles,
+            "all_roles": all_roles,
+            "is_software_owner": is_software_owner,
             "can_manage": can_manage,
             "active_tab": "users",
         },
@@ -552,7 +406,7 @@ def roles_settings_view(request: HttpRequest) -> HttpResponse:
                 try:
                     services.delete_custom_role(role=role, actor=request.user)
                     messages.success(request, _("Role '%(name)s' deleted.") % {"name": role.name})
-                except ValidationError as exc:
+                except (ValidationError, PermissionDeniedError) as exc:
                     messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
             return redirect("settings:roles")
 
@@ -573,7 +427,7 @@ def roles_settings_view(request: HttpRequest) -> HttpResponse:
                         actor=request.user,
                     )
                     messages.success(request, _("Role '%(name)s' updated.") % {"name": role.name})
-                except ValidationError as exc:
+                except (ValidationError, PermissionDeniedError) as exc:
                     messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
         else:
             try:
@@ -585,11 +439,12 @@ def roles_settings_view(request: HttpRequest) -> HttpResponse:
                     actor=request.user,
                 )
                 messages.success(request, _("Custom role '%(name)s' created.") % {"name": new_role.name})
-            except ValidationError as exc:
+            except (ValidationError, PermissionDeniedError) as exc:
                 messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
         return redirect("settings:roles")
 
     roles = selectors.list_organization_roles(organization_id=org.pk)
+    permissions_by_module = get_permissions_by_module()
     return render(
         request,
         "settings/roles.html",
@@ -597,6 +452,7 @@ def roles_settings_view(request: HttpRequest) -> HttpResponse:
             "organization": org,
             "roles": roles,
             "system_permissions": all_system_permissions,
+            "permissions_by_module": permissions_by_module,
             "can_manage": can_manage,
             "active_tab": "roles",
         },
@@ -691,7 +547,7 @@ def tax_codes_settings_view(request: HttpRequest) -> HttpResponse:
                 try:
                     services.delete_tax_code(tax_code=tax_code, actor=request.user)
                     messages.success(request, _("Tax code '%(code)s' deleted.") % {"code": tax_code.code})
-                except ValidationError as exc:
+                except (ValidationError, PermissionDeniedError) as exc:
                     messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
             return redirect("settings:tax_codes")
 
@@ -771,7 +627,7 @@ def currencies_settings_view(request: HttpRequest) -> HttpResponse:
                 try:
                     services.delete_currency(currency=currency, actor=request.user)
                     messages.success(request, _("Currency '%(code)s' deleted.") % {"code": currency.code})
-                except ValidationError as exc:
+                except (ValidationError, PermissionDeniedError) as exc:
                     messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
             return redirect("settings:currencies")
 
@@ -926,7 +782,7 @@ def _handle_api_key_create(request: HttpRequest, org: Organization) -> str | Non
         )
         messages.success(request, _("API key '%(name)s' created.") % {"name": name})
         return raw_key
-    except ValidationError as exc:
+    except (ValidationError, PermissionDeniedError) as exc:
         messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
         return None
 
@@ -945,7 +801,7 @@ def _handle_api_key_rotate(request: HttpRequest, org: Organization) -> str | Non
         )
         messages.success(request, _("API key '%(name)s' rotated.") % {"name": target_key.name})
         return raw_key
-    except ValidationError as exc:
+    except (ValidationError, PermissionDeniedError) as exc:
         messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
         return None
 

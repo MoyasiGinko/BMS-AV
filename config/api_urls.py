@@ -20,6 +20,8 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("billing/", include("apps.billing.api.urls")),
     # Product catalog
     path("catalog/", include("apps.catalog.api.urls")),
+    # Warehouses, locations & supply routes
+    path("warehouses/", include("apps.warehouses.api.urls")),
     # Inventory & stock ledger
     path("inventory/", include("apps.inventory.api.urls")),
     # Customer relationship & subledger

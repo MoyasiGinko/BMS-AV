@@ -524,6 +524,55 @@ def scanners_view(request: HttpRequest) -> HttpResponse:
 
 
 @permission_required("pos.access")
+def product_lookup_view(request: HttpRequest) -> HttpResponse:
+    """Instant JSON barcode/SKU lookup for global hardware scanner capture."""
+    org = _get_org(request)
+    query = request.GET.get("query", "").strip()
+    if not query:
+        return JsonResponse({"found": False, "error": str(_("Query required."))}, status=400)
+
+    shift = selectors.get_active_shift_for_user(organization=org, user=request.user)
+    warehouse = shift.register.warehouse if shift else None
+
+    products = selectors.get_pos_catalog_products(
+        organization=org,
+        search=query,
+        warehouse=warehouse,
+    )
+    product = None
+    for p in products:
+        if (p.barcode and p.barcode.strip() == query) or (p.sku and p.sku.strip() == query):
+            product = p
+            break
+    if not product and products.exists():
+        product = products.first()
+
+    if not product:
+        return JsonResponse({"found": False, "query": query})
+
+    tax_rate = str(product.tax_code.rate) if getattr(product, "tax_code", None) else "0.00"
+    is_stock = getattr(product, "type", "") == "stock"
+    discount_percent = str(getattr(product, "discount_percent", "0.00") or "0.00")
+
+    return JsonResponse(
+        {
+            "found": True,
+            "product": {
+                "id": product.pk,
+                "sku": product.sku,
+                "name": product.name,
+                "barcode": product.barcode or "",
+                "price": str(product.selling_price),
+                "is_stock": is_stock,
+                "stock_qty": float(getattr(product, "stock_qty", 0) or 0),
+                "tax_rate": tax_rate,
+                "discount_percent": discount_percent,
+            },
+        }
+    )
+
+
+@permission_required("pos.access")
 def test_printer_action(request: HttpRequest) -> HttpResponse:
     """Send a test print slip directly to the chosen OS hardware printer."""
     org = _get_org(request)

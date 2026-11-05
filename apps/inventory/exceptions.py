@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from apps.core.exceptions import BusinessOSException
+from apps.warehouses.exceptions import InvalidMovement as WarehouseInvalidMovement
 
 
 class InventoryError(BusinessOSException):
@@ -26,7 +27,7 @@ class NegativeStockDisallowedError(InventoryError):
     default_code = "negative_stock_disallowed"
 
 
-class InvalidMovementError(InventoryError):
+class InvalidMovementError(InventoryError, WarehouseInvalidMovement):
     """Raised when attempting an invalid stock ledger movement."""
 
     default_message = "Invalid stock movement specified."
@@ -84,5 +85,5 @@ class SerialNotFoundError(SerialError):
 
 InsufficientStock = InsufficientStockError
 NegativeStockDisallowed = NegativeStockDisallowedError
-InvalidMovement = InvalidMovementError
+InvalidMovement = WarehouseInvalidMovement
 WarehouseInactive = WarehouseInactiveError

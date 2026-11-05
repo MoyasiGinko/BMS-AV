@@ -10,14 +10,30 @@ Supports:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
+from django.apps import apps
 from django.conf import settings
 
 if TYPE_CHECKING:
+    from apps.core.models import SystemConfiguration
     from apps.tenancy.models import Organization
 
 logger = logging.getLogger(__name__)
+
+
+def _get_system_configuration_model() -> type[SystemConfiguration] | None:
+    try:
+        return apps.get_model("core", "SystemConfiguration")
+    except (LookupError, RuntimeError):
+        return None
+
+
+def _get_organization_model() -> type[Organization] | None:
+    try:
+        return apps.get_model("tenancy", "Organization")
+    except (LookupError, RuntimeError):
+        return None
 
 
 def get_deployment_mode() -> str:
@@ -34,14 +50,14 @@ def get_deployment_mode() -> str:
         if clean in ("dedicated", "saas"):
             return clean
 
-    try:
-        from apps.core.models import SystemConfiguration
-
-        config = SystemConfiguration.objects.filter(pk=1).first()
-        if config and config.deployment_mode:
-            return config.deployment_mode
-    except Exception:
-        pass
+    model = _get_system_configuration_model()
+    if model is not None:
+        try:
+            config = model.objects.filter(pk=1).first()
+            if config and config.deployment_mode:
+                return config.deployment_mode
+        except Exception:
+            logger.debug("SystemConfiguration table not queryable for deployment_mode.")
 
     return "dedicated"
 
@@ -64,27 +80,24 @@ def is_system_initialized() -> bool:
     2. Or legacy/existing data already has at least one Organization.
     Returns False only on fresh, uninitialized deployments.
     """
-    try:
-        from apps.core.models import SystemConfiguration
+    config_model = _get_system_configuration_model()
+    org_model = _get_organization_model()
 
-        config = SystemConfiguration.objects.filter(pk=1).first()
+    if config_model is None or org_model is None:
+        return True
+
+    try:
+        config = config_model.objects.filter(pk=1).first()
         if config is not None:
             if config.is_initialized:
                 return True
-            # Explicitly uninitialized
-            from apps.tenancy.models import Organization
-
-            if not Organization.objects.exists():
+            if not org_model.objects.exists():
                 return False
 
-        # If no SystemConfiguration record exists yet, check if database already has organizations
-        from apps.tenancy.models import Organization
-
-        first_org = Organization.objects.filter(is_active=True).first()
+        first_org = org_model.objects.filter(is_active=True).first()
         if first_org is not None:
-            # Auto-seed singleton record for backward compatibility
             mode = getattr(settings, "DEPLOYMENT_MODE", "dedicated") or "dedicated"
-            SystemConfiguration.objects.get_or_create(
+            config_model.objects.get_or_create(
                 pk=1,
                 defaults={
                     "deployment_mode": str(mode).strip().lower(),
@@ -97,7 +110,7 @@ def is_system_initialized() -> bool:
 
         return False
     except Exception:
-        # DB not ready or tables not yet migrated
+        logger.debug("Database not yet initialized for system setup check.")
         return True
 
 
@@ -106,16 +119,18 @@ def get_primary_organization() -> Organization | None:
     if not is_dedicated_mode():
         return None
 
-    try:
-        from apps.core.models import SystemConfiguration
+    config_model = _get_system_configuration_model()
+    org_model = _get_organization_model()
 
-        config = SystemConfiguration.objects.filter(pk=1).first()
+    if config_model is None or org_model is None:
+        return None
+
+    try:
+        config = config_model.objects.filter(pk=1).first()
         if config and config.primary_organization_id:
             return config.primary_organization
 
-        from apps.tenancy.models import Organization
-
-        return Organization.objects.filter(is_active=True).first()
+        return org_model.objects.filter(is_active=True).first()
     except Exception:
+        logger.debug("Failed to retrieve primary organization in dedicated mode.")
         return None
-

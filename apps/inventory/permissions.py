@@ -11,6 +11,9 @@ PERMISSIONS = {
     "inventory.transfer": "Confirm and dispatch warehouse stock transfers",
     "inventory.count": "Conduct and reconcile cycle counts",
     "inventory.manage": "Full inventory management access",
+    "inventory.location_manage": "Manage inventory locations and warehouse hierarchy",
+    "inventory.route_manage": "Configure stock supply routes and replenishment policies",
+    "inventory.reconciliation_manage": "Review and resolve inventory reconciliation discrepancies",
 }
 
 

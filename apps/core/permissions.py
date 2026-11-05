@@ -63,10 +63,14 @@ def list_permissions() -> list[PermissionDefinition]:
 _CORE_PERMISSIONS = [
     ("tenancy.manage", "Manage organization settings, branches, and warehouses", "tenancy"),
     ("users.manage", "Invite and manage member roles and permissions", "tenancy"),
+    ("roles.view", "View role definitions and assigned permissions", "tenancy"),
+    ("roles.manage", "Create, edit, and delete dynamic roles and assign permissions", "tenancy"),
     ("catalog.view", "View products, categories, units, and price lists", "catalog"),
     ("catalog.manage", "Create, edit, or archive products and prices", "catalog"),
     ("inventory.view", "View stock levels and warehouse locations", "inventory"),
     ("inventory.manage", "Perform stock movements, adjustments, and counts", "inventory"),
+    ("warehouses.view", "View warehouse facilities, hubs, and branch mappings", "warehouses"),
+    ("warehouses.manage", "Create, edit, and configure warehouses and branch fulfillment mappings", "warehouses"),
     ("sales.view", "View quotes, orders, invoices, and credit notes", "sales"),
     ("sales.create", "Create sales orders and draft invoices", "sales"),
     ("sales.manage", "Approve invoices, issue credit notes, and void sales", "sales"),
@@ -83,10 +87,61 @@ _CORE_PERMISSIONS = [
     ("hr.manage", "Manage employees, contracts, and leave", "hr"),
     ("payroll.view", "View payslips and payroll summaries", "payroll"),
     ("payroll.manage", "Process and approve payroll runs", "payroll"),
+    ("crm.view", "View customer interactions, leads, and sales pipelines", "crm"),
+    ("crm.create", "Create new leads, opportunities, and interactions", "crm"),
+    ("crm.manage", "Manage lead stages, convert leads, and assign pipelines", "crm"),
     ("reports.view", "View operational and financial reports", "reports"),
     ("reports.export", "Export reports to CSV, XLSX, and PDF", "reports"),
     ("settings.manage", "Configure tax rates, currencies, sequences, and integrations", "settings"),
+    ("approvals.view", "View approval requests and audit history", "approvals"),
+    ("approvals.approve", "Approve or reject pending business documents", "approvals"),
+    ("automation.view", "View automated workflows and triggers", "automation"),
+    ("automation.run", "Manually trigger or execute automated workflows", "automation"),
+    ("automation.manage", "Configure automation rules and webhooks", "automation"),
+    ("integrations.view", "View connected third-party integrations and logs", "integrations"),
+    ("integrations.manage", "Configure API credentials and payment integrations", "integrations"),
+    ("ai.chat", "Access AI Assistant for chat and questions", "ai"),
+    ("ai.actions", "Allow AI Assistant to perform operational actions", "ai"),
+    ("ai.manage", "Configure AI models, prompts, and tokens", "ai"),
 ]
+
+MODULE_METADATA: dict[str, dict[str, str]] = {
+    "sales": {"name": _("Sales & Invoicing"), "icon": "shopping-cart"},
+    "pos": {"name": _("Point of Sale (POS)"), "icon": "calculator"},
+    "catalog": {"name": _("Catalog & Products"), "icon": "tag"},
+    "inventory": {"name": _("Inventory & Stock"), "icon": "archive"},
+    "warehouses": {"name": _("Warehouses"), "icon": "building-office"},
+    "purchasing": {"name": _("Purchasing & Vendors"), "icon": "truck"},
+    "customers": {"name": _("Customers & Balances"), "icon": "users"},
+    "accounting": {"name": _("Accounting & General Ledger"), "icon": "book-open"},
+    "hr": {"name": _("Human Resources (HR)"), "icon": "user-group"},
+    "payroll": {"name": _("Payroll & Payslips"), "icon": "cash"},
+    "crm": {"name": _("CRM & Pipelines"), "icon": "sparkles"},
+    "reports": {"name": _("Reports & Analytics"), "icon": "chart-bar"},
+    "tenancy": {"name": _("Team & Workspace"), "icon": "building"},
+    "settings": {"name": _("Settings & Configuration"), "icon": "cog"},
+    "approvals": {"name": _("Approvals & Workflows"), "icon": "check-circle"},
+    "automation": {"name": _("Automation & Webhooks"), "icon": "lightning-bolt"},
+    "integrations": {"name": _("Integrations & APIs"), "icon": "link"},
+    "ai": {"name": _("AI Assistant"), "icon": "cpu-chip"},
+}
+
+
+def get_permissions_by_module() -> dict[str, dict[str, Any]]:
+    """Return all registered system permissions grouped by functional module."""
+    grouped: dict[str, dict[str, Any]] = {}
+    for perm in _PERMISSIONS.values():
+        mod_key = perm.module
+        if mod_key not in grouped:
+            meta = MODULE_METADATA.get(mod_key, {"name": mod_key.capitalize(), "icon": "folder"})
+            grouped[mod_key] = {
+                "key": mod_key,
+                "name": meta["name"],
+                "icon": meta.get("icon", "folder"),
+                "permissions": [],
+            }
+        grouped[mod_key]["permissions"].append(perm)
+    return grouped
 
 for _code, _desc, _mod in _CORE_PERMISSIONS:
     register_permission(_code, description=_desc, module=_mod)
@@ -198,10 +253,17 @@ def has_permission(
     *,
     organization: Any = None,
 ) -> bool:
-    """Layer 2: Verify user role has the required permission code in this organization."""
+    """Layer 2: Verify user role has the required permission code in this organization.
+
+    Hierarchy:
+    1. Superuser: Exceptionally the highest authority in the system.
+    2. Superadmin: Highest authority from user perspective (hardcoded role below superuser).
+    3. Dynamic Roles: Checked against granted permission codes and module wildcards.
+    """
     if not getattr(user, "is_authenticated", False):
         return False
 
+    # 1. Superuser: exceptionally highest authority
     if getattr(user, "is_superuser", False):
         return True
 
@@ -209,13 +271,19 @@ def has_permission(
     if membership is None:
         return False
 
-    if getattr(membership, "is_owner", False):
+    role = getattr(membership, "role", None)
+    # 2. Superadmin role or Owner: highest authority from user perspective
+    is_superadmin = (
+        getattr(membership, "is_owner", False)
+        or (role and getattr(role, "name", "").strip().lower() in ("superadmin", "super admin", "owner"))
+    )
+    if is_superadmin:
         return True
 
-    role = getattr(membership, "role", None)
     if role is None:
         return False
 
+    # 3. Dynamic roles: check granted module permissions
     role_perms = getattr(role, "permissions", None) or []
     return match_permission_pattern(role_perms, permission_code)
 
@@ -229,6 +297,7 @@ def get_user_allowed_branch_ids(user: Any, *, organization: Any = None) -> list[
     """Return list of allowed branch IDs, or None if the user has unrestricted global access."""
     if not getattr(user, "is_authenticated", False):
         return []
+    # Superuser has unrestricted global access
     if getattr(user, "is_superuser", False):
         return None
 
@@ -236,9 +305,14 @@ def get_user_allowed_branch_ids(user: Any, *, organization: Any = None) -> list[
     if membership is None:
         return []
 
+    # Superadmin and Owner have unrestricted access across all branches
     role = getattr(membership, "role", None)
+    is_superadmin = (
+        getattr(membership, "is_owner", False)
+        or (role and getattr(role, "name", "").strip().lower() in ("superadmin", "super admin", "owner"))
+    )
     role_perms = getattr(role, "permissions", None) or []
-    if getattr(membership, "is_owner", False) or "*" in role_perms:
+    if is_superadmin or "*" in role_perms:
         return None
 
     try:

@@ -279,7 +279,16 @@ class WarehouseForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={"class": "form-input"}),
     )
-    branch_id = forms.IntegerField(label=_("Branch"), widget=forms.Select(attrs={"class": "form-select"}))
+    branch_id = forms.IntegerField(
+        label=_("Co-located Branch"),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    is_central = forms.BooleanField(
+        label=_("Central Distribution Warehouse"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
     is_default = forms.BooleanField(
         label=_("Default Warehouse"),
         required=False,
@@ -290,6 +299,38 @@ class WarehouseForm(forms.Form):
         required=False,
         initial=True,
         widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+
+
+class BranchWarehouseForm(forms.Form):
+    """Form to map a warehouse to a branch."""
+
+    branch_id = forms.IntegerField(label=_("Branch"), widget=forms.Select(attrs={"class": "form-select"}))
+    warehouse_id = forms.IntegerField(label=_("Warehouse"), widget=forms.Select(attrs={"class": "form-select"}))
+    is_default = forms.BooleanField(
+        label=_("Default for Branch"),
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    can_sell = forms.BooleanField(
+        label=_("Can Sell"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    can_replenish = forms.BooleanField(
+        label=_("Can Replenish"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    priority = forms.IntegerField(
+        label=_("Priority"),
+        required=False,
+        initial=1,
+        min_value=1,
+        max_value=99,
+        widget=forms.NumberInput(attrs={"class": "form-input"}),
     )
 
 
