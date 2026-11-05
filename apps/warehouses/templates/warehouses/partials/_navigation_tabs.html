@@ -1,14 +1,14 @@
 {% load i18n %}
-<div class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 mb-6 bg-[var(--surface-1)]/95 backdrop-blur-md border-b border-[var(--border)] shadow-2xs transition-all">
+<div class="sticky top-0 z-30 py-3 mb-6 bg-[var(--surface-1)]/95 backdrop-blur-md border-b border-[var(--border)] shadow-2xs transition-all">
   <div class="flex items-center justify-between gap-4 w-full">
     <!-- Left Aligned Navigation Tabs -->
-    <nav class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5" aria-label="Warehouses Navigation Tabs">
+    <nav class="flex items-center justify-start gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 text-left" aria-label="Warehouses Navigation Tabs">
       <!-- Operations Dashboard -->
       <a
         href="{% url 'warehouses:dashboard' %}"
-        class="neu-subnav-btn {% if active_tab == 'dashboard' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
+        class="neu-subnav-btn neu-subnav-btn-lg {% if active_tab == 'dashboard' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4.5 py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-[15px] inline-flex items-center gap-2.5 whitespace-nowrap transition-all"
       >
-        <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 opacity-80 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
         </svg>
         {% trans "Dashboard" %}
@@ -17,9 +17,9 @@
       <!-- Warehouses -->
       <a
         href="{% url 'warehouses:list' %}"
-        class="neu-subnav-btn {% if active_tab == 'warehouses' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
+        class="neu-subnav-btn neu-subnav-btn-lg {% if active_tab == 'warehouses' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4.5 py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-[15px] inline-flex items-center gap-2.5 whitespace-nowrap transition-all"
       >
-        <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 opacity-80 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
         </svg>
         {% trans "Warehouses" %}
@@ -28,9 +28,9 @@
       <!-- Branches -->
       <a
         href="{% url 'warehouses:branch_list' %}"
-        class="neu-subnav-btn {% if active_tab == 'branches' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
+        class="neu-subnav-btn neu-subnav-btn-lg {% if active_tab == 'branches' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4.5 py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-[15px] inline-flex items-center gap-2.5 whitespace-nowrap transition-all"
       >
-        <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 opacity-80 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
         </svg>
@@ -40,9 +40,9 @@
       <!-- Locations & Bins -->
       <a
         href="{% url 'warehouses:location_list' %}"
-        class="neu-subnav-btn {% if active_tab == 'locations' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
+        class="neu-subnav-btn neu-subnav-btn-lg {% if active_tab == 'locations' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4.5 py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-[15px] inline-flex items-center gap-2.5 whitespace-nowrap transition-all"
       >
-        <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 opacity-80 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
         </svg>
         {% trans "Locations & Bins" %}
@@ -51,9 +51,9 @@
       <!-- Supply Routes -->
       <a
         href="{% url 'warehouses:route_list' %}"
-        class="neu-subnav-btn {% if active_tab == 'routes' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
+        class="neu-subnav-btn neu-subnav-btn-lg {% if active_tab == 'routes' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4.5 py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-[15px] inline-flex items-center gap-2.5 whitespace-nowrap transition-all"
       >
-        <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 opacity-80 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
         </svg>
         {% trans "Supply Routes" %}
@@ -62,9 +62,9 @@
       <!-- Transfers -->
       <a
         href="{% url 'warehouses:transfer_list' %}"
-        class="neu-subnav-btn {% if active_tab == 'transfers' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
+        class="neu-subnav-btn neu-subnav-btn-lg {% if active_tab == 'transfers' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4.5 py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-[15px] inline-flex items-center gap-2.5 whitespace-nowrap transition-all"
       >
-        <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 opacity-80 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
         </svg>
         {% trans "Transfers" %}
@@ -73,9 +73,9 @@
       <!-- Movement Ledger -->
       <a
         href="{% url 'warehouses:movement_list' %}"
-        class="neu-subnav-btn {% if active_tab == 'movements' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 whitespace-nowrap transition-all"
+        class="neu-subnav-btn neu-subnav-btn-lg {% if active_tab == 'movements' %}neu-subnav-btn-active bg-indigo-600 text-white font-bold shadow-sm{% else %}bg-surface text-ink hover:text-indigo-600 font-semibold shadow-xs border border-line/40{% endif %} px-4.5 py-2.5 sm:px-5 sm:py-2.5 rounded-xl text-sm sm:text-[15px] inline-flex items-center gap-2.5 whitespace-nowrap transition-all"
       >
-        <svg class="w-4 h-4 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5 opacity-80 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
         </svg>
         {% trans "Movement Ledger" %}
@@ -83,16 +83,16 @@
     </nav>
 
     <!-- Right: Context Capsule Metadata (Facility / Branch & Action) -->
-    <div class="hidden xl:flex items-center gap-2 text-xs shrink-0">
-      <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--surface-2)]/70 text-[var(--text-muted)] font-mono border border-[var(--border)]/50">
+    <div class="hidden xl:flex items-center gap-2.5 text-xs shrink-0">
+      <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--surface-2)]/70 text-[var(--text-muted)] font-mono border border-[var(--border)]/50">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span class="font-bold text-[var(--text)]">{{ current_branch.name|default:_("All Facilities") }}</span>
+        <span class="font-bold text-[var(--text)] text-xs">{{ current_branch.name|default:_("All Facilities") }}</span>
       </div>
       <a
         href="{% url 'warehouses:transfer_create' %}"
-        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs hover:bg-indigo-700 transition-all cursor-pointer"
+        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-xs hover:bg-indigo-700 transition-all cursor-pointer"
       >
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
         </svg>
         {% trans "New Transfer" %}

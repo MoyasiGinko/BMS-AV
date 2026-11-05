@@ -1502,6 +1502,23 @@ html[data-theme="spatial"],
   border: 1px solid transparent !important;
 }
 
+[data-theme="neumorphic"] .neu-subnav-btn-lg,
+[data-theme="neumorphic"] .neu-subnav-btn.neu-subnav-btn-lg,
+[data-theme="neumorphic"] nav[aria-label*="Tabs"] a.neu-subnav-btn-lg,
+[data-theme="neumorphic"] nav[aria-label*="tabs"] a.neu-subnav-btn-lg,
+[data-theme="neumorphic"] main nav a.neu-subnav-btn-lg,
+[data-theme="neumorphic"] main nav a.neu-subnav-btn-lg.neu-subnav-btn-active,
+[data-theme="neumorphic"] main nav a.neu-subnav-btn-lg[class*="bg-indigo-600"] {
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 0 20px !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  gap: 10px !important;
+}
+
 [data-theme="neumorphic"] .neu-subnav-btn.neu-subnav-btn-active svg,
 [data-theme="neumorphic"] .neu-subnav-btn[class*="neu-subnav-btn-active"] svg,
 [data-theme="neumorphic"] .neu-subnav-btn[class*="bg-indigo-600"] svg,
