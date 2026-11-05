@@ -114,3 +114,4 @@ def shift_detail_view(request: HttpRequest, public_id: str) -> HttpResponse:
         "close_form": POSCloseShiftForm() if shift.status == POSShiftStatus.OPEN else None,
     }
     return render(request, "pos/shift_detail.html", context)
+

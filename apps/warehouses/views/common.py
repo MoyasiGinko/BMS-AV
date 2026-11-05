@@ -46,3 +46,4 @@ def can_manage(user: Any, org: Organization) -> bool:
         or has_permission(user, "inventory.manage", organization=org)
         or has_permission(user, "tenancy.manage", organization=org)
     )
+

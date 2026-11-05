@@ -459,3 +459,5 @@ def get_stock_transfer(*, organization: Organization, transfer_id: int) -> Stock
         .prefetch_related("lines__product", "lines__variant")
         .first()
     )
+
+

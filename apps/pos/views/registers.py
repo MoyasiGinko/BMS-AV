@@ -47,3 +47,4 @@ def register_create_view(request: HttpRequest) -> HttpResponse:
         form = POSRegisterForm(organization=org)
 
     return render(request, "pos/register_form.html", {"form": form})
+

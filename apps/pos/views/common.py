@@ -12,3 +12,4 @@ def _get_org(request: HttpRequest) -> Organization:
     if not org:
         raise PermissionDenied(_("No active organization context found."))
     return org
+

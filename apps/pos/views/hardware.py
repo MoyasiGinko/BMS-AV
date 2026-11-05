@@ -54,3 +54,4 @@ def open_drawer_action(request: HttpRequest) -> HttpResponse:
     printer_name = _extract_printer_name(request)
     success = printing.open_cash_drawer(printer_name=printer_name)
     return JsonResponse({"success": success, "drawer_opened": True})
+

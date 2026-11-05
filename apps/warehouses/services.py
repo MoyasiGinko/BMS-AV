@@ -529,3 +529,5 @@ def receive_stock_transfer(*args: Any, **kwargs: Any) -> Any:
     from apps.inventory import services as inv_services  # noqa: PLC0415
 
     return inv_services.receive_stock_transfer(*args, **kwargs)
+
+

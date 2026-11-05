@@ -29,3 +29,4 @@ __all__ = [
     "warehouse_detail_view",
     "warehouse_list_view",
 ]
+
