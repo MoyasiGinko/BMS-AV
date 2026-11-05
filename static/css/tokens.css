@@ -425,4 +425,12 @@ body.overflow-hidden {
   gap: 0.625rem !important;
 }
 
+/* Solid sticky header tabs across all themes */
+.sticky-header-tabs {
+  background-color: var(--bg) !important;
+  background: var(--bg) !important;
+  opacity: 1 !important;
+}
+
+
 

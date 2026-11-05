@@ -437,14 +437,21 @@ html[data-theme="neumorphic"],
 }
 
 /* Dividers must remain flat divider lines with no card shadow */
-[data-theme="neumorphic"] div[class*="border-t"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]),
-[data-theme="neumorphic"] div[class*="border-b"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]),
-[data-theme="neumorphic"] div[class*="border-l"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]),
-[data-theme="neumorphic"] div[class*="border-r"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]) {
+[data-theme="neumorphic"] div[class*="border-t"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not(.sticky-header-tabs),
+[data-theme="neumorphic"] div[class*="border-b"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not(.sticky-header-tabs),
+[data-theme="neumorphic"] div[class*="border-l"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not(.sticky-header-tabs),
+[data-theme="neumorphic"] div[class*="border-r"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not(.sticky-header-tabs) {
   box-shadow: none !important;
   border-radius: 0 !important;
   border-color: var(--neu-line) !important;
   background-color: transparent !important;
+}
+
+[data-theme="neumorphic"] .sticky-header-tabs,
+.sticky-header-tabs {
+  background-color: var(--bg) !important;
+  background: var(--bg) !important;
+  opacity: 1 !important;
 }
 
 /* Universal Sunken Filter Bars & Toolbars */
