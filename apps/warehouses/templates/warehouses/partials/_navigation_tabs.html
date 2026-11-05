@@ -1,7 +1,7 @@
 {% load i18n %}
-<div class="sticky top-0 z-20 -mt-2 pt-2 pb-4 mb-6 bg-[var(--bg)]/90 backdrop-blur-md transition-all">
-  <div class="pos-capsule p-1.5 sm:p-2 rounded-2xl bg-[var(--surface-1)] border border-[var(--border)] shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
-    <!-- Left: Navigation Tab Pills -->
+<div class="sticky top-0 z-30 -mt-4 sm:-mt-6 lg:-mt-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2.5 mb-6 bg-[var(--surface-1)]/95 backdrop-blur-md border-b border-[var(--border)] shadow-2xs transition-all">
+  <div class="flex items-center justify-between gap-4 w-full">
+    <!-- Left Aligned Navigation Tabs -->
     <nav class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5" aria-label="Warehouses Navigation Tabs">
       <!-- Operations Dashboard -->
       <a
@@ -83,8 +83,8 @@
     </nav>
 
     <!-- Right: Context Capsule Metadata (Facility / Branch & Action) -->
-    <div class="hidden xl:flex items-center gap-2 pl-3 border-l border-[var(--border)]/60 text-xs shrink-0">
-      <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--surface-2)]/70 text-[var(--text-muted)] font-mono border border-[var(--border)]/40">
+    <div class="hidden xl:flex items-center gap-2 text-xs shrink-0">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--surface-2)]/70 text-[var(--text-muted)] font-mono border border-[var(--border)]/50">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-bold text-[var(--text)]">{{ current_branch.name|default:_("All Facilities") }}</span>
       </div>
