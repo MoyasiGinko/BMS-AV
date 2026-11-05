@@ -1,0 +1,183 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "New Transfer" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-4xl mx-auto">
+  <!-- Top Navigation Sub-tabs -->
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="transfers" %}
+
+  <!-- Page Header -->
+  <div class="flex items-center justify-between border-b border-[var(--border)] pb-4">
+    <div>
+      <h1 class="text-xl font-bold text-[var(--text)]">{% trans "Create Transfer" %}</h1>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Transfer stock items between warehouse facilities." %}
+      </p>
+    </div>
+    <a
+      href="{% url 'warehouses:transfer_list' %}"
+      class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors shadow-xs"
+    >
+      &larr; {% trans "Back to transfers" %}
+    </a>
+  </div>
+
+  <!-- Form Card -->
+  <div class="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-6 shadow-xs">
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 text-rose-700 text-xs">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Source Warehouse -->
+        <div>
+          <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            {% trans "Source Warehouse" %} *
+          </label>
+          <select
+            name="source_warehouse_id"
+            required
+            class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3.5 py-2.5 focus:border-[var(--brand-500)]"
+          >
+            {% for val, label in form.fields.source_warehouse_id.widget.choices %}
+              <option value="{{ val }}" {% if form.source_warehouse_id.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          </select>
+          {% if form.source_warehouse_id.errors %}
+            <p class="text-xs text-rose-500 mt-1">{{ form.source_warehouse_id.errors.0 }}</p>
+          {% endif %}
+          <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "Warehouse where stock will be deducted." %}</p>
+        </div>
+
+        <!-- Destination Warehouse -->
+        <div>
+          <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            {% trans "Destination Warehouse" %} *
+          </label>
+          <select
+            name="destination_warehouse_id"
+            required
+            class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3.5 py-2.5 focus:border-[var(--brand-500)]"
+          >
+            {% for val, label in form.fields.destination_warehouse_id.widget.choices %}
+              <option value="{{ val }}" {% if form.destination_warehouse_id.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          </select>
+          {% if form.destination_warehouse_id.errors %}
+            <p class="text-xs text-rose-500 mt-1">{{ form.destination_warehouse_id.errors.0 }}</p>
+          {% endif %}
+          <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "Warehouse receiving the stock items." %}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2 border-t border-[var(--border)]">
+        <!-- Product -->
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            {% trans "Product" %} *
+          </label>
+          <select
+            name="product_id"
+            required
+            class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3.5 py-2.5 focus:border-[var(--brand-500)]"
+          >
+            {% for val, label in form.fields.product_id.widget.choices %}
+              <option value="{{ val }}" {% if form.product_id.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          </select>
+          {% if form.product_id.errors %}
+            <p class="text-xs text-rose-500 mt-1">{{ form.product_id.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Quantity -->
+        <div>
+          <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            {% trans "Quantity" %} *
+          </label>
+          <input
+            type="number"
+            step="any"
+            min="0.0001"
+            name="quantity"
+            value="{{ form.quantity.value|default:'' }}"
+            required
+            class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3.5 py-2.5 focus:border-[var(--brand-500)]"
+            placeholder="1.0000"
+          />
+          {% if form.quantity.errors %}
+            <p class="text-xs text-rose-500 mt-1">{{ form.quantity.errors.0 }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Variant -->
+      {% if form.fields.variant_id.widget.choices|length > 1 %}
+        <div>
+          <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            {% trans "Product Variant (Optional)" %}
+          </label>
+          <select
+            name="variant_id"
+            class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3.5 py-2.5 focus:border-[var(--brand-500)]"
+          >
+            {% for val, label in form.fields.variant_id.widget.choices %}
+              <option value="{{ val }}" {% if form.variant_id.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          </select>
+          {% if form.variant_id.errors %}
+            <p class="text-xs text-rose-500 mt-1">{{ form.variant_id.errors.0 }}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <!-- Notes -->
+      <div>
+        <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+          {% trans "Transfer Notes" %}
+        </label>
+        <textarea
+          name="notes"
+          rows="3"
+          class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3.5 py-2.5 focus:border-[var(--brand-500)]"
+          placeholder="{% trans 'Optional notes or instructions for handlers...' %}"
+        >{{ form.notes.value|default:'' }}</textarea>
+        {% if form.notes.errors %}
+          <p class="text-xs text-rose-500 mt-1">{{ form.notes.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)]">
+        <a
+          href="{% url 'warehouses:transfer_list' %}"
+          class="px-4 py-2.5 text-xs font-medium rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors"
+        >
+          {% trans "Cancel" %}
+        </a>
+        <button
+          type="submit"
+          class="px-5 py-2.5 text-xs font-semibold rounded-xl bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+        >
+          {% trans "Complete Transfer" %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

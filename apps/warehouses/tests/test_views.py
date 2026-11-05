@@ -1,12 +1,17 @@
+
 """Tests for apps.warehouses.views."""
+
+from decimal import Decimal
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 
+from apps.catalog.models import Category, Product, ProductType, Unit
 from apps.core.tenant_context import tenant_context
-from apps.inventory.models import InventoryLocation, StockSupplyRoute
+from apps.inventory import services as inv_services
+from apps.inventory.models import InventoryLocation, StockSupplyRoute, StockTransfer
 from apps.tenancy.models import Branch, BranchWarehouse, Membership, Organization, Role, Warehouse
 from apps.warehouses import services as wh_services
 
@@ -260,3 +265,83 @@ def test_warehouse_detail_view_shows_locations(wh_view_env):
     assert res.status_code == 200
     assert wh.name in res.content.decode()
     assert "Internal Storage Locations & Bins" in res.content.decode()
+
+
+@pytest.mark.django_db
+def test_transfer_list_view_get(wh_view_env):
+    client: Client = wh_view_env["client"]
+    url = reverse("warehouses:transfer_list")
+
+    res = client.get(url)
+    assert res.status_code == 200
+    assert "Stock Transfers" in res.content.decode()
+
+
+@pytest.mark.django_db
+def test_transfer_create_and_detail_views(wh_view_env):
+
+    client: Client = wh_view_env["client"]
+    org = wh_view_env["org"]
+    src_wh = wh_view_env["warehouse"]
+
+    dst_wh = Warehouse.objects.create(
+        organization=org,
+        name="Secondary Storage",
+        code="WH-SEC",
+    )
+
+    cat = Category.objects.create(organization=org, name="Appliances")
+    unit = Unit.objects.create(organization=org, name="Piece", code="pc")
+    prod = Product.objects.create(
+        organization=org,
+        name="Microwave Oven",
+        sku="MW-001",
+        category=cat,
+        unit=unit,
+        type=ProductType.STOCK,
+    )
+
+    inv_services.receive_stock(
+        organization=org,
+        warehouse=src_wh,
+        product=prod,
+        quantity=Decimal("20.0000"),
+        unit_cost=Decimal("100.0000"),
+    )
+
+    create_url = reverse("warehouses:transfer_create")
+    res_get = client.get(create_url)
+    assert res_get.status_code == 200
+
+    post_payload = {
+        "source_warehouse_id": src_wh.id,
+        "destination_warehouse_id": dst_wh.id,
+        "product_id": prod.id,
+        "quantity": "5.0000",
+        "notes": "Transfer to secondary facility",
+    }
+    res_post = client.post(create_url, data=post_payload)
+    assert res_post.status_code == 302
+
+    trf = StockTransfer.all_tenants.filter(organization=org, source_warehouse=src_wh, destination_warehouse=dst_wh).first()
+    assert trf is not None
+    assert trf.status == "completed"
+
+    detail_url = reverse("warehouses:transfer_detail", kwargs={"pk": trf.pk})
+    res_detail = client.get(detail_url)
+    assert res_detail.status_code == 200
+    assert trf.transfer_number in res_detail.content.decode()
+
+
+@pytest.mark.django_db
+def test_movement_ledger_view_get_and_htmx(wh_view_env):
+    client: Client = wh_view_env["client"]
+    url = reverse("warehouses:movement_list")
+
+    res = client.get(url)
+    assert res.status_code == 200
+    assert "Stock Movement Ledger" in res.content.decode()
+
+    res_htmx = client.get(url, headers={"hx-request": "true"})
+    assert res_htmx.status_code == 200
+    assert "movement-table-container" in res_htmx.content.decode()

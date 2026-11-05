@@ -1,0 +1,199 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Stock Transfers" %} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Top Navigation Sub-tabs -->
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="transfers" %}
+
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
+    <div>
+      <h1 class="text-xl font-bold text-[var(--text)]">{% trans "Stock Transfers" %}</h1>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Inter-warehouse stock shipments, fulfillment dispatches, and incoming transfer receipts." %}
+      </p>
+    </div>
+    {% if can_manage %}
+      <div>
+        <a
+          href="{% url 'warehouses:transfer_create' %}"
+          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+          {% trans "New Transfer" %}
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Filter Card -->
+  <div class="p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs">
+    <form method="get" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+      <div>
+        <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+          {% trans "Source Warehouse" %}
+        </label>
+        <select name="source_warehouse" class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3 py-2">
+          <option value="">{% trans "All Source Warehouses" %}</option>
+          {% for w in warehouses %}
+            <option value="{{ w.pk }}" {% if selected_source == w.pk|stringformat:"s" %}selected{% endif %}>{{ w.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+          {% trans "Destination Warehouse" %}
+        </label>
+        <select name="destination_warehouse" class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3 py-2">
+          <option value="">{% trans "All Destination Warehouses" %}</option>
+          {% for w in warehouses %}
+            <option value="{{ w.pk }}" {% if selected_destination == w.pk|stringformat:"s" %}selected{% endif %}>{{ w.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+          {% trans "Status" %}
+        </label>
+        <select name="status" class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3 py-2">
+          <option value="">{% trans "All Statuses" %}</option>
+          <option value="draft" {% if selected_status == 'draft' %}selected{% endif %}>{% trans "Draft" %}</option>
+          <option value="in_transit" {% if selected_status == 'in_transit' %}selected{% endif %}>{% trans "In Transit" %}</option>
+          <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>{% trans "Completed" %}</option>
+          <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="submit"
+          class="flex-1 px-4 py-2 text-xs font-semibold rounded-xl bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+        >
+          {% trans "Filter" %}
+        </button>
+        <a
+          href="{% url 'warehouses:transfer_list' %}"
+          class="px-3 py-2 text-xs font-medium rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+        >
+          {% trans "Reset" %}
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Transfers Table Card -->
+  <div class="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+            <th class="py-3 px-4">{% trans "Transfer #" %}</th>
+            <th class="py-3 px-4">{% trans "Source Warehouse" %}</th>
+            <th class="py-3 px-4">{% trans "Destination Warehouse" %}</th>
+            <th class="py-3 px-4">{% trans "Status" %}</th>
+            <th class="py-3 px-4">{% trans "Date" %}</th>
+            <th class="py-3 px-4 text-right">{% trans "Action" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for trf in page_obj %}
+            <tr class="hover:bg-[var(--surface-2)] transition-colors">
+              <td class="py-3.5 px-4 font-mono font-bold text-[var(--text)]">
+                <a href="{% url 'warehouses:transfer_detail' trf.pk %}" class="text-[var(--brand-600)] hover:underline">
+                  {{ trf.transfer_number }}
+                </a>
+              </td>
+              <td class="py-3.5 px-4 text-[var(--text)] font-medium">
+                {{ trf.source_warehouse.name }}
+              </td>
+              <td class="py-3.5 px-4 text-[var(--text)] font-medium">
+                {{ trf.destination_warehouse.name }}
+              </td>
+              <td class="py-3.5 px-4">
+                {% if trf.status == 'completed' %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    {{ trf.get_status_display }}
+                  </span>
+                {% elif trf.status == 'cancelled' %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/80">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                    {{ trf.get_status_display }}
+                  </span>
+                {% elif trf.status == 'in_transit' %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200/80">
+                    <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                    {{ trf.get_status_display }}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200/80">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    {{ trf.get_status_display }}
+                  </span>
+                {% endif %}
+              </td>
+              <td class="py-3.5 px-4 text-[var(--text-muted)] text-xs font-mono">
+                {{ trf.completed_at|date:"Y-m-d H:i"|default:trf.created_at|date:"Y-m-d H:i" }}
+              </td>
+              <td class="py-3.5 px-4 text-right">
+                <a
+                  href="{% url 'warehouses:transfer_detail' trf.pk %}"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors"
+                >
+                  {% trans "View" %} &rarr;
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="py-12 text-center">
+                <div class="max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                  <p class="text-base font-bold text-[var(--text)]">{% trans "No transfers yet." %}</p>
+                  <p class="text-xs text-[var(--text-muted)] mt-1 mb-4">
+                    {% trans "Move products between your warehouse facilities." %}
+                  </p>
+                  {% if can_manage %}
+                    <a
+                      href="{% url 'warehouses:transfer_create' %}"
+                      class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+                    >
+                      {% trans "New Transfer" %}
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+      <div class="p-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+        <span>
+          {% blocktrans with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktrans %}
+        </span>
+        <div class="flex items-center gap-2">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if selected_source %}&source_warehouse={{ selected_source }}{% endif %}{% if selected_destination %}&destination_warehouse={{ selected_destination }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]">
+              &larr; {% trans "Previous" %}
+            </a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if selected_source %}&source_warehouse={{ selected_source }}{% endif %}{% if selected_destination %}&destination_warehouse={{ selected_destination }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}" class="px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]">
+              {% trans "Next" %} &rarr;
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

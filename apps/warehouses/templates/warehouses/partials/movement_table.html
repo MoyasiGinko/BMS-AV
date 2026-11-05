@@ -1,0 +1,134 @@
+{% load i18n humanize %}
+
+<div id="movement-table-container" class="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse text-sm">
+      <thead>
+        <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+          <th class="py-3 px-4">{% trans "Date & Time" %}</th>
+          <th class="py-3 px-4">{% trans "Type" %}</th>
+          <th class="py-3 px-4">{% trans "Warehouse / Location" %}</th>
+          <th class="py-3 px-4">{% trans "Product / SKU" %}</th>
+          <th class="py-3 px-4 text-right">{% trans "Quantity" %}</th>
+          <th class="py-3 px-4 text-right">{% trans "Unit Cost" %}</th>
+          <th class="py-3 px-4">{% trans "Reference" %}</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-[var(--border)]">
+        {% for m in page_obj %}
+          <tr class="hover:bg-[var(--surface-2)] transition-colors">
+            <!-- Date -->
+            <td class="py-3 px-4 text-xs font-mono text-[var(--text-muted)] whitespace-nowrap">
+              {{ m.created_at|date:"Y-m-d H:i" }}
+            </td>
+
+            <!-- Movement Type Badge -->
+            <td class="py-3 px-4 whitespace-nowrap">
+              {% if m.movement_type == 'receipt' or m.movement_type == 'transfer_in' or m.movement_type == 'adjustment_in' %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  {{ m.get_movement_type_display }}
+                </span>
+              {% elif m.movement_type == 'issue' or m.movement_type == 'transfer_out' or m.movement_type == 'adjustment_out' %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/80">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  {{ m.get_movement_type_display }}
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-50 text-slate-800 dark:bg-slate-950/70 dark:text-slate-300 border border-slate-200/80">
+                  <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                  {{ m.get_movement_type_display }}
+                </span>
+              {% endif %}
+            </td>
+
+            <!-- Warehouse & Sub-location -->
+            <td class="py-3 px-4">
+              <div class="font-medium text-[var(--text)]">{{ m.warehouse.name }}</div>
+              {% if m.location %}
+                <div class="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                  <span class="opacity-60">&rdquor;</span> {{ m.location.name }} ({{ m.location.code }})
+                </div>
+              {% endif %}
+            </td>
+
+            <!-- Product -->
+            <td class="py-3 px-4">
+              <div class="font-bold text-[var(--text)]">{{ m.product.name }}</div>
+              <div class="text-xs font-mono text-[var(--text-muted)]">
+                {{ m.product.sku }}{% if m.variant %} &middot; {{ m.variant.name }}{% endif %}
+              </div>
+            </td>
+
+            <!-- Quantity with positive/negative color -->
+            <td class="py-3 px-4 text-right font-mono font-bold whitespace-nowrap">
+              {% if m.quantity > 0 %}
+                <span class="text-emerald-600 dark:text-emerald-400">+{{ m.quantity|floatformat:4 }}</span>
+              {% else %}
+                <span class="text-rose-600 dark:text-rose-400">{{ m.quantity|floatformat:4 }}</span>
+              {% endif %}
+            </td>
+
+            <!-- Unit Cost -->
+            <td class="py-3 px-4 text-right font-mono text-xs text-[var(--text)] whitespace-nowrap">
+              {{ m.unit_cost|floatformat:2 }}
+            </td>
+
+            <!-- Reference / Notes -->
+            <td class="py-3 px-4 text-xs text-[var(--text-muted)] max-w-xs truncate">
+              {% if m.reference %}
+                <span class="font-mono font-medium text-[var(--text)]">{{ m.reference }}</span>
+              {% endif %}
+              {% if m.notes %}
+                <span class="block truncate text-[11px]">{{ m.notes }}</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="py-12 text-center">
+              <div class="max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
+                <p class="text-base font-bold text-[var(--text)]">{% trans "No stock movements recorded." %}</p>
+                <p class="text-xs text-[var(--text-muted)] mt-1">
+                  {% trans "Movements appear here when inventory is received, transferred, or adjusted." %}
+                </p>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+    <div class="p-4 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+      <span>
+        {% blocktrans with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktrans %}
+      </span>
+      <div class="flex items-center gap-2">
+        {% if page_obj.has_previous %}
+          <a
+            href="?page={{ page_obj.previous_page_number }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if selected_location %}&location={{ selected_location.pk }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}"
+            hx-get="?page={{ page_obj.previous_page_number }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if selected_location %}&location={{ selected_location.pk }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}"
+            hx-target="#movement-table-container"
+            hx-swap="outerHTML"
+            class="px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]"
+          >
+            &larr; {% trans "Previous" %}
+          </a>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a
+            href="?page={{ page_obj.next_page_number }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if selected_location %}&location={{ selected_location.pk }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}"
+            hx-get="?page={{ page_obj.next_page_number }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if selected_location %}&location={{ selected_location.pk }}{% endif %}{% if movement_type %}&type={{ movement_type }}{% endif %}"
+            hx-target="#movement-table-container"
+            hx-swap="outerHTML"
+            class="px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]"
+          >
+            {% trans "Next" %} &rarr;
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>

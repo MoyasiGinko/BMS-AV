@@ -3,7 +3,16 @@
 Provides access to Warehouse, BranchWarehouse, InventoryLocation, and StockSupplyRoute entities.
 """
 
-from apps.inventory.models import InventoryLocation, LocationType, StockSupplyRoute
+from apps.inventory.models import (
+    InventoryLocation,
+    LocationType,
+    MovementType,
+    StockMovement,
+    StockSupplyRoute,
+    StockTransfer,
+    StockTransferLine,
+    TransferStatus,
+)
 from apps.tenancy.models import BranchWarehouse, Warehouse
 
 Location = InventoryLocation
@@ -13,6 +22,11 @@ __all__ = [
     "InventoryLocation",
     "Location",
     "LocationType",
+    "MovementType",
+    "StockMovement",
     "StockSupplyRoute",
+    "StockTransfer",
+    "StockTransferLine",
+    "TransferStatus",
     "Warehouse",
 ]

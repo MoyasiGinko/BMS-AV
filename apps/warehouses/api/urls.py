@@ -13,3 +13,4 @@ router.register("locations", views.InventoryLocationViewSet, basename="location"
 router.register("supply-routes", views.StockSupplyRouteViewSet, basename="supply_route")
 
 urlpatterns = router.urls
+

@@ -1,0 +1,134 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{{ transfer.transfer_number }} | {{ organization.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl mx-auto">
+  <!-- Top Navigation Sub-tabs -->
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="transfers" %}
+
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-xl font-bold font-mono text-[var(--text)]">{{ transfer.transfer_number }}</h1>
+        {% if transfer.status == 'completed' %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200/80">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            {{ transfer.get_status_display }}
+          </span>
+        {% elif transfer.status == 'cancelled' %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200/80">
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+            {{ transfer.get_status_display }}
+          </span>
+        {% elif transfer.status == 'in_transit' %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300 border border-sky-200/80">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+            {{ transfer.get_status_display }}
+          </span>
+        {% else %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200/80">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+            {{ transfer.get_status_display }}
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Created on" %} {{ transfer.created_at|date:"Y-m-d H:i" }}
+        {% if transfer.completed_at %} &middot; {% trans "Completed on" %} {{ transfer.completed_at|date:"Y-m-d H:i" }}{% endif %}
+      </p>
+    </div>
+    <div>
+      <a
+        href="{% url 'warehouses:transfer_list' %}"
+        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors shadow-xs"
+      >
+        &larr; {% trans "Back to transfers" %}
+      </a>
+    </div>
+  </div>
+
+  <!-- Origin & Destination Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Source Facility -->
+    <div class="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs">
+      <div class="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+        <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        {% trans "Source Facility" %}
+      </div>
+      <h3 class="text-base font-bold text-[var(--text)]">{{ transfer.source_warehouse.name }}</h3>
+      {% if transfer.source_warehouse.code %}
+        <p class="text-xs font-mono text-[var(--text-muted)] mt-0.5">Code: {{ transfer.source_warehouse.code }}</p>
+      {% endif %}
+      {% if transfer.source_warehouse.branch %}
+        <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "Branch" %}: {{ transfer.source_warehouse.branch.name }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Destination Facility -->
+    <div class="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs">
+      <div class="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        {% trans "Destination Facility" %}
+      </div>
+      <h3 class="text-base font-bold text-[var(--text)]">{{ transfer.destination_warehouse.name }}</h3>
+      {% if transfer.destination_warehouse.code %}
+        <p class="text-xs font-mono text-[var(--text-muted)] mt-0.5">Code: {{ transfer.destination_warehouse.code }}</p>
+      {% endif %}
+      {% if transfer.destination_warehouse.branch %}
+        <p class="text-xs text-[var(--text-muted)] mt-1">{% trans "Branch" %}: {{ transfer.destination_warehouse.branch.name }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Transferred Line Items Table -->
+  <div class="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs overflow-hidden">
+    <div class="p-4 border-b border-[var(--border)] bg-[var(--surface-2)]">
+      <h2 class="text-sm font-bold text-[var(--text)]">{% trans "Transferred Products" %}</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-[var(--border)] text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+            <th class="py-3 px-4">{% trans "Product / SKU" %}</th>
+            <th class="py-3 px-4">{% trans "Variant" %}</th>
+            <th class="py-3 px-4 text-right">{% trans "Quantity" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for line in lines %}
+            <tr>
+              <td class="py-3.5 px-4">
+                <div class="font-bold text-[var(--text)]">{{ line.product.name }}</div>
+                <div class="text-xs font-mono text-[var(--text-muted)]">{{ line.product.sku }}</div>
+              </td>
+              <td class="py-3.5 px-4 text-xs text-[var(--text-muted)]">
+                {{ line.variant.name|default:"-" }}
+              </td>
+              <td class="py-3.5 px-4 text-right font-mono font-bold text-[var(--text)]">
+                {{ line.quantity|floatformat:4 }}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="3" class="py-6 text-center text-xs text-[var(--text-muted)]">
+                {% trans "No line items found for this transfer." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Notes Card -->
+  {% if transfer.notes %}
+    <div class="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs">
+      <h4 class="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">{% trans "Notes" %}</h4>
+      <p class="text-sm text-[var(--text)] whitespace-pre-line">{{ transfer.notes }}</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

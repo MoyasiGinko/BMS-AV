@@ -1,3 +1,4 @@
+
 """Inventory web views: stock levels, movements ledger, adjustments, transfers, and cycle counts."""
 
 from __future__ import annotations
@@ -18,10 +19,15 @@ from apps.inventory.forms import (
     StockAdjustmentForm,
     StockCountForm,
     StockFilterForm,
-    StockTransferForm,
 )
 from apps.inventory.models import SerialStatus
 from apps.tenancy.models import Organization, Warehouse
+from apps.warehouses.views import (
+    movement_ledger_view,
+    transfer_create_view,
+    transfer_detail_view,
+    transfer_list_view,
+)
 
 
 def _get_org(request: HttpRequest) -> Organization:
@@ -75,36 +81,8 @@ def stock_level_list(request: HttpRequest) -> HttpResponse:
 
 @permission_required("inventory.view")
 def stock_movement_list(request: HttpRequest) -> HttpResponse:
-    """Immutable stock ledger history view."""
-    org = _get_org(request)
-
-    wh_id = request.GET.get("warehouse")
-    warehouse = Warehouse.objects.filter(organization=org, pk=wh_id).first() if wh_id else None
-    movement_type = request.GET.get("type", "")
-
-    movements = selectors.list_stock_movements(
-        organization=org,
-        warehouse=warehouse,
-        movement_type=movement_type,
-    )
-    movements = scope_queryset(movements, request.user, organization=org)
-
-    paginator = Paginator(movements, 30)
-    page_number = request.GET.get("page", 1)
-    page_obj = paginator.get_page(page_number)
-
-    warehouses = Warehouse.objects.filter(organization=org, is_active=True).order_by("name")
-
-    context = {
-        "page_obj": page_obj,
-        "warehouses": warehouses,
-        "selected_warehouse": warehouse,
-        "movement_type": movement_type,
-    }
-
-    if getattr(request, "htmx", False) or request.headers.get("HX-Request"):
-        return render(request, "inventory/partials/movement_table.html", context)
-    return render(request, "inventory/movement_list.html", context)
+    """Stock movement ledger view, hosted in warehouses module."""
+    return movement_ledger_view(request)
 
 
 @permission_required("inventory.view")
@@ -179,76 +157,20 @@ def adjustment_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 @permission_required("inventory.view")
 def transfer_list(request: HttpRequest) -> HttpResponse:
-    """List stock transfer documents."""
-    org = _get_org(request)
-    transfers = selectors.list_stock_transfers(organization=org)
-    transfers = scope_queryset(transfers, request.user, organization=org)
-
-    paginator = Paginator(transfers, 20)
-    page_obj = paginator.get_page(request.GET.get("page", 1))
-
-    return render(request, "inventory/transfer_list.html", {"page_obj": page_obj})
+    """Stock transfer documents list, hosted in warehouses module."""
+    return transfer_list_view(request)
 
 
 @permission_required("inventory.transfer")
 def transfer_create(request: HttpRequest) -> HttpResponse:
-    """Create and complete a warehouse-to-warehouse stock transfer."""
-    org = _get_org(request)
-
-    if request.method == "POST":
-        form = StockTransferForm(request.POST, organization=org)
-        if form.is_valid():
-            src_wh = get_object_or_404(
-                Warehouse, organization=org, pk=form.cleaned_data["source_warehouse_id"]
-            )
-            dest_wh = get_object_or_404(
-                Warehouse, organization=org, pk=form.cleaned_data["destination_warehouse_id"]
-            )
-            prod = get_object_or_404(Product, organization=org, pk=form.cleaned_data["product_id"])
-            var_id = form.cleaned_data.get("variant_id")
-            variant = ProductVariant.objects.filter(organization=org, pk=var_id).first() if var_id else None
-
-            try:
-                trf = services.transfer_stock(
-                    organization=org,
-                    source_warehouse=src_wh,
-                    destination_warehouse=dest_wh,
-                    lines=[
-                        {
-                            "product": prod,
-                            "variant": variant,
-                            "quantity": form.cleaned_data["quantity"],
-                        }
-                    ],
-                    notes=form.cleaned_data.get("notes", ""),
-                    actor=request.user,
-                )
-                messages.success(
-                    request,
-                    _("Stock transfer %(num)s completed successfully.") % {"num": trf.transfer_number},
-                )
-                return redirect("inventory:transfer_detail", pk=trf.pk)
-            except Exception as err:
-                messages.error(request, str(err))
-    else:
-        form = StockTransferForm(organization=org)
-
-    return render(request, "inventory/transfer_form.html", {"form": form})
+    """Stock transfer create view, hosted in warehouses module."""
+    return transfer_create_view(request)
 
 
 @permission_required("inventory.view")
 def transfer_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    """Detail view for a stock transfer and its lines."""
-    org = _get_org(request)
-    trf = selectors.get_stock_transfer(organization=org, transfer_id=pk)
-    if not trf:
-        messages.error(request, _("Transfer not found."))
-        return redirect("inventory:transfer_list")
-    if not check_object_scope(request.user, trf, organization=org):
-        raise PermissionDenied(
-            _("You do not have permission to view transfers outside your assigned branches.")
-        )
-    return render(request, "inventory/transfer_detail.html", {"transfer": trf})
+    """Stock transfer detail view, hosted in warehouses module."""
+    return transfer_detail_view(request, pk=pk)
 
 
 @permission_required("inventory.count")

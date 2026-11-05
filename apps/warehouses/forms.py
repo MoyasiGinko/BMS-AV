@@ -3,6 +3,7 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.inventory.forms import StockTransferForm
 from apps.inventory.models import LocationType
 
 
@@ -218,3 +219,8 @@ class StockSupplyRouteForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={"class": "form-textarea", "rows": 2}),
     )
+
+
+
+
+__all__ = ["BranchForm", "BranchWarehouseForm", "InventoryLocationForm", "StockSupplyRouteForm", "StockTransferForm", "WarehouseForm"]

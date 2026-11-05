@@ -30,8 +30,8 @@ from apps.inventory.models import (
 
 # Re-exported from apps.warehouses.api.views for backwards compatibility
 from apps.warehouses.api.views import (
-    InventoryLocationViewSet as InventoryLocationViewSet,
-    StockSupplyRouteViewSet as StockSupplyRouteViewSet,
+    InventoryLocationViewSet,
+    StockSupplyRouteViewSet,
 )
 
 
@@ -302,3 +302,14 @@ class StockReservationViewSet(TenantScopedModelViewSet):
     search_fields = ["product__name", "reference_type", "reference_id"]
     ordering_fields = ["created_at", "quantity"]
     ordering = ["-created_at"]
+
+__all__ = [
+    "InventoryLocationViewSet",
+    "InventoryReconciliationViewSet",
+    "StockAdjustmentViewSet",
+    "StockLevelViewSet",
+    "StockMovementViewSet",
+    "StockReservationViewSet",
+    "StockSupplyRouteViewSet",
+    "StockTransferViewSet",
+]

@@ -138,50 +138,94 @@
                         </svg>
                     </button>
 
-                    <!-- Printer Dropdown Menu -->
+                    <!-- Printer Status & Info Dropdown Menu -->
                     <div x-show="openPrinterMenu"
                          x-cloak
-                         class="absolute left-0 mt-2 w-80 rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-2xl p-2 z-50 text-xs">
-                        <div class="px-2.5 py-1.5 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-1.5 flex items-center justify-between">
-                            <span>{% trans "Printers" %}</span>
-                            <span class="font-bold text-xs"
-                                  :class="isPrinterOnline(selectedPrinter) ? 'text-emerald-600' : 'text-muted'"
-                                  x-text="isPrinterOnline(selectedPrinter) ? '● {% trans "Online" %}' : '○ {% trans "Offline" %}'"></span>
+                         class="absolute left-0 mt-2 w-80 rounded-xl bg-[var(--surface-1)] border border-[var(--border)] shadow-2xl p-3 z-50 text-xs">
+                        <div class="px-1 py-1 text-2xs font-extrabold text-muted uppercase tracking-wider border-b border-[var(--border)]/50 mb-2 flex items-center justify-between">
+                            <span>{% trans "Receipt Printer" %}</span>
+                            <span class="font-bold text-xs flex items-center gap-1.5"
+                                  :class="isPrinterOnline(selectedPrinter) ? 'text-emerald-600' : 'text-muted'">
+                                <span class="w-2 h-2 rounded-full"
+                                      :class="isPrinterOnline(selectedPrinter) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400 dark:bg-slate-600'"></span>
+                                <span x-text="isPrinterOnline(selectedPrinter) ? '{% trans "Connected & Ready" %}' : '{% trans "Not Connected" %}'"></span>
+                            </span>
                         </div>
 
-                        <!-- Printers List -->
-                        <div class="space-y-1">
-                            <!-- Detected Hardware Printers -->
-                            <template x-for="p in availablePrinters" :key="p.id">
-                                <button type="button"
-                                        @click="setPrinter(p.id); openPrinterMenu = false"
-                                        class="w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
-                                        :class="selectedPrinter === p.id ? 'bg-[var(--surface-2)]/80 font-bold text-[var(--brand-600)] dark:text-[var(--brand-400)]' : 'text-ink'">
-                                    <div class="flex items-center gap-2.5 min-w-0">
-                                        <i class="pos-status-dot shrink-0" :class="p.is_online ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
-                                        <div class="flex items-center gap-1.5 font-bold text-xs min-w-0">
-                                            <span class="truncate" x-text="p.name"></span>
-                                            <span class="shrink-0 px-1.5 py-0.2 rounded text-3xs font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" x-text="p.badge || 'Wi-Fi'"></span>
-                                            <span x-show="!p.is_online" class="text-3xs text-amber-600 font-normal">({% trans "Offline" %})</span>
-                                        </div>
+                        <!-- Printer Connection Status Card -->
+                        <div class="p-3 rounded-lg border space-y-2"
+                             :class="isPrinterOnline(selectedPrinter) ? 'bg-[var(--surface-2)]/60 border-[var(--border)]/50' : 'bg-[var(--surface-2)]/30 border-[var(--border)]/40'">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="font-bold text-xs flex items-center gap-1.5"
+                                         :class="isPrinterOnline(selectedPrinter) ? 'text-ink' : 'text-muted'">
+                                        <span x-text="selectedPrinter ? getPrinterLabel(selectedPrinter) : '{% trans "No printer detected" %}'"></span>
+                                        <span class="px-1.5 py-0.2 rounded text-3xs font-extrabold"
+                                              :class="isPrinterOnline(selectedPrinter) ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'"
+                                              x-text="isPrinterOnline(selectedPrinter) ? '{% trans "Auto" %}' : '{% trans "Offline" %}'"></span>
                                     </div>
-                                    <span x-show="selectedPrinter === p.id" class="text-emerald-600 font-bold text-sm shrink-0 ml-2">✓</span>
-                                </button>
-                            </template>
-
-                            <!-- No Printers Found -->
-                            <template x-if="availablePrinters.length === 0">
-                                <div class="px-2.5 py-3 rounded-lg bg-[var(--surface-2)]/40 flex items-center gap-2 text-muted">
-                                    <i class="pos-status-dot dot-disconnected shrink-0"></i>
-                                    <span class="font-medium text-xs">{% trans "No printer connected" %}</span>
+                                    <div class="text-3xs text-muted mt-0.5"
+                                         x-text="isPrinterOnline(selectedPrinter) ? '{% trans "USB · 2.4GHz · Bluetooth · Wi-Fi" %}' : (selectedPrinter ? '{% trans "Device is currently offline or unreachable" %}' : '{% trans "Plug in any ESC/POS or network receipt printer" %}')">
+                                    </div>
                                 </div>
-                            </template>
+                                <span x-show="isPrinterOnline(selectedPrinter)" class="text-emerald-600 font-bold text-sm">✓</span>
+                                <span x-show="!isPrinterOnline(selectedPrinter)" class="text-muted font-bold text-xs">○</span>
+                            </div>
+
+                            <div class="border-t border-[var(--border)]/40 pt-2 flex items-center justify-between text-2xs">
+                                <span class="text-muted">{% trans "Paper & Cutter" %}:</span>
+                                <span class="font-bold text-ink" :class="isPrinterOnline(selectedPrinter) ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted'"
+                                      x-text="isPrinterOnline(selectedPrinter) ? '{% trans "Ready (Auto Cut)" %}' : (selectedPrinter ? '{% trans "Paper / connection check" %}' : '{% trans "Offline" %}')"></span>
+                            </div>
                         </div>
 
-                        <!-- Footer -->
-                        <div class="mt-1 pt-1.5 border-t border-[var(--border)]/50 px-2.5 py-1 flex items-center justify-end gap-3 text-2xs text-muted">
-                            <button type="button" x-show="selectedPrinter && isPrinterOnline(selectedPrinter)" @click="testPrintReceipt()" class="text-emerald-600 hover:underline font-bold cursor-pointer">{% trans "Test Print" %}</button>
-                            <button type="button" @click="refreshPrinters()" class="text-[var(--brand-600)] hover:underline font-bold cursor-pointer">{% trans "Refresh" %}</button>
+                        <!-- Switch Printer selector (if printers available) -->
+                        <div x-show="availablePrinters.length > 0" class="mt-2 pt-2 border-t border-[var(--border)]/40 space-y-1">
+                            <div class="text-3xs font-bold text-muted uppercase tracking-wider px-1">{% trans "Installed Printers" %}</div>
+                            <div class="max-h-24 overflow-y-auto space-y-1">
+                                <template x-for="p in availablePrinters" :key="p.id">
+                                    <button type="button"
+                                            @click="setPrinter(p.id)"
+                                            class="w-full text-left px-2 py-1.5 rounded-lg flex items-center justify-between hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+                                            :class="selectedPrinter === p.id ? 'bg-[var(--surface-2)] font-bold text-[var(--brand-600)]' : 'text-ink'">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <i class="pos-status-dot shrink-0" :class="p.is_online ? 'dot-connected animate-pulse' : 'dot-disconnected'"></i>
+                                            <span class="truncate text-xs" x-text="p.name"></span>
+                                        </div>
+                                        <span x-show="selectedPrinter === p.id" class="text-emerald-600 font-bold text-xs">✓</span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="mt-2.5 px-1 text-3xs text-muted flex items-start gap-1.5">
+                            <svg class="w-3.5 h-3.5 shrink-0 mt-0.5"
+                                 :class="isPrinterOnline(selectedPrinter) ? 'text-emerald-600' : 'text-muted'"
+                                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span x-text="isPrinterOnline(selectedPrinter) ? '{% trans "Global Output: Receipts print automatically on tender completion. ESC/POS raster supports Bangla." %}' : '{% trans "Connect a printer to enable instant receipt printing." %}'"></span>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="mt-3 pt-2 border-t border-[var(--border)]/50 flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" @click="testPrintReceipt()" class="px-2.5 py-1 rounded bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink font-semibold transition-colors cursor-pointer text-2xs flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                    </svg>
+                                    {% trans "Test Print" %}
+                                </button>
+                                <button type="button" @click="triggerOpenDrawer()" class="px-2.5 py-1 rounded bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink font-semibold transition-colors cursor-pointer text-2xs flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                    </svg>
+                                    {% trans "Kick Drawer" %}
+                                </button>
+                            </div>
+                            <button type="button" @click="refreshPrinters()" class="text-[var(--brand-600)] hover:underline font-bold text-2xs cursor-pointer">
+                                {% trans "Refresh" %}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1285,6 +1329,24 @@ function posTerminal(config) {
                 if (this.lastSale && this.lastSale.receiptUrl) {
                     this.printReceiptDirect(this.lastSale.receiptUrl);
                 }
+            }
+        },
+
+        async triggerOpenDrawer() {
+            try {
+                const url = '{% url "pos:open_drawer" %}' + (this.selectedPrinter ? '?printer_name=' + encodeURIComponent(this.selectedPrinter) : '');
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    alert('{% trans "Cash drawer opened." %}');
+                } else {
+                    alert(data.error || '{% trans "Could not open drawer." %}');
+                }
+            } catch (e) {
+                console.error('Drawer error', e);
             }
         },
 

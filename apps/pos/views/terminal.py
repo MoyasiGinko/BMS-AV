@@ -1,5 +1,3 @@
-"""Web views and HTMX partial endpoints for the Point of Sale (POS) module."""
-
 from __future__ import annotations
 
 import contextlib
@@ -21,22 +19,11 @@ from apps.core.notifications import notify_user
 from apps.core.permissions import check_object_scope, permission_required, scope_queryset
 from apps.customers.models import Customer
 from apps.pos import printing, selectors, services
-from apps.pos.exceptions import POSError
-from apps.pos.forms import (
-    POSCloseShiftForm,
-    POSOpenShiftForm,
-    POSRegisterForm,
-)
-from apps.pos.models import POSShift, POSShiftStatus
+from apps.pos.forms import POSCloseShiftForm, POSOpenShiftForm
+from apps.pos.models import POSShift
+from apps.pos.views.common import _get_org
 from apps.sales.models import PaymentMethod
 from apps.tenancy.models import Organization
-
-
-def _get_org(request: HttpRequest) -> Organization:
-    org = getattr(request, "organization", None)
-    if not org:
-        raise PermissionDenied(_("No active organization context found."))
-    return org
 
 
 @permission_required("pos.access")
@@ -64,12 +51,10 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
     )
 
     if not active_shift:
-        # If no register exists at all, prompt creating one
         if not registers.exists():
             messages.info(request, _("Please configure at least one POS register first."))
             return redirect("pos:register_create")
 
-        # Prompt user to open shift
         return render(
             request,
             "pos/terminal_no_shift.html",
@@ -201,7 +186,6 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
         )
 
     shift = get_object_or_404(POSShift.all_tenants, pk=shift_id, organization=org)
-
     cart_lines = _parse_cart_lines(org, data.get("lines", []))
     tenders = _parse_tenders(data.get("payments", []))
 
@@ -234,6 +218,7 @@ def checkout_action(request: HttpRequest) -> HttpResponse:
 
         printed_to_os = False
         if printer_id and printer_id != "none":
+
             def _spool(target_printer: str) -> None:
                 with contextlib.suppress(Exception):
                     printing.spool_receipt_to_printer(
@@ -329,146 +314,6 @@ def receipt_view(request: HttpRequest, public_id: str) -> HttpResponse:
     return response
 
 
-@permission_required("pos.shift_open")
-def shift_open_view(request: HttpRequest) -> HttpResponse:
-    """Open a new cashier shift."""
-    org = _get_org(request)
-
-    if request.method == "POST":
-        form = POSOpenShiftForm(request.POST, organization=org, user=request.user)
-        if form.is_valid():
-            try:
-                shift = services.open_shift(
-                    organization=org,
-                    register=form.cleaned_data["register"],
-                    cashier=request.user,
-                    opening_cash=form.cleaned_data["opening_cash"],
-                    notes=form.cleaned_data.get("notes", ""),
-                    actor=request.user,
-                )
-                messages.success(
-                    request,
-                    _("Shift %(num)s opened on %(reg)s.")
-                    % {"num": shift.shift_number, "reg": shift.register.code},
-                )
-                return redirect("pos:terminal")
-            except POSError as err:
-                messages.error(request, str(err))
-        else:
-            messages.error(request, _("Please correct the form errors below."))
-    else:
-        form = POSOpenShiftForm(organization=org, user=request.user)
-
-    return render(request, "pos/shift_open.html", {"form": form})
-
-
-@permission_required("pos.shift_close")
-def shift_close_view(request: HttpRequest, public_id: str) -> HttpResponse:
-    """Close an active cashier shift and review cash variance."""
-    org = _get_org(request)
-    shift = selectors.get_shift(organization=org, public_id=public_id)
-    if not shift or not check_object_scope(request.user, shift, organization=org):
-        raise PermissionDenied(_("Shift not found."))
-
-    if request.method == "POST":
-        form = POSCloseShiftForm(request.POST)
-        if form.is_valid():
-            try:
-                closed_shift = services.close_shift(
-                    organization=org,
-                    shift=shift,
-                    closing_cash_counted=form.cleaned_data["closing_cash_counted"],
-                    notes=form.cleaned_data.get("notes", ""),
-                    actor=request.user,
-                )
-                messages.success(
-                    request,
-                    _("Shift %(num)s closed successfully. Variance: $%(var)s.")
-                    % {"num": closed_shift.shift_number, "var": closed_shift.cash_variance},
-                )
-                return redirect("pos:shift_detail", public_id=closed_shift.public_id)
-            except POSError as err:
-                messages.error(request, str(err))
-        else:
-            messages.error(request, _("Invalid cash count entered."))
-
-    return redirect("pos:shift_detail", public_id=shift.public_id)
-
-
-@permission_required("pos.access")
-def shift_list_view(request: HttpRequest) -> HttpResponse:
-    """List all cashier shifts with status filters."""
-    org = _get_org(request)
-    status_filter = request.GET.get("status") or None
-    shifts = selectors.list_shifts(organization=org, status=status_filter)
-    shifts = scope_queryset(shifts, request.user, organization=org)
-
-    return render(
-        request,
-        "pos/shift_list.html",
-        {
-            "shifts": shifts,
-            "status_filter": status_filter,
-        },
-    )
-
-
-@permission_required("pos.access")
-def shift_detail_view(request: HttpRequest, public_id: str) -> HttpResponse:
-    """View shift summary, sales, and closing cash variance audit."""
-    org = _get_org(request)
-    shift = selectors.get_shift(organization=org, public_id=public_id)
-    if not shift or not check_object_scope(request.user, shift, organization=org):
-        raise PermissionDenied(_("Shift not found."))
-
-    sales = selectors.list_sales(organization=org, shift_id=shift.pk)
-
-    context = {
-        "shift": shift,
-        "sales": sales,
-        "close_form": POSCloseShiftForm() if shift.status == POSShiftStatus.OPEN else None,
-    }
-    return render(request, "pos/shift_detail.html", context)
-
-
-@permission_required("pos.manage")
-def register_list_view(request: HttpRequest) -> HttpResponse:
-    """List all POS terminals."""
-    org = _get_org(request)
-    registers = selectors.list_registers(organization=org)
-    registers = scope_queryset(registers, request.user, organization=org)
-    return render(request, "pos/register_list.html", {"registers": registers})
-
-
-@permission_required("pos.manage")
-def register_create_view(request: HttpRequest) -> HttpResponse:
-    """Create a new POS terminal."""
-    org = _get_org(request)
-    if request.method == "POST":
-        form = POSRegisterForm(request.POST, organization=org)
-        if form.is_valid():
-            try:
-                reg = services.create_register(
-                    organization=org,
-                    name=form.cleaned_data["name"],
-                    branch=form.cleaned_data["branch"],
-                    warehouse=form.cleaned_data["warehouse"],
-                    code=form.cleaned_data.get("code") or None,
-                    receipt_header=form.cleaned_data.get("receipt_header", ""),
-                    receipt_footer=form.cleaned_data.get("receipt_footer", ""),
-                    is_active=form.cleaned_data.get("is_active", True),
-                    actor=request.user,
-                )
-                messages.success(request, _("Register %s created successfully.") % reg.code)
-                return redirect("pos:register_list")
-            except Exception as exc:
-                messages.error(request, str(exc))
-    else:
-        form = POSRegisterForm(organization=org)
-
-    return render(request, "pos/register_form.html", {"form": form})
-
-
 @permission_required("pos.access")
 def hold_cart_action(request: HttpRequest) -> HttpResponse:
     """Park an active cart to be resumed later."""
@@ -510,20 +355,6 @@ def resume_cart_action(request: HttpRequest, held_cart_id: int) -> HttpResponse:
 
 
 @permission_required("pos.access")
-def printers_view(request: HttpRequest) -> HttpResponse:
-    """Return live system printers for POS terminal."""
-    printers = selectors.get_system_printers()
-    return JsonResponse({"printers": printers})
-
-
-@permission_required("pos.access")
-def scanners_view(request: HttpRequest) -> HttpResponse:
-    """Return live system barcode scanners for POS terminal."""
-    scanners = selectors.get_system_scanners()
-    return JsonResponse({"scanners": scanners})
-
-
-@permission_required("pos.access")
 def product_lookup_view(request: HttpRequest) -> HttpResponse:
     """Instant JSON barcode/SKU lookup for global hardware scanner capture."""
     org = _get_org(request)
@@ -539,14 +370,7 @@ def product_lookup_view(request: HttpRequest) -> HttpResponse:
         search=query,
         warehouse=warehouse,
     )
-    product = None
-    for p in products:
-        if (p.barcode and p.barcode.strip() == query) or (p.sku and p.sku.strip() == query):
-            product = p
-            break
-    if not product and products.exists():
-        product = products.first()
-
+    product = products.first()
     if not product:
         return JsonResponse({"found": False, "query": query})
 
@@ -570,35 +394,3 @@ def product_lookup_view(request: HttpRequest) -> HttpResponse:
             },
         }
     )
-
-
-@permission_required("pos.access")
-def test_printer_action(request: HttpRequest) -> HttpResponse:
-    """Send a test print slip directly to the chosen OS hardware printer."""
-    org = _get_org(request)
-    printer_name = request.GET.get("printer_name") or request.POST.get("printer_name")
-    if not printer_name and request.content_type == "application/json":
-        with contextlib.suppress(Exception):
-            printer_name = json.loads(request.body.decode("utf-8")).get("printer_name")
-
-    if not printer_name:
-        return JsonResponse({"success": False, "error": str(_("No printer specified."))}, status=400)
-
-    threading.Thread(
-        target=printing.spool_test_slip_to_printer,
-        kwargs={"organization": org, "printer_name": printer_name},
-        daemon=True,
-    ).start()
-    return JsonResponse({"success": True, "printer_name": printer_name})
-
-
-@permission_required("pos.access")
-def open_drawer_action(request: HttpRequest) -> HttpResponse:
-    """Trigger the cash drawer / locker to kick open via printer kick pulse."""
-    printer_name = request.GET.get("printer_name") or request.POST.get("printer_name")
-    if not printer_name and request.content_type == "application/json":
-        with contextlib.suppress(Exception):
-            printer_name = json.loads(request.body.decode("utf-8")).get("printer_name")
-
-    success = printing.open_cash_drawer(printer_name=printer_name)
-    return JsonResponse({"success": success, "drawer_opened": True})

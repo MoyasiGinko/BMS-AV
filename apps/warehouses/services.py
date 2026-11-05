@@ -489,3 +489,43 @@ def get_preferred_supply_route(
         .order_by("-is_preferred", "priority")
         .first()
     )
+
+
+
+__all__ = [
+    "create_inventory_location",
+    "create_supply_route",
+    "create_warehouse",
+    "delete_inventory_location",
+    "delete_supply_route",
+    "delete_warehouse",
+    "dispatch_stock_transfer",
+    "get_or_create_location_for_warehouse",
+    "get_preferred_supply_route",
+    "link_warehouse_to_branch",
+    "receive_stock_transfer",
+    "set_branch_default_warehouse",
+    "transfer_stock",
+    "unlink_warehouse_from_branch",
+    "update_inventory_location",
+    "update_supply_route",
+    "update_warehouse",
+]
+
+
+def transfer_stock(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.transfer_stock(*args, **kwargs)
+
+
+def dispatch_stock_transfer(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.dispatch_stock_transfer(*args, **kwargs)
+
+
+def receive_stock_transfer(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.receive_stock_transfer(*args, **kwargs)

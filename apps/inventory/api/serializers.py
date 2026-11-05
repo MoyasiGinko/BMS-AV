@@ -17,10 +17,10 @@ from apps.inventory.models import (
 
 # Re-exported from apps.warehouses.api.serializers for backwards compatibility
 from apps.warehouses.api.serializers import (
-    InventoryLocationCreateSerializer as InventoryLocationCreateSerializer,
-    InventoryLocationSerializer as InventoryLocationSerializer,
-    StockSupplyRouteCreateSerializer as StockSupplyRouteCreateSerializer,
-    StockSupplyRouteSerializer as StockSupplyRouteSerializer,
+    InventoryLocationCreateSerializer,
+    InventoryLocationSerializer,
+    StockSupplyRouteCreateSerializer,
+    StockSupplyRouteSerializer,
 )
 
 
@@ -299,3 +299,18 @@ class InventoryReconciliationIncidentSerializer(serializers.ModelSerializer[Inve
             "updated_at",
         ]
         read_only_fields = fields
+
+__all__ = [
+    "InventoryLocationCreateSerializer",
+    "InventoryLocationSerializer",
+    "InventoryReconciliationIncidentSerializer",
+    "StockAdjustmentLineSerializer",
+    "StockAdjustmentSerializer",
+    "StockLevelSerializer",
+    "StockMovementSerializer",
+    "StockReservationSerializer",
+    "StockSupplyRouteCreateSerializer",
+    "StockSupplyRouteSerializer",
+    "StockTransferLineSerializer",
+    "StockTransferSerializer",
+]

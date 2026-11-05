@@ -19,18 +19,20 @@ from apps.inventory.models import (
     StockCostLayer,
     StockCount,
     StockLevel,
-    StockMovement,
     StockReservation,
-    StockTransfer,
 )
 from apps.tenancy.models import Organization, Warehouse
 from apps.warehouses.selectors import (
-    get_inventory_location as get_inventory_location,
-    get_location_hierarchy as get_location_hierarchy,
-    get_preferred_supply_route as get_preferred_supply_route,
-    get_supply_route as get_supply_route,
-    list_inventory_locations as list_inventory_locations,
-    list_supply_routes as list_supply_routes,
+    get_inventory_location,
+    get_location_hierarchy,
+    get_preferred_supply_route,
+    get_stock_movement,
+    get_stock_transfer,
+    get_supply_route,
+    list_inventory_locations,
+    list_stock_movements,
+    list_stock_transfers,
+    list_supply_routes,
 )
 
 DECIMAL_ZERO = Decimal("0.0000")
@@ -93,94 +95,6 @@ def list_stock_levels(
         )
 
     return qs.order_by("product__name", "warehouse__name")
-
-
-def get_stock_movement(*, organization: Organization, movement_id: int) -> StockMovement | None:
-    """Retrieve a single stock ledger movement by ID."""
-    return (
-        StockMovement.all_tenants.filter(organization=organization, pk=movement_id)
-        .select_related("product", "product__unit", "variant", "warehouse")
-        .first()
-    )
-
-
-def list_stock_movements(
-    *,
-    organization: Organization,
-    warehouse: Warehouse | None = None,
-    product_id: int | None = None,
-    movement_type: str = "",
-    start_date: Any = None,
-    end_date: Any = None,
-) -> QuerySet[StockMovement]:
-    """List immutable stock movements with optional filtering."""
-    qs = StockMovement.all_tenants.filter(organization=organization).select_related(
-        "product", "product__unit", "variant", "warehouse"
-    )
-
-    if warehouse is not None:
-        qs = qs.filter(warehouse=warehouse)
-
-    if product_id is not None:
-        qs = qs.filter(product_id=product_id)
-
-    if movement_type:
-        qs = qs.filter(type=movement_type)
-
-    if start_date:
-        qs = qs.filter(occurred_at__gte=start_date)
-
-    if end_date:
-        qs = qs.filter(occurred_at__lte=end_date)
-
-    return qs.order_by("-occurred_at", "-id")
-
-
-def list_stock_transfers(
-    *,
-    organization: Organization,
-    warehouse: Warehouse | None = None,
-    branch_id: int | None = None,
-    status: str = "",
-) -> QuerySet[StockTransfer]:
-    """List stock transfer documents."""
-    qs = StockTransfer.all_tenants.filter(organization=organization).select_related(
-        "source_warehouse",
-        "destination_warehouse",
-        "source_branch",
-        "destination_branch",
-    )
-
-    if warehouse is not None:
-        qs = qs.filter(Q(source_warehouse=warehouse) | Q(destination_warehouse=warehouse))
-
-    if branch_id is not None:
-        qs = qs.filter(
-            Q(source_branch_id=branch_id)
-            | Q(destination_branch_id=branch_id)
-            | Q(source_warehouse__branch_id=branch_id)
-            | Q(destination_warehouse__branch_id=branch_id)
-        )
-
-    if status:
-        qs = qs.filter(status=status)
-
-    return qs.order_by("-created_at")
-
-
-def get_stock_transfer(*, organization: Organization, transfer_id: int) -> StockTransfer | None:
-    """Retrieve a stock transfer document along with all line items."""
-    return (
-        StockTransfer.all_tenants.filter(organization=organization, pk=transfer_id)
-        .select_related(
-            "source_warehouse",
-            "destination_warehouse",
-            "source_branch",
-            "destination_branch",
-        )
-        .prefetch_related("lines__product", "lines__variant")
-        .first()
-    )
 
 
 def list_stock_adjustments(
@@ -549,3 +463,23 @@ def get_reconciliation_incident(
         .select_related("location", "warehouse", "product", "resolved_by", "adjustment")
         .first()
     )
+
+__all__ = [
+    "get_inventory_location",
+    "get_location_hierarchy",
+    "get_preferred_supply_route",
+    "get_stock_adjustment",
+    "get_stock_count",
+    "get_stock_level",
+    "get_stock_movement",
+    "get_stock_transfer",
+    "get_supply_route",
+    "list_inventory_locations",
+    "list_stock_adjustments",
+    "list_stock_counts",
+    "list_stock_levels",
+    "list_stock_movements",
+    "list_stock_reservations",
+    "list_stock_transfers",
+    "list_supply_routes",
+]
