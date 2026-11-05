@@ -196,12 +196,8 @@ registry.register(
             "Stock Levels", "inventory:stock_level_list", icon="archive-box", permission="inventory.view"
         ),
         NavItem(
-            "Movements", "inventory:movement_list", icon="arrows-right-left", permission="inventory.view"
-        ),
-        NavItem(
             "Adjustments", "inventory:adjustment_list", icon="pencil-square", permission="inventory.adjust"
         ),
-        NavItem("Transfers", "inventory:transfer_list", icon="truck", permission="inventory.transfer"),
         NavItem(
             "Cycle Counts",
             "inventory:count_list",
@@ -227,6 +223,12 @@ registry.register(
     sort_order=45,
     nav_items=[
         NavItem(
+            "Dashboard",
+            "warehouses:dashboard",
+            icon="squares-2x2",
+            permission="warehouses.view",
+        ),
+        NavItem(
             "Warehouses",
             "warehouses:list",
             icon="building-office",
@@ -236,6 +238,18 @@ registry.register(
             "Branches",
             "warehouses:branch_list",
             icon="building-storefront",
+            permission="warehouses.view",
+        ),
+        NavItem(
+            "Transfers",
+            "warehouses:transfer_list",
+            icon="truck",
+            permission="warehouses.view",
+        ),
+        NavItem(
+            "Movement Ledger",
+            "warehouses:movement_list",
+            icon="arrows-right-left",
             permission="warehouses.view",
         ),
     ],

@@ -7,7 +7,9 @@ from apps.warehouses import views
 app_name = "warehouses"
 
 urlpatterns = [
-    path("", views.warehouse_list_view, name="list"),
+    path("", views.warehouse_dashboard_view, name="dashboard"),
+    path("dashboard/", views.warehouse_dashboard_view, name="dashboard_alias"),
+    path("facilities/", views.warehouse_list_view, name="list"),
     path("branches/", views.branch_list_view, name="branch_list"),
     path("locations/", views.location_list_view, name="location_list"),
     path("routes/", views.supply_route_list_view, name="route_list"),

@@ -3,6 +3,8 @@
 
 {% block title %}{{ warehouse.name }} | {% trans "Warehouses" %}{% endblock %}
 
+{% block container_class %}max-w-none! w-full p-4 sm:p-6 lg:p-8{% endblock %}
+
 {% block content %}
 <div
   x-data="{
@@ -21,7 +23,7 @@
       this.locModalOpen = true;
     }
   }"
-  class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+  class="space-y-6 w-full"
 >
   <!-- Module Sub-Navigation Bar -->
   <div class="flex items-center gap-2 border-b border-[var(--border)] pb-3 overflow-x-auto">

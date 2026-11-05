@@ -61,6 +61,16 @@ def wh_view_env(db):
 
 
 @pytest.mark.django_db
+def test_warehouse_dashboard_view_get(wh_view_env):
+    client: Client = wh_view_env["client"]
+    url = reverse("warehouses:dashboard")
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "warehouses/dashboard.html" in [t.name for t in response.templates]
+    assert "Main Depot" in response.content.decode()
+
+
+@pytest.mark.django_db
 def test_warehouse_list_view_get(wh_view_env):
     client: Client = wh_view_env["client"]
     url = reverse("warehouses:list")

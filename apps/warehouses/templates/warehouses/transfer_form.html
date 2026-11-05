@@ -3,8 +3,10 @@
 
 {% block title %}{% trans "New Transfer" %} | {{ organization.name }}{% endblock %}
 
+{% block container_class %}max-w-none! w-full p-4 sm:p-6 lg:p-8{% endblock %}
+
 {% block content %}
-<div class="space-y-6 max-w-4xl mx-auto">
+<div class="space-y-6 w-full">
   <!-- Top Navigation Sub-tabs -->
   {% include "warehouses/partials/_navigation_tabs.html" with active_tab="transfers" %}
 
@@ -26,7 +28,7 @@
 
   <!-- Form Card -->
   <div class="rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-6 shadow-xs">
-    <form method="post" class="space-y-6">
+    <form method="post" class="space-y-6 w-full">
       {% csrf_token %}
 
       {% if form.non_field_errors %}

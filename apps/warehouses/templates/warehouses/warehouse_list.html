@@ -3,6 +3,8 @@
 
 {% block title %}{% trans "Warehouses" %} | {{ organization.name }}{% endblock %}
 
+{% block container_class %}max-w-none! w-full p-4 sm:p-6 lg:p-8{% endblock %}
+
 {% block content %}
 <div
   x-data="{
@@ -54,7 +56,7 @@
       this.linkModalOpen = true;
     }
   }"
-  class="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+  class="space-y-6 w-full"
 >
   <!-- Module Sub-Navigation Bar -->
   {% include "warehouses/partials/_navigation_tabs.html" with active_tab="warehouses" %}

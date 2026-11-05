@@ -8,10 +8,10 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Inventory & Warehouses" %}</h1>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Stock Levels" %}</h1>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
-            <a href="{% url 'inventory:transfer_create' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
+            <a href="{% url 'warehouses:transfer_create' %}" class="neu-btn-ghost inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-bold text-ink bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-all cursor-pointer">
                 <svg class="w-4.5 h-4.5 mr-2 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
@@ -91,7 +91,7 @@
             </div>
 
             <div class="text-xs">
-                <a href="{% url 'inventory:movement_list' %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-bold inline-flex items-center gap-1 transition-colors">
+                <a href="{% url 'warehouses:movement_list' %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-bold inline-flex items-center gap-1 transition-colors">
                     {% trans "View full movement ledger" %} &rarr;
                 </a>
             </div>
