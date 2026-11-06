@@ -425,11 +425,11 @@ body.overflow-hidden {
   gap: 0.625rem !important;
 }
 
-/* Transparent sticky header tabs across all themes */
+/* Solid sticky header tabs across all themes */
 .sticky-header-tabs {
-  background-color: transparent !important;
-  background: transparent !important;
-  border-bottom: none !important;
+  background-color: var(--bg) !important;
+  background: var(--bg) !important;
+  opacity: 1 !important;
 }
 
 /* Warehouse Header Tabs Capsule Toolbar */
