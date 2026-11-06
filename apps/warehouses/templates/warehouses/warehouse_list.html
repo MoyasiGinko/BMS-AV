@@ -15,6 +15,7 @@
     name: '',
     code: '',
     branchId: '',
+    warehouseType: 'primary',
     isCentral: false,
     isDefault: false,
     isActive: true,
@@ -30,17 +31,19 @@
       this.name = '';
       this.code = '';
       this.branchId = '';
+      this.warehouseType = 'primary';
       this.isCentral = false;
       this.isDefault = false;
       this.isActive = true;
       this.modalOpen = true;
     },
-    openEdit(id, name, code, branchId, isCentral, isDef, isActive) {
+    openEdit(id, name, code, branchId, isCentral, isDef, isActive, whType) {
       this.isEdit = true;
       this.whId = id;
       this.name = name;
       this.code = code;
       this.branchId = branchId || '';
+      this.warehouseType = whType || (isCentral ? 'primary' : 'secondary');
       this.isCentral = isCentral;
       this.isDefault = isDef;
       this.isActive = isActive;
@@ -99,14 +102,14 @@
       <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Storage facilities in organization" %}</div>
     </div>
     <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Central hubs" %}</div>
-      <div class="text-2xl font-bold text-blue-600 mt-1.5">{{ central_hubs }}</div>
-      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Supply multiple branch outlets" %}</div>
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Primary warehouses" %}</div>
+      <div class="text-2xl font-bold text-blue-600 mt-1.5">{{ primary_count }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Regional distribution hubs & outlet suppliers" %}</div>
     </div>
     <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Active locations" %}</div>
-      <div class="text-2xl font-bold text-emerald-600 mt-1.5">{{ active_count }}</div>
-      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Operational stock facilities" %}</div>
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Secondary warehouses" %}</div>
+      <div class="text-2xl font-bold text-amber-600 mt-1.5">{{ secondary_count }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Feeder depots, overflow & transit stock" %}</div>
     </div>
   </div>
 
@@ -121,10 +124,10 @@
         <table class="w-full text-left border-collapse text-sm">
           <thead>
             <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
-              <th class="py-3 px-4">{% trans "Name" %}</th>
-              <th class="py-3 px-4">{% trans "Code" %}</th>
-              <th class="py-3 px-4">{% trans "Type & location" %}</th>
-              <th class="py-3 px-4">{% trans "Default" %}</th>
+              <th class="py-3 px-4">{% trans "Facility & code" %}</th>
+              <th class="py-3 px-4">{% trans "Classification" %}</th>
+              <th class="py-3 px-4">{% trans "Assigned branch / outlet" %}</th>
+              <th class="py-3 px-4">{% trans "Dual storage zones" %}</th>
               <th class="py-3 px-4">{% trans "Status" %}</th>
               <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
             </tr>
@@ -136,32 +139,40 @@
                   <a href="{% url 'warehouses:detail' warehouse_id=wh.pk %}" class="hover:text-[var(--brand-600)] transition-colors">
                     {{ wh.name }}
                   </a>
-                </td>
-                <td class="py-3 px-4 font-mono text-xs text-[var(--text-muted)]">
-                  {{ wh.code }}
+                  <div class="text-xs text-[var(--text-muted)] font-mono mt-0.5">{{ wh.code }}</div>
                 </td>
                 <td class="py-3 px-4 text-xs">
-                  <div class="flex items-center gap-2">
-                    {% if wh.is_central %}
-                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                        {% trans "Central hub" %}
-                      </span>
-                    {% endif %}
-                    {% if wh.branch %}
-                      <span class="text-[var(--text-muted)]">{{ wh.branch.name }}</span>
-                    {% elif not wh.is_central %}
-                      <span class="text-[var(--text-subtle)]">{% trans "Standalone" %}</span>
-                    {% endif %}
-                  </div>
-                </td>
-                <td class="py-3 px-4">
-                  {% if wh.is_default %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--brand-50)] text-[var(--brand-700)] border border-[var(--brand-200)]">
-                      {% trans "Default" %}
+                  {% if wh.is_primary %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                      {% trans "Primary Warehouse" %}
                     </span>
                   {% else %}
-                    <span class="text-xs text-[var(--text-subtle)]">—</span>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                      {% trans "Secondary Warehouse" %}
+                    </span>
                   {% endif %}
+                </td>
+                <td class="py-3 px-4 text-xs">
+                  {% if wh.branch %}
+                    <span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      {{ wh.branch.name }}
+                    </span>
+                  {% else %}
+                    <span class="text-[var(--text-subtle)] italic">{% trans "Standalone (No linked outlet)" %}</span>
+                  {% endif %}
+                </td>
+                <td class="py-3 px-4 text-xs">
+                  <div class="flex flex-col gap-1">
+                    <span class="inline-flex items-center gap-1.5 text-2xs font-mono text-[var(--text)]">
+                      <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                      <strong class="font-bold">{% trans "Sellable" %}:</strong> {{ wh.code }}-SELL
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 text-2xs font-mono text-[var(--text-muted)]">
+                      <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                      <strong class="font-bold">{% trans "Internal" %}:</strong> {{ wh.code }}-INTERNAL
+                    </span>
+                  </div>
                 </td>
                 <td class="py-3 px-4">
                   {% if wh.is_active %}
@@ -171,6 +182,11 @@
                   {% else %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-500/10 text-zinc-600 border border-zinc-500/20">
                       {% trans "Inactive" %}
+                    </span>
+                  {% endif %}
+                  {% if wh.is_default %}
+                    <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-3xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                      {% trans "Default" %}
                     </span>
                   {% endif %}
                 </td>
@@ -184,7 +200,7 @@
                   {% if can_manage %}
                     <button
                       type="button"
-                      @click="openEdit('{{ wh.pk }}', '{{ wh.name|escapejs }}', '{{ wh.code|escapejs }}', '{{ wh.branch_id|default:'' }}', {{ wh.is_central|yesno:'true,false' }}, {{ wh.is_default|yesno:'true,false' }}, {{ wh.is_active|yesno:'true,false' }})"
+                      @click="openEdit('{{ wh.pk }}', '{{ wh.name|escapejs }}', '{{ wh.code|escapejs }}', '{{ wh.branch_id|default:'' }}', {{ wh.is_central|yesno:'true,false' }}, {{ wh.is_default|yesno:'true,false' }}, {{ wh.is_active|yesno:'true,false' }}, '{{ wh.warehouse_type }}')"
                       class="text-xs text-[var(--brand-600)] hover:underline font-medium"
                     >
                       {% trans "Edit" %}
@@ -334,6 +350,30 @@
         </div>
 
         <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+            {% trans "Warehouse Classification" %} <span class="text-red-500">*</span>
+          </label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="p-3 rounded-xl border cursor-pointer flex flex-col gap-1 transition-all"
+                   :class="warehouseType === 'primary' ? 'border-blue-500 bg-blue-50/20 dark:bg-blue-950/20 text-blue-900 dark:text-blue-100' : 'border-[var(--border)] bg-[var(--surface-2)] text-muted'">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="warehouse_type" value="primary" x-model="warehouseType" class="text-blue-600">
+                <span class="font-bold text-xs">{% trans "Primary Warehouse" %}</span>
+              </div>
+              <span class="text-3xs text-[var(--text-muted)]">{% trans "Main regional supply hub, supplies multiple outlets & holds sellable stock." %}</span>
+            </label>
+            <label class="p-3 rounded-xl border cursor-pointer flex flex-col gap-1 transition-all"
+                   :class="warehouseType === 'secondary' ? 'border-amber-500 bg-amber-50/20 dark:bg-amber-950/20 text-amber-900 dark:text-amber-100' : 'border-[var(--border)] bg-[var(--surface-2)] text-muted'">
+              <div class="flex items-center gap-2">
+                <input type="radio" name="warehouse_type" value="secondary" x-model="warehouseType" class="text-amber-600">
+                <span class="font-bold text-xs">{% trans "Secondary Warehouse" %}</span>
+              </div>
+              <span class="text-3xs text-[var(--text-muted)]">{% trans "Feeder, transit, or overflow depot with dual-storage capacity." %}</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
           <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
             {% trans "Warehouse code" %} <span class="text-red-500">*</span>
           </label>
@@ -342,22 +382,28 @@
 
         <div>
           <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
-            {% trans "Co-located branch" %}
+            {% trans "Assigned Branch / Retail Outlet" %}
           </label>
           <select name="branch_id" x-model="branchId" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
-            <option value="">{% trans "None (Central depot or standalone)" %}</option>
+            <option value="">{% trans "None (Standalone Warehouse Only)" %}</option>
             {% for b in branches %}
               <option value="{{ b.pk }}">{{ b.name }} ({{ b.code }})</option>
             {% endfor %}
           </select>
-          <p class="text-[11px] text-[var(--text-muted)] mt-1">{% trans "Select a branch if this warehouse is physically located on premise." %}</p>
+          <p class="text-[11px] text-[var(--text-muted)] mt-1">{% trans "Assign a branch if this warehouse is linked to or co-located with a selling retail outlet." %}</p>
         </div>
 
-        <div class="space-y-2 pt-2">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" name="is_central" x-model="isCentral" class="rounded border-[var(--border)] text-[var(--brand-600)]">
-            <span class="text-xs font-medium text-[var(--text)]">{% trans "Central distribution warehouse" %}</span>
-          </label>
+        <div class="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 text-xs space-y-1">
+          <div class="font-bold text-[var(--text)] flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {% trans "Automatic Dual-Storage Zones" %}
+          </div>
+          <p class="text-[11px] text-[var(--text-muted)]">
+            {% trans "Every warehouse automatically receives 2 dedicated storage zones: (1) Sellable Outlets Storage for POS retail sales, and (2) Goods & Ingredients Storage for non-sale inventory." %}
+          </p>
+        </div>
+
+        <div class="space-y-2 pt-1">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" name="is_default" x-model="isDefault" class="rounded border-[var(--border)] text-[var(--brand-600)]">
             <span class="text-xs font-medium text-[var(--text)]">{% trans "Organization default warehouse" %}</span>

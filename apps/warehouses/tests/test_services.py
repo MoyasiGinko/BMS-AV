@@ -1,12 +1,17 @@
 """Tests for apps.warehouses.services."""
 
+from decimal import Decimal
+
 import pytest
 from django.contrib.auth import get_user_model
 
+from apps.catalog.models import Category, Product, ProductType, Unit
 from apps.core.exceptions import ValidationError
 from apps.core.tenant_context import set_current_organization
+from apps.inventory import services as inv_services
+from apps.inventory.models import LocationType, MovementType, StockMovement, StorageType, TransferStatus
 from apps.tenancy import services as tenancy_services
-from apps.tenancy.models import Branch, BranchWarehouse, Warehouse
+from apps.tenancy.models import Branch, BranchWarehouse, Warehouse, WarehouseType
 from apps.warehouses import services as wh_services
 from apps.warehouses.exceptions import InvalidMovement
 
@@ -228,3 +233,168 @@ def test_location_and_supply_route_services(warehouse_env):
     assert preferred is not None
     assert preferred.id == route.id
     assert preferred.source_location_id == zone.id
+
+
+@pytest.mark.django_db
+def test_primary_and_secondary_warehouses_with_dual_storage(warehouse_env):
+    org = warehouse_env["org"]
+    user = warehouse_env["user"]
+
+    # 1. Create a Primary Warehouse
+    primary_wh = wh_services.create_warehouse(
+        organization=org,
+        name="Chittagong Central Port Hub",
+        code="WH-CTG-PORT",
+        warehouse_type=WarehouseType.PRIMARY,
+        actor=user,
+    )
+    assert primary_wh.is_primary is True
+    assert primary_wh.is_secondary is False
+    assert primary_wh.warehouse_type == WarehouseType.PRIMARY
+
+    # Check automatic dual storage locations
+    sellable_loc, internal_loc = wh_services.ensure_warehouse_storage_locations(primary_wh)
+    assert sellable_loc.storage_type == StorageType.SELLABLE
+    assert sellable_loc.location_type == LocationType.SELLABLE_STORAGE
+    assert internal_loc.storage_type == StorageType.INTERNAL_USE
+    assert internal_loc.location_type == LocationType.INTERNAL_STORAGE
+
+    # 2. Create a Secondary Warehouse
+    sec_wh = wh_services.create_warehouse(
+        organization=org,
+        name="Agrabad Feeder Depot",
+        code="WH-AGR-01",
+        warehouse_type=WarehouseType.SECONDARY,
+        actor=user,
+    )
+    assert sec_wh.is_secondary is True
+    assert sec_wh.is_primary is False
+    assert sec_wh.warehouse_type == WarehouseType.SECONDARY
+
+    sec_sellable, sec_internal = wh_services.ensure_warehouse_storage_locations(sec_wh)
+    assert sec_sellable.storage_type == StorageType.SELLABLE
+    assert sec_internal.storage_type == StorageType.INTERNAL_USE
+
+
+@pytest.mark.django_db
+def test_stock_transfer_pipeline_dual_validation(warehouse_env):
+    org = warehouse_env["org"]
+    user = warehouse_env["user"]
+    src_wh = warehouse_env["warehouse"]
+
+    dst_wh = wh_services.create_warehouse(
+        organization=org,
+        name="Dhanmondi Retail Hub",
+        code="WH-DHN-01",
+        warehouse_type=WarehouseType.PRIMARY,
+        actor=user,
+    )
+
+    cat = Category.objects.create(organization=org, name="Industrial Tools")
+    unit = Unit.objects.create(organization=org, name="Piece", code="pc")
+    prod = Product.objects.create(
+        organization=org,
+        name="Impact Drill 18V",
+        sku="ID-18V-PRO",
+        category=cat,
+        unit=unit,
+        type=ProductType.STOCK,
+    )
+
+    # Seed source sellable storage with stock
+    src_sellable, _ = wh_services.ensure_warehouse_storage_locations(src_wh)
+    dest_sellable, _ = wh_services.ensure_warehouse_storage_locations(dst_wh)
+
+    inv_services.receive_stock(
+        organization=org,
+        warehouse=src_wh,
+        product=prod,
+        quantity=Decimal("50.0000"),
+        unit_cost=Decimal("150.0000"),
+    )
+
+    # 1. Step 1: Create Transfer Request (Draft / Pending Approval)
+    transfer = inv_services.create_stock_transfer(
+        organization=org,
+        source_warehouse=src_wh,
+        destination_warehouse=dst_wh,
+        source_location=src_sellable,
+        destination_location=dest_sellable,
+        lines=[{"product": prod, "quantity": Decimal("10.0000")}],
+        notes="Urgent replenishment request from Dhanmondi outlet",
+        status=TransferStatus.PENDING_APPROVAL,
+        actor=user,
+    )
+    assert transfer.status == TransferStatus.PENDING_APPROVAL
+    assert transfer.lines.count() == 1
+    assert transfer.lines.first().quantity_requested == Decimal("10.0000")
+
+    # 2. Step 2: Approve Transfer
+    inv_services.approve_stock_transfer(organization=org, transfer=transfer, actor=user)
+    transfer.refresh_from_db()
+    assert transfer.status == TransferStatus.APPROVED
+    assert transfer.approved_by == user
+
+    # 3. Step 3: Sender Dispatch Sign-off
+    inv_services.dispatch_stock_transfer(
+        organization=org,
+        transfer=transfer,
+        carrier="Apex Logistics Truck #5",
+        tracking_number="TRK-990022",
+        actor=user,
+    )
+    transfer.refresh_from_db()
+    assert transfer.status == TransferStatus.IN_TRANSIT
+    assert transfer.carrier == "Apex Logistics Truck #5"
+    assert transfer.tracking_number == "TRK-990022"
+
+    # Verify immutable StockMovement ledger record created for dispatch
+    dispatch_mov = StockMovement.all_tenants.filter(
+        organization=org,
+        reference_type="inventory.StockTransfer",
+        reference_id=str(transfer.pk),
+        type=MovementType.TRANSFER_OUT,
+    ).first()
+    assert dispatch_mov is not None
+    assert dispatch_mov.quantity == Decimal("-10.0000")
+
+    # 4. Step 4: Receiver Intake Verification (8 received intact, 1 damaged, 1 missing)
+    line = transfer.lines.first()
+    receipts_breakdown = [
+        {
+            "line_id": line.id,
+            "quantity_received": Decimal("8.0000"),
+            "quantity_damaged": Decimal("1.0000"),
+            "quantity_missing": Decimal("1.0000"),
+        }
+    ]
+    inv_services.receive_stock_transfer(
+        organization=org,
+        transfer=transfer,
+        receipt_lines=receipts_breakdown,
+        notes="Received with 1 cracked casing, 1 box shortage",
+        actor=user,
+    )
+    transfer.refresh_from_db()
+    assert transfer.status == TransferStatus.COMPLETED
+    line.refresh_from_db()
+    assert line.quantity_received == Decimal("8.0000")
+    assert line.quantity_damaged == Decimal("1.0000")
+    assert line.quantity_missing == Decimal("1.0000")
+
+    # Verify immutable StockMovement ledger records created for receipt
+    receive_mov = StockMovement.all_tenants.filter(
+        organization=org,
+        reference_type="inventory.StockTransfer",
+        reference_id=str(transfer.pk),
+        type=MovementType.TRANSFER_IN,
+    ).first()
+    assert receive_mov is not None
+    assert receive_mov.quantity == Decimal("10.0000")
+
+    # Verify write-off adjustments for damaged & missing items
+    adjustments = StockMovement.all_tenants.filter(
+        organization=org,
+        type=MovementType.ADJUSTMENT_OUT,
+    )
+    assert adjustments.count() == 2

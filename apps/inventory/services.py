@@ -877,12 +877,17 @@ def create_stock_transfer(
     source_warehouse: Warehouse,
     destination_warehouse: Warehouse,
     lines: list[dict[str, Any]],
+    source_location: InventoryLocation | None = None,
+    destination_location: InventoryLocation | None = None,
+    status: str = TransferStatus.DRAFT,
     notes: str = "",
     actor: Any = None,
 ) -> StockTransfer:
-    """Initialize a stock transfer document in draft status."""
-    if source_warehouse.pk == destination_warehouse.pk:
-        raise InvalidMovement("Source and destination warehouses cannot be the same.")
+    """Initialize a stock transfer document in draft or requested status."""
+    if source_warehouse.pk == destination_warehouse.pk and (
+        source_location is None or destination_location is None or source_location.pk == destination_location.pk
+    ):
+        raise InvalidMovement("Source and destination storage cannot be the same.")
 
     if not source_warehouse.is_active or not destination_warehouse.is_active:
         raise WarehouseInactive("Both source and destination warehouses must be active.")
@@ -905,20 +910,20 @@ def create_stock_transfer(
     )
 
     is_inter = source_warehouse.branch_id != destination_warehouse.branch_id
-    source_loc = get_or_create_location_for_warehouse(source_warehouse)
-    dest_loc = get_or_create_location_for_warehouse(destination_warehouse)
+    src_loc = source_location or get_or_create_location_for_warehouse(source_warehouse)
+    dst_loc = destination_location or get_or_create_location_for_warehouse(destination_warehouse)
 
     transfer = StockTransfer.objects.create(
         organization=organization,
         transfer_number=transfer_num,
         source_warehouse=source_warehouse,
         destination_warehouse=destination_warehouse,
-        source_location=source_loc,
-        destination_location=dest_loc,
+        source_location=src_loc,
+        destination_location=dst_loc,
         source_branch=source_warehouse.branch,
         destination_branch=destination_warehouse.branch,
         is_inter_branch=is_inter,
-        status=TransferStatus.DRAFT,
+        status=status,
         notes=notes,
         created_by=actor,
     )

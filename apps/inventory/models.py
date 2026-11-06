@@ -24,11 +24,20 @@ class MovementType(models.TextChoices):
     RETURN_OUT = "return_out", _("Return Out")
 
 
+class StorageType(models.TextChoices):
+    SELLABLE = "sellable", _("Sellable Products (Outlets)")
+    INTERNAL_USE = "internal_use", _("Goods & Ingredients (Not for Sale)")
+
+
 class LocationType(models.TextChoices):
-    CENTRAL_WAREHOUSE = "central_warehouse", _("Central Warehouse")
-    REGIONAL_WAREHOUSE = "regional_warehouse", _("Regional Warehouse")
+    PRIMARY_WAREHOUSE = "primary_warehouse", _("Primary Warehouse")
+    SECONDARY_WAREHOUSE = "secondary_warehouse", _("Secondary Warehouse")
+    CENTRAL_WAREHOUSE = "central_warehouse", _("Primary Hub")
+    REGIONAL_WAREHOUSE = "regional_warehouse", _("Secondary Hub")
     BRANCH_WAREHOUSE = "branch_warehouse", _("Branch Warehouse")
     RETAIL_OUTLET = "retail_outlet", _("Retail Outlet")
+    SELLABLE_STORAGE = "sellable_storage", _("Sellable Storage (Outlets)")
+    INTERNAL_STORAGE = "internal_storage", _("Goods & Ingredients (Not for Sale)")
     SUB_LOCATION = "sub_location", _("Sub-Location / Bin / Shelf / Zone")
     TRANSIT = "transit", _("In-Transit Virtual Location")
     QUARANTINE = "quarantine", _("Quarantine / Inspection")
@@ -69,6 +78,13 @@ class InventoryLocation(TenantModel):
         blank=True,
         related_name="inventory_locations",
         verbose_name=_("linked warehouse"),
+    )
+    storage_type = models.CharField(
+        _("storage type"),
+        max_length=32,
+        choices=StorageType.choices,
+        default=StorageType.SELLABLE,
+        help_text=_("Designates whether goods stored here are sellable through outlets or for internal use."),
     )
     is_stock_holding = models.BooleanField(
         _("is stock holding"),

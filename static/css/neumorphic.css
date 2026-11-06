@@ -1134,10 +1134,37 @@ html[data-theme="spatial"],
   border-top: 1px solid var(--neu-line) !important;
 }
 
-[data-theme="neumorphic"] .pos-terminal .pos-capsule {
+[data-theme="neumorphic"] .pos-capsule,
+[data-theme="neumorphic"] .wh-header-tabs-capsule {
   background-color: var(--neu-surface) !important;
   box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light) !important;
   border: none !important;
+  border-radius: 1.25rem !important;
+}
+
+[data-theme="neumorphic"] .wh-nav-pill {
+  background-color: var(--neu-surface) !important;
+  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 4px var(--neu-shadow-light) !important;
+  border: 1px solid var(--neu-line, rgba(0,0,0,0.06)) !important;
+  color: var(--neu-text) !important;
+}
+
+[data-theme="neumorphic"] .wh-nav-pill:hover {
+  box-shadow: 3.5px 3.5px 7px var(--neu-shadow-dark), -2.5px -2.5px 6px var(--neu-shadow-light) !important;
+  color: #4338CA !important;
+}
+
+[data-theme="neumorphic"] .wh-nav-pill.wh-nav-pill-active {
+  background-color: #4F46E5 !important;
+  color: #FFFFFF !important;
+  box-shadow: 2.5px 2.5px 6px rgba(79, 70, 229, 0.45), -1.5px -1.5px 5px rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid #4F46E5 !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="neumorphic"] .wh-nav-pill.wh-nav-pill-active * {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
 }
 
 [data-theme="neumorphic"] .pos-terminal .pos-action-btn {

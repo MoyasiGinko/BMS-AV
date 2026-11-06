@@ -99,18 +99,26 @@
   </div>
 
   <!-- Metrics -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
     <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
       <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Total locations" %}</div>
       <div class="text-2xl font-bold text-[var(--text)] mt-1">{{ total_locations }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Physical & logical nodes" %}</div>
     </div>
     <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Stock-holding nodes" %}</div>
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Sellable storage" %}</div>
+      <div class="text-2xl font-bold text-indigo-600 mt-1">{{ sellable_locations_count }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Active for retail outlet sales" %}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Goods & ingredients" %}</div>
+      <div class="text-2xl font-bold text-amber-600 mt-1">{{ internal_locations_count }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Operational/supplies (not for sale)" %}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Stock-holding bins" %}</div>
       <div class="text-2xl font-bold text-emerald-600 mt-1">{{ stock_holding_count }}</div>
-    </div>
-    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Storage facilities" %}</div>
-      <div class="text-2xl font-bold text-[var(--brand-600)] mt-1">{{ warehouses.count }}</div>
+      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Direct physical inventory targets" %}</div>
     </div>
   </div>
 
@@ -120,10 +128,21 @@
       <input
         type="text"
         name="q"
-        value="{{ query }}"
+        value="{{ search_query }}"
         placeholder="{% trans "Search location name or code..." %}"
         class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)] focus:border-[var(--brand-500)] focus:outline-none"
       />
+    </div>
+    <div class="min-w-[150px]">
+      <select
+        name="storage_type"
+        onchange="this.form.submit()"
+        class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+      >
+        <option value="">{% trans "All storage zones" %}</option>
+        <option value="sellable" {% if selected_storage == "sellable" %}selected{% endif %}>🛍️ {% trans "Sellable (Outlets)" %}</option>
+        <option value="internal_use" {% if selected_storage == "internal_use" %}selected{% endif %}>📦 {% trans "Goods & Ingredients" %}</option>
+      </select>
     </div>
     <div class="min-w-[150px]">
       <select
@@ -153,7 +172,7 @@
       <button type="submit" class="px-3 py-2 text-xs font-semibold rounded-lg bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)]">
         {% trans "Filter" %}
       </button>
-      {% if query or selected_warehouse or selected_branch %}
+      {% if search_query or selected_warehouse or selected_branch or selected_storage %}
         <a href="{% url 'warehouses:location_list' %}" class="text-xs text-[var(--brand-600)] hover:underline">
           {% trans "Clear" %}
         </a>
@@ -169,6 +188,7 @@
           <tr>
             <th class="px-4 py-3">{% trans "Location path" %}</th>
             <th class="px-4 py-3">{% trans "Code" %}</th>
+            <th class="px-4 py-3">{% trans "Storage zone" %}</th>
             <th class="px-4 py-3">{% trans "Type" %}</th>
             <th class="px-4 py-3">{% trans "Warehouse" %}</th>
             <th class="px-4 py-3">{% trans "Stock holding" %}</th>
@@ -186,6 +206,19 @@
                 {% endif %}
               </td>
               <td class="px-4 py-3 font-mono text-[var(--text-muted)]">{{ loc.code|default:"—" }}</td>
+              <td class="px-4 py-3">
+                {% if loc.storage_type == "sellable" %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                    {% trans "Sellable (Outlets)" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    {% trans "Goods/Ingredients" %}
+                  </span>
+                {% endif %}
+              </td>
               <td class="px-4 py-3">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--surface-2)] text-[var(--text)] border border-[var(--border)]">
                   {{ loc.get_location_type_display }}

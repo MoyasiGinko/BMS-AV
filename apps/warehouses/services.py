@@ -14,12 +14,13 @@ from apps.inventory.models import (
     LocationType,
     StockLevel,
     StockSupplyRoute,
+    StorageType,
 )
 from apps.tenancy.models import Branch, Organization
 from apps.warehouses.exceptions import (
     InvalidMovement,
 )
-from apps.warehouses.models import BranchWarehouse, Warehouse
+from apps.warehouses.models import BranchWarehouse, Warehouse, WarehouseType
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ def create_warehouse(
     *,
     organization: Organization,
     name: str,
+    warehouse_type: str = WarehouseType.PRIMARY,
     branch: Branch | None = None,
     code: str = "",
     is_central: bool = False,
@@ -43,7 +45,7 @@ def create_warehouse(
     priority: int = 1,
     actor: Any = None,
 ) -> Warehouse:
-    """Create a storage warehouse attached to a branch or standalone/central."""
+    """Create a primary or secondary warehouse with automatic sellable and internal storage locations."""
     clean_name = name.strip()
     if not clean_name:
         raise ValidationError(_("Warehouse name cannot be blank."))
@@ -51,12 +53,16 @@ def create_warehouse(
     if is_default:
         Warehouse.all_tenants.filter(organization=organization, is_default=True).update(is_default=False)
 
+    # Align is_central with warehouse_type
+    effective_central = is_central or (warehouse_type == WarehouseType.PRIMARY and branch is None)
+
     warehouse = Warehouse.objects.create(
         organization=organization,
         branch=branch,
         name=clean_name,
         code=code.strip().upper(),
-        is_central=is_central,
+        warehouse_type=warehouse_type,
+        is_central=effective_central,
         is_default=is_default,
         created_by=actor if getattr(actor, "is_authenticated", False) else None,
     )
@@ -73,10 +79,10 @@ def create_warehouse(
             created_by=actor if getattr(actor, "is_authenticated", False) else None,
         )
 
-    # Automatically ensure a corresponding root InventoryLocation exists
-    get_or_create_location_for_warehouse(warehouse)
+    # Automatically ensure both Sellable Products and Goods & Ingredients storage locations exist
+    ensure_warehouse_storage_locations(warehouse)
 
-    logger.info("Warehouse created: %s (%s) in %s", warehouse.name, warehouse.code, organization.slug)
+    logger.info("Warehouse created: %s (%s, %s) in %s", warehouse.name, warehouse.code, warehouse.warehouse_type, organization.slug)
     return warehouse
 
 
@@ -87,6 +93,7 @@ def update_warehouse(
     warehouse_id: Any = None,
     organization: Organization | None = None,
     name: str,
+    warehouse_type: str | None = None,
     branch: Branch | None = None,
     code: str = "",
     is_central: bool = False,
@@ -94,7 +101,7 @@ def update_warehouse(
     is_active: bool = True,
     actor: Any = None,
 ) -> Warehouse:
-    """Update warehouse attributes."""
+    """Update warehouse attributes and sync storage locations."""
     if warehouse is None:
         if organization is None or warehouse_id is None:
             raise ValidationError(_("Either warehouse or both organization and warehouse_id must be provided."))
@@ -115,6 +122,8 @@ def update_warehouse(
     warehouse.name = clean_name
     warehouse.branch = branch
     warehouse.code = code.strip().upper()
+    if warehouse_type is not None:
+        warehouse.warehouse_type = warehouse_type
     warehouse.is_central = is_central
     warehouse.is_default = is_default
     warehouse.is_active = is_active
@@ -133,20 +142,68 @@ def update_warehouse(
             },
         )
 
-    # Sync corresponding InventoryLocation
-    loc = InventoryLocation.all_tenants.filter(
-        organization_id=warehouse.organization_id,
-        warehouse_id=warehouse.pk,
-    ).first()
-    if loc:
-        loc.name = warehouse.name
-        loc.code = warehouse.code or f"WH-{warehouse.pk}"
-        loc.branch = warehouse.branch
-        loc.is_active = warehouse.is_active
-        loc.save(update_fields=["name", "code", "branch", "is_active", "updated_at"])
+    # Ensure both storage locations exist and sync active status
+    ensure_warehouse_storage_locations(warehouse)
 
     logger.info("Warehouse updated: %s (%s)", warehouse.name, warehouse.pk)
     return warehouse
+
+
+def ensure_warehouse_storage_locations(warehouse: Warehouse) -> tuple[InventoryLocation, InventoryLocation]:
+    """Ensure both Sellable Products and Goods & Ingredients storage locations exist for a Warehouse."""
+    code_prefix = warehouse.code.strip().upper() if warehouse.code else f"WH-{warehouse.pk}"
+
+    sellable_loc = InventoryLocation.all_tenants.filter(
+        organization_id=warehouse.organization_id,
+        warehouse_id=warehouse.pk,
+        storage_type=StorageType.SELLABLE,
+    ).first()
+
+    if sellable_loc is None:
+        # Check if an existing primary location without -INTERNAL code can be upgraded
+        existing = InventoryLocation.all_tenants.filter(
+            organization_id=warehouse.organization_id,
+            warehouse_id=warehouse.pk,
+        ).first()
+        if existing and not existing.code.endswith("-INTERNAL"):
+            existing.storage_type = StorageType.SELLABLE
+            existing.location_type = LocationType.SELLABLE_STORAGE
+            existing.is_active = warehouse.is_active
+            existing.save(update_fields=["storage_type", "location_type", "is_active", "updated_at"])
+            sellable_loc = existing
+        else:
+            sellable_loc = InventoryLocation.all_tenants.create(
+                organization_id=warehouse.organization_id,
+                warehouse_id=warehouse.pk,
+                name=f"{warehouse.name} - Sellable Products",
+                code=f"{code_prefix}-SELL",
+                location_type=LocationType.SELLABLE_STORAGE,
+                storage_type=StorageType.SELLABLE,
+                branch_id=getattr(warehouse, "branch_id", None),
+                is_stock_holding=True,
+                is_active=getattr(warehouse, "is_active", True),
+            )
+
+    internal_loc = InventoryLocation.all_tenants.filter(
+        organization_id=warehouse.organization_id,
+        warehouse_id=warehouse.pk,
+        storage_type=StorageType.INTERNAL_USE,
+    ).first()
+
+    if internal_loc is None:
+        internal_loc = InventoryLocation.all_tenants.create(
+            organization_id=warehouse.organization_id,
+            warehouse_id=warehouse.pk,
+            name=f"{warehouse.name} - Goods & Ingredients",
+            code=f"{code_prefix}-INTERNAL",
+            location_type=LocationType.INTERNAL_STORAGE,
+            storage_type=StorageType.INTERNAL_USE,
+            branch_id=getattr(warehouse, "branch_id", None),
+            is_stock_holding=True,
+            is_active=getattr(warehouse, "is_active", True),
+        )
+
+    return sellable_loc, internal_loc
 
 
 @transaction.atomic
@@ -493,24 +550,60 @@ def get_preferred_supply_route(
 
 
 __all__ = [
+    "approve_stock_transfer",
+    "cancel_stock_transfer",
     "create_inventory_location",
+    "create_stock_transfer",
     "create_supply_route",
     "create_warehouse",
     "delete_inventory_location",
     "delete_supply_route",
     "delete_warehouse",
     "dispatch_stock_transfer",
+    "ensure_warehouse_storage_locations",
     "get_or_create_location_for_warehouse",
     "get_preferred_supply_route",
     "link_warehouse_to_branch",
     "receive_stock_transfer",
+    "reject_stock_transfer",
     "set_branch_default_warehouse",
+    "submit_stock_transfer",
     "transfer_stock",
     "unlink_warehouse_from_branch",
     "update_inventory_location",
     "update_supply_route",
     "update_warehouse",
 ]
+
+
+def create_stock_transfer(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.create_stock_transfer(*args, **kwargs)
+
+
+def submit_stock_transfer(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.submit_stock_transfer(*args, **kwargs)
+
+
+def approve_stock_transfer(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.approve_stock_transfer(*args, **kwargs)
+
+
+def reject_stock_transfer(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.reject_stock_transfer(*args, **kwargs)
+
+
+def cancel_stock_transfer(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.cancel_stock_transfer(*args, **kwargs)
 
 
 def transfer_stock(*args: Any, **kwargs: Any) -> Any:

@@ -11,9 +11,10 @@ from apps.inventory.models import (
     StockSupplyRoute,
     StockTransfer,
     StockTransferLine,
+    StorageType,
     TransferStatus,
 )
-from apps.tenancy.models import BranchWarehouse, Warehouse
+from apps.tenancy.models import BranchWarehouse, Warehouse, WarehouseType
 
 Location = InventoryLocation
 
@@ -27,6 +28,8 @@ __all__ = [
     "StockSupplyRoute",
     "StockTransfer",
     "StockTransferLine",
+    "StorageType",
     "TransferStatus",
     "Warehouse",
+    "WarehouseType",
 ]

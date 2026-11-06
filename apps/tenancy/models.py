@@ -231,18 +231,30 @@ class Department(TenantModel):
         return self.name
 
 
+class WarehouseType(models.TextChoices):
+    PRIMARY = "primary", _("Primary Warehouse")
+    SECONDARY = "secondary", _("Secondary Warehouse")
+
+
 class Warehouse(TenantModel):
-    """Inventory storage location, either central or co-located with a branch."""
+    """Inventory storage location: primary hub or secondary feeder, with or without linked branches."""
 
     name = models.CharField(_("warehouse name"), max_length=128)
     code = models.CharField(_("code"), max_length=32, blank=True, default="")
+    warehouse_type = models.CharField(
+        _("warehouse type"),
+        max_length=32,
+        choices=WarehouseType.choices,
+        default=WarehouseType.PRIMARY,
+        help_text=_("Primary hub or secondary feeder warehouse."),
+    )
     branch = models.ForeignKey(
         "tenancy.Branch",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="co_located_warehouses",
-        help_text=_("Physical branch where this warehouse is on premise, or null if central."),
+        help_text=_("Physical branch where this warehouse is on premise, or null if standalone."),
     )
     is_central = models.BooleanField(
         _("central distribution warehouse"),
@@ -251,6 +263,32 @@ class Warehouse(TenantModel):
     )
     is_default = models.BooleanField(_("organization default warehouse"), default=False)
     is_active = models.BooleanField(default=True)
+
+    @property
+    def is_primary(self) -> bool:
+        return self.warehouse_type == WarehouseType.PRIMARY
+
+    @property
+    def is_secondary(self) -> bool:
+        return self.warehouse_type == WarehouseType.SECONDARY
+
+    def get_sellable_location(self) -> Any:
+        """Dedicated location for products sold through outlets."""
+        from apps.inventory.models import StorageType
+
+        return (
+            self.inventory_locations.filter(storage_type=StorageType.SELLABLE).first()
+            or self.inventory_locations.first()
+        )
+
+    def get_internal_location(self) -> Any:
+        """Dedicated location for raw materials, ingredients, and non-sale goods."""
+        from apps.inventory.models import StorageType
+
+        return (
+            self.inventory_locations.filter(storage_type=StorageType.INTERNAL_USE).first()
+            or self.inventory_locations.first()
+        )
 
     class Meta:
         verbose_name = _("warehouse")

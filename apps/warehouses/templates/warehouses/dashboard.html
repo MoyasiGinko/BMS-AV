@@ -63,7 +63,7 @@
           {{ warehouses_count }}
         </div>
         <p class="text-xs text-[var(--text-muted)]">
-          {{ central_count }} {% trans "central" %} · {{ active_warehouses_count }} {% trans "active" %}
+          {{ primary_count }} {% trans "primary" %} · {{ secondary_count }} {% trans "secondary" %}
         </p>
       </div>
       <div class="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
@@ -104,7 +104,7 @@
           {{ locations_count }}
         </div>
         <p class="text-xs text-[var(--text-muted)]">
-          {{ routes_count }} {% trans "active supply routes" %}
+          {{ sellable_storage_count }} {% trans "sellable" %} · {{ internal_storage_count }} {% trans "ingredients/goods" %}
         </p>
       </div>
       <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -173,13 +173,13 @@
                   {{ w.branch.name|default:"—" }}
                 </td>
                 <td class="py-3.5 px-3">
-                  {% if w.is_central %}
+                  {% if w.is_primary %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-3xs font-extrabold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-                      {% trans "Central Hub" %}
+                      {% trans "Primary Hub" %}
                     </span>
                   {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-3xs font-semibold bg-[var(--surface-2)] text-[var(--text-muted)]">
-                      {% trans "Standard" %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-3xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                      {% trans "Secondary Depot" %}
                     </span>
                   {% endif %}
                 </td>

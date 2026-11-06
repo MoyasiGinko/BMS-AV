@@ -26,36 +26,7 @@
   class="space-y-6 w-full"
 >
   <!-- Module Sub-Navigation Bar -->
-  <div class="flex items-center gap-2 border-b border-[var(--border)] pb-3 overflow-x-auto">
-    <a
-      href="{% url 'warehouses:list' %}"
-      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-xl transition-colors bg-[var(--brand-50)] text-[var(--brand-700)] shadow-xs"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-      {% trans "Warehouses" %}
-    </a>
-    <a
-      href="{% url 'warehouses:branch_list' %}"
-      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-      {% trans "Branches" %}
-    </a>
-    <a
-      href="{% url 'warehouses:location_list' %}?warehouse={{ warehouse.pk }}"
-      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-      {% trans "Locations & Bins" %}
-    </a>
-    <a
-      href="{% url 'warehouses:route_list' %}"
-      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-      {% trans "Supply Routes" %}
-    </a>
-  </div>
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="warehouses" %}
 
   <!-- Breadcrumb & Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
@@ -70,9 +41,19 @@
         <span class="font-mono text-xs px-2 py-0.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
           {{ warehouse.code|default:"—" }}
         </span>
-        {% if warehouse.is_central %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20">
-            {% trans "Central hub" %}
+        {% if warehouse.is_primary %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+            {% trans "Primary Warehouse" %}
+          </span>
+        {% else %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+            {% trans "Secondary Warehouse" %}
+          </span>
+        {% endif %}
+        {% if warehouse.branch %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            {% trans "Outlet" %}: {{ warehouse.branch.name }}
           </span>
         {% endif %}
         {% if warehouse.is_default %}
@@ -106,18 +87,16 @@
   <!-- Detail Information Cards -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Facility type" %}</div>
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Facility Classification" %}</div>
       <div class="text-base font-semibold text-[var(--text)] mt-1.5">
-        {% if warehouse.is_central %}
-          {% trans "Central distribution hub" %}
-        {% elif warehouse.branch %}
-          {% trans "Branch stockroom" %}
+        {% if warehouse.is_primary %}
+          <span class="text-blue-600 font-bold">{% trans "Primary Warehouse" %}</span>
         {% else %}
-          {% trans "Standalone warehouse" %}
+          <span class="text-amber-600 font-semibold">{% trans "Secondary Warehouse" %}</span>
         {% endif %}
       </div>
       <div class="text-xs text-[var(--text-muted)] mt-0.5">
-        {% if warehouse.branch %}{{ warehouse.branch.name }}{% else %}{% trans "Multi-branch fulfillment" %}{% endif %}
+        {% if warehouse.branch %}{{ warehouse.branch.name }}{% else %}{% trans "Standalone Facility" %}{% endif %}
       </div>
     </div>
 
@@ -132,12 +111,12 @@
     </div>
 
     <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Linked branches" %}</div>
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Linked branches / outlets" %}</div>
       <div class="text-base font-semibold text-[var(--text)] mt-1.5">
-        {{ linked_branches.count }} {% trans "branch(es)" %}
+        {{ linked_branches.count }} {% trans "outlet(s)" %}
       </div>
       <div class="text-xs text-[var(--text-muted)] mt-0.5">
-        {% trans "Outlets taking stock" %}
+        {% trans "Retail points supplied" %}
       </div>
     </div>
 
@@ -145,13 +124,79 @@
       <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Operational status" %}</div>
       <div class="text-base font-semibold text-[var(--text)] mt-1.5">
         {% if warehouse.is_active %}
-          <span class="text-emerald-600">{% trans "Active" %}</span>
+          <span class="text-emerald-600 font-bold">{% trans "Active" %}</span>
         {% else %}
           <span class="text-zinc-500">{% trans "Inactive" %}</span>
         {% endif %}
       </div>
       <div class="text-xs text-[var(--text-muted)] mt-0.5">
         {% trans "Transfers & sales enabled" %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Dual-Storage Facilities Architecture Section -->
+  <div class="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs space-y-4">
+    <div class="flex items-center justify-between border-b border-[var(--border)]/50 pb-3">
+      <div>
+        <h2 class="text-sm font-bold text-[var(--text)] flex items-center gap-2">
+          <svg class="w-4.5 h-4.5 text-[var(--brand-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          {% trans "Dual-Zone Storage Structure" %}
+        </h2>
+        <p class="text-xs text-[var(--text-muted)] mt-0.5">
+          {% trans "Isolated compartments for retail outlet commercial stock vs non-sale operational ingredients." %}
+        </p>
+      </div>
+      <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+        {% trans "Dual Storage Enforced" %}
+      </span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Zone 1: Sellable Products for Outlets -->
+      <div class="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/20 dark:bg-indigo-950/20 flex flex-col justify-between">
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+              {% trans "Sellable Outlets Storage" %}
+            </span>
+            <span class="font-mono text-xs px-2 py-0.5 rounded bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+              {{ sellable_loc.code }}
+            </span>
+          </div>
+          <p class="text-xs text-[var(--text)] font-semibold">{{ sellable_loc.name }}</p>
+          <p class="text-2xs text-[var(--text-muted)]">
+            {% trans "Designated for finished merchandise and products sold through linked retail branches and POS." %}
+          </p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-indigo-100 dark:border-indigo-900/40 flex items-center justify-between text-xs">
+          <span class="text-[var(--text-muted)]">{% trans "Commercial POS Access" %}:</span>
+          <span class="font-bold text-emerald-600">{% trans "Authorized for Sales" %}</span>
+        </div>
+      </div>
+
+      <!-- Zone 2: Goods & Ingredients (Not for Sale) -->
+      <div class="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/20 flex flex-col justify-between">
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>
+              {% trans "Goods & Ingredients Storage" %}
+            </span>
+            <span class="font-mono text-xs px-2 py-0.5 rounded bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-800">
+              {{ internal_loc.code }}
+            </span>
+          </div>
+          <p class="text-xs text-[var(--text)] font-semibold">{{ internal_loc.name }}</p>
+          <p class="text-2xs text-[var(--text-muted)]">
+            {% trans "Reserved for operational goods, raw ingredients, supplies, and non-sale workshop materials." %}
+          </p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex items-center justify-between text-xs">
+          <span class="text-[var(--text-muted)]">{% trans "Commercial POS Access" %}:</span>
+          <span class="font-semibold text-amber-600">{% trans "Internal Use Only (Not for Sale)" %}</span>
+        </div>
       </div>
     </div>
   </div>

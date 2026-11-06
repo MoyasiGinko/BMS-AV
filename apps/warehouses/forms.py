@@ -1,10 +1,15 @@
 """Forms for warehouse management, branch fulfillment linkages, locations, and supply routes."""
 
+from decimal import Decimal
+from typing import Any
+
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.catalog.models import Product, ProductVariant
 from apps.inventory.forms import StockTransferForm
-from apps.inventory.models import LocationType
+from apps.inventory.models import LocationType, StorageType
+from apps.tenancy.models import Warehouse, WarehouseType
 
 
 class WarehouseForm(forms.Form):
@@ -21,8 +26,15 @@ class WarehouseForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={"class": "form-input"}),
     )
+    warehouse_type = forms.ChoiceField(
+        label=_("Warehouse Type"),
+        choices=WarehouseType.choices,
+        initial=WarehouseType.PRIMARY,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
     branch_id = forms.IntegerField(
-        label=_("Co-located Branch"),
+        label=_("Linked Branch / Outlet"),
         required=False,
         widget=forms.Select(attrs={"class": "form-select"}),
     )
@@ -42,6 +54,9 @@ class WarehouseForm(forms.Form):
         initial=True,
         widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
     )
+
+    def clean_warehouse_type(self) -> str:
+        return self.cleaned_data.get("warehouse_type") or WarehouseType.PRIMARY
 
 
 class BranchWarehouseForm(forms.Form):
@@ -221,6 +236,167 @@ class StockSupplyRouteForm(forms.Form):
     )
 
 
+class WarehouseStockTransferForm(forms.Form):
+    """Form to request or create an inter-warehouse stock transfer with storage zones."""
+
+    source_warehouse_id = forms.IntegerField(
+        label=_("Source Warehouse"),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    source_storage_type = forms.ChoiceField(
+        label=_("Source Storage"),
+        choices=StorageType.choices,
+        initial=StorageType.SELLABLE,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    destination_warehouse_id = forms.IntegerField(
+        label=_("Destination Warehouse"),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    destination_storage_type = forms.ChoiceField(
+        label=_("Destination Storage"),
+        choices=StorageType.choices,
+        initial=StorageType.SELLABLE,
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    product_id = forms.IntegerField(
+        label=_("Product"),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    variant_id = forms.IntegerField(
+        label=_("Variant"),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    quantity = forms.DecimalField(
+        label=_("Quantity"),
+        max_digits=18,
+        decimal_places=4,
+        widget=forms.NumberInput(attrs={"class": "form-input", "min": "0.0001", "step": "any"}),
+    )
+    mode = forms.ChoiceField(
+        label=_("Transfer Pipeline Mode"),
+        choices=[
+            ("request", _("Request Transfer (Requires Sender & Receiver Dual Verification)")),
+            ("direct", _("Direct Transfer (Immediate Completion & Auto-Post)")),
+        ],
+        initial="direct",
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    notes = forms.CharField(
+        label=_("Transfer Notes / Reason"),
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-textarea",
+                "rows": 2,
+                "placeholder": _("Purpose of transfer, handling notes, requisition reference..."),
+            }
+        ),
+    )
+
+    def __init__(self, *args: Any, organization: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        whs = Warehouse.all_tenants.filter(organization=organization, is_active=True).order_by("name")
+        wh_choices = [(w.pk, f"{w.name} ({w.get_warehouse_type_display() if hasattr(w, 'get_warehouse_type_display') else 'Warehouse'})") for w in whs]
+        self.fields["source_warehouse_id"].widget.choices = wh_choices
+        self.fields["destination_warehouse_id"].widget.choices = wh_choices
+
+        prods = [(p.pk, f"{p.name} ({p.sku})") for p in Product.all_tenants.filter(organization=organization, is_active=True).order_by("name")]
+        self.fields["product_id"].widget.choices = prods
+
+        variants = [("", _("No variant / Base product"))] + [
+            (v.pk, f"{v.product.name} - {v.name} ({v.sku})")
+            for v in ProductVariant.all_tenants.filter(organization=organization, is_active=True).select_related("product").order_by("product__name", "name")
+        ]
+        self.fields["variant_id"].widget.choices = variants
+
+    def clean_source_storage_type(self) -> str:
+        return self.cleaned_data.get("source_storage_type") or StorageType.SELLABLE
+
+    def clean_destination_storage_type(self) -> str:
+        return self.cleaned_data.get("destination_storage_type") or StorageType.SELLABLE
+
+    def clean_mode(self) -> str:
+        return self.cleaned_data.get("mode") or "direct"
 
 
-__all__ = ["BranchForm", "BranchWarehouseForm", "InventoryLocationForm", "StockSupplyRouteForm", "StockTransferForm", "WarehouseForm"]
+class TransferDispatchForm(forms.Form):
+    """Sender verification and dispatch sign-off."""
+
+    carrier = forms.CharField(
+        label=_("Carrier / Vehicle / Driver"),
+        max_length=128,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": _("e.g. In-house Van, Driver Rahim, Courier...")}),
+    )
+    tracking_number = forms.CharField(
+        label=_("Consignment / Tracking Number"),
+        max_length=128,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": _("e.g. TRK-2026-0042...")}),
+    )
+    dispatch_notes = forms.CharField(
+        label=_("Sender Dispatch Remarks"),
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-textarea", "rows": 2}),
+    )
+
+
+class TransferReceiveForm(forms.Form):
+    """Receiver intake verification and dual sign-off."""
+
+    quantity_received = forms.DecimalField(
+        label=_("Quantity Received (Intact)"),
+        max_digits=18,
+        decimal_places=4,
+        widget=forms.NumberInput(attrs={"class": "form-input", "min": "0", "step": "any"}),
+    )
+    quantity_damaged = forms.DecimalField(
+        label=_("Quantity Damaged (In-Transit Loss)"),
+        max_digits=18,
+        decimal_places=4,
+        required=False,
+        initial=Decimal("0.0000"),
+        widget=forms.NumberInput(attrs={"class": "form-input", "min": "0", "step": "any"}),
+    )
+    quantity_missing = forms.DecimalField(
+        label=_("Quantity Missing (Shortage / Shrinkage)"),
+        max_digits=18,
+        decimal_places=4,
+        required=False,
+        initial=Decimal("0.0000"),
+        widget=forms.NumberInput(attrs={"class": "form-input", "min": "0", "step": "any"}),
+    )
+    receive_notes = forms.CharField(
+        label=_("Receiver Inspection Remarks"),
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-textarea", "rows": 2, "placeholder": _("Verification condition, seal integrity, intake remarks...")}),
+    )
+
+
+class TransferRejectForm(forms.Form):
+    """Rejection form with reason."""
+
+    rejection_reason = forms.CharField(
+        label=_("Rejection Reason"),
+        widget=forms.Textarea(attrs={"class": "form-textarea", "rows": 3, "placeholder": _("Explain why this transfer request cannot be fulfilled...")}),
+    )
+
+
+__all__ = [
+    "BranchForm",
+    "BranchWarehouseForm",
+    "InventoryLocationForm",
+    "StockSupplyRouteForm",
+    "StockTransferForm",
+    "TransferDispatchForm",
+    "TransferReceiveForm",
+    "TransferRejectForm",
+    "WarehouseForm",
+    "WarehouseStockTransferForm",
+]

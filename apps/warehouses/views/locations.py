@@ -117,6 +117,7 @@ def location_list_view(request: HttpRequest) -> HttpResponse:
     wh_filter = request.GET.get("warehouse")
     br_filter = request.GET.get("branch")
     type_filter = request.GET.get("type")
+    storage_filter = request.GET.get("storage_type", "").strip()
     query = request.GET.get("q", "").strip()
 
     locations = selectors.list_inventory_locations(
@@ -127,6 +128,9 @@ def location_list_view(request: HttpRequest) -> HttpResponse:
         query=query,
         active_only=False,
     )
+    if storage_filter in ("sellable", "internal_use"):
+        locations = locations.filter(storage_type=storage_filter)
+
     hierarchy = selectors.get_location_hierarchy(
         organization=org,
         warehouse_id=int(wh_filter) if wh_filter and wh_filter.isdigit() else None,
@@ -135,6 +139,8 @@ def location_list_view(request: HttpRequest) -> HttpResponse:
     branches = tenancy_selectors.list_organization_branches(organization_id=org.pk)
 
     total_locations = locations.count()
+    sellable_locations_count = locations.filter(storage_type="sellable", is_active=True).count()
+    internal_locations_count = locations.filter(storage_type="internal_use", is_active=True).count()
     stock_holding_count = locations.filter(is_stock_holding=True, is_active=True).count()
 
     return render(
@@ -147,13 +153,17 @@ def location_list_view(request: HttpRequest) -> HttpResponse:
             "warehouses": warehouses,
             "branches": branches,
             "total_locations": total_locations,
+            "sellable_locations_count": sellable_locations_count,
+            "internal_locations_count": internal_locations_count,
             "stock_holding_count": stock_holding_count,
-            "can_manage": can_manage,
-            "active_subtab": "locations",
             "selected_warehouse": wh_filter,
             "selected_branch": br_filter,
             "selected_type": type_filter,
+            "selected_storage": storage_filter,
+            "search_query": query,
             "query": query,
+            "can_manage": can_manage,
+            "active_subtab": "locations",
         },
     )
 

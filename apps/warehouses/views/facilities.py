@@ -85,7 +85,8 @@ def _handle_warehouse_save(request: HttpRequest, org: Organization) -> None:
 
     branch_id = form.cleaned_data.get("branch_id")
     branch = tenancy_selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id) if branch_id else None
-    is_central = form.cleaned_data.get("is_central", False)
+    wh_type = form.cleaned_data.get("warehouse_type", "primary")
+    is_central = form.cleaned_data.get("is_central", False) or (wh_type == "primary" and not branch)
     wh_id = request.POST.get("warehouse_id")
 
     try:
@@ -95,6 +96,7 @@ def _handle_warehouse_save(request: HttpRequest, org: Organization) -> None:
                 services.update_warehouse(
                     warehouse=wh,
                     name=form.cleaned_data["name"],
+                    warehouse_type=wh_type,
                     branch=branch,
                     code=form.cleaned_data["code"],
                     is_central=is_central,
@@ -107,6 +109,7 @@ def _handle_warehouse_save(request: HttpRequest, org: Organization) -> None:
             new_wh = services.create_warehouse(
                 organization=org,
                 name=form.cleaned_data["name"],
+                warehouse_type=wh_type,
                 branch=branch,
                 code=form.cleaned_data["code"],
                 is_central=is_central,
@@ -158,9 +161,14 @@ def warehouse_list_view(request: HttpRequest) -> HttpResponse:
     branches = tenancy_selectors.list_organization_branches(organization_id=org.pk)
     mappings = selectors.list_branch_warehouse_mappings(organization_id=org.pk)
 
+    wh_type_filter = request.GET.get("type", "").strip().lower()
+    if wh_type_filter in ("primary", "secondary"):
+        warehouses = warehouses.filter(warehouse_type=wh_type_filter)
+
     total_warehouses = warehouses.count()
-    central_hubs = warehouses.filter(is_central=True).count()
-    active_count = warehouses.filter(is_active=True).count()
+    primary_count = Warehouse.all_tenants.filter(organization=org, warehouse_type="primary").count()
+    secondary_count = Warehouse.all_tenants.filter(organization=org, warehouse_type="secondary").count()
+    active_count = Warehouse.all_tenants.filter(organization=org, is_active=True).count()
 
     return render(
         request,
@@ -171,8 +179,12 @@ def warehouse_list_view(request: HttpRequest) -> HttpResponse:
             "branches": branches,
             "mappings": mappings,
             "total_warehouses": total_warehouses,
-            "central_hubs": central_hubs,
+            "primary_count": primary_count,
+            "secondary_count": secondary_count,
+            "branch_count": branches.count(),
+            "central_hubs": primary_count,  # backward-compat alias
             "active_count": active_count,
+            "selected_type": wh_type_filter,
             "can_manage": can_manage,
             "active_subtab": "warehouses",
         },
@@ -288,6 +300,7 @@ def warehouse_detail_view(request: HttpRequest, warehouse_id: int) -> HttpRespon
         organization_id=org.pk, warehouse_id=warehouse.pk
     )
     warehouse_loc = services.get_or_create_location_for_warehouse(warehouse)
+    sellable_loc, internal_loc = services.ensure_warehouse_storage_locations(warehouse)
     locations = selectors.list_inventory_locations(
         organization=org, warehouse=warehouse, active_only=False
     )
@@ -308,6 +321,8 @@ def warehouse_detail_view(request: HttpRequest, warehouse_id: int) -> HttpRespon
             "organization": org,
             "warehouse": warehouse,
             "warehouse_loc": warehouse_loc,
+            "sellable_loc": sellable_loc,
+            "internal_loc": internal_loc,
             "linked_branches": linked_branches,
             "locations": locations,
             "inbound_routes": inbound_routes,
