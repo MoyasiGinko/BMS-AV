@@ -1,5 +1,5 @@
 {% load i18n %}
-<div class="sticky top-0 z-30 py-3 mb-6 sticky-header-tabs border-b border-[var(--border)] shadow-2xs transition-all">
+<div class="sticky top-0 z-30 py-2.5 mb-6 sticky-header-tabs border-b border-[var(--border)] shadow-2xs transition-all">
   <div class="flex items-center justify-between gap-4 w-full">
     <!-- Left Aligned Navigation Tabs -->
     <nav class="flex items-center justify-start gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 text-left" aria-label="Warehouses Navigation Tabs">
@@ -82,21 +82,12 @@
       </a>
     </nav>
 
-    <!-- Right: Context Capsule Metadata (Facility / Branch & Action) -->
-    <div class="hidden xl:flex items-center gap-2.5 text-xs shrink-0">
-      <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--surface-2)]/70 text-[var(--text-muted)] font-mono border border-[var(--border)]/50">
+    <!-- Right: Context Capsule Metadata (Facility / Branch) -->
+    <div class="hidden lg:flex items-center gap-2 text-xs shrink-0">
+      <div class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--surface-2)]/70 text-[var(--text-muted)] font-mono border border-[var(--border)]/50">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-bold text-[var(--text)] text-xs">{{ current_branch.name|default:_("All Facilities") }}</span>
       </div>
-      <a
-        href="{% url 'warehouses:transfer_create' %}"
-        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-xs hover:bg-indigo-700 transition-all cursor-pointer"
-      >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-        </svg>
-        {% trans "New Transfer" %}
-      </a>
     </div>
   </div>
 </div>
