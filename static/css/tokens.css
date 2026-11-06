@@ -432,5 +432,14 @@ body.overflow-hidden {
   opacity: 1 !important;
 }
 
+/* Warehouse Header Tabs Capsule Toolbar */
+.wh-header-tabs-capsule {
+  border-radius: 1rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background-color: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
 
 

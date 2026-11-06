@@ -390,16 +390,16 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] .card,
 [data-theme="neumorphic"] .bos-card,
 [data-theme="neumorphic"] article.bos-card,
-[data-theme="neumorphic"] main .bg-surface:not(button):not(a):not(input):not(select):not(span):not(td):not(th),
-[data-theme="neumorphic"] main [class*="bg-surface"]:not(button):not(a):not(input):not(select):not(span):not(td):not(th),
-[data-theme="neumorphic"] main div[class*="border border-line"],
-[data-theme="neumorphic"] main div[class*="border-line"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]),
-[data-theme="neumorphic"] main div[class*="border-[var(--border)]"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]),
-[data-theme="neumorphic"] main div[class*="border-slate-200"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]),
-[data-theme="neumorphic"] main div[class*="shadow-xs"]:not(button):not(a):not(input):not(select),
-[data-theme="neumorphic"] main div[class*="shadow-sm"]:not(button):not(a):not(input):not(select),
-[data-theme="neumorphic"] main div[class*="shadow-md"]:not(button):not(a):not(input):not(select),
-[data-theme="neumorphic"] main div[class*="shadow-lg"]:not(button):not(a):not(input):not(select),
+[data-theme="neumorphic"] main .bg-surface:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main [class*="bg-surface"]:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="border border-line"]:not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="border-line"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="border-[var(--border)]"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="border-slate-200"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="shadow-xs"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="shadow-sm"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="shadow-md"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="shadow-lg"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule),
 [data-theme="neumorphic"] a.neu-card,
 [data-theme="neumorphic"] a.card,
 [data-theme="neumorphic"] a[class*="neu-card"],
@@ -419,8 +419,8 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] div.neu-card,
 [data-theme="neumorphic"] div[class*="neu-card"]:not(.pos-terminal *),
 [data-theme="neumorphic"] article.bos-card,
-[data-theme="neumorphic"] main div.bg-surface.rounded-2xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn),
-[data-theme="neumorphic"] main div.bg-surface.rounded-xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn),
+[data-theme="neumorphic"] main div.bg-surface.rounded-2xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div.bg-surface.rounded-xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule),
 [data-theme="neumorphic"] main section.bg-surface,
 [data-theme="neumorphic"] div.neu-stat-card,
 [data-theme="neumorphic"] div.neu-filter-card,
@@ -698,12 +698,6 @@ input[class*="pl-14"] {
   box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light), 0 0 0 2px rgba(79, 70, 229, 0.35) !important;
   outline: none !important;
 }
-
-/* Sub-nav tabs - Individual Standalone Buttons (Zero Clustered Background Container) */
-[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]),
-[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]),
-/* Subnav tabs defined authority above */
-
 
 /* Modals & Dialogs */
 [data-theme="neumorphic"] [role="dialog"] > div > div[class*="rounded"],
@@ -1316,8 +1310,8 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] nav[aria-label="POS Navigation Tabs"],
 [data-theme="neumorphic"] nav[aria-label*="Tabs"],
 [data-theme="neumorphic"] nav[aria-label*="tabs"],
-[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]),
-[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]) {
+[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]):not(.wh-header-tabs-capsule) {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
@@ -1424,8 +1418,8 @@ html[data-theme="spatial"],
    Definitive Sub-Navigation Buttons & Zero-Container Rule
    Ensures every tab is an independent standalone button with no clustered bg
    ========================================================================== */
-[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]),
-[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]),
+[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]):not(.wh-header-tabs-capsule),
 [data-theme="neumorphic"] nav[aria-label*="Tabs"],
 [data-theme="neumorphic"] nav[aria-label*="tabs"],
 [data-theme="neumorphic"] .neu-nav-track {
@@ -1541,6 +1535,28 @@ html[data-theme="spatial"],
   color: #FFFFFF !important;
   stroke: #FFFFFF !important;
   opacity: 1 !important;
+}
+
+/* Warehouse Header Tabs Inset Capsule Toolbar */
+[data-theme="neumorphic"] .wh-header-tabs-capsule {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 1.25rem !important;
+  padding: 0.5rem 0.75rem !important;
+}
+
+[data-theme="neumorphic"] .wh-header-tabs-capsule nav[aria-label*="Tabs"],
+[data-theme="neumorphic"] .wh-header-tabs-capsule nav[aria-label*="tabs"] {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 2px 2px !important;
 }
 
 /* ==========================================================================
