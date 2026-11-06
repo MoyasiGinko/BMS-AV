@@ -3,7 +3,11 @@
 
 {% block title %}{% trans "Branches" %} | {{ organization.name }}{% endblock %}
 
-{% block container_class %}max-w-none! w-full pt-0! px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8{% endblock %}
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="branches" %}
+{% endblock %}
 
 {% block content %}
 <div
@@ -42,9 +46,6 @@
   }"
   class="space-y-6 w-full"
 >
-  <!-- Module Sub-Navigation Bar -->
-  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="branches" %}
-
   <!-- Page Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
     <div>
