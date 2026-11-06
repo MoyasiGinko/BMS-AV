@@ -449,9 +449,9 @@ html[data-theme="neumorphic"],
 
 [data-theme="neumorphic"] .sticky-header-tabs,
 .sticky-header-tabs {
-  background-color: var(--bg) !important;
-  background: var(--bg) !important;
-  opacity: 1 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  border-bottom: none !important;
 }
 
 /* Universal Sunken Filter Bars & Toolbars */
