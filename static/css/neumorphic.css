@@ -451,7 +451,7 @@ html[data-theme="neumorphic"],
 .sticky-header-tabs {
   background-color: var(--neu-surface, #e6e9f2) !important;
   background: var(--neu-surface, #e6e9f2) !important;
-  border-bottom: 1px solid var(--neu-line, rgba(0, 0, 0, 0.06)) !important;
+  border-bottom: none !important;
   opacity: 1 !important;
 }
 
