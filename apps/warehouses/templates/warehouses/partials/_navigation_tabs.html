@@ -1,41 +1,8 @@
 {% load i18n %}
 <div class="w-full sticky top-0 z-30 bg-[var(--bg)] px-4 sm:px-6 lg:px-8 py-2.5 border-b border-[var(--border)]/40 sticky-header-tabs transition-all">
   <div class="pos-capsule wh-header-tabs-capsule px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl flex items-center justify-between gap-3 w-full">
-    <!-- Left Aligned Navigation Tabs & Status Capsule -->
-    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-      <!-- Status Badge Pill (matching POS Capsule reference) -->
-      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 text-white shadow-2xs shrink-0 select-none">
-        <i class="pos-status-dot dot-connected animate-pulse"></i>
-        {% trans "Hubs" %}
-      </span>
-      <span class="text-sm font-bold text-ink hidden sm:inline shrink-0">
-        {% trans "Logistics Network" %}
-      </span>
-      <span class="h-4 w-px bg-[var(--border)] hidden sm:inline shrink-0 opacity-60"></span>
-
-      <!-- Network Metadata Items -->
-      {% if primary_count %}
-        <div class="text-xs sm:text-sm text-muted font-mono hidden md:inline shrink-0">
-          {% trans "Primary" %}: <strong class="text-ink font-bold">{{ primary_count }}</strong>
-        </div>
-        <span class="h-4 w-px bg-[var(--border)] hidden md:inline shrink-0 opacity-60"></span>
-      {% endif %}
-
-      {% if secondary_count %}
-        <div class="text-xs sm:text-sm text-muted font-mono hidden lg:inline shrink-0">
-          {% trans "Secondary" %}: <strong class="text-ink font-bold">{{ secondary_count }}</strong>
-        </div>
-        <span class="h-4 w-px bg-[var(--border)] hidden lg:inline shrink-0 opacity-60"></span>
-      {% endif %}
-
-      {% if branch_count %}
-        <div class="text-xs sm:text-sm text-muted hidden lg:inline shrink-0">
-          {% trans "Outlets" %}: <strong class="text-ink font-bold">{{ branch_count }}</strong>
-        </div>
-        <span class="h-4 w-px bg-[var(--border)] hidden lg:inline shrink-0 opacity-60"></span>
-      {% endif %}
-
-      <!-- Navigation Tabs with Tactile Button Pills -->
+    <!-- Left Aligned Navigation Tabs -->
+    <div class="flex items-center min-w-0 flex-1">
       <nav class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 text-left" aria-label="{% trans 'Warehouses Navigation Tabs' %}">
         <!-- Operations Dashboard -->
         <a
@@ -124,8 +91,29 @@
       </nav>
     </div>
 
-    <!-- Right: Context Capsule Metadata (Facility / Branch) -->
-    <div class="hidden xl:flex items-center gap-2 shrink-0">
+    <!-- Right: Context Capsule Metadata (Facility / Branch & Network Stats) -->
+    <div class="hidden xl:flex items-center gap-2.5 shrink-0">
+      {% if primary_count %}
+        <div class="text-xs text-muted font-mono shrink-0">
+          {% trans "Primary" %}: <strong class="text-ink font-bold">{{ primary_count }}</strong>
+        </div>
+        <span class="h-3.5 w-px bg-[var(--border)] shrink-0 opacity-60"></span>
+      {% endif %}
+
+      {% if secondary_count %}
+        <div class="text-xs text-muted font-mono shrink-0">
+          {% trans "Secondary" %}: <strong class="text-ink font-bold">{{ secondary_count }}</strong>
+        </div>
+        <span class="h-3.5 w-px bg-[var(--border)] shrink-0 opacity-60"></span>
+      {% endif %}
+
+      {% if branch_count %}
+        <div class="text-xs text-muted shrink-0">
+          {% trans "Outlets" %}: <strong class="text-ink font-bold">{{ branch_count }}</strong>
+        </div>
+        <span class="h-3.5 w-px bg-[var(--border)] shrink-0 opacity-60"></span>
+      {% endif %}
+
       <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)]/60 bg-[var(--surface-1)] text-xs font-semibold text-muted font-mono shadow-2xs">
         <i class="pos-status-dot dot-connected animate-pulse"></i>
         <span class="text-ink font-bold">{{ current_branch.name|default:_("All Facilities") }}</span>
