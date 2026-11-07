@@ -13,6 +13,7 @@ from apps.inventory.models import (
     StockTransferLine,
     StorageType,
     TransferStatus,
+    WarehouseStorageType,
 )
 from apps.tenancy.models import BranchWarehouse, Warehouse, WarehouseType
 
@@ -31,5 +32,6 @@ __all__ = [
     "StorageType",
     "TransferStatus",
     "Warehouse",
+    "WarehouseStorageType",
     "WarehouseType",
 ]

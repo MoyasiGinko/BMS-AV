@@ -274,19 +274,54 @@ class Warehouse(TenantModel):
 
     def get_sellable_location(self) -> Any:
         """Dedicated location for products sold through outlets."""
-        from apps.inventory.models import StorageType
+        custom_loc = (
+            self.inventory_locations.filter(
+                custom_storage_type__can_sell=True,
+                custom_storage_type__is_active=True,
+                is_active=True,
+            )
+            .order_by("-custom_storage_type__is_default_sellable", "name")
+            .first()
+        )
+        if custom_loc:
+            return custom_loc
 
         return (
-            self.inventory_locations.filter(storage_type=StorageType.SELLABLE).first()
+            self.inventory_locations.filter(storage_type="sellable", is_active=True).first()
+            or self.inventory_locations.filter(is_active=True).first()
             or self.inventory_locations.first()
+        )
+
+    def get_sellable_locations(self) -> list[Any]:
+        """All locations from which products can be sold through outlets."""
+        custom_locs = list(
+            self.inventory_locations.filter(
+                custom_storage_type__can_sell=True,
+                custom_storage_type__is_active=True,
+                is_active=True,
+            ).order_by("-custom_storage_type__is_default_sellable", "name")
+        )
+        if custom_locs:
+            return custom_locs
+
+        return list(
+            self.inventory_locations.filter(storage_type="sellable", is_active=True)
         )
 
     def get_internal_location(self) -> Any:
         """Dedicated location for raw materials, ingredients, and non-sale goods."""
-        from apps.inventory.models import StorageType
+        custom_loc = (
+            self.inventory_locations.filter(
+                custom_storage_type__can_sell=False,
+                custom_storage_type__is_active=True,
+                is_active=True,
+            ).first()
+        )
+        if custom_loc:
+            return custom_loc
 
         return (
-            self.inventory_locations.filter(storage_type=StorageType.INTERNAL_USE).first()
+            self.inventory_locations.filter(storage_type="internal_use", is_active=True).first()
             or self.inventory_locations.first()
         )
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
@@ -128,8 +129,21 @@ def location_list_view(request: HttpRequest) -> HttpResponse:
         query=query,
         active_only=False,
     )
-    if storage_filter in ("sellable", "internal_use"):
-        locations = locations.filter(storage_type=storage_filter)
+    if storage_filter == "sellable":
+        locations = locations.filter(
+            Q(custom_storage_type__can_sell=True, custom_storage_type__is_active=True)
+            | Q(custom_storage_type__isnull=True, storage_type="sellable")
+        )
+    elif storage_filter == "internal_use":
+        locations = locations.filter(
+            Q(custom_storage_type__can_sell=False)
+            | Q(custom_storage_type__isnull=True, storage_type="internal_use")
+        )
+    elif storage_filter:
+        locations = locations.filter(
+            Q(custom_storage_type__code__iexact=storage_filter)
+            | Q(storage_type=storage_filter)
+        )
 
     hierarchy = selectors.get_location_hierarchy(
         organization=org,
@@ -137,10 +151,25 @@ def location_list_view(request: HttpRequest) -> HttpResponse:
     )
     warehouses = selectors.list_warehouses(organization=org, active_only=False)
     branches = tenancy_selectors.list_organization_branches(organization_id=org.pk)
+    storage_types = selectors.list_warehouse_storage_types(organization=org, active_only=True)
 
     total_locations = locations.count()
-    sellable_locations_count = locations.filter(storage_type="sellable", is_active=True).count()
-    internal_locations_count = locations.filter(storage_type="internal_use", is_active=True).count()
+    sellable_locations_count = (
+        locations.filter(is_active=True)
+        .filter(
+            Q(custom_storage_type__can_sell=True, custom_storage_type__is_active=True)
+            | Q(custom_storage_type__isnull=True, storage_type="sellable")
+        )
+        .count()
+    )
+    internal_locations_count = (
+        locations.filter(is_active=True)
+        .filter(
+            Q(custom_storage_type__can_sell=False)
+            | Q(custom_storage_type__isnull=True, storage_type="internal_use")
+        )
+        .count()
+    )
     stock_holding_count = locations.filter(is_stock_holding=True, is_active=True).count()
 
     return render(
@@ -152,6 +181,7 @@ def location_list_view(request: HttpRequest) -> HttpResponse:
             "hierarchy": hierarchy,
             "warehouses": warehouses,
             "branches": branches,
+            "storage_types": storage_types,
             "total_locations": total_locations,
             "sellable_locations_count": sellable_locations_count,
             "internal_locations_count": internal_locations_count,

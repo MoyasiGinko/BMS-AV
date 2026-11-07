@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import gettext as _
@@ -57,8 +58,14 @@ def warehouse_dashboard_view(request: HttpRequest) -> HttpResponse:
         "branch_count": branches.count(),
         "locations": locations,
         "locations_count": locations.count(),
-        "sellable_storage_count": locations.filter(storage_type="sellable").count(),
-        "internal_storage_count": locations.filter(storage_type="internal_use").count(),
+        "sellable_storage_count": locations.filter(
+            Q(custom_storage_type__can_sell=True, custom_storage_type__is_active=True)
+            | Q(custom_storage_type__isnull=True, storage_type="sellable")
+        ).count(),
+        "internal_storage_count": locations.filter(
+            Q(custom_storage_type__can_sell=False)
+            | Q(custom_storage_type__isnull=True, storage_type="internal_use")
+        ).count(),
         "routes": routes,
         "routes_count": routes.count(),
         "in_transit_count": in_transit_count,

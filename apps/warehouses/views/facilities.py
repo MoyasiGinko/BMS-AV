@@ -281,6 +281,67 @@ def branch_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _handle_storage_type_post(request: HttpRequest, org: Organization, warehouse: Warehouse) -> HttpResponse | None:
+    """Process dynamic storage type mutations on a warehouse."""
+    action = request.POST.get("action", "")
+
+    if action == "create_storage_type":
+        name = request.POST.get("name", "").strip()
+        code = request.POST.get("code", "").strip()
+        can_sell = request.POST.get("can_sell") in ("on", "true", "1")
+        is_default = request.POST.get("is_default_sellable") in ("on", "true", "1")
+        desc = request.POST.get("description", "").strip()
+        try:
+            st, _loc = services.create_warehouse_storage_type(
+                organization=org,
+                warehouse=warehouse,
+                name=name,
+                code=code,
+                can_sell=can_sell,
+                is_default_sellable=is_default,
+                description=desc,
+                actor=request.user,
+            )
+            messages.success(request, _("Storage '%(name)s' created.") % {"name": st.name})
+        except ValidationError as exc:
+            messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+        return redirect("warehouses:detail", warehouse_id=warehouse.pk)
+
+    if action == "toggle_storage_sellable":
+        st_id = request.POST.get("storage_type_id")
+        st = selectors.get_warehouse_storage_type(organization=org, storage_type_id=st_id)
+        if st and st.warehouse_id == warehouse.pk:
+            services.toggle_storage_type_sellable(
+                storage_type=st,
+                can_sell=not st.can_sell,
+                actor=request.user,
+            )
+            status_str = _("Sellable") if st.can_sell else _("Internal Only")
+            messages.success(request, _("Storage '%(name)s' updated to %(status)s.") % {"name": st.name, "status": status_str})
+        return redirect("warehouses:detail", warehouse_id=warehouse.pk)
+
+    if action == "set_default_sellable":
+        st_id = request.POST.get("storage_type_id")
+        st = selectors.get_warehouse_storage_type(organization=org, storage_type_id=st_id)
+        if st and st.warehouse_id == warehouse.pk:
+            try:
+                services.set_default_sellable_storage_type(storage_type=st, actor=request.user)
+                messages.success(request, _("Storage '%(name)s' set as default sales source.") % {"name": st.name})
+            except ValidationError as exc:
+                messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+        return redirect("warehouses:detail", warehouse_id=warehouse.pk)
+
+    if action == "delete_storage_type":
+        st_id = request.POST.get("storage_type_id")
+        st = selectors.get_warehouse_storage_type(organization=org, storage_type_id=st_id)
+        if st and st.warehouse_id == warehouse.pk:
+            services.delete_warehouse_storage_type(storage_type=st, actor=request.user)
+            messages.success(request, _("Storage '%(name)s' removed.") % {"name": st.name})
+        return redirect("warehouses:detail", warehouse_id=warehouse.pk)
+
+    return None
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def warehouse_detail_view(request: HttpRequest, warehouse_id: int) -> HttpResponse:
@@ -290,17 +351,24 @@ def warehouse_detail_view(request: HttpRequest, warehouse_id: int) -> HttpRespon
         raise PermissionDenied(_("You do not have permission to view warehouses."))
 
     can_manage = _can_manage(request.user, org)
+    warehouse = get_object_or_404(Warehouse.all_tenants, organization=org, pk=warehouse_id)
+
     if request.method == "POST":
         if not can_manage:
-            raise PermissionDenied(_("You do not have permission to manage locations."))
+            raise PermissionDenied(_("You do not have permission to manage warehouses."))
+        storage_resp = _handle_storage_type_post(request, org, warehouse)
+        if storage_resp:
+            return storage_resp
         return _handle_location_post(request, org)
 
-    warehouse = get_object_or_404(Warehouse.all_tenants, organization=org, pk=warehouse_id)
     linked_branches = selectors.list_branches_for_warehouse(
         organization_id=org.pk, warehouse_id=warehouse.pk
     )
     warehouse_loc = services.get_or_create_location_for_warehouse(warehouse)
     sellable_loc, internal_loc = services.ensure_warehouse_storage_locations(warehouse)
+    storage_types = selectors.list_warehouse_storage_types(
+        organization=org, warehouse=warehouse, active_only=False
+    )
     locations = selectors.list_inventory_locations(
         organization=org, warehouse=warehouse, active_only=False
     )
@@ -323,6 +391,7 @@ def warehouse_detail_view(request: HttpRequest, warehouse_id: int) -> HttpRespon
             "warehouse_loc": warehouse_loc,
             "sellable_loc": sellable_loc,
             "internal_loc": internal_loc,
+            "storage_types": storage_types,
             "linked_branches": linked_branches,
             "locations": locations,
             "inbound_routes": inbound_routes,

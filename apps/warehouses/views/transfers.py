@@ -17,7 +17,7 @@ from django.views.decorators.http import require_http_methods
 
 from apps.catalog.models import Product, ProductVariant
 from apps.core.permissions import check_object_scope, scope_queryset
-from apps.inventory.models import StockMovement, StockTransfer, StorageType, TransferStatus
+from apps.inventory.models import InventoryLocation, StockMovement, StockTransfer, StorageType, TransferStatus
 from apps.tenancy.models import Warehouse
 from apps.warehouses import selectors, services
 from apps.warehouses.forms import (
@@ -93,16 +93,47 @@ def _handle_transfer_create_post(
     dest_wh = get_object_or_404(
         Warehouse.all_tenants, organization=org, pk=form.cleaned_data["destination_warehouse_id"]
     )
-    src_loc = (
-        src_wh.get_internal_location()
-        if form.cleaned_data["source_storage_type"] == StorageType.INTERNAL_USE
-        else src_wh.get_sellable_location()
-    )
-    dest_loc = (
-        dest_wh.get_internal_location()
-        if form.cleaned_data["destination_storage_type"] == StorageType.INTERNAL_USE
-        else dest_wh.get_sellable_location()
-    )
+    # Dynamically resolve source storage location
+    src_st_code = form.cleaned_data.get("source_storage_type", "").strip()
+    src_loc = None
+    if src_st_code.isdigit():
+        src_loc = InventoryLocation.all_tenants.filter(organization=org, warehouse=src_wh, pk=int(src_st_code)).first()
+    if not src_loc and src_st_code:
+        src_loc = (
+            InventoryLocation.all_tenants.filter(
+                organization=org, warehouse=src_wh, custom_storage_type__code__iexact=src_st_code, is_active=True
+            ).first()
+            or InventoryLocation.all_tenants.filter(
+                organization=org, warehouse=src_wh, storage_type__iexact=src_st_code, is_active=True
+            ).first()
+        )
+    if not src_loc:
+        src_loc = (
+            src_wh.get_internal_location()
+            if src_st_code == StorageType.INTERNAL_USE
+            else src_wh.get_sellable_location()
+        )
+
+    # Dynamically resolve destination storage location
+    dest_st_code = form.cleaned_data.get("destination_storage_type", "").strip()
+    dest_loc = None
+    if dest_st_code.isdigit():
+        dest_loc = InventoryLocation.all_tenants.filter(organization=org, warehouse=dest_wh, pk=int(dest_st_code)).first()
+    if not dest_loc and dest_st_code:
+        dest_loc = (
+            InventoryLocation.all_tenants.filter(
+                organization=org, warehouse=dest_wh, custom_storage_type__code__iexact=dest_st_code, is_active=True
+            ).first()
+            or InventoryLocation.all_tenants.filter(
+                organization=org, warehouse=dest_wh, storage_type__iexact=dest_st_code, is_active=True
+            ).first()
+        )
+    if not dest_loc:
+        dest_loc = (
+            dest_wh.get_internal_location()
+            if dest_st_code == StorageType.INTERNAL_USE
+            else dest_wh.get_sellable_location()
+        )
 
     if src_wh.pk == dest_wh.pk and src_loc.pk == dest_loc.pk:
         messages.error(request, _("Source and destination storage location cannot be the same."))
@@ -173,12 +204,15 @@ def transfer_create_view(request: HttpRequest) -> HttpResponse:
     else:
         form = WarehouseStockTransferForm(organization=org)
 
+    storage_types = selectors.list_warehouse_storage_types(organization=org, active_only=True)
+
     return render(
         request,
         "warehouses/transfer_form.html",
         {
             "organization": org,
             "form": form,
+            "storage_types": storage_types,
             "active_subtab": "transfers",
         },
     )

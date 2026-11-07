@@ -140,9 +140,12 @@
         onchange="this.form.submit()"
         class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
       >
-        <option value="">{% trans "All storage zones" %}</option>
+        <option value="">{% trans "All storage types" %}</option>
         <option value="sellable" {% if selected_storage == "sellable" %}selected{% endif %}>🛍️ {% trans "Sellable (Outlets)" %}</option>
-        <option value="internal_use" {% if selected_storage == "internal_use" %}selected{% endif %}>📦 {% trans "Goods & Ingredients" %}</option>
+        <option value="internal_use" {% if selected_storage == "internal_use" %}selected{% endif %}>📦 {% trans "Internal Only (Not for Sale)" %}</option>
+        {% for st in storage_types %}
+          <option value="{{ st.code }}" {% if selected_storage == st.code %}selected{% endif %}>{{ st.name }} ({% if st.can_sell %}{% trans "Can Sell" %}{% else %}{% trans "Internal" %}{% endif %})</option>
+        {% endfor %}
       </select>
     </div>
     <div class="min-w-[150px]">
@@ -208,15 +211,15 @@
               </td>
               <td class="px-4 py-3 font-mono text-[var(--text-muted)]">{{ loc.code|default:"—" }}</td>
               <td class="px-4 py-3">
-                {% if loc.storage_type == "sellable" %}
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                    {% trans "Sellable (Outlets)" %}
+                {% if loc.can_sell %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    {{ loc.custom_storage_type.name|default:_("Sellable (Outlets)") }}
                   </span>
                 {% else %}
                   <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                    {% trans "Goods/Ingredients" %}
+                    {{ loc.custom_storage_type.name|default:_("Internal Only") }}
                   </span>
                 {% endif %}
               </td>

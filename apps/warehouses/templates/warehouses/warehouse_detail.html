@@ -13,11 +13,17 @@
 <div
   x-data="{
     locModalOpen: false,
+    stModalOpen: false,
     locName: '',
     locCode: '',
     locType: 'sub_location',
     locParentId: '',
     locStockHolding: true,
+    stName: '',
+    stCode: '',
+    stCanSell: true,
+    stDefault: false,
+    stDesc: '',
     openAddLocation(parentId) {
       this.locName = '';
       this.locCode = '';
@@ -25,6 +31,14 @@
       this.locParentId = parentId || '{{ warehouse_loc.pk|default:'' }}';
       this.locStockHolding = true;
       this.locModalOpen = true;
+    },
+    openAddStorageType() {
+      this.stName = '';
+      this.stCode = '';
+      this.stCanSell = true;
+      this.stDefault = false;
+      this.stDesc = '';
+      this.stModalOpen = true;
     }
   }"
   class="space-y-6 w-full"
@@ -136,69 +150,118 @@
     </div>
   </div>
 
-  <!-- Dual-Storage Facilities Architecture Section -->
+  <!-- Dynamic Storage Types & Sales Channels Section -->
   <div class="p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs space-y-4">
-    <div class="flex items-center justify-between border-b border-[var(--border)]/50 pb-3">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[var(--border)]/50 pb-3">
       <div>
         <h2 class="text-sm font-bold text-[var(--text)] flex items-center gap-2">
           <svg class="w-4.5 h-4.5 text-[var(--brand-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-          {% trans "Dual-Zone Storage Structure" %}
+          {% trans "Storage Types & Dynamic Sales Permissions" %}
         </h2>
         <p class="text-xs text-[var(--text-muted)] mt-0.5">
-          {% trans "Isolated compartments for retail outlet commercial stock vs non-sale operational ingredients." %}
+          {% trans "Configure warehouse compartments and select which storages can sell products through outlets and POS." %}
         </p>
       </div>
-      <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-        {% trans "Dual Storage Enforced" %}
-      </span>
+      <div class="flex items-center gap-2">
+        {% if can_manage %}
+          <button
+            type="button"
+            @click="openAddStorageType()"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            {% trans "Create Storage Type" %}
+          </button>
+        {% endif %}
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Zone 1: Sellable Products for Outlets -->
-      <div class="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/20 dark:bg-indigo-950/20 flex flex-col justify-between">
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between">
-            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300">
-              <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-              {% trans "Sellable Outlets Storage" %}
-            </span>
-            <span class="font-mono text-xs px-2 py-0.5 rounded bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
-              {{ sellable_loc.code }}
-            </span>
-          </div>
-          <p class="text-xs text-[var(--text)] font-semibold">{{ sellable_loc.name }}</p>
-          <p class="text-2xs text-[var(--text-muted)]">
-            {% trans "Designated for finished merchandise and products sold through linked retail branches and POS." %}
-          </p>
-        </div>
-        <div class="mt-4 pt-3 border-t border-indigo-100 dark:border-indigo-900/40 flex items-center justify-between text-xs">
-          <span class="text-[var(--text-muted)]">{% trans "Commercial POS Access" %}:</span>
-          <span class="font-bold text-emerald-600">{% trans "Authorized for Sales" %}</span>
-        </div>
-      </div>
+    <!-- Storage Types Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for st in storage_types %}
+        <div class="p-4 rounded-xl border {% if st.can_sell %}border-emerald-200/60 dark:border-emerald-900/40 bg-emerald-50/15 dark:bg-emerald-950/15{% else %}border-amber-200/60 dark:border-amber-900/40 bg-amber-50/15 dark:bg-amber-950/15{% endif %} flex flex-col justify-between space-y-3 transition-all hover:shadow-sm">
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold {% if st.can_sell %}text-emerald-700 dark:text-emerald-300{% else %}text-amber-700 dark:text-amber-300{% endif %}">
+                <span class="w-2 h-2 rounded-full {% if st.can_sell %}bg-emerald-500{% else %}bg-amber-500{% endif %}"></span>
+                {{ st.name }}
+              </span>
+              <span class="font-mono text-2xs px-1.5 py-0.5 rounded bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] font-semibold">
+                {{ st.code }}
+              </span>
+            </div>
 
-      <!-- Zone 2: Goods & Ingredients (Not for Sale) -->
-      <div class="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/20 dark:bg-amber-950/20 flex flex-col justify-between">
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between">
-            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>
-              {% trans "Goods & Ingredients Storage" %}
-            </span>
-            <span class="font-mono text-xs px-2 py-0.5 rounded bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-800">
-              {{ internal_loc.code }}
-            </span>
+            <p class="text-xs text-[var(--text-muted)] line-clamp-2">
+              {{ st.description|default:_("No description provided.") }}
+            </p>
+
+            <div class="flex items-center gap-1.5 pt-1">
+              {% if st.can_sell %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                  <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  {% trans "Can Sell from Outlets" %}
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                  <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                  {% trans "Internal Use Only" %}
+                </span>
+              {% endif %}
+
+              {% if st.is_default_sellable %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                  ★ {% trans "Default Sales Source" %}
+                </span>
+              {% endif %}
+            </div>
           </div>
-          <p class="text-xs text-[var(--text)] font-semibold">{{ internal_loc.name }}</p>
-          <p class="text-2xs text-[var(--text-muted)]">
-            {% trans "Reserved for operational goods, raw ingredients, supplies, and non-sale workshop materials." %}
-          </p>
+
+          <!-- Quick Action Buttons -->
+          {% if can_manage %}
+            <div class="pt-2.5 border-t border-[var(--border)]/40 flex items-center justify-between text-2xs">
+              <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_storage_sellable" />
+                <input type="hidden" name="storage_type_id" value="{{ st.pk }}" />
+                <button
+                  type="submit"
+                  class="font-semibold {% if st.can_sell %}text-amber-600 hover:text-amber-700{% else %}text-emerald-600 hover:text-emerald-700{% endif %} transition-colors"
+                >
+                  {% if st.can_sell %}{% trans "Disable Selling" %}{% else %}{% trans "Enable Selling" %}{% endif %}
+                </button>
+              </form>
+
+              <div class="flex items-center gap-2">
+                {% if st.can_sell and not st.is_default_sellable %}
+                  <form method="post" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="set_default_sellable" />
+                    <input type="hidden" name="storage_type_id" value="{{ st.pk }}" />
+                    <button type="submit" class="text-blue-600 hover:underline font-semibold">
+                      {% trans "Set as Default" %}
+                    </button>
+                  </form>
+                {% endif %}
+
+                {% if st.code != "SELLABLE" and st.code != "INTERNAL" %}
+                  <form method="post" class="inline" onsubmit="return confirm('{% trans "Remove this storage type?" %}');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_storage_type" />
+                    <input type="hidden" name="storage_type_id" value="{{ st.pk }}" />
+                    <button type="submit" class="text-rose-500 hover:text-rose-700">
+                      {% trans "Delete" %}
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
         </div>
-        <div class="mt-4 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex items-center justify-between text-xs">
-          <span class="text-[var(--text-muted)]">{% trans "Commercial POS Access" %}:</span>
-          <span class="font-semibold text-amber-600">{% trans "Internal Use Only (Not for Sale)" %}</span>
+      {% empty %}
+        <div class="col-span-full py-6 text-center text-xs text-[var(--text-muted)]">
+          {% trans "No storage types configured for this warehouse yet." %}
         </div>
-      </div>
+      {% endfor %}
     </div>
   </div>
 
@@ -471,6 +534,109 @@
             class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]"
           >
             {% trans "Add storage bin" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Add Storage Type Modal -->
+  <div
+    x-show="stModalOpen"
+    x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+  >
+    <div
+      @click.away="stModalOpen = false"
+      class="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl space-y-4"
+    >
+      <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+        <h3 class="text-base font-bold text-[var(--text)]">{% trans "Create Warehouse Storage Type" %}</h3>
+        <button type="button" @click="stModalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)] text-lg">✕</button>
+      </div>
+
+      <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_storage_type" />
+
+        <div>
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Storage name" %} *</label>
+          <input
+            type="text"
+            name="name"
+            x-model="stName"
+            required
+            placeholder="{% trans "e.g. Cold Room, Front Display, Raw Materials" %}"
+            class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)] focus:border-[var(--brand-500)] focus:outline-none"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Storage code" %} *</label>
+          <input
+            type="text"
+            name="code"
+            x-model="stCode"
+            required
+            placeholder="{% trans "e.g. COLD-01, DISPLAY, RAW-MAT" %}"
+            class="w-full text-xs font-mono uppercase rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)] focus:border-[var(--brand-500)] focus:outline-none"
+          />
+        </div>
+
+        <div class="space-y-2 pt-1 border-t border-[var(--border)]/40">
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="can_sell"
+              x-model="stCanSell"
+              id="stCanSellCheck"
+              class="rounded text-[var(--brand-600)]"
+            />
+            <label for="stCanSellCheck" class="text-xs font-semibold text-[var(--text)] cursor-pointer">
+              {% trans "Can sell products from this storage" %}
+            </label>
+          </div>
+          <p class="text-2xs text-[var(--text-muted)] pl-6">
+            {% trans "Allows retail branches, POS checkouts, and customer invoices to draw inventory from here." %}
+          </p>
+
+          <div class="flex items-center gap-2 pt-1" x-show="stCanSell">
+            <input
+              type="checkbox"
+              name="is_default_sellable"
+              x-model="stDefault"
+              id="stDefaultCheck"
+              class="rounded text-[var(--brand-600)]"
+            />
+            <label for="stDefaultCheck" class="text-xs font-medium text-[var(--text)] cursor-pointer">
+              {% trans "Set as default sales source for this warehouse" %}
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Description / Notes" %}</label>
+          <textarea
+            name="description"
+            x-model="stDesc"
+            rows="2"
+            placeholder="{% trans "Handling procedures, temperature controls, access restrictions..." %}"
+            class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)] focus:border-[var(--brand-500)] focus:outline-none"
+          ></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
+          <button
+            type="button"
+            @click="stModalOpen = false"
+            class="px-4 py-2 text-xs font-semibold rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-2)]"
+          >
+            {% trans "Cancel" %}
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] shadow-xs"
+          >
+            {% trans "Create Storage" %}
           </button>
         </div>
       </form>

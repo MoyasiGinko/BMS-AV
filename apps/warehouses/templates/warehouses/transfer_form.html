@@ -71,13 +71,18 @@
               class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3.5 py-2.5 focus:border-[var(--brand-500)] font-medium"
             >
               <option value="sellable" {% if form.source_storage_type.value == 'sellable' %}selected{% endif %}>
-                🛍️ {% trans "Sellable Products (Outlet Sales Stock)" %}
+                🛍️ {% trans "Sellable Products (Default Sales Stock)" %}
               </option>
               <option value="internal_use" {% if form.source_storage_type.value == 'internal_use' %}selected{% endif %}>
-                📦 {% trans "Goods & Ingredients (Not for Sale / Internal)" %}
+                📦 {% trans "Goods & Ingredients (Not for Sale)" %}
               </option>
+              {% for st in storage_types %}
+                <option value="{{ st.code }}" {% if form.source_storage_type.value == st.code %}selected{% endif %}>
+                  {% if st.can_sell %}🛍️{% else %}📦{% endif %} {{ st.warehouse.name|default:"General" }}: {{ st.name }} ({% if st.can_sell %}{% trans "Can Sell" %}{% else %}{% trans "Internal" %}{% endif %})
+                </option>
+              {% endfor %}
             </select>
-            <p class="text-2xs text-[var(--text-muted)] mt-1">{% trans "Choose whether deducting from sellable finished goods or non-sale supplies." %}</p>
+            <p class="text-2xs text-[var(--text-muted)] mt-1">{% trans "Choose which storage compartment to transfer stock from." %}</p>
           </div>
         </div>
 
@@ -113,13 +118,18 @@
               class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3.5 py-2.5 focus:border-[var(--brand-500)] font-medium"
             >
               <option value="sellable" {% if form.destination_storage_type.value == 'sellable' %}selected{% endif %}>
-                🛍️ {% trans "Sellable Products (Outlet Sales Stock)" %}
+                🛍️ {% trans "Sellable Products (Default Sales Stock)" %}
               </option>
               <option value="internal_use" {% if form.destination_storage_type.value == 'internal_use' %}selected{% endif %}>
-                📦 {% trans "Goods & Ingredients (Not for Sale / Internal)" %}
+                📦 {% trans "Goods & Ingredients (Not for Sale)" %}
               </option>
+              {% for st in storage_types %}
+                <option value="{{ st.code }}" {% if form.destination_storage_type.value == st.code %}selected{% endif %}>
+                  {% if st.can_sell %}🛍️{% else %}📦{% endif %} {{ st.warehouse.name|default:"General" }}: {{ st.name }} ({% if st.can_sell %}{% trans "Can Sell" %}{% else %}{% trans "Internal" %}{% endif %})
+                </option>
+              {% endfor %}
             </select>
-            <p class="text-2xs text-[var(--text-muted)] mt-1">{% trans "Choose receiving into commercial sales inventory or internal ingredients." %}</p>
+            <p class="text-2xs text-[var(--text-muted)] mt-1">{% trans "Choose which storage compartment to receive goods into." %}</p>
           </div>
         </div>
       </div>

@@ -236,6 +236,43 @@ class StockSupplyRouteForm(forms.Form):
     )
 
 
+class WarehouseStorageTypeForm(forms.Form):
+    """Form to create or edit dynamic warehouse storage types."""
+
+    warehouse_id = forms.IntegerField(
+        label=_("Warehouse"),
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    name = forms.CharField(
+        label=_("Storage Name"),
+        max_length=128,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": _("e.g. Cold Storage, Display Floor, Bulk Bay")}),
+    )
+    code = forms.CharField(
+        label=_("Storage Code"),
+        max_length=32,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": _("e.g. COLD-01, DISPLAY")}),
+    )
+    can_sell = forms.BooleanField(
+        label=_("Can Sell Products (Outlets & POS)"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    is_default_sellable = forms.BooleanField(
+        label=_("Default Sales Source"),
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    description = forms.CharField(
+        label=_("Description"),
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-textarea", "rows": 2, "placeholder": _("Storage handling notes or restrictions...")}),
+    )
+
+
 class WarehouseStockTransferForm(forms.Form):
     """Form to request or create an inter-warehouse stock transfer with storage zones."""
 
@@ -243,23 +280,23 @@ class WarehouseStockTransferForm(forms.Form):
         label=_("Source Warehouse"),
         widget=forms.Select(attrs={"class": "form-select"}),
     )
-    source_storage_type = forms.ChoiceField(
+    source_storage_type = forms.CharField(
         label=_("Source Storage"),
-        choices=StorageType.choices,
+        max_length=64,
         initial=StorageType.SELLABLE,
         required=False,
-        widget=forms.Select(attrs={"class": "form-select"}),
+        widget=forms.TextInput(attrs={"class": "form-input"}),
     )
     destination_warehouse_id = forms.IntegerField(
         label=_("Destination Warehouse"),
         widget=forms.Select(attrs={"class": "form-select"}),
     )
-    destination_storage_type = forms.ChoiceField(
+    destination_storage_type = forms.CharField(
         label=_("Destination Storage"),
-        choices=StorageType.choices,
+        max_length=64,
         initial=StorageType.SELLABLE,
         required=False,
-        widget=forms.Select(attrs={"class": "form-select"}),
+        widget=forms.TextInput(attrs={"class": "form-input"}),
     )
     product_id = forms.IntegerField(
         label=_("Product"),

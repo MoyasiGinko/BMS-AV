@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.contrib import admin
 
 from apps.inventory.models import (
+    InventoryLocation,
     StockAdjustment,
     StockAdjustmentLine,
     StockCount,
@@ -14,6 +15,7 @@ from apps.inventory.models import (
     StockReservation,
     StockTransfer,
     StockTransferLine,
+    WarehouseStorageType,
 )
 
 
@@ -92,3 +94,17 @@ class StockReservationAdmin(admin.ModelAdmin):
     list_display = ("product", "warehouse", "quantity", "status", "expires_at", "organization")
     list_filter = ("status", "warehouse")
     search_fields = ("product__name", "reference_id")
+
+
+@admin.register(WarehouseStorageType)
+class WarehouseStorageTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "warehouse", "can_sell", "is_default_sellable", "is_active", "organization")
+    list_filter = ("can_sell", "is_default_sellable", "is_active", "warehouse")
+    search_fields = ("name", "code", "warehouse__name")
+
+
+@admin.register(InventoryLocation)
+class InventoryLocationAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "warehouse", "location_type", "custom_storage_type", "is_stock_holding", "is_active", "organization")
+    list_filter = ("location_type", "is_stock_holding", "is_active", "warehouse")
+    search_fields = ("name", "code", "warehouse__name")

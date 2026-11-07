@@ -13,8 +13,10 @@ from apps.inventory.models import (
     InventoryLocation,
     LocationType,
     StockLevel,
+    StockMovement,
     StockSupplyRoute,
     StorageType,
+    WarehouseStorageType,
 )
 from apps.tenancy.models import Branch, Organization
 from apps.warehouses.exceptions import (
@@ -153,6 +155,43 @@ def ensure_warehouse_storage_locations(warehouse: Warehouse) -> tuple[InventoryL
     """Ensure both Sellable Products and Goods & Ingredients storage locations exist for a Warehouse."""
     code_prefix = warehouse.code.strip().upper() if warehouse.code else f"WH-{warehouse.pk}"
 
+    # 1. Ensure default Sellable Storage Type exists
+    sellable_st = WarehouseStorageType.all_tenants.filter(
+        organization_id=warehouse.organization_id,
+        warehouse_id=warehouse.pk,
+        code="SELLABLE",
+    ).first()
+    if not sellable_st:
+        sellable_st = WarehouseStorageType.all_tenants.create(
+            organization_id=warehouse.organization_id,
+            warehouse_id=warehouse.pk,
+            name="Sellable Products",
+            code="SELLABLE",
+            description="Products available for sale through retail branches and POS outlets.",
+            can_sell=True,
+            is_default_sellable=True,
+            is_active=warehouse.is_active,
+        )
+
+    # 2. Ensure default Internal Use Storage Type exists
+    internal_st = WarehouseStorageType.all_tenants.filter(
+        organization_id=warehouse.organization_id,
+        warehouse_id=warehouse.pk,
+        code="INTERNAL",
+    ).first()
+    if not internal_st:
+        internal_st = WarehouseStorageType.all_tenants.create(
+            organization_id=warehouse.organization_id,
+            warehouse_id=warehouse.pk,
+            name="Goods & Ingredients",
+            code="INTERNAL",
+            description="Ingredients, raw materials, tools, and non-sale inventory.",
+            can_sell=False,
+            is_default_sellable=False,
+            is_active=warehouse.is_active,
+        )
+
+    # 3. Ensure Sellable Location
     sellable_loc = InventoryLocation.all_tenants.filter(
         organization_id=warehouse.organization_id,
         warehouse_id=warehouse.pk,
@@ -160,7 +199,6 @@ def ensure_warehouse_storage_locations(warehouse: Warehouse) -> tuple[InventoryL
     ).first()
 
     if sellable_loc is None:
-        # Check if an existing primary location without -INTERNAL code can be upgraded
         existing = InventoryLocation.all_tenants.filter(
             organization_id=warehouse.organization_id,
             warehouse_id=warehouse.pk,
@@ -168,8 +206,9 @@ def ensure_warehouse_storage_locations(warehouse: Warehouse) -> tuple[InventoryL
         if existing and not existing.code.endswith("-INTERNAL"):
             existing.storage_type = StorageType.SELLABLE
             existing.location_type = LocationType.SELLABLE_STORAGE
+            existing.custom_storage_type = sellable_st
             existing.is_active = warehouse.is_active
-            existing.save(update_fields=["storage_type", "location_type", "is_active", "updated_at"])
+            existing.save(update_fields=["storage_type", "location_type", "custom_storage_type", "is_active", "updated_at"])
             sellable_loc = existing
         else:
             sellable_loc = InventoryLocation.all_tenants.create(
@@ -179,11 +218,16 @@ def ensure_warehouse_storage_locations(warehouse: Warehouse) -> tuple[InventoryL
                 code=f"{code_prefix}-SELL",
                 location_type=LocationType.SELLABLE_STORAGE,
                 storage_type=StorageType.SELLABLE,
+                custom_storage_type=sellable_st,
                 branch_id=getattr(warehouse, "branch_id", None),
                 is_stock_holding=True,
                 is_active=getattr(warehouse, "is_active", True),
             )
+    elif sellable_loc.custom_storage_type_id is None:
+        sellable_loc.custom_storage_type = sellable_st
+        sellable_loc.save(update_fields=["custom_storage_type", "updated_at"])
 
+    # 4. Ensure Internal Use Location
     internal_loc = InventoryLocation.all_tenants.filter(
         organization_id=warehouse.organization_id,
         warehouse_id=warehouse.pk,
@@ -198,12 +242,222 @@ def ensure_warehouse_storage_locations(warehouse: Warehouse) -> tuple[InventoryL
             code=f"{code_prefix}-INTERNAL",
             location_type=LocationType.INTERNAL_STORAGE,
             storage_type=StorageType.INTERNAL_USE,
+            custom_storage_type=internal_st,
             branch_id=getattr(warehouse, "branch_id", None),
             is_stock_holding=True,
             is_active=getattr(warehouse, "is_active", True),
         )
+    elif internal_loc.custom_storage_type_id is None:
+        internal_loc.custom_storage_type = internal_st
+        internal_loc.save(update_fields=["custom_storage_type", "updated_at"])
 
     return sellable_loc, internal_loc
+
+
+@transaction.atomic
+def create_warehouse_storage_type(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    name: str,
+    code: str,
+    can_sell: bool = True,
+    is_default_sellable: bool = False,
+    description: str = "",
+    actor: Any = None,
+) -> tuple[WarehouseStorageType, InventoryLocation]:
+    """Create a dynamic storage type and associated stock-holding location for a warehouse."""
+    name = name.strip()
+    code = code.strip().upper()
+    if not name:
+        raise ValidationError(_("Storage type name is required."))
+    if not code:
+        raise ValidationError(_("Storage type code is required."))
+
+    if WarehouseStorageType.all_tenants.filter(
+        organization=organization,
+        warehouse=warehouse,
+        code=code,
+    ).exists():
+        raise ValidationError(_("A storage type with code '%(code)s' already exists for this warehouse.") % {"code": code})
+
+    if is_default_sellable and can_sell:
+        WarehouseStorageType.all_tenants.filter(
+            organization=organization,
+            warehouse=warehouse,
+            is_default_sellable=True,
+        ).update(is_default_sellable=False)
+
+    storage_type = WarehouseStorageType.all_tenants.create(
+        organization=organization,
+        warehouse=warehouse,
+        name=name,
+        code=code,
+        can_sell=can_sell,
+        is_default_sellable=is_default_sellable if can_sell else False,
+        description=description,
+        is_active=True,
+    )
+
+    wh_prefix = warehouse.code.strip().upper() if warehouse.code else f"WH-{warehouse.pk}"
+    loc_code = f"{wh_prefix}-{code}"
+    loc_name = f"{warehouse.name} - {name}"
+
+    location = InventoryLocation.all_tenants.create(
+        organization=organization,
+        warehouse=warehouse,
+        branch=getattr(warehouse, "branch", None),
+        name=loc_name,
+        code=loc_code,
+        location_type=LocationType.SELLABLE_STORAGE if can_sell else LocationType.INTERNAL_STORAGE,
+        storage_type=code.lower(),
+        custom_storage_type=storage_type,
+        is_stock_holding=True,
+        is_active=True,
+        notes=description,
+    )
+
+    logger.info("Storage type '%s' (can_sell=%s) created for warehouse %s", name, can_sell, warehouse.name)
+    return storage_type, location
+
+
+def _sync_storage_type_locations(storage_type: WarehouseStorageType, name: str | None, can_sell: bool | None, is_active: bool | None) -> None:
+    """Helper to synchronize locations when storage type attributes change."""
+    for loc in storage_type.inventory_locations.all():
+        loc_updates = ["updated_at"]
+        if is_active is not None:
+            loc.is_active = is_active
+            loc_updates.append("is_active")
+        if can_sell is not None:
+            loc.location_type = LocationType.SELLABLE_STORAGE if can_sell else LocationType.INTERNAL_STORAGE
+            loc_updates.append("location_type")
+        if name is not None and storage_type.warehouse:
+            loc.name = f"{storage_type.warehouse.name} - {storage_type.name}"
+            loc_updates.append("name")
+        loc.save(update_fields=list(set(loc_updates)))
+
+
+@transaction.atomic
+def update_warehouse_storage_type(
+    *,
+    storage_type: WarehouseStorageType,
+    name: str | None = None,
+    code: str | None = None,
+    can_sell: bool | None = None,
+    is_default_sellable: bool | None = None,
+    description: str | None = None,
+    is_active: bool | None = None,
+    actor: Any = None,
+) -> WarehouseStorageType:
+    """Update dynamic storage type attributes and sync associated location."""
+    update_fields = ["updated_at"]
+
+    if name is not None:
+        storage_type.name = name.strip()
+        update_fields.append("name")
+
+    if code is not None:
+        clean_code = code.strip().upper()
+        if clean_code != storage_type.code:
+            if WarehouseStorageType.all_tenants.filter(
+                organization=storage_type.organization,
+                warehouse=storage_type.warehouse,
+                code=clean_code,
+            ).exclude(pk=storage_type.pk).exists():
+                raise ValidationError(_("A storage type with code '%(code)s' already exists.") % {"code": clean_code})
+            storage_type.code = clean_code
+            update_fields.append("code")
+
+    if can_sell is not None:
+        storage_type.can_sell = can_sell
+        update_fields.append("can_sell")
+        if not can_sell and storage_type.is_default_sellable:
+            storage_type.is_default_sellable = False
+            update_fields.append("is_default_sellable")
+
+    if is_default_sellable and storage_type.can_sell:
+        WarehouseStorageType.all_tenants.filter(
+            organization=storage_type.organization,
+            warehouse=storage_type.warehouse,
+            is_default_sellable=True,
+        ).exclude(pk=storage_type.pk).update(is_default_sellable=False)
+        storage_type.is_default_sellable = True
+        update_fields.append("is_default_sellable")
+    elif is_default_sellable is False:
+        storage_type.is_default_sellable = False
+        update_fields.append("is_default_sellable")
+
+    if description is not None:
+        storage_type.description = description
+        update_fields.append("description")
+
+    if is_active is not None:
+        storage_type.is_active = is_active
+        update_fields.append("is_active")
+
+    storage_type.save(update_fields=list(set(update_fields)))
+    _sync_storage_type_locations(storage_type, name, can_sell, is_active)
+
+    return storage_type
+
+
+@transaction.atomic
+def set_default_sellable_storage_type(
+    *,
+    storage_type: WarehouseStorageType,
+    actor: Any = None,
+) -> WarehouseStorageType:
+    """Designate the primary default sellable storage type for a warehouse."""
+    if not storage_type.can_sell:
+        raise ValidationError(_("Cannot set a non-sellable storage type as the default sales source."))
+
+    WarehouseStorageType.all_tenants.filter(
+        organization=storage_type.organization,
+        warehouse=storage_type.warehouse,
+        is_default_sellable=True,
+    ).exclude(pk=storage_type.pk).update(is_default_sellable=False)
+
+    storage_type.is_default_sellable = True
+    storage_type.save(update_fields=["is_default_sellable", "updated_at"])
+    return storage_type
+
+
+@transaction.atomic
+def toggle_storage_type_sellable(
+    *,
+    storage_type: WarehouseStorageType,
+    can_sell: bool,
+    actor: Any = None,
+) -> WarehouseStorageType:
+    """Toggle whether products in this storage can be sold through retail outlets and POS."""
+    return update_warehouse_storage_type(
+        storage_type=storage_type,
+        can_sell=can_sell,
+        actor=actor,
+    )
+
+
+@transaction.atomic
+def delete_warehouse_storage_type(
+    *,
+    storage_type: WarehouseStorageType,
+    actor: Any = None,
+) -> None:
+    """Safely delete or deactivate a storage type."""
+    loc_ids = list(storage_type.inventory_locations.values_list("pk", flat=True))
+    has_movements = StockMovement.all_tenants.filter(
+        organization=storage_type.organization,
+        location_id__in=loc_ids,
+    ).exists()
+
+    if has_movements:
+        update_warehouse_storage_type(storage_type=storage_type, is_active=False, actor=actor)
+        logger.info("Storage type %s deactivated due to historical movements", storage_type.name)
+    else:
+        storage_type.inventory_locations.all().delete()
+        storage_type.delete()
+        logger.info("Storage type %s deleted", storage_type.name)
+
 
 
 @transaction.atomic

@@ -7,7 +7,13 @@ from typing import Any
 
 from django.db.models import Q, QuerySet
 
-from apps.inventory.models import InventoryLocation, StockMovement, StockSupplyRoute, StockTransfer
+from apps.inventory.models import (
+    InventoryLocation,
+    StockMovement,
+    StockSupplyRoute,
+    StockTransfer,
+    WarehouseStorageType,
+)
 from apps.tenancy.models import Branch, Organization
 from apps.warehouses.models import BranchWarehouse, Warehouse
 
@@ -459,5 +465,59 @@ def get_stock_transfer(*, organization: Organization, transfer_id: int) -> Stock
         .prefetch_related("lines__product", "lines__variant")
         .first()
     )
+
+
+def list_warehouse_storage_types(
+    *,
+    organization: Organization,
+    warehouse: Warehouse | None = None,
+    can_sell: bool | None = None,
+    active_only: bool = True,
+) -> QuerySet[WarehouseStorageType]:
+    """List dynamic storage types configured for a warehouse or organization."""
+    qs = WarehouseStorageType.all_tenants.filter(organization=organization).select_related("warehouse")
+    if warehouse is not None:
+        qs = qs.filter(Q(warehouse=warehouse) | Q(warehouse__isnull=True))
+    if can_sell is not None:
+        qs = qs.filter(can_sell=can_sell)
+    if active_only:
+        qs = qs.filter(is_active=True)
+    return qs.order_by("-is_default_sellable", "-can_sell", "name")
+
+
+def get_warehouse_storage_type(
+    *,
+    organization: Organization,
+    storage_type_id: Any,
+) -> WarehouseStorageType | None:
+    """Fetch single dynamic warehouse storage type."""
+    qs = WarehouseStorageType.all_tenants.filter(organization=organization).select_related("warehouse")
+    return _filter_by_id_or_uuid(qs, storage_type_id)
+
+
+def list_sellable_locations(
+    *,
+    organization: Organization,
+    warehouse: Warehouse | None = None,
+) -> QuerySet[InventoryLocation]:
+    """Return all stock-holding locations from which products are permitted to be sold."""
+    qs = (
+        InventoryLocation.all_tenants.filter(
+            organization=organization,
+            is_stock_holding=True,
+            is_active=True,
+        )
+        .filter(
+            Q(custom_storage_type__can_sell=True, custom_storage_type__is_active=True)
+            | Q(custom_storage_type__isnull=True, storage_type="sellable")
+        )
+        .select_related("warehouse", "branch", "custom_storage_type")
+    )
+
+    if warehouse is not None:
+        qs = qs.filter(warehouse=warehouse)
+
+    return qs.order_by("name")
+
 
 

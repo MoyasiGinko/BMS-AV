@@ -44,6 +44,58 @@ class LocationType(models.TextChoices):
     DAMAGED = "damaged", _("Damaged Goods Storage")
 
 
+class WarehouseStorageType(TenantModel):
+    """Dynamic storage type configured per warehouse or organization.
+
+    Determines storage classification, operational rules, and whether inventory
+    stored under this storage type is eligible for outlet/POS sales.
+    """
+
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="storage_types",
+        verbose_name=_("warehouse"),
+        help_text=_("Associated warehouse facility. If left empty, acts as an organization-level storage type template."),
+    )
+    name = models.CharField(_("storage type name"), max_length=128)
+    code = models.CharField(_("storage type code"), max_length=64)
+    description = models.TextField(_("description"), blank=True, default="")
+    can_sell = models.BooleanField(
+        _("can sell products"),
+        default=True,
+        help_text=_("Designates whether goods in this storage type can be sold through retail outlets and POS."),
+    )
+    is_default_sellable = models.BooleanField(
+        _("default sellable storage"),
+        default=False,
+        help_text=_("Primary storage type used for outlet sales from this warehouse."),
+    )
+    is_active = models.BooleanField(_("is active"), default=True)
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("warehouse storage type")
+        verbose_name_plural = _("warehouse storage types")
+        ordering = ["-is_default_sellable", "-can_sell", "name"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "warehouse", "code"],
+                name="unique_org_warehouse_storage_type_code",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "warehouse", "can_sell"]),
+        ]
+
+    def __str__(self) -> str:
+        wh_name = self.warehouse.name if self.warehouse else "Org Default"
+        sell_badge = "Sellable" if self.can_sell else "Internal Only"
+        return f"{self.name} ({wh_name}) - {sell_badge}"
+
+
 class InventoryLocation(TenantModel):
     """Unified location entity supporting warehouses, branches, retail outlets, zones, bins."""
 
@@ -81,10 +133,18 @@ class InventoryLocation(TenantModel):
     )
     storage_type = models.CharField(
         _("storage type"),
-        max_length=32,
+        max_length=64,
         choices=StorageType.choices,
         default=StorageType.SELLABLE,
         help_text=_("Designates whether goods stored here are sellable through outlets or for internal use."),
+    )
+    custom_storage_type = models.ForeignKey(
+        "inventory.WarehouseStorageType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inventory_locations",
+        verbose_name=_("custom storage type"),
     )
     is_stock_holding = models.BooleanField(
         _("is stock holding"),
@@ -110,11 +170,19 @@ class InventoryLocation(TenantModel):
             models.Index(fields=["organization", "location_type"]),
             models.Index(fields=["organization", "branch"]),
             models.Index(fields=["organization", "warehouse"]),
+            models.Index(fields=["organization", "custom_storage_type"]),
             models.Index(fields=["organization", "is_stock_holding", "is_active"]),
         ]
 
     def __str__(self) -> str:
         return self.full_path
+
+    @property
+    def can_sell(self) -> bool:
+        """Indicates if items in this location can be sold through outlets/POS."""
+        if self.custom_storage_type_id:
+            return bool(self.custom_storage_type.can_sell and self.custom_storage_type.is_active)
+        return self.storage_type == StorageType.SELLABLE
 
     @property
     def full_path(self) -> str:
