@@ -220,10 +220,13 @@ html[data-theme="neumorphic"],
    Rich tactile depth, raised buttons, inset search well, embossed pills
    ========================================================================== */
 [data-theme="neumorphic"] header {
-  background-color: var(--neu-surface) !important;
+  background-color: transparent !important;
+  background: transparent !important;
   border: none !important;
-  border-bottom: none !important;
-  box-shadow: 0 4px 14px rgba(166, 175, 195, 0.45) !important;
+  border-bottom: 1px solid var(--neu-line, rgba(0, 0, 0, 0.05)) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   position: relative !important;
   z-index: 60 !important;
 }
@@ -449,8 +452,11 @@ html[data-theme="neumorphic"],
 
 [data-theme="neumorphic"] .sticky-header-tabs,
 .sticky-header-tabs {
-  background-color: var(--neu-surface, #e6e9f2) !important;
-  background: var(--neu-surface, #e6e9f2) !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   border-bottom: none !important;
   opacity: 1 !important;
 }
