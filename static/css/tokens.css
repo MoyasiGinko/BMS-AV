@@ -425,13 +425,11 @@ body.overflow-hidden {
   gap: 0.625rem !important;
 }
 
-/* Transparent sticky header tabs with blur and no box-shadow */
+/* Solid sticky header tabs blending seamlessly with background */
 .sticky-header-tabs {
-  background-color: transparent !important;
-  background: transparent !important;
+  background-color: var(--bg) !important;
+  background: var(--bg) !important;
   box-shadow: none !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
   border-bottom: none !important;
   opacity: 1 !important;
 }
