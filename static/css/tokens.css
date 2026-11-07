@@ -98,6 +98,7 @@ aside.bos-sidebar {
   background-color: var(--sidebar-bg) !important;
   color: var(--sidebar-text) !important;
   border-color: var(--sidebar-border, var(--border)) !important;
+  z-index: 40 !important;
 }
 
 aside.bos-sidebar .sidebar-header {
@@ -239,14 +240,14 @@ body.overflow-hidden {
   max-height: 100% !important;
 }
 
-/* Sidebar App Shell desktop static positioning */
+/* Sidebar App Shell desktop relative positioning and high z-index over subnav header tabs */
 @media (min-width: 1024px) {
   aside.bos-sidebar {
-    position: static !important;
+    position: relative !important;
     height: calc(100% - 0.5rem) !important;
     transform: none !important;
     flex-shrink: 0 !important;
-    z-index: 10 !important;
+    z-index: 40 !important;
   }
 }
 

@@ -89,6 +89,7 @@ html[data-theme="neumorphic"],
   border-bottom: none !important;
   box-shadow: 6px 0 18px var(--neu-shadow-dark), 0 0 0 transparent !important;
   transition: all 200ms ease !important;
+  z-index: 40 !important;
 }
 
 [data-theme="neumorphic"] aside.bos-sidebar .sidebar-header {
