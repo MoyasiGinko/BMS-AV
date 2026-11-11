@@ -96,6 +96,41 @@ class WarehouseStorageType(TenantModel):
         return f"{self.name} ({wh_name}) - {sell_badge}"
 
 
+class BranchStorageSync(TenantModel):
+    """Bridge linking a branch warehouse mapping to specific synced warehouse storage types."""
+
+    branch_warehouse = models.ForeignKey(
+        "tenancy.BranchWarehouse",
+        on_delete=models.CASCADE,
+        related_name="storage_sync_links",
+        verbose_name=_("branch warehouse mapping"),
+    )
+    storage_type = models.ForeignKey(
+        "inventory.WarehouseStorageType",
+        on_delete=models.CASCADE,
+        related_name="branch_sync_links",
+        verbose_name=_("synced warehouse storage type"),
+    )
+    is_active = models.BooleanField(_("is active"), default=True)
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("branch warehouse storage sync")
+        verbose_name_plural = _("branch warehouse storage syncs")
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "branch_warehouse", "storage_type"],
+                name="unique_org_branch_wh_storage_sync",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "branch_warehouse", "is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.branch_warehouse} -> {self.storage_type.name}"
+
+
 class InventoryLocation(TenantModel):
     """Unified location entity supporting warehouses, branches, retail outlets, zones, bins."""
 
@@ -649,6 +684,11 @@ class StockTransfer(TenantModel):
         _("is inter-branch transfer"),
         default=False,
     )
+    is_branch_requisition = models.BooleanField(
+        _("is branch requisition"),
+        default=False,
+        help_text=_("Stock request initiated by a branch/outlet to a linked warehouse."),
+    )
     status = models.CharField(
         _("status"),
         max_length=32,
@@ -722,6 +762,7 @@ class StockTransfer(TenantModel):
             models.Index(fields=["organization", "status", "-created_at"]),
             models.Index(fields=["organization", "source_branch", "destination_branch"]),
             models.Index(fields=["organization", "is_inter_branch"]),
+            models.Index(fields=["organization", "is_branch_requisition", "status"]),
         ]
 
     def __str__(self) -> str:
@@ -1353,3 +1394,170 @@ class InventoryReconciliationIncident(TenantModel):
 # Canonical aliases for ERP domain clarity
 InventoryBalance = StockLevel
 InventoryLedger = StockMovement
+
+
+class StockIntake(TenantModel):
+    """Document recording physical stocking of products and ingredients into warehouse storage."""
+
+    class IntakeType(models.TextChoices):
+        PURCHASE_RECEIPT = "purchase_receipt", _("Purchase Order Receipt")
+        SUPPLIER_DELIVERY = "supplier_delivery", _("Supplier Delivery")
+        PRODUCTION_BATCH = "production_batch", _("Production / Kitchen Batch")
+        OPENING_BALANCE = "opening_balance", _("Opening Stock Balance")
+        VENDOR_INTAKE = "vendor_intake", _("Vendor Consignment")
+        DIRECT_STOCKING = "direct_stocking", _("Direct Warehouse Stocking")
+
+    intake_number = models.CharField(_("intake number"), max_length=64, db_index=True)
+    warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.PROTECT,
+        related_name="stock_intakes",
+        verbose_name=_("warehouse"),
+    )
+    storage_type = models.ForeignKey(
+        "inventory.WarehouseStorageType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_intakes",
+        verbose_name=_("storage compartment"),
+    )
+    location = models.ForeignKey(
+        "inventory.InventoryLocation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_intakes",
+        verbose_name=_("location / bin"),
+    )
+    intake_type = models.CharField(
+        _("intake type"),
+        max_length=64,
+        choices=IntakeType.choices,
+        default=IntakeType.DIRECT_STOCKING,
+    )
+    reference_number = models.CharField(
+        _("external reference / bill #"),
+        max_length=128,
+        blank=True,
+        default="",
+    )
+    supplier_name = models.CharField(
+        _("supplier / source"),
+        max_length=255,
+        blank=True,
+        default="",
+    )
+    date = models.DateField(
+        _("stocking date"),
+        default=timezone.now,
+    )
+    total_quantity = models.DecimalField(
+        _("total quantity"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    total_cost = models.DecimalField(
+        _("total cost"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    notes = models.TextField(_("notes"), blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_intakes",
+        verbose_name=_("created by"),
+    )
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("stock intake")
+        verbose_name_plural = _("stock intakes")
+        ordering = ["-date", "-id"]
+        constraints: ClassVar[list[models.BaseConstraint]] = [
+            models.UniqueConstraint(
+                fields=["organization", "intake_number"],
+                name="uniq_stock_intake_number_per_org",
+            ),
+        ]
+        indexes: ClassVar[list[models.Index]] = [
+            models.Index(fields=["organization", "warehouse", "-date"]),
+            models.Index(fields=["organization", "-date"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.intake_number} - {self.warehouse.name} ({self.total_quantity} items)"
+
+
+class StockIntakeLine(TenantModel):
+    """Line item for a warehouse stock intake session."""
+
+    intake = models.ForeignKey(
+        StockIntake,
+        on_delete=models.CASCADE,
+        related_name="lines",
+        verbose_name=_("stock intake"),
+    )
+    product = models.ForeignKey(
+        "catalog.Product",
+        on_delete=models.PROTECT,
+        related_name="intake_lines",
+        verbose_name=_("product / ingredient"),
+    )
+    variant = models.ForeignKey(
+        "catalog.ProductVariant",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="intake_lines",
+        verbose_name=_("variant"),
+    )
+    quantity = models.DecimalField(
+        _("quantity"),
+        max_digits=18,
+        decimal_places=4,
+    )
+    unit_cost = models.DecimalField(
+        _("unit cost"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    total_cost = models.DecimalField(
+        _("total cost"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+    )
+    batch_number = models.CharField(
+        _("batch / lot number"),
+        max_length=64,
+        blank=True,
+        default="",
+    )
+    expiry_date = models.DateField(
+        _("expiry date"),
+        null=True,
+        blank=True,
+    )
+    notes = models.CharField(
+        _("line notes"),
+        max_length=255,
+        blank=True,
+        default="",
+    )
+
+    class Meta:
+        base_manager_name = "all_tenants"
+        verbose_name = _("stock intake line")
+        verbose_name_plural = _("stock intake lines")
+        ordering = ["id"]
+
+    def __str__(self) -> str:
+        return f"{self.product.name} ({self.quantity}) @ {self.unit_cost}"
+

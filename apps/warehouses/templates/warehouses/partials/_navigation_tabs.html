@@ -1,6 +1,6 @@
 {% load i18n %}
 <div class="w-full sticky top-0 z-30 bg-[var(--bg)] px-4 sm:px-6 lg:px-8 py-2.5 sticky-header-tabs transition-all">
-  <div class="pos-capsule wh-header-tabs-capsule px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl flex items-center justify-between gap-3 w-full">
+  <div class="pos-capsule wh-header-tabs-capsule px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl flex items-center gap-3 w-full">
     <!-- Left Aligned Navigation Tabs -->
     <div class="flex items-center min-w-0 flex-1">
       <nav class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 text-left" aria-label="{% trans 'Warehouses Navigation Tabs' %}">
@@ -12,7 +12,6 @@
           <svg class="w-4 h-4 shrink-0 {% if active_tab == 'dashboard' %}text-white{% else %}text-muted{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
           </svg>
-          <i class="pos-status-dot {% if active_tab == 'dashboard' %}dot-connected animate-pulse{% else %}dot-disconnected{% endif %}"></i>
           <span>{% trans "Dashboard" %}</span>
         </a>
 
@@ -24,7 +23,6 @@
           <svg class="w-4 h-4 shrink-0 {% if active_tab == 'warehouses' %}text-white{% else %}text-muted{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
           </svg>
-          <i class="pos-status-dot {% if active_tab == 'warehouses' %}dot-connected animate-pulse{% else %}dot-disconnected{% endif %}"></i>
           <span>{% trans "Warehouses" %}</span>
         </a>
 
@@ -37,7 +35,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
-          <i class="pos-status-dot {% if active_tab == 'branches' %}dot-connected animate-pulse{% else %}dot-disconnected{% endif %}"></i>
           <span>{% trans "Branches" %}</span>
         </a>
 
@@ -49,7 +46,6 @@
           <svg class="w-4 h-4 shrink-0 {% if active_tab == 'locations' %}text-white{% else %}text-muted{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
           </svg>
-          <i class="pos-status-dot {% if active_tab == 'locations' %}dot-connected animate-pulse{% else %}dot-disconnected{% endif %}"></i>
           <span>{% trans "Locations & Bins" %}</span>
         </a>
 
@@ -61,8 +57,18 @@
           <svg class="w-4 h-4 shrink-0 {% if active_tab == 'routes' %}text-white{% else %}text-muted{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
           </svg>
-          <i class="pos-status-dot {% if active_tab == 'routes' %}dot-connected animate-pulse{% else %}dot-disconnected{% endif %}"></i>
           <span>{% trans "Supply Routes" %}</span>
+        </a>
+
+        <!-- Stock Intake -->
+        <a
+          href="{% url 'warehouses:stock_intake_list' %}"
+          class="wh-nav-pill flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border text-xs sm:text-sm transition-all shrink-0 {% if active_tab == 'stocking' %}wh-nav-pill-active border-indigo-500/50 bg-indigo-600 text-white shadow-sm font-bold{% else %}border-[var(--border)]/60 bg-[var(--surface-1)] text-ink hover:text-indigo-600 font-semibold shadow-2xs{% endif %}"
+        >
+          <svg class="w-4 h-4 shrink-0 {% if active_tab == 'stocking' %}text-white{% else %}text-muted{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+          </svg>
+          <span>{% trans "Stock Intake" %}</span>
         </a>
 
         <!-- Transfers -->
@@ -73,7 +79,6 @@
           <svg class="w-4 h-4 shrink-0 {% if active_tab == 'transfers' %}text-white{% else %}text-muted{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
           </svg>
-          <i class="pos-status-dot {% if active_tab == 'transfers' %}dot-connected animate-pulse{% else %}dot-disconnected{% endif %}"></i>
           <span>{% trans "Transfers" %}</span>
         </a>
 
@@ -85,39 +90,9 @@
           <svg class="w-4 h-4 shrink-0 {% if active_tab == 'movements' %}text-white{% else %}text-muted{% endif %}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
           </svg>
-          <i class="pos-status-dot {% if active_tab == 'movements' %}dot-connected animate-pulse{% else %}dot-disconnected{% endif %}"></i>
           <span>{% trans "Movement Ledger" %}</span>
         </a>
       </nav>
-    </div>
-
-    <!-- Right: Context Capsule Metadata (Facility / Branch & Network Stats) -->
-    <div class="hidden xl:flex items-center gap-2.5 shrink-0">
-      {% if primary_count %}
-        <div class="text-xs text-muted font-mono shrink-0">
-          {% trans "Primary" %}: <strong class="text-ink font-bold">{{ primary_count }}</strong>
-        </div>
-        <span class="h-3.5 w-px bg-[var(--border)] shrink-0 opacity-60"></span>
-      {% endif %}
-
-      {% if secondary_count %}
-        <div class="text-xs text-muted font-mono shrink-0">
-          {% trans "Secondary" %}: <strong class="text-ink font-bold">{{ secondary_count }}</strong>
-        </div>
-        <span class="h-3.5 w-px bg-[var(--border)] shrink-0 opacity-60"></span>
-      {% endif %}
-
-      {% if branch_count %}
-        <div class="text-xs text-muted shrink-0">
-          {% trans "Outlets" %}: <strong class="text-ink font-bold">{{ branch_count }}</strong>
-        </div>
-        <span class="h-3.5 w-px bg-[var(--border)] shrink-0 opacity-60"></span>
-      {% endif %}
-
-      <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[var(--border)]/60 bg-[var(--surface-1)] text-xs font-semibold text-muted font-mono shadow-2xs">
-        <i class="pos-status-dot dot-connected animate-pulse"></i>
-        <span class="text-ink font-bold">{{ current_branch.name|default:_("All Facilities") }}</span>
-      </div>
     </div>
   </div>
 </div>

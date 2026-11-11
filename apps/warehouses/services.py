@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from typing import Any
 
 from django.db import transaction
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.core.exceptions import RecordNotFoundError, ValidationError
+from apps.core.services import generate_next_number
 from apps.inventory.models import (
+    BranchStorageSync,
     InventoryLocation,
     LocationType,
+    MovementType,
+    StockIntake,
+    StockIntakeLine,
     StockLevel,
     StockMovement,
     StockSupplyRoute,
@@ -492,10 +499,12 @@ def link_warehouse_to_branch(
     is_default: bool = False,
     can_sell: bool = True,
     can_replenish: bool = True,
+    is_storage_synced: bool = False,
+    synced_storage_type_ids: list[int] | None = None,
     priority: int = 1,
     actor: Any = None,
 ) -> BranchWarehouse:
-    """Authorize a warehouse for a branch with role capabilities and priority."""
+    """Authorize a warehouse for a branch with role capabilities, priority, and optional storage sync."""
     if branch.organization_id != organization.pk or warehouse.organization_id != organization.pk:
         raise ValidationError(_("Branch and Warehouse must belong to the same organization."))
 
@@ -514,6 +523,7 @@ def link_warehouse_to_branch(
             "is_default": is_default,
             "can_sell": can_sell,
             "can_replenish": can_replenish,
+            "is_storage_synced": is_storage_synced,
             "priority": priority,
             "created_by": actor if getattr(actor, "is_authenticated", False) else None,
         },
@@ -523,10 +533,32 @@ def link_warehouse_to_branch(
         mapping.is_default = is_default
         mapping.can_sell = can_sell
         mapping.can_replenish = can_replenish
+        mapping.is_storage_synced = is_storage_synced
         mapping.priority = priority
-        mapping.save(update_fields=["is_default", "can_sell", "can_replenish", "priority", "updated_at"])
+        mapping.save(update_fields=["is_default", "can_sell", "can_replenish", "is_storage_synced", "priority", "updated_at"])
 
-    logger.info("Linked branch %s with warehouse %s (priority %s)", branch.code, warehouse.code, priority)
+    # Synchronize linked storage types if storage sync is enabled
+    if is_storage_synced and synced_storage_type_ids is not None:
+        BranchStorageSync.all_tenants.filter(
+            organization=organization,
+            branch_warehouse=mapping,
+        ).delete()
+        for st_id in synced_storage_type_ids:
+            st = WarehouseStorageType.all_tenants.filter(organization=organization, pk=st_id).first()
+            if st:
+                BranchStorageSync.all_tenants.create(
+                    organization=organization,
+                    branch_warehouse=mapping,
+                    storage_type=st,
+                    is_active=True,
+                )
+    elif not is_storage_synced:
+        BranchStorageSync.all_tenants.filter(
+            organization=organization,
+            branch_warehouse=mapping,
+        ).delete()
+
+    logger.info("Linked branch %s with warehouse %s (priority %s, sync %s)", branch.code, warehouse.code, priority, is_storage_synced)
     return mapping
 
 
@@ -609,6 +641,30 @@ def get_or_create_location_for_warehouse(warehouse: Warehouse) -> InventoryLocat
                 "is_stock_holding": True,
                 "is_active": getattr(warehouse, "is_active", True),
                 "address": getattr(warehouse, "address", "") or "",
+            },
+        )
+    return loc
+
+
+def get_or_create_location_for_branch(branch: Branch) -> InventoryLocation:
+    """Ensure an InventoryLocation exists corresponding to a physical Branch/Outlet."""
+    loc = InventoryLocation.all_tenants.filter(
+        organization_id=branch.organization_id,
+        branch_id=branch.pk,
+        warehouse__isnull=True,
+    ).first()
+    if loc is None:
+        loc, _ = InventoryLocation.all_tenants.get_or_create(
+            organization_id=branch.organization_id,
+            branch_id=branch.pk,
+            warehouse__isnull=True,
+            defaults={
+                "name": f"{branch.name} Outlet Storage",
+                "code": getattr(branch, "code", "") or f"BR-{branch.pk}",
+                "location_type": LocationType.RETAIL_OUTLET,
+                "is_stock_holding": True,
+                "is_active": getattr(branch, "is_active", True),
+                "address": getattr(branch, "address", "") or "",
             },
         )
     return loc
@@ -803,10 +859,114 @@ def get_preferred_supply_route(
 
 
 
+@transaction.atomic
+def create_stock_intake(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    lines: list[dict[str, Any]],
+    storage_type: WarehouseStorageType | None = None,
+    location: InventoryLocation | None = None,
+    intake_type: str = "direct_stocking",
+    reference_number: str = "",
+    supplier_name: str = "",
+    date: Any = None,
+    notes: str = "",
+    actor: Any = None,
+) -> Any:
+    """Stock products and ingredients into warehouse storage, posting atomic movements and ledger records."""
+    from apps.inventory.services import receive_stock  # noqa: PLC0415
+
+    if not warehouse.is_active:
+        raise ValidationError(_("Warehouse is inactive."))
+
+    if not lines:
+        raise ValidationError(_("Stock intake requires at least one product or ingredient line."))
+
+    intake_num = generate_next_number(
+        organization_id=organization.pk,
+        name="stock_intakes",
+        prefix="STK-",
+        padding=5,
+    )
+
+    total_qty = Decimal("0.0000")
+    total_val = Decimal("0.0000")
+
+    intake = StockIntake.objects.create(
+        organization=organization,
+        intake_number=intake_num,
+        warehouse=warehouse,
+        storage_type=storage_type,
+        location=location,
+        intake_type=intake_type,
+        reference_number=reference_number.strip(),
+        supplier_name=supplier_name.strip(),
+        date=date or timezone.now().date(),
+        notes=notes.strip(),
+        created_by=actor,
+    )
+
+    for item in lines:
+        product = item["product"]
+        variant = item.get("variant")
+        qty = Decimal(str(item["quantity"]))
+        unit_cost = Decimal(str(item.get("unit_cost", product.cost_price or Decimal("0.0000"))))
+        batch_num = (item.get("batch_number") or "").strip()
+        expiry_date = item.get("expiry_date")
+        line_notes = (item.get("notes") or "").strip()
+
+        if qty <= Decimal("0.0000"):
+            raise ValidationError(_("Quantity for '%(prod)s' must be positive.") % {"prod": product.name})
+
+        if unit_cost < Decimal("0.0000"):
+            raise ValidationError(_("Unit cost for '%(prod)s' cannot be negative.") % {"prod": product.name})
+
+        line_total = (qty * unit_cost).quantize(Decimal("0.0001"))
+        total_qty += qty
+        total_val += line_total
+
+        StockIntakeLine.objects.create(
+            organization=organization,
+            intake=intake,
+            product=product,
+            variant=variant,
+            quantity=qty,
+            unit_cost=unit_cost,
+            total_cost=line_total,
+            batch_number=batch_num,
+            expiry_date=expiry_date,
+            notes=line_notes,
+        )
+
+        receive_stock(
+            organization=organization,
+            warehouse=warehouse,
+            product=product,
+            variant=variant,
+            quantity=qty,
+            unit_cost=unit_cost,
+            movement_type=MovementType.RECEIPT,
+            reference_type="inventory.StockIntake",
+            reference_id=str(intake.pk),
+            batch=batch_num or None,
+            batch_expiry_date=expiry_date,
+            notes=f"Stock intake {intake.intake_number}: {line_notes or intake.notes}".strip(),
+            actor=actor,
+        )
+
+    intake.total_quantity = total_qty
+    intake.total_cost = total_val
+    intake.save(update_fields=["total_quantity", "total_cost", "updated_at"])
+
+    return intake
+
+
 __all__ = [
     "approve_stock_transfer",
     "cancel_stock_transfer",
     "create_inventory_location",
+    "create_stock_intake",
     "create_stock_transfer",
     "create_supply_route",
     "create_warehouse",

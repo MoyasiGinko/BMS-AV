@@ -202,7 +202,30 @@ def transfer_create_view(request: HttpRequest) -> HttpResponse:
             if redirect_response:
                 return redirect_response
     else:
-        form = WarehouseStockTransferForm(organization=org)
+        initial = {}
+        dest_branch_id = request.GET.get("destination_branch")
+        if dest_branch_id and dest_branch_id.isdigit():
+            from apps.warehouses.selectors import get_default_warehouse_for_branch  # noqa: PLC0415
+
+            wh = get_default_warehouse_for_branch(organization=org, branch_id=int(dest_branch_id))
+            if wh:
+                initial["destination_warehouse_id"] = wh.pk
+            else:
+                wh = (
+                    Warehouse.all_tenants.filter(organization=org, branch_id=dest_branch_id, is_active=True)
+                    .first()
+                )
+                if wh:
+                    initial["destination_warehouse_id"] = wh.pk
+
+        if request.GET.get("destination_warehouse"):
+            initial["destination_warehouse_id"] = request.GET.get("destination_warehouse")
+        if request.GET.get("source_warehouse"):
+            initial["source_warehouse_id"] = request.GET.get("source_warehouse")
+        if request.GET.get("product_id"):
+            initial["product_id"] = request.GET.get("product_id")
+
+        form = WarehouseStockTransferForm(organization=org, initial=initial)
 
     storage_types = selectors.list_warehouse_storage_types(organization=org, active_only=True)
 

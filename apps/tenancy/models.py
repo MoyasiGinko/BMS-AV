@@ -368,6 +368,11 @@ class BranchWarehouse(TenantModel):
         default=True,
         help_text=_("Branch can request stock replenishment transfers from this warehouse."),
     )
+    is_storage_synced = models.BooleanField(
+        _("sync storage stock"),
+        default=False,
+        help_text=_("When enabled, the branch counts the linked warehouse storage stock as its own."),
+    )
     priority = models.PositiveSmallIntegerField(
         _("fulfillment priority"),
         default=1,

@@ -11,6 +11,7 @@ from django.utils import timezone
 from apps.inventory.models import (
     Batch,
     BatchStock,
+    BranchStorageSync,
     InventoryLocation,
     InventoryReconciliationIncident,
     SerialNumber,
@@ -19,9 +20,11 @@ from apps.inventory.models import (
     StockCostLayer,
     StockCount,
     StockLevel,
+    StockMovement,
     StockReservation,
+    StockTransfer,
 )
-from apps.tenancy.models import Organization, Warehouse
+from apps.tenancy.models import Branch, Organization, Warehouse
 from apps.warehouses.selectors import (
     get_inventory_location,
     get_location_hierarchy,
@@ -464,7 +467,131 @@ def get_reconciliation_incident(
         .first()
     )
 
+
+def list_branch_stock_requests(
+    *,
+    organization_id: int,
+    branch_id: int | None = None,
+    warehouse_id: int | None = None,
+    status: str | None = None,
+) -> QuerySet[StockTransfer]:
+    """Return branch stock requests / requisitions ordered by recency."""
+    qs = StockTransfer.all_tenants.filter(
+        organization_id=organization_id,
+        is_branch_requisition=True,
+    ).select_related(
+        "source_warehouse",
+        "destination_branch",
+        "source_location",
+        "destination_location",
+        "created_by",
+        "approved_by",
+        "dispatched_by",
+        "received_by",
+    ).prefetch_related("lines__product", "lines__variant")
+
+    if branch_id:
+        qs = qs.filter(destination_branch_id=branch_id)
+    if warehouse_id:
+        qs = qs.filter(source_warehouse_id=warehouse_id)
+    if status:
+        qs = qs.filter(status=status)
+    return qs.order_by("-created_at")
+
+
+def get_branch_stock_request(
+    *,
+    organization_id: int,
+    transfer_id: int,
+) -> StockTransfer | None:
+    """Retrieve a single stock request with full prefetch."""
+    return (
+        StockTransfer.all_tenants.filter(
+            organization_id=organization_id,
+            pk=transfer_id,
+            is_branch_requisition=True,
+        )
+        .select_related(
+            "source_warehouse",
+            "destination_branch",
+            "source_location",
+            "destination_location",
+            "created_by",
+            "approved_by",
+            "dispatched_by",
+            "received_by",
+        )
+        .prefetch_related("lines__product", "lines__variant")
+        .first()
+    )
+
+
+def get_branch_stock_breakdown(
+    *,
+    organization_id: int,
+    branch: Branch,
+    product_id: int,
+    variant_id: int | None = None,
+) -> dict[str, Any]:
+    """Calculate physical branch stock, synced warehouse storage stock, and combined availability."""
+    outlet_loc = InventoryLocation.all_tenants.filter(
+        organization_id=organization_id,
+        branch_id=branch.pk,
+        warehouse__isnull=True,
+    ).first()
+
+    outlet_on_hand = DECIMAL_ZERO
+    if outlet_loc:
+        qs = StockMovement.all_tenants.filter(
+            organization_id=organization_id,
+            product_id=product_id,
+            location=outlet_loc,
+        )
+        if variant_id:
+            qs = qs.filter(variant_id=variant_id)
+        in_qty = qs.filter(type__in=["receipt", "transfer_in", "adjustment_in", "return_in"]).aggregate(s=Sum("quantity"))["s"] or DECIMAL_ZERO
+        out_qty = qs.filter(type__in=["issue", "transfer_out", "adjustment_out", "return_out"]).aggregate(s=Sum("quantity"))["s"] or DECIMAL_ZERO
+        outlet_on_hand = in_qty - out_qty
+
+    sync_links = BranchStorageSync.all_tenants.filter(
+        organization_id=organization_id,
+        branch_warehouse__branch=branch,
+        branch_warehouse__is_storage_synced=True,
+        is_active=True,
+    ).select_related("storage_type", "branch_warehouse__warehouse")
+
+    synced_details = []
+    synced_total = DECIMAL_ZERO
+    for link in sync_links:
+        wh = link.branch_warehouse.warehouse
+        st = link.storage_type
+        sl_qs = StockLevel.all_tenants.filter(
+            organization_id=organization_id,
+            warehouse=wh,
+            product_id=product_id,
+        )
+        if variant_id:
+            sl_qs = sl_qs.filter(variant_id=variant_id)
+        wh_qty = sl_qs.aggregate(s=Sum("on_hand"))["s"] or DECIMAL_ZERO
+        synced_total += wh_qty
+        synced_details.append({
+            "warehouse": wh,
+            "storage_type": st,
+            "on_hand": wh_qty,
+        })
+
+    return {
+        "outlet_on_hand": max(DECIMAL_ZERO, outlet_on_hand),
+        "synced_on_hand": synced_total,
+        "combined_available": max(DECIMAL_ZERO, outlet_on_hand) + synced_total,
+        "synced_storages": synced_details,
+        "is_synced": len(synced_details) > 0,
+    }
+
+
 __all__ = [
+    "get_branch_stock_breakdown",
+    "get_branch_stock_request",
     "get_inventory_location",
     "get_location_hierarchy",
     "get_preferred_supply_route",
@@ -474,6 +601,7 @@ __all__ = [
     "get_stock_movement",
     "get_stock_transfer",
     "get_supply_route",
+    "list_branch_stock_requests",
     "list_inventory_locations",
     "list_stock_adjustments",
     "list_stock_counts",

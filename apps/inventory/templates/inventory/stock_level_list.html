@@ -3,6 +3,12 @@
 
 {% block title %}{% trans "Stock Levels & Inventory" %} | {{ request.organization.name }}{% endblock %}
 
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="stock_levels" %}
+{% endblock %}
+
 {% block content %}
 <div class="inventory-page space-y-6">
     <!-- Header -->
@@ -31,9 +37,6 @@
             </a>
         </div>
     </div>
-
-    <!-- Navigation Tabs -->
-    {% include "inventory/partials/_navigation_tabs.html" with active_tab="levels" %}
 
     <!-- Metric Stat Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
@@ -91,8 +94,8 @@
             </div>
 
             <div class="text-xs">
-                <a href="{% url 'warehouses:movement_list' %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-bold inline-flex items-center gap-1 transition-colors">
-                    {% trans "View full movement ledger" %} &rarr;
+                <a href="{% url 'inventory:movement_list' %}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-bold inline-flex items-center gap-1 transition-colors">
+                    {% trans "View stock ledger" %} &rarr;
                 </a>
             </div>
         </form>

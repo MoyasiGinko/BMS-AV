@@ -1,0 +1,544 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Add Stock" %} | {{ request.organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="add_stock" %}
+{% endblock %}
+
+{% block content %}
+{{ products_data|json_script:"products-data" }}
+
+<div
+  x-data="{
+    products: JSON.parse(document.getElementById('products-data')?.textContent || '{}'),
+    rows: [{ product_id: '', quantity: 1 }],
+    notes: '',
+    selectedWarehouseId: '{{ linked_warehouses.0.pk|default:'' }}',
+    addRow(productId = '') {
+      this.rows.push({ product_id: productId, quantity: 1 });
+    },
+    removeRow(index) {
+      if (this.rows.length > 1) {
+        this.rows.splice(index, 1);
+      } else {
+        this.rows = [{ product_id: '', quantity: 1 }];
+      }
+    },
+    increment(index) {
+      const current = parseInt(this.rows[index].quantity, 10) || 0;
+      this.rows[index].quantity = current + 1;
+    },
+    decrement(index) {
+      const current = parseInt(this.rows[index].quantity, 10) || 1;
+      if (current > 1) {
+        this.rows[index].quantity = current - 1;
+      }
+    },
+    getProduct(id) {
+      return this.products[String(id)] || null;
+    },
+    validRowsCount() {
+      return this.rows.filter(r => r.product_id && parseInt(r.quantity, 10) > 0).length;
+    },
+    totalUnits() {
+      return this.rows.reduce((sum, r) => {
+        const q = parseInt(r.quantity, 10);
+        return sum + (isNaN(q) || q <= 0 ? 0 : q);
+      }, 0);
+    },
+    getSourceWarehouseName() {
+      const sel = document.getElementById('warehouse_id_select');
+      if (sel && sel.selectedIndex >= 0) {
+        return sel.options[sel.selectedIndex].text.split('(')[0].trim();
+      }
+      return '{{ linked_warehouses.0.name|default:_("Fulfillment Hub") }}';
+    },
+    appendNote(text) {
+      if (!this.notes) {
+        this.notes = text;
+      } else if (!this.notes.includes(text)) {
+        this.notes += (this.notes.endsWith('.') ? ' ' : '. ') + text;
+      }
+    }
+  }"
+  class="inventory-page space-y-6"
+>
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-[var(--border)]/40">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+        <a href="{% url 'inventory:stock_level_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Inventory" %}</a>
+        <span>/</span>
+        <span class="text-ink">{% trans "Replenishment" %}</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Stock Request" %}</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <a
+        href="{% url 'inventory:stock_request_list' %}"
+        class="neu-subnav-btn bg-[var(--surface-1)] text-ink hover:text-indigo-600 font-semibold shadow-xs border border-[var(--border)]/60 px-4 py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 transition-all"
+      >
+        <svg class="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <span>{% trans "Stock requests" %}</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Branch Storage Sync Notice (if active) -->
+  {% if synced_storages %}
+    <div class="p-4 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 dark:bg-indigo-950/20 text-ink flex items-start gap-3.5 shadow-2xs">
+      <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div class="flex-1 text-sm space-y-1">
+        <div class="font-bold text-indigo-900 dark:text-indigo-200">
+          {% trans "Active Storage Sync for" %} <span class="font-extrabold underline decoration-indigo-400">{{ current_branch.name }}</span>
+        </div>
+        <p class="text-xs text-muted">
+          {% trans "This branch has live storage sync enabled. Stock in these zones is counted as available branch inventory without transfer requests:" %}
+        </p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          {% for sync in synced_storages %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+              <span>{{ sync.warehouse.name }} &rsaquo; <strong>{{ sync.storage_type.name }}</strong> ({{ sync.storage_type.get_zone_type_display }})</span>
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- 12-Column Main Bento Layout -->
+  <form method="post" action="{% url 'inventory:add_stock' %}" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+    {% csrf_token %}
+
+    <!-- Left Column: Route + Structured Lines Table + Notes -->
+    <div class="lg:col-span-8 2xl:col-span-9 space-y-6">
+
+      <!-- 1. Transfer Route Card -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]/40">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-ink leading-tight">{% trans "Transfer Route" %}</h2>
+              <p class="text-xs text-muted">{% trans "Fulfillment source and receiving branch destination" %}</p>
+            </div>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+            {% trans "Direct Transfer" %}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
+          <!-- Fulfillment Source (5 cols) -->
+          <div class="md:col-span-5 space-y-1.5">
+            <label for="warehouse_id_select" class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted">
+              <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
+              </svg>
+              <span>{% trans "Source Warehouse" %}</span>
+              <span class="text-rose-500">*</span>
+            </label>
+            {% if linked_warehouses %}
+              <select
+                id="warehouse_id_select"
+                name="warehouse_id"
+                x-model="selectedWarehouseId"
+                required
+                class="w-full h-11 text-sm py-2 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-2 focus:ring-indigo-500 font-semibold"
+              >
+                {% for wh in linked_warehouses %}
+                  <option value="{{ wh.pk }}">
+                    {{ wh.name }} ({{ wh.get_warehouse_type_display }})
+                  </option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <div class="h-11 px-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-medium flex items-center">
+                {% trans "No linked warehouse found for this branch." %}
+              </div>
+            {% endif %}
+            <p class="text-[11px] text-muted">{% trans "Fulfillment hub dispatching the requested inventory." %}</p>
+          </div>
+
+          <!-- Connecting Transfer Arrow (1 col on md+) -->
+          <div class="hidden md:flex md:col-span-1 items-center justify-center pt-2">
+            <div class="w-9 h-9 rounded-full bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center text-muted shadow-2xs">
+              <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Destination Branch (5 cols) -->
+          <div class="md:col-span-5 space-y-1.5">
+            <label for="branch_id_select" class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted">
+              <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+              </svg>
+              <span>{% trans "Destination Outlet" %}</span>
+              <span class="text-rose-500">*</span>
+            </label>
+            <select
+              id="branch_id_select"
+              name="branch_id"
+              onchange="window.location.href='{% url 'inventory:add_stock' %}?branch_id=' + this.value"
+              class="w-full h-11 text-sm py-2 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-2 focus:ring-indigo-500 font-semibold"
+            >
+              {% for b in branches %}
+                <option value="{{ b.pk }}" {% if current_branch and current_branch.pk == b.pk %}selected{% endif %}>
+                  {{ b.name }} {% if b.code %}({{ b.code }}){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+            <p class="text-[11px] text-muted">{% trans "Branch receiving and stocking inventory into storage." %}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Product Items Card (Symmetrically Aligned Table) -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]/40">
+          <div class="flex items-center gap-3">
+            <h2 class="text-base sm:text-lg font-bold text-ink">{% trans "Requested Products" %}</h2>
+            <span
+              class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-mono"
+              x-text="rows.length + ' ' + (rows.length === 1 ? '{% trans "item" %}' : '{% trans "items" %}')"
+            ></span>
+          </div>
+          <button
+            type="button"
+            @click="addRow()"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            <span>{% trans "Add Item" %}</span>
+          </button>
+        </div>
+
+        <!-- Symmetrical Line Items Table -->
+        <div class="overflow-x-auto rounded-xl border border-[var(--border)]/60 bg-[var(--surface-1)]">
+          <table class="w-full text-left text-sm border-collapse min-w-[640px] table-fixed">
+            <colgroup>
+              <col style="width: 50px;">
+              <col style="width: 65px;">
+              <col style="width: auto;">
+              <col style="width: 180px;">
+              <col style="width: 55px;">
+            </colgroup>
+            <thead class="bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/60">
+              <tr>
+                <th scope="col" class="py-3 px-2 text-center font-mono">#</th>
+                <th scope="col" class="py-3 px-2 text-center">{% trans "Image" %}</th>
+                <th scope="col" class="py-3 px-3">{% trans "Product & Specifications" %}</th>
+                <th scope="col" class="py-3 px-3 text-center">{% trans "Quantity" %}</th>
+                <th scope="col" class="py-3 px-2 text-center"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[var(--border)]/40">
+              <template x-for="(row, idx) in rows" :key="idx">
+                <tr class="hover:bg-[var(--surface-2)]/30 transition-colors">
+
+                  <!-- 1. Row Index (Image 3: Symmetrically Centered Inset Badge) -->
+                  <td class="pt-4 pb-4 px-3 text-center align-top w-12">
+                    <div class="h-11 flex items-center justify-center">
+                      <div class="neu-index-badge">
+                        <span x-text="idx + 1"></span>
+                      </div>
+                    </div>
+                    <div class="h-[22px] mt-1.5"></div>
+                  </td>
+
+                  <!-- 2. Product Thumbnail (Vertically Aligned to 44px Control Axis) -->
+                  <td class="pt-4 pb-4 px-3 text-center align-top w-20">
+                    <div class="h-11 flex items-center justify-center">
+                      <div class="w-11 h-11 mx-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)] neu-thumbnail-frame overflow-hidden shrink-0 shadow-2xs flex items-center justify-center">
+                        <template x-if="getProduct(row.product_id)?.image_url">
+                          <img
+                            :src="getProduct(row.product_id).image_url"
+                            :alt="getProduct(row.product_id).name"
+                            class="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </template>
+                        <template x-if="!getProduct(row.product_id)?.image_url">
+                          <div class="flex items-center justify-center text-muted/40 p-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
+                            </svg>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                    <div class="h-[22px] mt-1.5"></div>
+                  </td>
+
+                  <!-- 3. Product Selection & Metadata Strip (Vertically Aligned to 44px Control Axis) -->
+                  <td class="pt-4 pb-4 px-4 align-top">
+                    <div class="h-11 flex items-center">
+                      <select
+                        name="product_id[]"
+                        x-model="row.product_id"
+                        required
+                        class="w-full h-11 text-sm py-2 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-2 focus:ring-indigo-500 font-semibold transition-all"
+                      >
+                        <option value="">{% trans "-- Select Product --" %}</option>
+                        {% for p in products %}
+                          <option value="{{ p.pk }}">
+                            {{ p.name }} {% if p.sku %}(SKU: {{ p.sku }}){% endif %}
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <!-- Single-line metadata strip -->
+                    <div class="h-[22px] mt-1.5 flex items-center gap-2 overflow-hidden">
+                      <template x-if="getProduct(row.product_id)">
+                        <div class="flex items-center gap-2 truncate">
+                          <span
+                            class="text-xs font-mono text-muted"
+                            x-show="getProduct(row.product_id)?.sku"
+                          >
+                            SKU: <strong class="text-ink" x-text="getProduct(row.product_id)?.sku"></strong>
+                          </span>
+                          <span class="text-xs text-[var(--border)]" x-show="getProduct(row.product_id)?.category">•</span>
+                          <span
+                            class="text-xs font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-md"
+                            x-show="getProduct(row.product_id)?.category"
+                            x-text="getProduct(row.product_id)?.category"
+                          ></span>
+                          <span class="text-xs text-[var(--border)]" x-show="getProduct(row.product_id)?.barcode">•</span>
+                          <span
+                            class="text-xs font-mono text-muted/80"
+                            x-show="getProduct(row.product_id)?.barcode"
+                            x-text="'UPC: ' + getProduct(row.product_id)?.barcode"
+                          ></span>
+                        </div>
+                      </template>
+                      <template x-if="!getProduct(row.product_id)">
+                        <span class="text-xs text-muted/50 italic flex items-center gap-1.5">
+                          <svg class="w-3.5 h-3.5 text-muted/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                          </svg>
+                          {% trans "Select a product from the catalog above" %}
+                        </span>
+                      </template>
+                    </div>
+                  </td>
+
+                  <!-- 4. Symmetrical Quantity Stepper (Vertically Aligned to 44px Control Axis) -->
+                  <td class="pt-4 pb-4 px-4 align-top text-center">
+                    <div class="h-11 flex items-center justify-center">
+                      <div class="neu-stepper inline-flex items-center justify-center h-11 p-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] shadow-2xs gap-1">
+                        <button
+                          type="button"
+                          @click="decrement(idx)"
+                          class="w-9 h-9 rounded-lg flex items-center justify-center text-ink hover:text-indigo-600 bg-[var(--surface-1)] active:scale-95 transition cursor-pointer select-none font-black text-lg leading-none"
+                          title="{% trans 'Decrease' %}"
+                        >&minus;</button>
+                        <input
+                          type="number"
+                          name="quantity[]"
+                          x-model.number="row.quantity"
+                          min="1"
+                          step="1"
+                          required
+                          class="stepper-input font-mono font-black text-center text-ink border-0 bg-transparent focus:ring-0"
+                          style="width: 52px !important; height: 36px !important; padding: 0 !important; margin: 0 !important; text-align: center !important; font-size: 16px !important; font-weight: 800 !important;"
+                        />
+                        <button
+                          type="button"
+                          @click="increment(idx)"
+                          class="w-9 h-9 rounded-lg flex items-center justify-center text-ink hover:text-indigo-600 bg-[var(--surface-1)] active:scale-95 transition cursor-pointer select-none font-black text-lg leading-none"
+                          title="{% trans 'Increase' %}"
+                        >&plus;</button>
+                      </div>
+                    </div>
+                    <div class="h-[22px] mt-1.5 flex items-center justify-center">
+                      <span
+                        class="text-[11px] font-bold text-muted uppercase tracking-wider"
+                        x-text="getProduct(row.product_id)?.unit || '{% trans "units" %}'"
+                      ></span>
+                    </div>
+                  </td>
+
+                  <!-- 5. Delete Action (Vertically Aligned to 44px Control Axis) -->
+                  <td class="pt-4 pb-4 px-3 align-top text-center w-14">
+                    <div class="h-11 flex items-center justify-center">
+                      <button
+                        type="button"
+                        @click="removeRow(idx)"
+                        class="neu-icon-btn w-11 h-11 mx-auto rounded-xl flex items-center justify-center text-muted hover:text-rose-600 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 active:scale-95 transition cursor-pointer"
+                        title="{% trans 'Remove item' %}"
+                      >
+                        <svg class="w-4 h-4 shrink-0" style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="h-[22px] mt-1.5"></div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Add Another Line Button -->
+        <button
+          type="button"
+          @click="addRow()"
+          class="w-full py-3 px-4 rounded-xl border-2 border-dashed border-[var(--border)] hover:border-indigo-500 hover:bg-indigo-50/10 text-muted hover:text-indigo-600 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer mt-2"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>{% trans "Add Another Product Line" %}</span>
+        </button>
+      </div>
+
+      <!-- 3. Requisition Notes Card -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 sm:p-6 shadow-xs space-y-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-[var(--surface-2)] text-muted flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </div>
+          <h2 class="text-sm font-bold text-ink">{% trans "Requisition Notes & Instructions" %}</h2>
+        </div>
+
+        <textarea
+          name="notes"
+          x-model="notes"
+          rows="2"
+          placeholder="{% trans 'Delivery urgency, notes, or packing instructions for warehouse dispatch team...' %}"
+          class="w-full text-sm py-2.5 px-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-indigo-500"
+        ></textarea>
+
+        <!-- Quick Suggestion Chips -->
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+          <span class="text-[11px] text-muted font-medium">{% trans "Quick add" %}:</span>
+          <button
+            type="button"
+            @click="appendNote('{% trans "Urgent restock needed" %}')"
+            class="px-2.5 py-1 rounded-lg text-xs bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink border border-[var(--border)]/60 transition-colors cursor-pointer"
+          >
+            + {% trans "Urgent restock" %}
+          </button>
+          <button
+            type="button"
+            @click="appendNote('{% trans "Weekend inventory buffer" %}')"
+            class="px-2.5 py-1 rounded-lg text-xs bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink border border-[var(--border)]/60 transition-colors cursor-pointer"
+          >
+            + {% trans "Weekend buffer" %}
+          </button>
+          <button
+            type="button"
+            @click="appendNote('{% trans "Customer pending orders" %}')"
+            class="px-2.5 py-1 rounded-lg text-xs bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink border border-[var(--border)]/60 transition-colors cursor-pointer"
+          >
+            + {% trans "Pending orders" %}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Sticky Summary & Action Card -->
+    <div class="lg:col-span-4 2xl:col-span-3 lg:sticky lg:top-4 space-y-5">
+      <!-- Order Summary Card -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]/40">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-ink">{% trans "Requisition Summary" %}</h2>
+              <p class="text-[11px] text-muted">{% trans "Review totals prior to dispatch" %}</p>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+            {% trans "Draft" %}
+          </span>
+        </div>
+
+        <div class="space-y-3 py-1 text-xs">
+          <div class="flex items-center justify-between py-1 border-b border-[var(--border)]/30">
+            <span class="text-muted">{% trans "Destination Branch" %}</span>
+            <strong class="text-ink font-semibold text-right max-w-[150px] truncate">{{ current_branch.name }}</strong>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-[var(--border)]/30">
+            <span class="text-muted">{% trans "Fulfillment Hub" %}</span>
+            <strong class="text-ink font-semibold text-right max-w-[150px] truncate" x-text="getSourceWarehouseName()"></strong>
+          </div>
+          <div class="flex items-center justify-between py-1 border-b border-[var(--border)]/30">
+            <span class="text-muted">{% trans "Distinct Products" %}</span>
+            <strong class="text-ink font-mono font-bold" x-text="validRowsCount()"></strong>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <div>
+              <span class="text-xs font-bold text-ink uppercase tracking-wider block">{% trans "Total Quantity" %}</span>
+              <span class="text-[10px] text-muted">{% trans "Aggregated units" %}</span>
+            </div>
+            <span class="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400" x-text="totalUnits()"></span>
+          </div>
+        </div>
+
+        <!-- Main Action Buttons -->
+        <div class="pt-3 border-t border-[var(--border)]/40 space-y-2.5">
+          <button
+            type="submit"
+            :disabled="validRowsCount() === 0"
+            class="w-full py-3.5 px-4 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-sm hover:shadow transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+            </svg>
+            <span>{% trans "Submit Stock Request" %}</span>
+          </button>
+
+          <a
+            href="{% url 'inventory:stock_request_list' %}"
+            class="block w-full py-2.5 rounded-xl border border-[var(--border)] text-center text-xs font-bold text-muted hover:text-ink hover:bg-[var(--surface-2)] transition"
+          >
+            {% trans "Cancel and Return" %}
+          </a>
+        </div>
+      </div>
+
+      <!-- Informative Guide Card -->
+      <div class="p-4 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-2)]/50 text-xs text-muted space-y-2 shadow-2xs">
+        <div class="flex items-center gap-2 font-bold text-ink">
+          <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>{% trans "Replenishment Workflow" %}</span>
+        </div>
+        <p class="leading-relaxed">
+          {% trans "Submitting creates a pending transfer request for the warehouse fulfillment team. Upon dispatch and delivery, quantities will automatically update in your branch inventory." %}
+        </p>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

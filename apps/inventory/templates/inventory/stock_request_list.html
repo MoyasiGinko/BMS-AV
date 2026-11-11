@@ -1,0 +1,299 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Stock Requests" %} | {{ request.organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="requests" %}
+{% endblock %}
+
+{% block content %}
+<div class="inventory-page space-y-6">
+
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-[var(--border)]/40">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+        <a href="{% url 'inventory:stock_level_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Inventory" %}</a>
+        <span>/</span>
+        <span class="text-ink">{% trans "Replenishment" %}</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Stock Requests" %}</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <a
+        href="{% url 'inventory:add_stock' %}"
+        class="neu-primary-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer inline-flex items-center gap-2"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>{% trans "Create stock request" %}</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-xs space-y-3">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+
+      <!-- Status Filter Tabs -->
+      <div class="inline-flex items-center p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]/60 gap-1 overflow-x-auto no-scrollbar">
+        <a
+          href="{% url 'inventory:stock_request_list' %}"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 {% if current_status == 'all' %}bg-[var(--surface-1)] text-ink shadow-2xs border border-[var(--border)]/60{% else %}text-muted hover:text-ink{% endif %}"
+        >
+          {% trans "All" %}
+        </a>
+
+        <a
+          href="{% url 'inventory:stock_request_list' %}?status=pending_approval"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 inline-flex items-center gap-1.5 {% if current_status == 'pending_approval' %}bg-[var(--surface-1)] text-amber-700 dark:text-amber-300 shadow-2xs border border-[var(--border)]/60{% else %}text-muted hover:text-amber-600{% endif %}"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          <span>{% trans "Pending Approval" %}</span>
+          {% if pending_count %}
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-amber-200">{{ pending_count }}</span>
+          {% endif %}
+        </a>
+
+        <a
+          href="{% url 'inventory:stock_request_list' %}?status=dispatched"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 inline-flex items-center gap-1.5 {% if current_status == 'dispatched' %}bg-[var(--surface-1)] text-indigo-700 dark:text-indigo-300 shadow-2xs border border-[var(--border)]/60{% else %}text-muted hover:text-indigo-600{% endif %}"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+          <span>{% trans "In Transit" %}</span>
+          {% if dispatched_count %}
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-800 dark:text-indigo-200">{{ dispatched_count }}</span>
+          {% endif %}
+        </a>
+
+        <a
+          href="{% url 'inventory:stock_request_list' %}?status=completed"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 inline-flex items-center gap-1.5 {% if current_status == 'completed' %}bg-[var(--surface-1)] text-emerald-700 dark:text-emerald-300 shadow-2xs border border-[var(--border)]/60{% else %}text-muted hover:text-emerald-600{% endif %}"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>{% trans "Completed" %}</span>
+          {% if completed_count %}
+            <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-800 dark:text-emerald-200">{{ completed_count }}</span>
+          {% endif %}
+        </a>
+      </div>
+
+      <!-- Search & Outlet Filter Form -->
+      <form method="get" action="{% url 'inventory:stock_request_list' %}" class="flex flex-wrap items-center gap-2">
+        {% if current_status != 'all' %}
+          <input type="hidden" name="status" value="{{ current_status }}" />
+        {% endif %}
+
+        <div class="relative min-w-[200px]">
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+          </svg>
+          <input
+            type="search"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="{% trans 'Search requests...' %}"
+            class="w-full text-xs py-2 pl-9 pr-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink placeholder:text-muted/60 focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="px-3 py-2 rounded-xl text-xs font-bold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink border border-[var(--border)]/60 transition cursor-pointer"
+        >
+          {% trans "Search" %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Requisitions Table Card -->
+  <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm border-collapse min-w-[700px]">
+        <thead class="bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/60">
+          <tr>
+            <th scope="col" class="py-3.5 px-3 w-12 text-center font-mono">#</th>
+            <th scope="col" class="py-3.5 px-4">{% trans "Request #" %}</th>
+            <th scope="col" class="py-3.5 px-4">{% trans "Transfer Route" %}</th>
+            <th scope="col" class="py-3.5 px-4 text-center">{% trans "Lines" %}</th>
+            <th scope="col" class="py-3.5 px-4">{% trans "Date & Requester" %}</th>
+            <th scope="col" class="py-3.5 px-4 text-center">{% trans "Status" %}</th>
+            <th scope="col" class="py-3.5 px-4 text-right">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]/40">
+          {% for req in requests %}
+            <tr class="hover:bg-[var(--surface-2)]/40 transition-colors">
+
+              <!-- 1. Row Index -->
+              <td class="py-4 px-3 text-center align-middle text-xs font-mono font-bold text-muted">
+                {{ forloop.counter }}
+              </td>
+
+              <!-- 2. Requisition Number -->
+              <td class="py-4 px-4 align-middle">
+                <a
+                  href="{% url 'inventory:stock_request_detail' req.pk %}"
+                  class="font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:underline text-sm inline-flex items-center gap-1.5"
+                >
+                  <span>{{ req.transfer_number }}</span>
+                  <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+                  </svg>
+                </a>
+              </td>
+
+              <!-- 3. Connected Route (Warehouse -> Outlet) -->
+              <td class="py-4 px-4 align-middle">
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="flex items-center gap-1 font-semibold text-ink max-w-[140px] truncate" title="{{ req.source_warehouse.name }}">
+                    <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
+                    </svg>
+                    <span>{{ req.source_warehouse.name }}</span>
+                  </div>
+                  <svg class="w-3.5 h-3.5 text-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                  </svg>
+                  <div class="flex items-center gap-1 font-semibold text-ink max-w-[140px] truncate" title="{{ req.destination_branch.name }}">
+                    <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                    </svg>
+                    <span>{{ req.destination_branch.name|default:_("Outlet") }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- 4. Line Items Count -->
+              <td class="py-4 px-4 text-center align-middle">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-[var(--surface-2)] text-ink border border-[var(--border)]/60">
+                  {{ req.lines.count }} {% if req.lines.count == 1 %}{% trans "item" %}{% else %}{% trans "items" %}{% endif %}
+                </span>
+              </td>
+
+              <!-- 5. Date & Requester -->
+              <td class="py-4 px-4 align-middle text-xs">
+                <div class="font-mono text-ink font-semibold">{{ req.created_at|date:"M d, Y" }}</div>
+                <div class="text-muted text-[11px]">
+                  {{ req.created_at|date:"H:i" }}
+                  {% if req.created_by %}&bull; {{ req.created_by.get_short_name|default:req.created_by.email }}{% endif %}
+                </div>
+              </td>
+
+              <!-- 6. Status Badge -->
+              <td class="py-4 px-4 text-center align-middle">
+                {% if req.status == 'pending_approval' or req.status == 'PENDING_APPROVAL' %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span>{% trans "Pending Approval" %}</span>
+                  </span>
+                {% elif req.status == 'approved' or req.status == 'APPROVED' %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    <span>{% trans "Approved" %}</span>
+                  </span>
+                {% elif req.status == 'dispatched' or req.status == 'in_transit' or req.status == 'DISPATCHED' or req.status == 'IN_TRANSIT' %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                    <span>{% trans "In Transit" %}</span>
+                  </span>
+                {% elif req.status == 'completed' or req.status == 'COMPLETED' %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                    </svg>
+                    <span>{% trans "Completed" %}</span>
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--surface-2)] text-muted border border-[var(--border)]">
+                    {{ req.get_status_display }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- 7. Action Buttons -->
+              <td class="py-4 px-4 text-right align-middle">
+                <div class="flex items-center justify-end gap-2">
+                  <!-- Warehouse Action: Accept & Dispatch -->
+                  {% if req.status == 'pending_approval' or req.status == 'approved' or req.status == 'PENDING_APPROVAL' or req.status == 'APPROVED' %}
+                    <form method="post" action="{% url 'inventory:stock_request_dispatch' req.pk %}" class="inline">
+                      {% csrf_token %}
+                      <button
+                        type="submit"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
+                        title="{% trans 'Accept and issue inventory from warehouse storage' %}"
+                      >
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                        </svg>
+                        <span>{% trans "Dispatch" %}</span>
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  <!-- Branch Action: Confirm Receipt -->
+                  {% if req.status == 'dispatched' or req.status == 'in_transit' or req.status == 'DISPATCHED' or req.status == 'IN_TRANSIT' %}
+                    <form method="post" action="{% url 'inventory:stock_request_confirm' req.pk %}" class="inline">
+                      {% csrf_token %}
+                      <button
+                        type="submit"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
+                        title="{% trans 'Confirm goods received into outlet inventory' %}"
+                      >
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                        </svg>
+                        <span>{% trans "Confirm Receipt" %}</span>
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  <!-- Detail View Link -->
+                  <a
+                    href="{% url 'inventory:stock_request_detail' req.pk %}"
+                    class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-[var(--surface-2)] text-ink hover:bg-[var(--surface-3)] border border-[var(--border)]/70 transition-all flex items-center gap-1 shadow-2xs"
+                    title="{% trans 'View stock request details' %}"
+                  >
+                    <span>{% trans "View" %}</span>
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                    </svg>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="py-12 text-center text-muted">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <div class="w-12 h-12 rounded-2xl bg-[var(--surface-2)] flex items-center justify-center text-muted mb-1 shadow-2xs">
+                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                  </div>
+                  <span class="text-sm font-bold text-ink">{% trans "No stock requests yet." %}</span>
+                  <a
+                    href="{% url 'inventory:add_stock' %}"
+                    class="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition active:scale-95"
+                  >
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span>{% trans "Create stock request" %}</span>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

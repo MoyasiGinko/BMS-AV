@@ -3,6 +3,12 @@
 
 {% block title %}{% trans "Batches & Expiry" %} | {{ request.organization.name }}{% endblock %}
 
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="batches" %}
+{% endblock %}
+
 {% block content %}
 <div class="inventory-page space-y-6">
     <!-- Header -->
@@ -11,9 +17,6 @@
             <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Batches & Lot Tracking" %}</h1>
         </div>
     </div>
-
-    <!-- Navigation Sub-tabs -->
-    {% include "inventory/partials/_navigation_tabs.html" with active_tab="batches" %}
 
     <!-- Filters -->
     <div class="neu-raised-card p-4 sm:p-5">

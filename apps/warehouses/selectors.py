@@ -408,15 +408,15 @@ def list_stock_movements(
         qs = qs.filter(product_id=product_id)
 
     if movement_type:
-        qs = qs.filter(movement_type=movement_type)
+        qs = qs.filter(type=movement_type)
 
     if start_date:
-        qs = qs.filter(created_at__gte=start_date)
+        qs = qs.filter(occurred_at__gte=start_date)
 
     if end_date:
-        qs = qs.filter(created_at__lte=end_date)
+        qs = qs.filter(occurred_at__lte=end_date)
 
-    return qs.order_by("-created_at", "-id")
+    return qs.order_by("-occurred_at", "-id")
 
 
 def list_stock_transfers(
@@ -518,6 +518,56 @@ def list_sellable_locations(
         qs = qs.filter(warehouse=warehouse)
 
     return qs.order_by("name")
+
+
+def list_stock_intakes(
+    *,
+    organization: Organization,
+    warehouse_id: int | None = None,
+    query: str = "",
+    date_from: Any = None,
+    date_to: Any = None,
+) -> QuerySet[Any]:
+    """Query stock intake records for an organization."""
+    from apps.inventory.models import StockIntake  # noqa: PLC0415
+
+    qs = (
+        StockIntake.all_tenants.filter(organization=organization)
+        .select_related("warehouse", "storage_type", "location", "created_by")
+        .prefetch_related("lines__product")
+    )
+    if warehouse_id:
+        qs = qs.filter(warehouse_id=warehouse_id)
+    if date_from:
+        qs = qs.filter(date__gte=date_from)
+    if date_to:
+        qs = qs.filter(date__lte=date_to)
+    if query:
+        qs = qs.filter(
+            Q(intake_number__icontains=query)
+            | Q(reference_number__icontains=query)
+            | Q(supplier_name__icontains=query)
+            | Q(warehouse__name__icontains=query)
+            | Q(notes__icontains=query)
+        )
+    return qs.order_by("-date", "-id")
+
+
+def get_stock_intake(
+    *,
+    organization: Organization,
+    intake_id: Any,
+) -> Any | None:
+    """Fetch single stock intake with lines."""
+    from apps.inventory.models import StockIntake  # noqa: PLC0415
+
+    qs = (
+        StockIntake.all_tenants.filter(organization=organization)
+        .select_related("warehouse", "storage_type", "location", "created_by")
+        .prefetch_related("lines__product__category", "lines__product__unit", "lines__variant")
+    )
+    return _filter_by_id_or_uuid(qs, intake_id)
+
 
 
 

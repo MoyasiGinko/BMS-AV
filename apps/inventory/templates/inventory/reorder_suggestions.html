@@ -3,6 +3,12 @@
 
 {% block title %}{% trans "Reorder Suggestions" %} | {{ request.organization.name }}{% endblock %}
 
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="reorder" %}
+{% endblock %}
+
 {% block content %}
 <div class="inventory-page space-y-6">
     <!-- Header -->
@@ -27,9 +33,6 @@
             {% endif %}
         </div>
     </div>
-
-    <!-- Navigation Sub-tabs -->
-    {% include "inventory/partials/_navigation_tabs.html" with active_tab="reorder" %}
 
     <!-- Summary Metrics -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">

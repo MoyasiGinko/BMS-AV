@@ -13,6 +13,7 @@
 <div
   x-data="{
     modalOpen: false,
+    linkModalOpen: false,
     isEdit: false,
     branchId: '',
     name: '',
@@ -21,6 +22,10 @@
     phone: '',
     isHeadquarters: false,
     isActive: true,
+    linkBranchId: '',
+    linkBranchName: '',
+    selectedWarehouseId: '',
+    isStorageSynced: false,
     openCreate() {
       this.isEdit = false;
       this.branchId = '';
@@ -42,6 +47,13 @@
       this.isHeadquarters = isHq;
       this.isActive = isActive;
       this.modalOpen = true;
+    },
+    openLinkWarehouse(id, name) {
+      this.linkBranchId = id;
+      this.linkBranchName = name;
+      this.selectedWarehouseId = '';
+      this.isStorageSynced = false;
+      this.linkModalOpen = true;
     }
   }"
   class="space-y-6 w-full"
@@ -138,12 +150,39 @@
                   <div class="flex items-center gap-1.5 flex-wrap">
                     {% for mapping in mappings %}
                       {% if mapping.branch_id == branch.id %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium {% if mapping.is_default %}bg-emerald-500/10 text-emerald-700 border border-emerald-500/20{% else %}bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]{% endif %}" title="Priority: {{ mapping.priority }}">
-                          {{ mapping.warehouse.name }}
-                          {% if mapping.is_default %}&bull; {% trans "Primary" %}{% endif %}
-                        </span>
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium {% if mapping.is_default %}bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20{% else %}bg-[var(--surface-2)] text-ink border border-[var(--border)]{% endif %}" title="Priority: {{ mapping.priority }}">
+                          <span class="font-bold">{{ mapping.warehouse.name }}</span>
+                          {% if mapping.is_default %}
+                            <span class="text-[10px] font-semibold text-emerald-600">&bull; {% trans "Primary" %}</span>
+                          {% endif %}
+                          {% if mapping.is_storage_synced %}
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                              <i class="pos-status-dot dot-connected animate-pulse"></i>
+                              {% trans "Synced" %}{% for sync in mapping.storage_sync_links.all %}: {{ sync.storage_type.name }}{% empty %}{% endfor %}
+                            </span>
+                          {% endif %}
+                          {% if can_manage %}
+                            <form method="post" action="{% url 'warehouses:branch_list' %}" class="inline ml-1" onsubmit="return confirm('{% trans 'Unlink warehouse from branch?' %}');">
+                              {% csrf_token %}
+                              <input type="hidden" name="action" value="unlink_warehouse">
+                              <input type="hidden" name="branch_id" value="{{ branch.id }}">
+                              <input type="hidden" name="warehouse_id" value="{{ mapping.warehouse_id }}">
+                              <button type="submit" class="text-muted hover:text-rose-500 text-[10px] font-bold px-1" title="{% trans 'Unlink' %}">&times;</button>
+                            </form>
+                          {% endif %}
+                        </div>
                       {% endif %}
                     {% endfor %}
+                    {% if can_manage %}
+                      <button
+                        type="button"
+                        @click="openLinkWarehouse('{{ branch.id }}', '{{ branch.name|escapejs }}')"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        <span>{% trans "Link Warehouse" %}</span>
+                      </button>
+                    {% endif %}
                   </div>
                 </td>
                 <td class="py-3 px-4">
@@ -160,10 +199,20 @@
                 {% if can_manage %}
                   <td class="py-3 px-4 text-right">
                     <div class="inline-flex items-center gap-2">
+                      <a
+                        href="{% url 'warehouses:transfer_create' %}?destination_branch={{ branch.id }}"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition"
+                        title="{% trans 'Send stock to this branch outlet' %}"
+                      >
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                        </svg>
+                        <span>{% trans "Send Stock" %}</span>
+                      </a>
                       <button
                         type="button"
                         @click="openEdit('{{ branch.id }}', '{{ branch.name|escapejs }}', '{{ branch.code|escapejs }}', '{{ branch.address|escapejs }}', '{{ branch.phone|escapejs }}', {{ branch.is_headquarters|yesno:'true,false' }}, {{ branch.is_active|yesno:'true,false' }})"
-                        class="text-xs font-semibold text-[var(--brand-600)] hover:text-[var(--brand-700)] transition-colors"
+                        class="text-xs font-semibold text-[var(--brand-600)] hover:text-[var(--brand-700)] transition-colors px-1"
                       >
                         {% trans "Edit" %}
                       </button>
@@ -278,6 +327,137 @@
             </button>
             <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs">
               {% trans "Save branch" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link Fulfillment Warehouse Modal -->
+  <div
+    x-show="linkModalOpen"
+    x-cloak
+    class="fixed inset-0 z-50 overflow-y-auto"
+    aria-labelledby="link-modal-title"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="flex items-center justify-center min-h-screen p-4 text-center">
+      <div
+        x-show="linkModalOpen"
+        x-transition:enter="ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-black/40 backdrop-blur-xs"
+        @click="linkModalOpen = false"
+      ></div>
+
+      <div
+        x-show="linkModalOpen"
+        x-transition:enter="ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+        x-transition:leave="ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        class="relative inline-block w-full max-w-lg p-6 overflow-hidden text-left align-middle transition-all transform bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl z-10"
+      >
+        <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+          <h3 class="text-base font-bold text-[var(--text)]" id="link-modal-title">
+            {% trans "Link Fulfillment Warehouse" %} &rsaquo; <span class="text-indigo-600" x-text="linkBranchName"></span>
+          </h3>
+          <button @click="linkModalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <form method="post" action="{% url 'warehouses:branch_list' %}" class="mt-4 space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="link_warehouse">
+          <input type="hidden" name="branch_id" :value="linkBranchId">
+
+          <div>
+            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Fulfillment Warehouse" %} *</label>
+            <select
+              name="warehouse_id"
+              x-model="selectedWarehouseId"
+              required
+              class="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-500)] outline-none font-semibold"
+            >
+              <option value="">{% trans "-- Select Warehouse --" %}</option>
+              {% for wh in warehouses %}
+                <option value="{{ wh.pk }}">{{ wh.name }} ({{ wh.get_warehouse_type_display }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="space-y-2 pt-2 border-t border-[var(--border)]">
+            <!-- Storage Sync Switch -->
+            <div class="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/5 space-y-2">
+              <label class="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_storage_synced"
+                  x-model="isStorageSynced"
+                  class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500"
+                >
+                <div class="text-xs">
+                  <span class="font-bold text-ink">{% trans "Enable Live Storage Sync" %}</span>
+                  <p class="text-[11px] text-muted">{% trans "Counts linked warehouse storage zone inventory directly as branch outlet stock." %}</p>
+                </div>
+              </label>
+
+              <!-- Dynamic Storage Zone Selectors -->
+              <div x-show="isStorageSynced" class="pt-2 border-t border-indigo-500/20 space-y-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Select Warehouse Storage Zones to Sync" %}:</span>
+                {% for wh in warehouses %}
+                  <div x-show="selectedWarehouseId == '{{ wh.pk }}'" class="space-y-1.5 pl-1">
+                    {% for st in wh.storage_types.all %}
+                      <label class="flex items-center gap-2 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          name="synced_storage_types"
+                          value="{{ st.pk }}"
+                          class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500"
+                        >
+                        <span class="font-medium text-ink">{{ st.name }}</span>
+                        <span class="text-[10px] text-muted font-mono">({{ st.get_zone_type_display }})</span>
+                      </label>
+                    {% empty %}
+                      <p class="text-[11px] text-muted italic">{% trans "No custom storage zones defined for this warehouse." %}</p>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Operational Flags -->
+            <label class="flex items-center gap-2 cursor-pointer pt-1">
+              <input type="checkbox" name="is_default" class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
+              <span class="text-xs text-[var(--text)] font-medium">{% trans "Primary fulfillment warehouse for this branch" %}</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="can_sell" checked class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
+              <span class="text-xs text-[var(--text)] font-medium">{% trans "Allow direct selling / dispatch from this warehouse" %}</span>
+            </label>
+
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="can_replenish" checked class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
+              <span class="text-xs text-[var(--text)] font-medium">{% trans "Allow replenishing branch stock from this warehouse" %}</span>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-[var(--border)]">
+            <button type="button" @click="linkModalOpen = false" class="px-4 py-2 text-xs font-semibold rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors">
+              {% trans "Cancel" %}
+            </button>
+            <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs">
+              {% trans "Save Link" %}
             </button>
           </div>
         </form>

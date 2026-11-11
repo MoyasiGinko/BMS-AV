@@ -4,9 +4,12 @@ Provides access to Warehouse, BranchWarehouse, InventoryLocation, and StockSuppl
 """
 
 from apps.inventory.models import (
+    BranchStorageSync,
     InventoryLocation,
     LocationType,
     MovementType,
+    StockIntake,
+    StockIntakeLine,
     StockMovement,
     StockSupplyRoute,
     StockTransfer,
@@ -20,11 +23,14 @@ from apps.tenancy.models import BranchWarehouse, Warehouse, WarehouseType
 Location = InventoryLocation
 
 __all__ = [
+    "BranchStorageSync",
     "BranchWarehouse",
     "InventoryLocation",
     "Location",
     "LocationType",
     "MovementType",
+    "StockIntake",
+    "StockIntakeLine",
     "StockMovement",
     "StockSupplyRoute",
     "StockTransfer",

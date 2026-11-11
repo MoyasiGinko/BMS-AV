@@ -394,16 +394,16 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] .card,
 [data-theme="neumorphic"] .bos-card,
 [data-theme="neumorphic"] article.bos-card,
-[data-theme="neumorphic"] main .bg-surface:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main [class*="bg-surface"]:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="border border-line"]:not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="border-line"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="border-[var(--border)]"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="border-slate-200"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="shadow-xs"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="shadow-sm"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="shadow-md"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="shadow-lg"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main .bg-surface:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main [class*="bg-surface"]:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="border border-line"]:not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="border-line"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="border-[var(--border)]"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="border-slate-200"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="shadow-xs"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="shadow-sm"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="shadow-md"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div[class*="shadow-lg"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
 [data-theme="neumorphic"] a.neu-card,
 [data-theme="neumorphic"] a.card,
 [data-theme="neumorphic"] a[class*="neu-card"],
@@ -423,8 +423,8 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] div.neu-card,
 [data-theme="neumorphic"] div[class*="neu-card"]:not(.pos-terminal *),
 [data-theme="neumorphic"] article.bos-card,
-[data-theme="neumorphic"] main div.bg-surface.rounded-2xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] main div.bg-surface.rounded-xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] main div.bg-surface.rounded-2xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div.bg-surface.rounded-xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
 [data-theme="neumorphic"] main section.bg-surface,
 [data-theme="neumorphic"] div.neu-stat-card,
 [data-theme="neumorphic"] div.neu-filter-card,
@@ -451,10 +451,9 @@ html[data-theme="neumorphic"],
   background-color: transparent !important;
 }
 
-[data-theme="neumorphic"] .sticky-header-tabs,
-.sticky-header-tabs {
-  background-color: var(--neu-surface, #e6e9f2) !important;
-  background: var(--neu-surface, #e6e9f2) !important;
+[data-theme="neumorphic"] .sticky-header-tabs {
+  background-color: var(--bg) !important;
+  background: var(--bg) !important;
   box-shadow: none !important;
   border-bottom: none !important;
   opacity: 1 !important;
@@ -644,9 +643,9 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] input[placeholder*="Search"],
 [data-theme="neumorphic"] input[placeholder*="search"],
 [data-theme="neumorphic"] input[placeholder*="Scan"],
-[data-theme="neumorphic"] div:has(> svg) input,
-[data-theme="neumorphic"] div:has(> div svg) input,
-[data-theme="neumorphic"] .relative:has(svg) input,
+[data-theme="neumorphic"] div:has(> svg) input:not(.stepper-input):not([name*="quantity"]),
+[data-theme="neumorphic"] div:has(> div svg) input:not(.stepper-input):not([name*="quantity"]),
+[data-theme="neumorphic"] .relative:has(svg) input:not(.stepper-input):not([name*="quantity"]),
 [data-theme="neumorphic"] input[class*="pl-"],
 [data-theme="neumorphic"] select[class*="pl-"],
 .form-input[class*="pl-"],
@@ -691,6 +690,44 @@ input[class*="pl-14"] {
   min-height: unset !important;
   padding: 6px 10px !important;
   font-size: 0.875rem !important;
+}
+
+[data-theme="neumorphic"] input.stepper-input,
+[data-theme="neumorphic"] input[name*="quantity"] {
+  min-height: unset !important;
+  height: 36px !important;
+  width: 52px !important;
+  padding: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--neu-text, #0f172a) !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  line-height: 36px !important;
+}
+
+input.stepper-input,
+input[name*="quantity"] {
+  min-height: unset !important;
+  height: 36px !important;
+  width: 52px !important;
+  padding: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: var(--ink, currentColor) !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  line-height: 36px !important;
 }
 
 [data-theme="neumorphic"] main textarea,
@@ -1141,21 +1178,24 @@ html[data-theme="spatial"],
 }
 
 [data-theme="neumorphic"] .pos-capsule,
-[data-theme="neumorphic"] .wh-header-tabs-capsule {
+[data-theme="neumorphic"] .wh-header-tabs-capsule,
+[data-theme="neumorphic"] .inv-header-tabs-capsule {
   background-color: var(--neu-surface) !important;
   box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light) !important;
   border: none !important;
   border-radius: 1.25rem !important;
 }
 
-[data-theme="neumorphic"] .wh-nav-pill {
+[data-theme="neumorphic"] .wh-nav-pill,
+[data-theme="neumorphic"] .inv-nav-pill {
   background-color: var(--neu-surface) !important;
   box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 4px var(--neu-shadow-light) !important;
   border: 1px solid var(--neu-line, rgba(0,0,0,0.06)) !important;
   color: var(--neu-text) !important;
 }
 
-[data-theme="neumorphic"] .wh-nav-pill:hover {
+[data-theme="neumorphic"] .wh-nav-pill:hover,
+[data-theme="neumorphic"] .inv-nav-pill:hover {
   box-shadow: 3.5px 3.5px 7px var(--neu-shadow-dark), -2.5px -2.5px 6px var(--neu-shadow-light) !important;
   color: #4338CA !important;
 }
@@ -1211,21 +1251,114 @@ html[data-theme="spatial"],
   border-radius: 16px !important;
 }
 
-[data-theme="neumorphic"] .pos-terminal .pos-stepper-box {
+[data-theme="neumorphic"] .pos-terminal .pos-stepper-box,
+[data-theme="neumorphic"] .neu-stepper {
   background-color: var(--neu-surface) !important;
   box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light) !important;
   border: none !important;
   border-radius: 12px !important;
 }
 
-[data-theme="neumorphic"] .pos-terminal .pos-stepper-box button {
+[data-theme="neumorphic"] .pos-terminal .pos-stepper-box button,
+[data-theme="neumorphic"] .neu-stepper button {
   background-color: var(--neu-surface) !important;
   box-shadow: 2.5px 2.5px 6px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
   border: none !important;
   border-radius: 8px !important;
+  color: var(--neu-text) !important;
 }
 
-[data-theme="neumorphic"] .pos-terminal .pos-stepper-box button:active {
+[data-theme="neumorphic"] .pos-terminal .pos-stepper-box button:active,
+[data-theme="neumorphic"] .neu-stepper button:active {
+  box-shadow: inset 2px 2px 4px var(--neu-shadow-dark), inset -1px -1px 3px var(--neu-shadow-light) !important;
+}
+
+[data-theme="neumorphic"] .neu-stepper input,
+[data-theme="neumorphic"] .neu-stepper .stepper-input {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2.5px 2.5px 5px var(--neu-shadow-dark), inset -2px -2px 4px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: var(--neu-text, #0f172a) !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-size: 1.125rem !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  width: 52px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  line-height: normal !important;
+}
+
+[data-theme="neumorphic"] .neu-index-badge,
+.neu-index-badge {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  background-color: var(--neu-surface, var(--surface-2)) !important;
+  box-shadow: inset 2px 2px 4px var(--neu-shadow-dark, rgba(0,0,0,0.08)), inset -1.5px -1.5px 3px var(--neu-shadow-light, rgba(255,255,255,0.7)) !important;
+  border: 1px solid var(--border, rgba(0,0,0,0.06)) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: var(--font-mono, monospace) !important;
+  font-weight: 800 !important;
+  font-size: 1rem !important;
+  color: var(--neu-text, var(--ink, #0f172a)) !important;
+  user-select: none !important;
+  margin-inline: auto !important;
+}
+
+/* Table inline inputs: override 46px icon padding */
+[data-theme="neumorphic"] table input:not([type="search"]):not([placeholder*="Search"]):not([placeholder*="Scan"]),
+[data-theme="neumorphic"] .table input:not([type="search"]) {
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  min-height: unset !important;
+}
+[data-theme="neumorphic"] table input[type="number"],
+[data-theme="neumorphic"] table input[name*="cost"],
+[data-theme="neumorphic"] table input[name*="price"] {
+  text-align: right !important;
+  padding-right: 10px !important;
+  padding-left: 8px !important;
+}
+[data-theme="neumorphic"] table input.stepper-input,
+[data-theme="neumorphic"] table input[name*="quantity"] {
+  text-align: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+[data-theme="neumorphic"] .neu-thumbnail-frame {
+  background-color: var(--neu-surface) !important;
+  box-shadow: inset 2.5px 2.5px 5px var(--neu-shadow-dark), inset -2px -2px 4px var(--neu-shadow-light) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphic"] .neu-icon-btn {
+  background-color: var(--neu-surface) !important;
+  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 4px var(--neu-shadow-light) !important;
+  border: none !important;
+  color: var(--neu-text-muted, #79809E) !important;
+}
+
+[data-theme="neumorphic"] .neu-icon-btn svg,
+.neu-icon-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
+[data-theme="neumorphic"] .neu-icon-btn:hover {
+  box-shadow: 3px 3px 7px var(--neu-shadow-dark), -2.5px -2.5px 5px var(--neu-shadow-light) !important;
+  color: #E11D48 !important;
+}
+
+[data-theme="neumorphic"] .neu-icon-btn:active {
   box-shadow: inset 2px 2px 4px var(--neu-shadow-dark), inset -1px -1px 3px var(--neu-shadow-light) !important;
 }
 
@@ -1343,8 +1476,8 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] nav[aria-label="POS Navigation Tabs"],
 [data-theme="neumorphic"] nav[aria-label*="Tabs"],
 [data-theme="neumorphic"] nav[aria-label*="tabs"],
-[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]):not(.wh-header-tabs-capsule) {
+[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule) {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
@@ -1406,6 +1539,7 @@ html[data-theme="spatial"],
 
 /* 5. Inset Search Wells and Filters in Sub-pages */
 [data-theme="neumorphic"] .accounting-page input,
+[data-theme="neumorphic"] .inventory-page input,
 [data-theme="neumorphic"] .reports-page input,
 [data-theme="neumorphic"] .hr-page input,
 [data-theme="neumorphic"] .payroll-page input,
@@ -1414,10 +1548,13 @@ html[data-theme="spatial"],
 [data-theme="neumorphic"] .billing-page input,
 [data-theme="neumorphic"] .help-page input,
 [data-theme="neumorphic"] .accounting-page select,
+[data-theme="neumorphic"] .inventory-page select,
 [data-theme="neumorphic"] .reports-page select,
 [data-theme="neumorphic"] .hr-page select,
 [data-theme="neumorphic"] .payroll-page select,
-[data-theme="neumorphic"] .settings-page select {
+[data-theme="neumorphic"] .settings-page select,
+[data-theme="neumorphic"] .inventory-page textarea,
+[data-theme="neumorphic"] .accounting-page textarea {
   background-color: var(--neu-surface) !important;
   box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light) !important;
   border: none !important;
@@ -1451,8 +1588,8 @@ html[data-theme="spatial"],
    Definitive Sub-Navigation Buttons & Zero-Container Rule
    Ensures every tab is an independent standalone button with no clustered bg
    ========================================================================== */
-[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]):not(.wh-header-tabs-capsule),
-[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]):not(.wh-header-tabs-capsule),
+[data-theme="neumorphic"] div:has(> nav[aria-label*="Tabs"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] div:has(> nav[aria-label*="tabs"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
 [data-theme="neumorphic"] nav[aria-label*="Tabs"],
 [data-theme="neumorphic"] nav[aria-label*="tabs"],
 [data-theme="neumorphic"] .neu-nav-track {
@@ -1570,8 +1707,9 @@ html[data-theme="spatial"],
   opacity: 1 !important;
 }
 
-/* Warehouse Header Tabs Inset Capsule Toolbar */
-[data-theme="neumorphic"] .wh-header-tabs-capsule {
+/* Warehouse & Inventory Header Tabs Inset Capsule Toolbar */
+[data-theme="neumorphic"] .wh-header-tabs-capsule,
+[data-theme="neumorphic"] .inv-header-tabs-capsule {
   background-color: var(--neu-surface) !important;
   box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -2px -2px 5px var(--neu-shadow-light) !important;
   border: none !important;
@@ -1580,7 +1718,9 @@ html[data-theme="spatial"],
 }
 
 [data-theme="neumorphic"] .wh-header-tabs-capsule nav[aria-label*="Tabs"],
-[data-theme="neumorphic"] .wh-header-tabs-capsule nav[aria-label*="tabs"] {
+[data-theme="neumorphic"] .wh-header-tabs-capsule nav[aria-label*="tabs"],
+[data-theme="neumorphic"] .inv-header-tabs-capsule nav[aria-label*="Tabs"],
+[data-theme="neumorphic"] .inv-header-tabs-capsule nav[aria-label*="tabs"] {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;

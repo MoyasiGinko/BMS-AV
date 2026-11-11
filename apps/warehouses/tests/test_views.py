@@ -11,7 +11,7 @@ from django.urls import reverse
 from apps.catalog.models import Category, Product, ProductType, Unit
 from apps.core.tenant_context import tenant_context
 from apps.inventory import services as inv_services
-from apps.inventory.models import InventoryLocation, StockSupplyRoute, StockTransfer
+from apps.inventory.models import InventoryLocation, StockIntake, StockSupplyRoute, StockTransfer
 from apps.tenancy.models import Branch, BranchWarehouse, Membership, Organization, Role, Warehouse
 from apps.warehouses import services as wh_services
 
@@ -355,3 +355,68 @@ def test_movement_ledger_view_get_and_htmx(wh_view_env):
     res_htmx = client.get(url, headers={"hx-request": "true"})
     assert res_htmx.status_code == 200
     assert "movement-table-container" in res_htmx.content.decode()
+
+
+@pytest.mark.django_db
+def test_stock_intake_views_flow(wh_view_env):
+    """Test web views for stocking products & ingredients to warehouse."""
+    client: Client = wh_view_env["client"]
+    org = wh_view_env["org"]
+    wh = wh_view_env["warehouse"]
+
+    cat = Category.objects.create(organization=org, name="Bakery Ingredients")
+    unit = Unit.objects.create(organization=org, name="Gram", code="g")
+    yeast = Product.objects.create(
+        organization=org,
+        name="Active Dry Yeast",
+        sku="ING-YST-500G",
+        category=cat,
+        unit=unit,
+        type=ProductType.STOCK,
+        cost_price=Decimal("120.0000"),
+    )
+
+    # 1. GET Intake List view
+    list_url = reverse("warehouses:stock_intake_list")
+    list_res = client.get(list_url)
+    assert list_res.status_code == 200
+    assert "Stock Intakes" in list_res.content.decode()
+
+    # 2. GET Intake Create view
+    create_url = reverse("warehouses:stock_intake_create")
+    create_res = client.get(create_url)
+    assert create_res.status_code == 200
+    assert "Stock Products & Ingredients" in create_res.content.decode()
+    assert "Active Dry Yeast" in create_res.content.decode()
+
+    # 3. POST Create Intake
+    post_payload = {
+        "warehouse_id": wh.id,
+        "intake_type": "direct_stocking",
+        "supplier_name": "Bakery Raw Co",
+        "reference_number": "REC-9002",
+        "notes": "Delivered to cold dock",
+        "product_id[]": [yeast.id],
+        "quantity[]": ["50.0000"],
+        "unit_cost[]": ["120.0000"],
+        "batch_number[]": ["BATCH-YST-01"],
+        "expiry_date[]": ["2027-12-31"],
+    }
+    submit_res = client.post(create_url, data=post_payload)
+    assert submit_res.status_code == 302
+    assert "/warehouses/stocking/" in submit_res.url
+
+    # Verify intake created in database
+    intake = StockIntake.all_tenants.filter(organization=org, reference_number="REC-9002").first()
+    assert intake is not None
+    assert intake.total_quantity == Decimal("50.0000")
+    assert intake.total_cost == Decimal("6000.0000")
+
+    # 4. GET Intake Detail view
+    detail_url = reverse("warehouses:stock_intake_detail", kwargs={"pk": intake.pk})
+    detail_res = client.get(detail_url)
+    assert detail_res.status_code == 200
+    assert intake.intake_number in detail_res.content.decode()
+    assert "Active Dry Yeast" in detail_res.content.decode()
+    assert "BATCH-YST-01" in detail_res.content.decode()
+

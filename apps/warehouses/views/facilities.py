@@ -38,6 +38,8 @@ def _handle_link_branch(request: HttpRequest, org: Organization) -> None:
     branch = tenancy_selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
     wh = selectors.get_warehouse_by_id(organization_id=org.pk, warehouse_id=wh_id)
     if branch and wh:
+        is_synced = request.POST.get("is_storage_synced") in ("on", "true", "True", "1")
+        synced_ids = [int(x) for x in request.POST.getlist("synced_storage_types") if x.isdigit()]
         try:
             services.link_warehouse_to_branch(
                 organization=org,
@@ -46,6 +48,8 @@ def _handle_link_branch(request: HttpRequest, org: Organization) -> None:
                 is_default=request.POST.get("is_default") in ("on", "true", "True"),
                 can_sell=request.POST.get("can_sell", "true") in ("on", "true", "True"),
                 can_replenish=request.POST.get("can_replenish", "true") in ("on", "true", "True"),
+                is_storage_synced=is_synced,
+                synced_storage_type_ids=synced_ids,
                 priority=int(request.POST.get("priority") or 1),
                 actor=request.user,
             )
@@ -191,54 +195,65 @@ def warehouse_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-def _handle_branch_post(request: HttpRequest, org: Organization) -> HttpResponse:
-    action = request.POST.get("action", "")
-    if action == "delete":
-        branch_id = request.POST.get("branch_id")
-        branch = tenancy_selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
-        if branch:
-            try:
-                tenancy_services.delete_branch(branch=branch, actor=request.user)
-                messages.success(request, _("Branch '%(name)s' deleted.") % {"name": branch.name})
-            except ValidationError as exc:
-                messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
-        return redirect("warehouses:branch_list")
-
-    form = BranchForm(request.POST)
-    if form.is_valid():
-        branch_id = request.POST.get("branch_id")
+def _handle_branch_delete(request: HttpRequest, org: Organization) -> None:
+    branch_id = request.POST.get("branch_id")
+    branch = tenancy_selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
+    if branch:
         try:
-            if branch_id:
-                branch = tenancy_selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
-                if branch:
-                    tenancy_services.update_branch(
-                        branch=branch,
-                        name=form.cleaned_data["name"],
-                        code=form.cleaned_data["code"],
-                        address=form.cleaned_data["address"],
-                        phone=form.cleaned_data["phone"],
-                        is_headquarters=form.cleaned_data["is_headquarters"],
-                        is_active=form.cleaned_data["is_active"],
-                        actor=request.user,
-                    )
-                    messages.success(request, _("Branch '%(name)s' updated.") % {"name": branch.name})
-            else:
-                new_branch = tenancy_services.create_branch(
-                    organization=org,
+            tenancy_services.delete_branch(branch=branch, actor=request.user)
+            messages.success(request, _("Branch '%(name)s' deleted.") % {"name": branch.name})
+        except ValidationError as exc:
+            messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+
+
+def _handle_branch_save(request: HttpRequest, org: Organization, form: BranchForm) -> None:
+    if not form.is_valid():
+        for err_list in form.errors.values():
+            for err in err_list:
+                messages.error(request, err)
+        return
+
+    branch_id = request.POST.get("branch_id")
+    try:
+        if branch_id:
+            branch = tenancy_selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
+            if branch:
+                tenancy_services.update_branch(
+                    branch=branch,
                     name=form.cleaned_data["name"],
                     code=form.cleaned_data["code"],
                     address=form.cleaned_data["address"],
                     phone=form.cleaned_data["phone"],
                     is_headquarters=form.cleaned_data["is_headquarters"],
+                    is_active=form.cleaned_data["is_active"],
                     actor=request.user,
                 )
-                messages.success(request, _("Branch '%(name)s' created.") % {"name": new_branch.name})
-        except ValidationError as exc:
-            messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+                messages.success(request, _("Branch '%(name)s' updated.") % {"name": branch.name})
+        else:
+            new_branch = tenancy_services.create_branch(
+                organization=org,
+                name=form.cleaned_data["name"],
+                code=form.cleaned_data["code"],
+                address=form.cleaned_data["address"],
+                phone=form.cleaned_data["phone"],
+                is_headquarters=form.cleaned_data["is_headquarters"],
+                actor=request.user,
+            )
+            messages.success(request, _("Branch '%(name)s' created.") % {"name": new_branch.name})
+    except ValidationError as exc:
+        messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+
+
+def _handle_branch_post(request: HttpRequest, org: Organization) -> HttpResponse:
+    action = request.POST.get("action", "")
+    if action == "delete":
+        _handle_branch_delete(request, org)
+    elif action in ("link_warehouse", "link_branch"):
+        _handle_link_branch(request, org)
+    elif action in ("unlink_warehouse", "unlink_branch"):
+        _handle_unlink_branch(request, org)
     else:
-        for err_list in form.errors.values():
-            for err in err_list:
-                messages.error(request, err)
+        _handle_branch_save(request, org, BranchForm(request.POST))
     return redirect("warehouses:branch_list")
 
 
@@ -257,8 +272,8 @@ def branch_list_view(request: HttpRequest) -> HttpResponse:
         return _handle_branch_post(request, org)
 
     branches = tenancy_selectors.list_organization_branches(organization_id=org.pk)
-    warehouses = selectors.list_warehouses(organization_id=org.pk, active_only=False)
-    mappings = selectors.list_branch_warehouse_mappings(organization_id=org.pk)
+    warehouses = selectors.list_warehouses(organization_id=org.pk, active_only=False).prefetch_related("storage_types")
+    mappings = selectors.list_branch_warehouse_mappings(organization_id=org.pk).prefetch_related("storage_sync_links__storage_type")
 
     total_branches = branches.count()
     hq_branch = branches.filter(is_headquarters=True).first()

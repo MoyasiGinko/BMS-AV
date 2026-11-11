@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.catalog.models import Product, ProductVariant
 from apps.inventory.models import AdjustmentReason
-from apps.tenancy.models import Organization, Warehouse
+from apps.tenancy.models import Branch, Organization, Warehouse
 
 
 class StockFilterForm(forms.Form):
@@ -202,5 +202,35 @@ class StockCountForm(forms.Form):
 
     def __init__(self, *args: Any, organization: Organization, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        whs = Warehouse.objects.filter(organization=organization, is_active=True).order_by("name")
+        self.fields["warehouse_id"].widget.choices = [(w.pk, w.name) for w in whs]
+
+
+class StockRequestForm(forms.Form):
+    """Form to initiate a branch stock replenishment request from a linked warehouse."""
+
+    branch_id = forms.IntegerField(
+        label=_("Requesting Branch / Outlet"),
+        widget=forms.Select(attrs={"class": "neu-select form-select w-full text-sm rounded-xl px-3.5 py-2.5 font-medium"}),
+    )
+    warehouse_id = forms.IntegerField(
+        label=_("Fulfillment Source Warehouse"),
+        widget=forms.Select(attrs={"class": "neu-select form-select w-full text-sm rounded-xl px-3.5 py-2.5 font-medium"}),
+    )
+    notes = forms.CharField(
+        label=_("Request Notes / Delivery Instructions"),
+        required=False,
+        widget=forms.Textarea(
+            attrs={"class": "neu-input form-textarea w-full text-sm rounded-xl p-3 font-medium", "rows": 2, "placeholder": _("Delivery deadline, urgency, or notes...")}
+        ),
+    )
+
+    def __init__(self, *args: Any, organization: Organization, branch_id: int | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        branches = Branch.objects.filter(organization=organization, is_active=True).order_by("name")
+        self.fields["branch_id"].widget.choices = [(b.pk, b.name) for b in branches]
+        if branch_id:
+            self.fields["branch_id"].initial = branch_id
+
         whs = Warehouse.objects.filter(organization=organization, is_active=True).order_by("name")
         self.fields["warehouse_id"].widget.choices = [(w.pk, w.name) for w in whs]

@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.contrib import admin
 
 from apps.inventory.models import (
+    BranchStorageSync,
     InventoryLocation,
     StockAdjustment,
     StockAdjustmentLine,
@@ -108,3 +109,10 @@ class InventoryLocationAdmin(admin.ModelAdmin):
     list_display = ("name", "code", "warehouse", "location_type", "custom_storage_type", "is_stock_holding", "is_active", "organization")
     list_filter = ("location_type", "is_stock_holding", "is_active", "warehouse")
     search_fields = ("name", "code", "warehouse__name")
+
+
+@admin.register(BranchStorageSync)
+class BranchStorageSyncAdmin(admin.ModelAdmin):
+    list_display = ("branch_warehouse", "storage_type", "is_active", "organization")
+    list_filter = ("is_active", "branch_warehouse__branch", "branch_warehouse__warehouse")
+    search_fields = ("branch_warehouse__branch__name", "branch_warehouse__warehouse__name", "storage_type__name")

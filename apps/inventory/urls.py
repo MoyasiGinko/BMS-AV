@@ -8,6 +8,14 @@ app_name = "inventory"
 
 urlpatterns = [
     path("", views.stock_level_list, name="stock_level_list"),
+    path("add-stock/", views.add_stock_view, name="add_stock"),
+    path("requests/", views.stock_request_list_view, name="stock_request_list"),
+    path("requests/<int:pk>/", views.stock_request_detail_view, name="stock_request_detail"),
+    path("requests/<int:pk>/dispatch/", views.stock_request_dispatch_view, name="stock_request_dispatch"),
+    path("requests/<int:pk>/confirm/", views.stock_request_confirm_view, name="stock_request_confirm"),
+    path("requests/<int:pk>/cancel/", views.stock_request_cancel_view, name="stock_request_cancel"),
+    path("requests/<int:pk>/direct-fulfill/", views.stock_request_direct_fulfill_view, name="stock_request_direct_fulfill"),
+    path("requests/<int:pk>/update-counts/", views.stock_request_update_counts_view, name="stock_request_update_counts"),
     path("movements/", views.stock_movement_list, name="movement_list"),
     path("adjustments/", views.adjustment_list, name="adjustment_list"),
     path("adjustments/new/", views.adjustment_create, name="adjustment_create"),

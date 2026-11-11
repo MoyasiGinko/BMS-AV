@@ -435,25 +435,29 @@ body.overflow-hidden {
   opacity: 1 !important;
 }
 
-/* Warehouse Header Tabs Capsule Toolbar */
-.wh-header-tabs-capsule {
+/* Warehouse & Inventory Header Tabs Capsule Toolbar */
+.wh-header-tabs-capsule,
+.inv-header-tabs-capsule {
   border-radius: 1.25rem !important;
   background-color: var(--surface-2, #f1f5f9) !important;
   border: 1px solid var(--border) !important;
   box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.05), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.7) !important;
 }
 
-[data-theme="dark"] .wh-header-tabs-capsule {
+[data-theme="dark"] .wh-header-tabs-capsule,
+[data-theme="dark"] .inv-header-tabs-capsule {
   background-color: rgba(15, 23, 42, 0.5) !important;
   box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5), inset -1px -1px 3px rgba(255, 255, 255, 0.04) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
-.wh-nav-pill {
+.wh-nav-pill,
+.inv-nav-pill {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.wh-nav-pill-active {
+.wh-nav-pill-active,
+.inv-nav-pill-active {
   background-color: var(--brand-600, #4F46E5) !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;

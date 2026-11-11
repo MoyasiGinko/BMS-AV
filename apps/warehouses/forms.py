@@ -87,6 +87,13 @@ class BranchWarehouseForm(forms.Form):
         initial=True,
         widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
     )
+    is_storage_synced = forms.BooleanField(
+        label=_("Sync Storage Stock"),
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+        help_text=_("When enabled, outlet counts this warehouse storage stock as its own."),
+    )
     priority = forms.IntegerField(
         label=_("Priority"),
         required=False,
@@ -338,17 +345,35 @@ class WarehouseStockTransferForm(forms.Form):
     def __init__(self, *args: Any, organization: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        whs = Warehouse.all_tenants.filter(organization=organization, is_active=True).order_by("name")
-        wh_choices = [(w.pk, f"{w.name} ({w.get_warehouse_type_display() if hasattr(w, 'get_warehouse_type_display') else 'Warehouse'})") for w in whs]
+        whs = (
+            Warehouse.all_tenants.filter(organization=organization, is_active=True)
+            .select_related("branch")
+            .order_by("name")
+        )
+        wh_choices = []
+        for w in whs:
+            if w.branch:
+                label = f"🏬 {w.branch.name} — {w.name}"
+            elif getattr(w, "is_central", False):
+                label = f"🏭 {w.name} ({_('Central Warehouse')})"
+            else:
+                label = f"📦 {w.name}"
+            wh_choices.append((w.pk, label))
+
         self.fields["source_warehouse_id"].widget.choices = wh_choices
         self.fields["destination_warehouse_id"].widget.choices = wh_choices
 
-        prods = [(p.pk, f"{p.name} ({p.sku})") for p in Product.all_tenants.filter(organization=organization, is_active=True).order_by("name")]
+        prods = [
+            (p.pk, f"{p.name} ({p.sku})")
+            for p in Product.all_tenants.filter(organization=organization, is_active=True).order_by("name")
+        ]
         self.fields["product_id"].widget.choices = prods
 
-        variants = [("", _("No variant / Base product"))] + [
+        variants = [("", str(_("No variant / Base product")))] + [
             (v.pk, f"{v.product.name} - {v.name} ({v.sku})")
-            for v in ProductVariant.all_tenants.filter(organization=organization, is_active=True).select_related("product").order_by("product__name", "name")
+            for v in ProductVariant.all_tenants.filter(organization=organization, is_active=True)
+            .select_related("product")
+            .order_by("product__name", "name")
         ]
         self.fields["variant_id"].widget.choices = variants
 

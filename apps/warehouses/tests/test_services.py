@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from apps.catalog.models import Category, Product, ProductType, Unit
 from apps.core.exceptions import ValidationError
 from apps.core.tenant_context import set_current_organization
+from apps.inventory import selectors as inv_selectors
 from apps.inventory import services as inv_services
 from apps.inventory.models import LocationType, MovementType, StockMovement, StorageType, TransferStatus
 from apps.tenancy import services as tenancy_services
@@ -398,3 +399,82 @@ def test_stock_transfer_pipeline_dual_validation(warehouse_env):
         type=MovementType.ADJUSTMENT_OUT,
     )
     assert adjustments.count() == 2
+
+
+@pytest.mark.django_db
+def test_create_stock_intake_service(warehouse_env):
+    """Test stocking products and raw ingredients into warehouse storage with ledger audit."""
+    org = warehouse_env["org"]
+    wh = warehouse_env["warehouse"]
+    user = warehouse_env["user"]
+
+    cat = Category.objects.create(organization=org, name="Raw Ingredients")
+    unit_kg = Unit.objects.create(organization=org, name="Kilogram", code="KG")
+    flour = Product.objects.create(
+        organization=org,
+        name="Organic Wheat Flour",
+        sku="ING-FLR-01",
+        category=cat,
+        unit=unit_kg,
+        type=ProductType.STOCK,
+        cost_price=Decimal("65.0000"),
+    )
+
+    lines = [
+        {
+            "product": flour,
+            "quantity": Decimal("100.0000"),
+            "unit_cost": Decimal("65.0000"),
+            "batch_number": "LOT-2026-FLR",
+            "notes": "Grade A organic intake",
+        }
+    ]
+
+    intake = wh_services.create_stock_intake(
+        organization=org,
+        warehouse=wh,
+        lines=lines,
+        intake_type="direct_stocking",
+        supplier_name="Bengal Agro Mills",
+        reference_number="PO-2026-9901",
+        notes="Dock receipt verified",
+        actor=user,
+    )
+
+    assert intake.pk is not None
+    assert intake.intake_number.startswith("STK-")
+    assert intake.total_quantity == Decimal("100.0000")
+    assert intake.total_cost == Decimal("6500.0000")
+    assert intake.supplier_name == "Bengal Agro Mills"
+    assert intake.reference_number == "PO-2026-9901"
+
+    # Line verification
+    intake_line = intake.lines.first()
+    assert intake_line is not None
+    assert intake_line.product == flour
+    assert intake_line.quantity == Decimal("100.0000")
+    assert intake_line.unit_cost == Decimal("65.0000")
+    assert intake_line.total_cost == Decimal("6500.0000")
+    assert intake_line.batch_number == "LOT-2026-FLR"
+
+    # StockLevel updated
+    stock_level = inv_selectors.get_stock_level(
+        organization=org,
+        warehouse=wh,
+        product_id=flour.pk,
+    )
+    assert stock_level.on_hand == Decimal("100.0000")
+
+    # Immutable StockMovement ledger audit entry verified
+    movement = StockMovement.all_tenants.filter(
+        organization=org,
+        warehouse=wh,
+        product=flour,
+        reference_type="inventory.StockIntake",
+        reference_id=str(intake.pk),
+    ).first()
+    assert movement is not None
+    assert movement.type == MovementType.RECEIPT
+    assert movement.quantity == Decimal("100.0000")
+    assert movement.unit_cost == Decimal("65.0000")
+

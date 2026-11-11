@@ -3,6 +3,12 @@
 
 {% block title %}{% trans "Inventory Reconciliation" %} | {{ request.organization.name }}{% endblock %}
 
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="reconcile" %}
+{% endblock %}
+
 {% block content %}
 <div class="inventory-page w-full pb-16 space-y-8">
     <!-- Header -->
@@ -12,9 +18,6 @@
             <p class="text-sm text-muted mt-1 font-medium">{% trans "Verify stock level cache integrity against immutable ledger entries." %}</p>
         </div>
     </div>
-
-    <!-- Navigation Sub-tabs -->
-    {% include "inventory/partials/_navigation_tabs.html" with active_tab="reconcile" %}
 
     <!-- Controls -->
     <div class="neu-raised-card p-7 sm:p-8 rounded-2xl">

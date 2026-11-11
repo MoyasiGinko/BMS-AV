@@ -15,6 +15,11 @@ from apps.warehouses.views.locations import (
 from apps.warehouses.views.movements import (
     movement_ledger_view,
 )
+from apps.warehouses.views.stocking import (
+    stock_intake_create_view,
+    stock_intake_detail_view,
+    stock_intake_list_view,
+)
 from apps.warehouses.views.transfers import (
     transfer_approve_view,
     transfer_cancel_view,
@@ -30,6 +35,9 @@ __all__ = [
     "branch_list_view",
     "location_list_view",
     "movement_ledger_view",
+    "stock_intake_create_view",
+    "stock_intake_detail_view",
+    "stock_intake_list_view",
     "supply_route_list_view",
     "transfer_approve_view",
     "transfer_cancel_view",

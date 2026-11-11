@@ -1,0 +1,369 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Stock Intake" %} {{ intake.intake_number }} | {{ organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="stocking" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6 w-full">
+
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-[var(--border)]/60">
+    <div class="space-y-1">
+      <div class="flex items-center gap-2 text-xs text-muted">
+        <a href="{% url 'warehouses:stock_intake_list' %}" class="hover:text-ink transition-colors">{% trans "Stock Intakes" %}</a>
+        <span>/</span>
+        <span class="text-ink font-medium">{{ intake.intake_number }}</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <a
+          href="{% url 'warehouses:stock_intake_list' %}"
+          class="p-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)] text-ink transition shadow-2xs"
+          title="{% trans 'Back to Stock Intakes' %}"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
+          </svg>
+        </a>
+        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-ink font-mono">
+          {{ intake.intake_number }}
+        </h1>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+          {% trans "Stocked" %}
+        </span>
+      </div>
+      <p class="text-xs text-muted">
+        {% trans "Received on" %} <span class="font-mono font-bold text-ink">{{ intake.date|date:"M d, Y" }}</span>
+        {% if intake.created_by %}
+          &bull; {% trans "by" %} <span class="text-ink font-semibold">{{ intake.created_by.get_full_name|default:intake.created_by.email }}</span>
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        onclick="window.print()"
+        class="neu-btn px-4 py-2 rounded-xl text-xs font-semibold bg-[var(--surface-2)] text-ink border border-[var(--border)] hover:bg-[var(--surface-3)] transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+      >
+        <svg class="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24-1.206-.24-2.452 0-3.658m10.56 3.658c.24-1.206.24-2.452 0-3.658m-10.56 0a9.003 9.003 0 0 1 10.56 0m-10.56 0c.24-1.206.24-2.452 0-3.658m10.56 3.658c.24-1.206.24-2.452 0-3.658M3 16.5h18m-15 3.75h12a2.25 2.25 0 0 0 2.25-2.25V9.75a2.25 2.25 0 0 0-2.25-2.25H6a2.25 2.25 0 0 0-2.25 2.25v8.25A2.25 2.25 0 0 0 6 20.25Z"/>
+        </svg>
+        <span>{% trans "Print Slip" %}</span>
+      </button>
+
+      {% if can_manage %}
+        <a
+          href="{% url 'warehouses:stock_intake_create' %}?warehouse={{ intake.warehouse_id }}"
+          class="neu-btn px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all flex items-center gap-1.5"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+          </svg>
+          <span>{% trans "Stock More" %}</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Facility & Receipt Details Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Facility & Source Details Card (2 / 3 cols) -->
+    <div class="lg:col-span-2 neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs space-y-4">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-2">
+        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        <span>{% trans "Facility & Receipt Information" %}</span>
+      </h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div>
+          <span class="text-muted block text-[11px]">{% trans "Target Warehouse" %}</span>
+          <a
+            href="{% url 'warehouses:detail' intake.warehouse_id %}"
+            class="font-bold text-ink hover:text-indigo-600 text-sm mt-0.5 inline-block"
+          >
+            {{ intake.warehouse.name }}
+          </a>
+          <span class="text-[11px] text-muted block mt-0.5">
+            {{ intake.warehouse.code|default:"—" }} &bull; {{ intake.warehouse.get_warehouse_type_display }}
+          </span>
+        </div>
+
+        <div>
+          <span class="text-muted block text-[11px]">{% trans "Storage Location / Zone" %}</span>
+          <span class="font-semibold text-ink text-sm mt-0.5 inline-block">
+            {% if intake.storage_type %}
+              {{ intake.storage_type.name }} ({{ intake.storage_type.code }})
+            {% elif intake.location %}
+              {{ intake.location.name }}
+            {% else %}
+              {% trans "General Warehouse Storage" %}
+            {% endif %}
+          </span>
+        </div>
+
+        <div>
+          <span class="text-muted block text-[11px]">{% trans "Intake Source Type" %}</span>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 mt-1">
+            {{ intake.get_intake_type_display|default:intake.intake_type }}
+          </span>
+        </div>
+
+        <div>
+          <span class="text-muted block text-[11px]">{% trans "PO / Invoice Reference #" %}</span>
+          <span class="font-mono font-bold text-ink text-sm mt-0.5 inline-block">
+            {{ intake.reference_number|default:"—" }}
+          </span>
+        </div>
+
+        {% if intake.supplier_name %}
+          <div class="sm:col-span-2 pt-2 border-t border-[var(--border)]/40">
+            <span class="text-muted block text-[11px]">{% trans "Supplier / Vendor" %}</span>
+            <span class="font-semibold text-ink text-sm mt-0.5 inline-block">{{ intake.supplier_name }}</span>
+          </div>
+        {% endif %}
+
+        {% if intake.notes %}
+          <div class="sm:col-span-2 p-3 rounded-xl bg-[var(--surface-2)]/60 border border-[var(--border)]/40 text-xs">
+            <span class="font-bold text-ink">{% trans "Notes" %}:</span>
+            <span class="text-muted ml-1">{{ intake.notes }}</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Intake Summary Totals Card (1 / 3 col) -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs space-y-4">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Intake Summary" %}</h2>
+
+      <div class="divide-y divide-[var(--border)]/40 text-xs">
+        <div class="flex items-center justify-between py-2.5">
+          <span class="text-muted">{% trans "Distinct Items" %}</span>
+          <span class="font-mono font-bold text-ink text-sm">{{ lines|length }}</span>
+        </div>
+        <div class="flex items-center justify-between py-2.5">
+          <span class="text-muted">{% trans "Total Units Stocked" %}</span>
+          <span class="font-mono font-black text-indigo-600 dark:text-indigo-400 text-base">
+            {{ intake.total_quantity|floatformat:"-2" }}
+          </span>
+        </div>
+        <div class="flex items-center justify-between py-2.5">
+          <span class="text-muted">{% trans "Total Cost Stocked" %}</span>
+          <span class="font-mono font-black text-emerald-600 dark:text-emerald-400 text-base">
+            {{ intake.total_cost|floatformat:"2" }}
+          </span>
+        </div>
+      </div>
+
+      <div class="pt-2">
+        <a
+          href="{% url 'inventory:stock_level_list' %}?warehouse={{ intake.warehouse_id }}"
+          class="w-full py-2 px-3 rounded-xl text-xs font-semibold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink border border-[var(--border)] transition flex items-center justify-center gap-1.5 shadow-2xs"
+        >
+          <svg class="w-3.5 h-3.5 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+          </svg>
+          <span>{% trans "View Warehouse Inventory" %}</span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Stocked Products & Ingredients Table Card -->
+  <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl shadow-xs overflow-hidden">
+    <div class="px-5 py-4 border-b border-[var(--border)]/60 bg-[var(--surface-2)]/40 flex items-center justify-between">
+      <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+        <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+        </svg>
+        <span>{% trans "Stocked Products & Ingredients" %}</span>
+      </h2>
+      <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+        {{ lines|length }} {% if lines|length == 1 %}{% trans "line" %}{% else %}{% trans "lines" %}{% endif %}
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm min-w-[750px] table-fixed">
+        <colgroup>
+          <col style="width: 50px;">
+          <col style="width: 65px;">
+          <col style="width: auto;">
+          <col style="width: 160px;">
+          <col style="width: 120px;">
+          <col style="width: 110px;">
+          <col style="width: 110px;">
+        </colgroup>
+        <thead class="bg-[var(--surface-2)] text-[11px] font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/60">
+          <tr>
+            <th scope="col" class="py-3 px-2 text-center font-mono">#</th>
+            <th scope="col" class="py-3 px-2 text-center">{% trans "Image" %}</th>
+            <th scope="col" class="py-3 px-3">{% trans "Product & Details" %}</th>
+            <th scope="col" class="py-3 px-3">{% trans "Lot / Expiry" %}</th>
+            <th scope="col" class="py-3 px-3 text-center">{% trans "Quantity" %}</th>
+            <th scope="col" class="py-3 px-3 text-right">{% trans "Unit Cost" %}</th>
+            <th scope="col" class="py-3 px-3 text-right">{% trans "Line Total" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]/40">
+          {% for line in lines %}
+            <tr class="hover:bg-[var(--surface-2)]/30 transition-colors">
+              
+              <!-- Index (Image 3: Symmetrically Centered Inset Badge) -->
+              <td class="py-4 px-3 text-center align-middle w-12">
+                <div class="neu-index-badge">
+                  <span>{{ forloop.counter }}</span>
+                </div>
+              </td>
+
+              <!-- Thumbnail -->
+              <td class="py-4 px-3 text-center align-middle">
+                <div class="w-12 h-12 mx-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)] neu-thumbnail-frame overflow-hidden shrink-0 shadow-2xs flex items-center justify-center">
+                  {% if line.product.images.exists %}
+                    <img
+                      src="{{ line.product.images.first.image.url }}"
+                      alt="{{ line.product.name }}"
+                      class="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  {% else %}
+                    <div class="text-muted/40 p-2 flex items-center justify-center">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
+                      </svg>
+                    </div>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- Product Name & Specifications -->
+              <td class="py-4 px-4 align-middle">
+                <div class="font-bold text-sm text-ink">{{ line.product.name }}</div>
+                {% if line.variant %}
+                  <div class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-0.5">
+                    {% trans "Variant" %}: {{ line.variant.name }}
+                  </div>
+                {% endif %}
+                <div class="flex items-center gap-2 mt-1 flex-wrap">
+                  {% if line.product.sku %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] bg-[var(--surface-2)] text-ink border border-[var(--border)]/70">
+                      <span class="text-muted mr-1">SKU:</span>
+                      <span class="font-bold">{{ line.product.sku }}</span>
+                    </span>
+                  {% endif %}
+                  {% if line.product.category %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white">
+                      {{ line.product.category.name }}
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- Lot / Batch & Expiry -->
+              <td class="py-4 px-4 align-middle text-xs">
+                {% if line.batch_number %}
+                  <div class="font-mono font-bold text-ink">Lot: {{ line.batch_number }}</div>
+                {% endif %}
+                {% if line.expiry_date %}
+                  <div class="text-[11px] text-muted font-mono mt-0.5">Exp: {{ line.expiry_date|date:"Y-m-d" }}</div>
+                {% elif not line.batch_number %}
+                  <span class="text-muted/60">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Quantity -->
+              <td class="py-4 px-4 text-center align-middle">
+                <span class="font-mono font-black text-base text-ink">
+                  {{ line.quantity|floatformat:"-2" }}
+                </span>
+                <span class="text-[11px] text-muted font-bold block uppercase tracking-wider mt-0.5">
+                  {{ line.product.unit.code|default:_("units") }}
+                </span>
+              </td>
+
+              <!-- Unit Cost -->
+              <td class="py-4 px-4 text-right align-middle font-mono font-semibold text-xs sm:text-sm text-ink">
+                {{ line.unit_cost|floatformat:"2" }}
+              </td>
+
+              <!-- Line Total -->
+              <td class="py-4 px-4 text-right align-middle font-mono font-black text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
+                {{ line.total_cost|floatformat:"2" }}
+              </td>
+
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Immutable Stock Ledger Audit Movements Card -->
+  <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl shadow-xs overflow-hidden">
+    <div class="px-5 py-4 border-b border-[var(--border)]/60 bg-[var(--surface-2)]/40 flex items-center justify-between">
+      <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        </svg>
+        <span>{% trans "Immutable Stock Ledger Audit Entries" %}</span>
+      </h2>
+      <a
+        href="{% url 'warehouses:movement_list' %}"
+        class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1"
+      >
+        <span>{% trans "View full ledger" %}</span>
+        <span>&rsaquo;</span>
+      </a>
+    </div>
+
+    {% if ledger_movements %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse min-w-[650px]">
+          <thead class="bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/60">
+            <tr>
+              <th scope="col" class="py-3 px-4">{% trans "Date & Time" %}</th>
+              <th scope="col" class="py-3 px-4">{% trans "Movement Type" %}</th>
+              <th scope="col" class="py-3 px-4">{% trans "Warehouse" %}</th>
+              <th scope="col" class="py-3 px-4">{% trans "Product" %}</th>
+              <th scope="col" class="py-3 px-4 text-right">{% trans "Quantity Stocked" %}</th>
+              <th scope="col" class="py-3 px-4">{% trans "Ledger Audit Notes" %}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]/40">
+            {% for mov in ledger_movements %}
+              <tr class="hover:bg-[var(--surface-2)]/30 transition-colors">
+                <td class="py-3 px-4 font-mono text-xs text-muted">{{ mov.created_at|date:"M d, Y H:i:s" }}</td>
+                <td class="py-3 px-4">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                    {{ mov.get_movement_type_display }}
+                  </span>
+                </td>
+                <td class="py-3 px-4 font-semibold text-ink">{{ mov.warehouse.name }}</td>
+                <td class="py-3 px-4 text-ink">{{ mov.product.name }}</td>
+                <td class="py-3 px-4 text-right font-mono font-bold text-emerald-600">
+                  +{{ mov.quantity|floatformat:"-2" }}
+                </td>
+                <td class="py-3 px-4 text-xs text-muted">{{ mov.notes|default:"-" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="py-8 text-center text-muted text-xs">
+        {% trans "No ledger movements linked." %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

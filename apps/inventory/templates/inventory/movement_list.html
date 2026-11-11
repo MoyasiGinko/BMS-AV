@@ -1,69 +1,134 @@
 {% extends "layouts/app.html" %}
 {% load i18n humanize %}
 
-{% block title %}{% trans "Stock Movement Ledger" %} | {{ request.organization.name }}{% endblock %}
+{% block title %}{% trans "Stock Ledger" %} | {{ request.organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="ledger" %}
+{% endblock %}
 
 {% block content %}
-<div class="inventory-page space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Stock Movement Ledger" %}</h1>
-        </div>
-        <div class="flex items-center gap-2.5">
-            <a href="{% url 'inventory:adjustment_create' %}" class="neu-primary-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-                </svg>
-                {% trans "New Adjustment" %}
-            </a>
-        </div>
+<div class="space-y-6 w-full">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{% trans "Stock Ledger" %}</h1>
+      <p class="text-xs text-[var(--text-muted)] mt-1">
+        {% trans "Audit record of sales and stock received from or returned to warehouses." %}
+      </p>
     </div>
-
-    <!-- Navigation Sub-tabs -->
-    {% include "inventory/partials/_navigation_tabs.html" with active_tab="movements" %}
-
-    <!-- Filter Bar Card -->
-    <div class="neu-raised-card p-4 sm:p-5">
-        <form method="get"
-              hx-get="{% url 'inventory:movement_list' %}"
-              hx-target="#movement-table-container"
-              hx-swap="outerHTML"
-              hx-trigger="change from:select"
-              class="flex flex-col sm:flex-row sm:items-center gap-4">
-            
-            <div class="w-full sm:w-64">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{% trans "Warehouse" %}</label>
-                <select name="warehouse" class="neu-select w-full text-sm py-2 px-3">
-                    <option value="">{% trans "All Warehouses" %}</option>
-                    {% for w in warehouses %}
-                    <option value="{{ w.pk }}" {% if selected_warehouse.pk == w.pk %}selected{% endif %}>{{ w.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="w-full sm:w-64">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{% trans "Movement Type" %}</label>
-                <select name="type" class="neu-select w-full text-sm py-2 px-3">
-                    <option value="">{% trans "All Movement Types" %}</option>
-                    <option value="receipt" {% if movement_type == 'receipt' %}selected{% endif %}>{% trans "Receipt" %}</option>
-                    <option value="issue" {% if movement_type == 'issue' %}selected{% endif %}>{% trans "Issue" %}</option>
-                    <option value="transfer_in" {% if movement_type == 'transfer_in' %}selected{% endif %}>{% trans "Transfer In" %}</option>
-                    <option value="transfer_out" {% if movement_type == 'transfer_out' %}selected{% endif %}>{% trans "Transfer Out" %}</option>
-                    <option value="adjustment_in" {% if movement_type == 'adjustment_in' %}selected{% endif %}>{% trans "Adjustment In" %}</option>
-                    <option value="adjustment_out" {% if movement_type == 'adjustment_out' %}selected{% endif %}>{% trans "Adjustment Out" %}</option>
-                </select>
-            </div>
-
-            <div class="sm:ml-auto flex items-end">
-                <a href="{% url 'inventory:movement_list' %}" class="neu-action-btn text-xs font-bold py-2 px-3 rounded-lg text-slate-500 hover:text-slate-800 transition">
-                    {% trans "Reset Filter" %}
-                </a>
-            </div>
-        </form>
+    <div class="flex items-center gap-2.5">
+      <a
+        href="{% url 'inventory:add_stock' %}"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        <span>{% trans "Request Stock" %}</span>
+      </a>
+      <a
+        href="{% url 'warehouses:movement_list' %}"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-2xs"
+        title="{% trans 'View complete warehouse transfers and audit movements' %}"
+      >
+        <svg class="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+        <span>{% trans "Warehouse Ledger" %}</span>
+      </a>
     </div>
+  </div>
 
-    <!-- Movement Table -->
-    {% include "inventory/partials/movement_table.html" %}
+  <!-- Filter Card -->
+  <div class="p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] shadow-xs">
+    <form
+      method="get"
+      hx-get="{% url 'inventory:movement_list' %}"
+      hx-target="#movement-table-container"
+      hx-swap="outerHTML"
+      hx-trigger="change from:select, keyup changed delay:350ms from:input[name='q']"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end"
+    >
+      <!-- Search Input -->
+      <div>
+        <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+          {% trans "Search Product / Ref" %}
+        </label>
+        <input
+          type="text"
+          name="q"
+          value="{{ query|default:'' }}"
+          placeholder="{% trans 'Search by SKU, product name, or ref...' %}"
+          class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--brand-600)]"
+        />
+      </div>
+
+      <!-- Branch Filter -->
+      {% if branches %}
+      <div>
+        <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+          {% trans "Branch / Outlet" %}
+        </label>
+        <select
+          name="branch"
+          class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3 py-2"
+        >
+          <option value="">{% trans "All Branches" %}</option>
+          {% for b in branches %}
+            <option value="{{ b.pk }}" {% if selected_branch_id == b.pk %}selected{% endif %}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- Movement Type Filter -->
+      <div>
+        <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+          {% trans "Movement Event" %}
+        </label>
+        <select
+          name="type"
+          class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3 py-2"
+        >
+          <option value="">{% trans "All Events" %}</option>
+          <option value="sale" {% if movement_type == 'sale' or movement_type == 'issue' %}selected{% endif %}>{% trans "Sale (POS)" %}</option>
+          <option value="stock_in" {% if movement_type == 'stock_in' or movement_type == 'transfer_in' %}selected{% endif %}>{% trans "Stock In (Warehouse)" %}</option>
+          <option value="stock_out" {% if movement_type == 'stock_out' or movement_type == 'transfer_out' %}selected{% endif %}>{% trans "Stock Out (Warehouse)" %}</option>
+          <option value="return" {% if movement_type == 'return' or movement_type == 'return_in' %}selected{% endif %}>{% trans "Return (POS)" %}</option>
+        </select>
+      </div>
+
+      <!-- Warehouse Filter & Reset -->
+      <div class="flex items-center gap-2">
+        <div class="flex-1">
+          <label class="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+            {% trans "Warehouse" %}
+          </label>
+          <select
+            name="warehouse"
+            class="w-full text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] px-3 py-2"
+          >
+            <option value="">{% trans "All Warehouses" %}</option>
+            {% for w in warehouses %}
+              <option value="{{ w.pk }}" {% if selected_warehouse_id == w.pk %}selected{% endif %}>{{ w.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <a
+          href="{% url 'inventory:movement_list' %}"
+          class="px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] transition-colors self-end"
+          title="{% trans 'Reset filter' %}"
+        >
+          {% trans "Clear" %}
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Movement Table -->
+  {% include "inventory/partials/movement_table.html" %}
 </div>
 {% endblock %}

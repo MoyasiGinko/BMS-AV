@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from decimal import Decimal
 from typing import Any
 
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import F, Sum
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from apps.catalog.models import Product, ProductVariant
 from apps.core.events import publish
@@ -70,13 +72,15 @@ from apps.inventory.models import (
     StockTransfer,
     StockTransferLine,
     TransferStatus,
+    WarehouseStorageType,
 )
-from apps.tenancy.models import Organization, Warehouse
+from apps.tenancy.models import Branch, BranchWarehouse, Organization, Warehouse
 from apps.warehouses.services import (
     create_inventory_location,
     create_supply_route,
     delete_inventory_location,
     delete_supply_route,
+    get_or_create_location_for_branch,
     get_or_create_location_for_warehouse,
     get_preferred_supply_route,
     update_inventory_location,
@@ -84,6 +88,7 @@ from apps.warehouses.services import (
 )
 
 DECIMAL_ZERO = Decimal("0.0000")
+logger = logging.getLogger(__name__)
 
 
 def _get_or_create_stock_level(
@@ -1073,10 +1078,24 @@ def dispatch_stock_transfer(
                 dispatch_map[int(line_id)] = qty
 
     for line in lines:
+        if line.quantity_requested is None:
+            line.quantity_requested = line.quantity
         dispatch_qty = dispatch_map.get(line.id, line.quantity)
         if dispatch_qty <= DECIMAL_ZERO:
+            line.quantity = Decimal("0.0000")
+            line.quantity_dispatched = Decimal("0.0000")
+            line.save(update_fields=["quantity", "quantity_requested", "quantity_dispatched", "updated_at"])
             continue
 
+        dest_display = (
+            target_transfer.destination_branch.name
+            if target_transfer.is_branch_requisition and target_transfer.destination_branch
+            else (
+                target_transfer.destination_warehouse.name
+                if target_transfer.destination_warehouse
+                else ""
+            )
+        )
         mov = issue_stock(
             organization=organization,
             warehouse=target_transfer.source_warehouse,
@@ -1087,14 +1106,14 @@ def dispatch_stock_transfer(
             reference_type="inventory.StockTransfer",
             reference_id=str(target_transfer.pk),
             notes=(
-                f"Dispatched transfer {target_transfer.transfer_number} to "
-                f"{target_transfer.destination_warehouse.name}"
+                f"Dispatched transfer {target_transfer.transfer_number} to {dest_display}"
             ),
             actor=actor,
         )
+        line.quantity = dispatch_qty
         line.quantity_dispatched = dispatch_qty
         line.unit_cost = mov.unit_cost
-        line.save(update_fields=["quantity_dispatched", "unit_cost", "updated_at"])
+        line.save(update_fields=["quantity", "quantity_requested", "quantity_dispatched", "unit_cost", "updated_at"])
 
         # Track in_transit quantity on destination stock level
         dest_level = _get_or_create_stock_level(
@@ -2188,7 +2207,190 @@ def resolve_reconciliation_incident(
 
     return target_inc
 
+
+# ---------------------------------------------------------------------------
+# Branch Stock Requests & Outlet Requisitions
+# ---------------------------------------------------------------------------
+
+
+@transaction.atomic
+def create_branch_stock_request(
+    *,
+    organization: Organization,
+    branch: Branch,
+    source_warehouse: Warehouse,
+    lines: list[dict[str, Any]],
+    source_storage_type: WarehouseStorageType | None = None,
+    notes: str = "",
+    actor: Any = None,
+) -> StockTransfer:
+    """Create a stock requisition from an outlet/branch to a linked warehouse."""
+    if branch.organization_id != organization.pk or source_warehouse.organization_id != organization.pk:
+        raise ValidationError(_("Branch and Warehouse must belong to the active organization."))
+
+    if not lines:
+        raise InvalidMovement(_("A stock request requires at least one product line."))
+
+    # Validate replenishment authorization
+    mapping = BranchWarehouse.all_tenants.filter(
+        organization=organization,
+        branch=branch,
+        warehouse=source_warehouse,
+    ).first()
+    if mapping is not None and not mapping.can_replenish:
+        raise ValidationError(_("This branch is not authorized to request stock from warehouse %(wh)s.") % {"wh": source_warehouse.name})
+
+    transfer_num = generate_next_number(
+        organization_id=organization.pk,
+        name="transfers",
+        prefix="REQ-",
+        padding=5,
+    )
+
+    # Resolve source storage location
+    src_loc = None
+    if source_storage_type is not None:
+        src_loc = InventoryLocation.all_tenants.filter(
+            organization=organization,
+            warehouse=source_warehouse,
+            custom_storage_type=source_storage_type,
+            is_active=True,
+        ).first()
+    if src_loc is None:
+        src_loc = source_warehouse.get_sellable_location() or get_or_create_location_for_warehouse(source_warehouse)
+
+    dst_loc = get_or_create_location_for_branch(branch)
+
+    transfer = StockTransfer.objects.create(
+        organization=organization,
+        transfer_number=transfer_num,
+        source_warehouse=source_warehouse,
+        destination_warehouse=source_warehouse,
+        source_location=src_loc,
+        destination_location=dst_loc,
+        source_branch=source_warehouse.branch,
+        destination_branch=branch,
+        is_inter_branch=True,
+        is_branch_requisition=True,
+        status=TransferStatus.PENDING_APPROVAL,
+        notes=notes,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+
+    for item in lines:
+        prod: Product = item["product"]
+        var: ProductVariant | None = item.get("variant")
+        q: Decimal = Decimal(str(item["quantity"]))
+        if q <= DECIMAL_ZERO:
+            raise InvalidMovement(_("Requested quantity for '%(name)s' must be positive.") % {"name": prod.name})
+        StockTransferLine.objects.create(
+            organization=organization,
+            transfer=transfer,
+            product=prod,
+            variant=var,
+            quantity=q,
+            quantity_requested=q,
+        )
+
+    logger.info("Created branch stock request %s for branch %s from warehouse %s", transfer_num, branch.name, source_warehouse.name)
+    return transfer
+
+
+@transaction.atomic
+def accept_and_dispatch_stock_request(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    actor: Any = None,
+    tracking_number: str = "",
+    carrier: str = "",
+    dispatched_lines: list[dict[str, Any]] | None = None,
+) -> StockTransfer:
+    """Accept and dispatch a pending branch stock request from warehouse storage into transit."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    if target_transfer.status not in (TransferStatus.PENDING_APPROVAL, TransferStatus.APPROVED):
+        raise TransferError(_("Cannot dispatch stock request in status '%(status)s'.") % {"status": target_transfer.get_status_display()})
+
+    # If pending approval, approve it first
+    if target_transfer.status == TransferStatus.PENDING_APPROVAL:
+        target_transfer.status = TransferStatus.APPROVED
+        target_transfer.approved_at = timezone.now()
+        target_transfer.approved_by = actor if getattr(actor, "is_authenticated", False) else None
+        target_transfer.save(update_fields=["status", "approved_at", "approved_by", "updated_at"])
+
+    return dispatch_stock_transfer(
+        organization=organization,
+        transfer=target_transfer,
+        actor=actor,
+        tracking_number=tracking_number,
+        carrier=carrier,
+        dispatched_lines=dispatched_lines,
+    )
+
+
+@transaction.atomic
+def update_stock_request_counts(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    lines_data: list[dict[str, Any]],
+    actor: Any = None,
+) -> StockTransfer:
+    """Update line item approved counts on a pending stock request."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    if target_transfer.status not in (TransferStatus.PENDING_APPROVAL, TransferStatus.APPROVED):
+        raise TransferError(
+            _("Cannot update counts for stock request in status '%(status)s'.")
+            % {"status": target_transfer.get_status_display()}
+        )
+
+    lines_by_id = {line.pk: line for line in target_transfer.lines.all()}
+    for item in lines_data:
+        line_id = item.get("line_id") or item.get("id")
+        if not line_id or int(line_id) not in lines_by_id:
+            continue
+        line = lines_by_id[int(line_id)]
+        raw_qty = item.get("quantity")
+        if raw_qty is not None:
+            new_qty = Decimal(str(raw_qty))
+            if new_qty < Decimal("0.0000"):
+                raise TransferError(_("Quantity cannot be negative."))
+            if line.quantity_requested is None:
+                line.quantity_requested = line.quantity
+            line.quantity = new_qty
+            line.save(update_fields=["quantity", "quantity_requested", "updated_at"])
+
+    target_transfer.save(update_fields=["updated_at"])
+    return target_transfer
+
+
+@transaction.atomic
+def confirm_stock_request_receipt(
+    *,
+    organization: Organization,
+    transfer: StockTransfer | int,
+    actor: Any = None,
+    notes: str = "",
+) -> StockTransfer:
+    """Confirm delivery and receive goods at the branch/outlet, closing the request."""
+    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    if target_transfer.status not in (TransferStatus.DISPATCHED, TransferStatus.IN_TRANSIT, TransferStatus.PARTIALLY_RECEIVED):
+        raise TransferError(_("Cannot receive stock request in status '%(status)s'.") % {"status": target_transfer.get_status_display()})
+
+    completed_transfer = receive_stock_transfer(
+        organization=organization,
+        transfer=target_transfer,
+        receipt_lines=None,
+        notes=notes,
+        actor=actor,
+    )
+    return completed_transfer
+
+
 __all__ = [
+    "accept_and_dispatch_stock_request",
+    "confirm_stock_request_receipt",
+    "create_branch_stock_request",
     "create_inventory_location",
     "create_supply_route",
     "delete_inventory_location",
@@ -2196,5 +2398,6 @@ __all__ = [
     "get_or_create_location_for_warehouse",
     "get_preferred_supply_route",
     "update_inventory_location",
+    "update_stock_request_counts",
     "update_supply_route",
 ]
