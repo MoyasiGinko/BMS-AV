@@ -1,0 +1,272 @@
+{% extends "layouts/app.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Record Stock Adjustment" %} | {{ request.organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="adjustments" %}
+{% endblock %}
+
+{% block content %}
+<div class="warehouse-adjustments space-y-8 pb-16">
+    <!-- Breadcrumb & Header -->
+    <div class="space-y-2">
+        <nav class="flex items-center gap-2 text-sm text-slate-500 font-medium">
+            <a href="{% url 'warehouses:adjustment_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Stock Adjustments" %}</a>
+            <span>/</span>
+            <span class="text-ink font-semibold">{% trans "Record Adjustment" %}</span>
+        </nav>
+        <h1 class="text-3xl font-extrabold tracking-tight text-ink">{% trans "Record Stock Adjustment" %}</h1>
+        <p class="text-sm text-slate-500 font-medium max-w-3xl">
+            {% trans "Post quantity and value corrections across central warehouses, retail outlets, or specific storage zones and bins." %}
+        </p>
+    </div>
+
+    <!-- Main Adjustment Form -->
+    <form id="adjustment-form" method="post" class="space-y-8 w-full">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
+            <!-- Left 8 Columns: Form fields -->
+            <div class="lg:col-span-8 space-y-8">
+                <!-- Card 1: Facility Scope & Storage Location -->
+                <div class="p-6 sm:p-8 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs space-y-6">
+                    <div class="border-b border-[var(--border)]/60 pb-4">
+                        <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Facility & Storage Scope" %}</h2>
+                        <p class="text-xs text-muted font-medium mt-0.5">
+                            {% trans "Choose whether the adjustment applies to a warehouse or an outlet, and specify the storage location." %}
+                        </p>
+                    </div>
+
+                    <!-- Facility Type Toggle -->
+                    <div>
+                        <label class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                            {% trans "Facility Scope" %} <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="inline-flex p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] gap-1">
+                            <label class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition has-[:checked]:bg-indigo-600 has-[:checked]:text-white text-ink">
+                                <input type="radio" name="facility_type" value="warehouse" checked class="sr-only" onchange="toggleFacilityScope('warehouse')">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                <span>{% trans "Warehouse" %}</span>
+                            </label>
+                            <label class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition has-[:checked]:bg-indigo-600 has-[:checked]:text-white text-ink">
+                                <input type="radio" name="facility_type" value="branch" class="sr-only" onchange="toggleFacilityScope('branch')">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                <span>{% trans "Branch / Outlet" %}</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <!-- Warehouse Picker -->
+                        <div id="warehouse-container">
+                            <label for="warehouse_id" class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                                {% trans "Target Warehouse" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <select id="warehouse_id" name="warehouse_id" class="w-full text-sm font-semibold py-2.5 px-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                                <option value="">{% trans "Select a warehouse..." %}</option>
+                                {% for wh in warehouses %}
+                                <option value="{{ wh.pk }}">{{ wh.name }} ({{ wh.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Branch Outlet Picker -->
+                        <div id="branch-container" class="hidden">
+                            <label for="branch_id" class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                                {% trans "Target Branch / Outlet" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <select id="branch_id" name="branch_id" class="w-full text-sm font-semibold py-2.5 px-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                                <option value="">{% trans "Select a branch or outlet..." %}</option>
+                                {% for br in branches %}
+                                <option value="{{ br.pk }}">{{ br.name }} ({{ br.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Storage Location Picker -->
+                        <div>
+                            <label for="location_id" class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                                {% trans "Storage Location / Zone / Bin" %}
+                            </label>
+                            <select id="location_id" name="location_id" class="w-full text-sm font-semibold py-2.5 px-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                                <option value="">{% trans "Default Facility Storage" %}</option>
+                                {% for loc in locations %}
+                                <option value="{{ loc.pk }}" data-warehouse="{{ loc.warehouse_id|default:'' }}" data-branch="{{ loc.branch_id|default:'' }}">
+                                    {{ loc.name }} ({{ loc.get_location_type_display }})
+                                    {% if loc.warehouse %}&bull; {{ loc.warehouse.name }}{% elif loc.branch %}&bull; {{ loc.branch.name }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-[11px] text-muted mt-1">{% trans "Optional: Select a specific bin, shelf, or storage section." %}</p>
+                        </div>
+                    </div>
+
+                    <!-- Adjustment Reason -->
+                    <div>
+                        <label for="reason" class="block text-xs font-bold text-muted uppercase tracking-wider mb-2">
+                            {% trans "Adjustment Reason" %} <span class="text-rose-500">*</span>
+                        </label>
+                        <select id="reason" name="reason" required class="w-full text-sm font-semibold py-2.5 px-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                            {% for r_val, r_label in reasons %}
+                            <option value="{{ r_val }}" {% if r_val == 'count_variance' %}selected{% endif %}>{{ r_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Card 2: Items Table -->
+                <div class="p-6 sm:p-8 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs space-y-6">
+                    <div class="flex items-center justify-between border-b border-[var(--border)]/60 pb-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Adjusted Items" %}</h2>
+                            <p class="text-xs text-muted font-medium mt-0.5">
+                                {% trans "Specify items and quantity deltas: positive (+) to add stock, negative (-) to write off." %}
+                            </p>
+                        </div>
+                        <button type="button" onclick="addItemRow()" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 transition inline-flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                            <span>{% trans "Add Item" %}</span>
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="text-xs font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/60">
+                                    <th class="py-2.5 px-3">{% trans "Product" %} <span class="text-rose-500">*</span></th>
+                                    <th class="py-2.5 px-3">{% trans "Variant" %}</th>
+                                    <th class="py-2.5 px-3 w-40">{% trans "Qty Delta (+ / -)" %} <span class="text-rose-500">*</span></th>
+                                    <th class="py-2.5 px-3 w-32">{% trans "Unit Cost" %}</th>
+                                    <th class="py-2.5 px-3 w-16 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="items-table-body" class="divide-y divide-[var(--border)]/40">
+                                <!-- Initial Item Row -->
+                                <tr class="item-row">
+                                    <td class="py-3 px-3">
+                                        <select name="product_id[]" required class="w-full text-xs font-semibold py-2 px-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                                            <option value="">{% trans "Select product..." %}</option>
+                                            {% for prod in products %}
+                                            <option value="{{ prod.pk }}">{{ prod.name }} ({{ prod.sku }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="py-3 px-3">
+                                        <select name="variant_id[]" class="w-full text-xs font-semibold py-2 px-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30">
+                                            <option value="">{% trans "Base Product" %}</option>
+                                            {% for var in variants %}
+                                            <option value="{{ var.pk }}" data-product="{{ var.product_id }}">
+                                                {{ var.product.name }} - {{ var.name }} ({{ var.sku }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="py-3 px-3">
+                                        <input type="number" step="any" name="quantity[]" required placeholder="e.g. 5 or -2" class="w-full text-xs font-mono font-bold py-2 px-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                                    </td>
+                                    <td class="py-3 px-3">
+                                        <input type="number" step="0.0001" name="unit_cost[]" placeholder="0.00" class="w-full text-xs font-mono py-2 px-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30" />
+                                    </td>
+                                    <td class="py-3 px-3 text-center">
+                                        <button type="button" onclick="removeItemRow(this)" class="p-1.5 text-muted hover:text-rose-600 rounded-lg transition" title="{% trans 'Remove line' %}">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Card 3: Audit Notes -->
+                <div class="p-6 sm:p-8 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs space-y-4">
+                    <h2 class="text-xl font-extrabold text-ink tracking-tight">{% trans "Audit Notes & Investigation" %}</h2>
+                    <textarea name="notes" rows="3" placeholder="{% trans 'Explain discrepancy cause, incident report references, or write-off approval...' %}" class="w-full text-sm font-normal py-2.5 px-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:outline-none focus:ring-2 focus:ring-indigo-500/30"></textarea>
+                </div>
+            </div>
+
+            <!-- Right 4 Columns: Guidance Card -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="p-6 sm:p-8 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs space-y-5">
+                    <h3 class="text-lg font-extrabold text-ink tracking-tight">{% trans "Adjustment Guidelines" %}</h3>
+
+                    <div class="space-y-4 text-xs text-muted leading-relaxed">
+                        <div class="p-3.5 rounded-xl bg-[var(--surface-2)]/60 border border-[var(--border)]/50">
+                            <span class="block font-bold text-ink mb-1">{% trans "Warehouse vs. Outlet" %}</span>
+                            {% trans "Adjustments can originate from central distribution warehouses or retail outlets. Stock ledger entries are attributed to the selected facility." %}
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-[var(--surface-2)]/60 border border-[var(--border)]/50">
+                            <span class="block font-bold text-ink mb-1">{% trans "Storage Locations" %}</span>
+                            {% trans "You can pinpoint adjustments to specific storage zones or bins. If unassigned, default facility storage is used." %}
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-[var(--surface-2)]/60 border border-[var(--border)]/50">
+                            <span class="block font-bold text-ink mb-1">{% trans "Quantity Deltas" %}</span>
+                            {% trans "Enter positive numbers (+5) to add found inventory or returns. Enter negative numbers (-2) for breakage, shrinkage, or write-offs." %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Action Bar -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs">
+            <a href="{% url 'warehouses:adjustment_list' %}" class="inline-flex items-center px-5 py-2.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-[var(--surface-2)] hover:bg-[var(--surface-3)] transition">
+                &larr; {% trans "Cancel and Return" %}
+            </a>
+            <button type="submit" class="inline-flex items-center px-7 py-3 rounded-xl text-sm font-extrabold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 cursor-pointer">
+                <svg class="w-4.5 h-4.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+                {% trans "Confirm Adjustment" %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleFacilityScope(type) {
+    const whContainer = document.getElementById('warehouse-container');
+    const brContainer = document.getElementById('branch-container');
+    const whSelect = document.getElementById('warehouse_id');
+    const brSelect = document.getElementById('branch_id');
+
+    if (type === 'branch') {
+        whContainer.classList.add('hidden');
+        brContainer.classList.remove('hidden');
+        whSelect.removeAttribute('required');
+        brSelect.setAttribute('required', 'required');
+    } else {
+        brContainer.classList.add('hidden');
+        whContainer.classList.remove('hidden');
+        brSelect.removeAttribute('required');
+        whSelect.setAttribute('required', 'required');
+    }
+}
+
+function addItemRow() {
+    const tbody = document.getElementById('items-table-body');
+    const firstRow = tbody.querySelector('.item-row');
+    if (!firstRow) return;
+    const newRow = firstRow.cloneNode(true);
+    newRow.querySelectorAll('input').forEach(input => input.value = '');
+    newRow.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+    tbody.appendChild(newRow);
+}
+
+function removeItemRow(btn) {
+    const tbody = document.getElementById('items-table-body');
+    const rows = tbody.querySelectorAll('.item-row');
+    if (rows.length > 1) {
+        btn.closest('.item-row').remove();
+    } else {
+        alert("{% trans 'At least one item line is required.' %}");
+    }
+}
+</script>
+{% endblock %}
+

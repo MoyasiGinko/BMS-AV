@@ -79,7 +79,7 @@ def test_pwa_service_worker_headers_and_content(rf: RequestFactory) -> None:
 
     content = response.content.decode("utf-8")
     # Verify pre-cached shell assets
-    assert "bos-shell-v1" in content
+    assert "bos-shell-v2" in content
     assert "'/offline/'" in content
     assert "'/pos/'" in content
     assert "'/approvals/'" in content
@@ -121,6 +121,10 @@ def test_pwa_base_and_app_layout_integration() -> None:
 
 def test_pos_terminal_mobile_responsive_elements() -> None:
     """Verify POS terminal template includes mobile tab switcher and touch target constraints."""
+    rf = RequestFactory()
+    req = rf.get("/pos/")
+    req.tenant = SimpleNamespace(name="Apex")
+    req.organization = req.tenant
     terminal_html = render_to_string(
         "pos/terminal.html",
         {
@@ -143,6 +147,7 @@ def test_pos_terminal_mobile_responsive_elements() -> None:
             "payment_methods": [],
             "tax_codes": [],
         },
+        request=req,
     )
     # Mobile tab buttons
     assert "mobileTab = 'catalog'" in terminal_html

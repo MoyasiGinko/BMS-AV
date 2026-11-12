@@ -1,0 +1,371 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Inventory Dashboard" %} | {{ request.organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="dashboard" %}
+{% endblock %}
+
+{% block content %}
+<div class="inventory-page space-y-6">
+
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-[var(--border)]/40">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+        <span>{% trans "Inventory" %}</span>
+        <span>/</span>
+        <span class="text-ink">{% trans "Dashboard" %}</span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Inventory & Stocks Dashboard" %}</h1>
+      <p class="text-xs sm:text-sm text-muted mt-0.5">
+        {% trans "Live stock valuation, health indicators, fulfillment pipelines, and location distribution." %}
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2.5">
+      <a
+        href="{% url 'inventory:add_stock' %}"
+        class="neu-btn-primary inline-flex items-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95 cursor-pointer"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+        </svg>
+        <span>{% trans "Stock Request" %}</span>
+      </a>
+      <a
+        href="{% url 'inventory:stock_level_list' %}"
+        class="neu-subnav-btn bg-[var(--surface-1)] text-ink hover:text-indigo-600 font-semibold shadow-2xs border border-[var(--border)]/60 px-4 py-2.5 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 transition-all"
+      >
+        <svg class="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        <span>{% trans "View Inventory" %}</span>
+      </a>
+      <a
+        href="{% url 'inventory:stock_request_list' %}"
+        class="neu-subnav-btn bg-[var(--surface-1)] text-ink hover:text-indigo-600 font-semibold shadow-2xs border border-[var(--border)]/60 px-4 py-2.5 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 transition-all"
+      >
+        <svg class="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+        <span>{% trans "Request List" %}</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 1. Top KPI Bento Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+
+    <!-- Card 1: Total Valuation -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs transition-all hover:shadow-sm">
+      <div class="flex items-center justify-between pb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Total Asset Valuation" %}</span>
+        <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-extrabold text-ink font-mono tracking-tight">
+        {{ summary.total_cost|floatformat:"2"|intcomma }} <span class="text-xs font-normal text-muted">{{ request.organization.currency }}</span>
+      </div>
+      <div class="mt-2.5 pt-2.5 border-t border-[var(--border)]/40 flex items-center justify-between text-xs text-muted">
+        <span>{% trans "Retail Potential" %}:</span>
+        <span class="font-mono font-bold text-ink">{{ summary.total_retail|floatformat:"2"|intcomma }} {{ request.organization.currency }}</span>
+      </div>
+    </div>
+
+    <!-- Card 2: Total Units in Stock -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs transition-all hover:shadow-sm">
+      <div class="flex items-center justify-between pb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Physical Inventory Units" %}</span>
+        <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-extrabold text-ink font-mono tracking-tight">
+        {{ summary.total_units|floatformat:"0"|intcomma }} <span class="text-xs font-normal text-muted">{% trans "units" %}</span>
+      </div>
+      <div class="mt-2.5 pt-2.5 border-t border-[var(--border)]/40 flex items-center justify-between text-xs text-muted">
+        <span>{% trans "Locations" %}:</span>
+        <span class="font-bold text-ink">{{ warehouses.count }} {% trans "hubs" %} &bull; {{ branches.count }} {% trans "outlets" %}</span>
+      </div>
+    </div>
+
+    <!-- Card 3: Tracked SKUs & Catalog Health -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs transition-all hover:shadow-sm">
+      <div class="flex items-center justify-between pb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Catalog SKUs" %}</span>
+        <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-extrabold text-ink font-mono tracking-tight">
+        {{ total_skus }} <span class="text-xs font-normal text-muted">{% trans "products" %}</span>
+      </div>
+      <div class="mt-2.5 pt-2.5 border-t border-[var(--border)]/40 flex items-center justify-between text-xs text-muted">
+        <span>{% trans "Stock Health" %}:</span>
+        <span class="inline-flex items-center gap-1 font-bold {% if healthy_ratio >= 80 %}text-emerald-600 dark:text-emerald-400{% else %}text-amber-600 dark:text-amber-400{% endif %}">
+          <span class="w-1.5 h-1.5 rounded-full {% if healthy_ratio >= 80 %}bg-emerald-500{% else %}bg-amber-500{% endif %}"></span>
+          {{ healthy_ratio }}% {% trans "healthy" %}
+        </span>
+      </div>
+    </div>
+
+    <!-- Card 4: Operations & Movements Pipeline -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs transition-all hover:shadow-sm">
+      <div class="flex items-center justify-between pb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Active Operations" %}</span>
+        <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.25V3.75c0-.621-.504-1.125-1.125-1.125h-9.75c-.621 0-1.125.504-1.125 1.125v10.5c0 .621.504 1.125 1.125 1.125h2.25"/>
+          </svg>
+        </div>
+      </div>
+      <div class="text-2xl sm:text-3xl font-extrabold text-ink font-mono tracking-tight">
+        {{ active_requisitions|add:active_returns }} <span class="text-xs font-normal text-muted">{% trans "in pipeline" %}</span>
+      </div>
+      <div class="mt-2.5 pt-2.5 border-t border-[var(--border)]/40 flex items-center justify-between text-xs text-muted">
+        <span>{% trans "Requisitions / Returns" %}:</span>
+        <span class="font-bold text-ink">{{ active_requisitions }} req &bull; {{ active_returns }} ret</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Stock Health Quick Status Strip -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <!-- In Stock -->
+    <div class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Healthy Stock" %}</div>
+          <div class="text-lg font-black text-ink font-mono">{{ healthy_stock_count }} <span class="text-xs font-normal text-muted">SKUs</span></div>
+        </div>
+      </div>
+      <span class="text-xs font-bold text-emerald-700 dark:text-emerald-300">{% trans "Optimal" %}</span>
+    </div>
+
+    <!-- Low Stock -->
+    <a href="{% url 'inventory:reorder_suggestions' %}" class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 transition flex items-center justify-between group">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Low Stock Alerts" %}</div>
+          <div class="text-lg font-black text-amber-700 dark:text-amber-300 font-mono">{{ low_stock_count }} <span class="text-xs font-normal text-muted">SKUs</span></div>
+        </div>
+      </div>
+      <span class="text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:underline">{% trans "Review Reorder" %} &rarr;</span>
+    </a>
+
+    <!-- Out of Stock -->
+    <div class="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-muted">{% trans "Out of Stock" %}</div>
+          <div class="text-lg font-black text-rose-700 dark:text-rose-300 font-mono">{{ out_of_stock_count }} <span class="text-xs font-normal text-muted">SKUs</span></div>
+        </div>
+      </div>
+      <span class="text-xs font-bold text-rose-600 dark:text-rose-400">{% trans "Depleted" %}</span>
+    </div>
+  </div>
+
+  <!-- 3. Middle Section: Top Valuation Products (8 cols) + Warehouse Distribution & Returns Breakdown (4 cols) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- Top Valuation Products Table (8 cols) -->
+    <div class="lg:col-span-8 neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]/40">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-ink">{% trans "High-Volume Stock Holdings" %}</h2>
+          <p class="text-xs text-muted">{% trans "Top inventory items ranked by on-hand quantity and warehouse location." %}</p>
+        </div>
+        <a
+          href="{% url 'inventory:stock_level_list' %}"
+          class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 transition"
+        >
+          {% trans "All Inventory" %} &rarr;
+        </a>
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-[var(--border)]/60 bg-[var(--surface-1)]">
+        <table class="w-full text-left text-sm border-collapse min-w-[560px]">
+          <thead class="bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/60">
+            <tr>
+              <th scope="col" class="py-3 px-3 text-center font-mono">#</th>
+              <th scope="col" class="py-3 px-3">{% trans "Product" %}</th>
+              <th scope="col" class="py-3 px-3">{% trans "Location" %}</th>
+              <th scope="col" class="py-3 px-3 text-right">{% trans "On Hand" %}</th>
+              <th scope="col" class="py-3 px-3 text-right">{% trans "Available" %}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]/40 font-medium">
+            {% for item in top_items %}
+              <tr class="hover:bg-[var(--surface-2)]/40 transition-colors">
+                <td class="py-3 px-3 text-center text-xs font-mono font-bold text-muted">{{ forloop.counter }}</td>
+                <td class="py-3 px-3">
+                  <div class="font-bold text-ink text-sm">{{ item.product.name }}</div>
+                  <div class="text-xs text-muted font-mono mt-0.5">
+                    {% if item.product.sku %}SKU: {{ item.product.sku }}{% endif %}
+                    {% if item.product.category %}&bull; <span class="text-indigo-600">{{ item.product.category.name }}</span>{% endif %}
+                  </div>
+                </td>
+                <td class="py-3 px-3 text-xs">
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] text-ink font-semibold">
+                    {{ item.warehouse.name }}
+                  </span>
+                </td>
+                <td class="py-3 px-3 text-right font-mono font-black text-ink">
+                  {{ item.on_hand|floatformat:"-2" }} <span class="text-xs font-normal text-muted">{{ item.product.unit.code|default:_("units") }}</span>
+                </td>
+                <td class="py-3 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                  {{ item.available|floatformat:"-2" }}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="py-8 text-center text-muted text-xs">
+                  {% trans "No stock levels recorded yet." %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Warehouse & Logistics Distribution Sidebar (4 cols) -->
+    <div class="lg:col-span-4 space-y-6">
+
+      <!-- Warehouse Storage Share Card -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between pb-2 border-b border-[var(--border)]/40">
+          <h3 class="text-sm font-bold text-ink">{% trans "Warehouse Stock Share" %}</h3>
+          <span class="text-xs text-muted font-mono">{{ warehouses.count }} {% trans "hubs" %}</span>
+        </div>
+
+        <div class="space-y-3 pt-1">
+          {% for wh in wh_distribution %}
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-ink">{{ wh.warehouse.name }}</span>
+                <span class="font-mono font-bold text-muted">{{ wh.units|floatformat:"0"|intcomma }} u ({{ wh.pct }}%)</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
+                <div class="h-full bg-indigo-600 rounded-full" style="width: {{ wh.pct }}%;"></div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="text-xs text-muted py-2">{% trans "No warehouses configured." %}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Returns by Reason Analytics Card -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs space-y-3.5">
+        <div class="flex items-center justify-between pb-2 border-b border-[var(--border)]/40">
+          <h3 class="text-sm font-bold text-ink">{% trans "Returns by Reason" %}</h3>
+          <a href="{% url 'inventory:add_stock' %}" class="text-[11px] font-bold text-indigo-600 hover:underline">{% trans "New Return" %}</a>
+        </div>
+
+        <div class="space-y-2 pt-1">
+          {% for r in return_reasons %}
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]/40 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span class="font-semibold text-ink capitalize">{{ r.return_reason|default:_("General Return") }}</span>
+              </div>
+              <span class="font-mono font-bold text-ink">{{ r.total_units|floatformat:"-2" }} {% trans "units" %}</span>
+            </div>
+          {% empty %}
+            <div class="text-xs text-muted py-2 text-center">
+              {% trans "No return movements recorded yet." %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 4. Recent Stock Activity Ledger Snapshot -->
+  <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]/40">
+      <div>
+        <h2 class="text-base sm:text-lg font-bold text-ink">{% trans "Recent Stock Activity" %}</h2>
+        <p class="text-xs text-muted">{% trans "Latest immutable inventory ledger transactions." %}</p>
+      </div>
+      <a
+        href="{% url 'inventory:movement_list' %}"
+        class="neu-subnav-btn bg-[var(--surface-1)] text-ink hover:text-indigo-600 font-semibold shadow-2xs border border-[var(--border)]/60 px-3.5 py-1.5 rounded-xl text-xs inline-flex items-center gap-1.5 transition-all"
+      >
+        <span>{% trans "Full Ledger" %}</span> &rarr;
+      </a>
+    </div>
+
+    <div class="overflow-x-auto rounded-xl border border-[var(--border)]/60 bg-[var(--surface-1)]">
+      <table class="w-full text-left text-sm border-collapse min-w-[600px]">
+        <thead class="bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/60">
+          <tr>
+            <th scope="col" class="py-3 px-3">{% trans "Date & Time" %}</th>
+            <th scope="col" class="py-3 px-3">{% trans "Movement Type" %}</th>
+            <th scope="col" class="py-3 px-3">{% trans "Product" %}</th>
+            <th scope="col" class="py-3 px-3">{% trans "Location" %}</th>
+            <th scope="col" class="py-3 px-3 text-right">{% trans "Quantity" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]/40 font-medium">
+          {% for m in recent_movements %}
+            <tr class="hover:bg-[var(--surface-2)]/40 transition-colors">
+              <td class="py-3 px-3 text-xs font-mono text-muted whitespace-nowrap">
+                {{ m.created_at|date:"M d, H:i" }}
+              </td>
+              <td class="py-3 px-3">
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--surface-2)] border border-[var(--border)] text-ink">
+                  {{ m.get_movement_type_display }}
+                </span>
+              </td>
+              <td class="py-3 px-3 font-bold text-ink text-xs">
+                {{ m.product.name }}
+              </td>
+              <td class="py-3 px-3 text-xs text-muted">
+                {{ m.warehouse.name|default:_("General Storage") }}
+              </td>
+              <td class="py-3 px-3 text-right font-mono font-black text-xs {% if m.quantity > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                {% if m.quantity > 0 %}+{% endif %}{{ m.quantity|floatformat:"-2" }} {{ m.product.unit.code|default:_("u") }}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="py-8 text-center text-muted text-xs">
+                {% trans "No recent movements recorded." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

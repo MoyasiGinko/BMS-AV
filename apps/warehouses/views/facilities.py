@@ -16,7 +16,7 @@ from apps.tenancy import services as tenancy_services
 from apps.tenancy.models import Organization
 from apps.warehouses import selectors, services
 from apps.warehouses.forms import BranchForm, WarehouseForm
-from apps.warehouses.models import Warehouse
+from apps.warehouses.models import BranchWarehouse, Warehouse
 from apps.warehouses.views.common import (
     ValidationError,
 )
@@ -34,31 +34,88 @@ from apps.warehouses.views.locations import _handle_location_post
 
 def _handle_link_branch(request: HttpRequest, org: Organization) -> None:
     branch_id = request.POST.get("branch_id")
-    wh_id = request.POST.get("warehouse_id")
     branch = tenancy_selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
-    wh = selectors.get_warehouse_by_id(organization_id=org.pk, warehouse_id=wh_id)
-    if branch and wh:
-        is_synced = request.POST.get("is_storage_synced") in ("on", "true", "True", "1")
-        synced_ids = [int(x) for x in request.POST.getlist("synced_storage_types") if x.isdigit()]
+    if not branch:
+        messages.error(request, _("Branch not found."))
+        return
+
+    wh_ids = [int(x) for x in request.POST.getlist("warehouse_ids") if x.isdigit()]
+    single_wh = request.POST.get("warehouse_id")
+    if single_wh and str(single_wh).isdigit() and int(single_wh) not in wh_ids:
+        wh_ids.append(int(single_wh))
+
+    sync_all = request.POST.get("sync_all") in ("1", "true", "True", "on")
+
+    if not wh_ids and not sync_all:
+        messages.error(request, _("Please select at least one warehouse to connect."))
+        return
+
+    primary_wh_raw = request.POST.get("primary_warehouse_id")
+    primary_wh_id = int(primary_wh_raw) if primary_wh_raw and str(primary_wh_raw).isdigit() else None
+    if not primary_wh_id and request.POST.get("is_default") in ("on", "true", "True") and wh_ids:
+        primary_wh_id = wh_ids[0]
+
+    is_synced = request.POST.get("is_storage_synced") in ("on", "true", "True", "1")
+    synced_ids = [int(x) for x in request.POST.getlist("synced_storage_types") if x.isdigit()]
+    can_replenish = request.POST.get("can_replenish", "true") in ("on", "true", "True", "1")
+    can_sell = request.POST.get("can_sell", "true") in ("on", "true", "True", "1")
+    priority_raw = request.POST.get("priority")
+    priority_val = int(priority_raw) if priority_raw and str(priority_raw).isdigit() else 1
+
+    if sync_all:
+        existing_mappings = BranchWarehouse.all_tenants.filter(organization=org, branch=branch)
+        for mapping in existing_mappings:
+            if mapping.warehouse_id not in wh_ids:
+                services.unlink_warehouse_from_branch(
+                    organization=org, branch=branch, warehouse=mapping.warehouse, actor=request.user
+                )
+
+    linked_count = 0
+    for wh_id in wh_ids:
+        wh = selectors.get_warehouse_by_id(organization_id=org.pk, warehouse_id=wh_id)
+        if not wh:
+            continue
+        is_default = (wh.pk == primary_wh_id)
         try:
             services.link_warehouse_to_branch(
                 organization=org,
                 branch=branch,
                 warehouse=wh,
-                is_default=request.POST.get("is_default") in ("on", "true", "True"),
-                can_sell=request.POST.get("can_sell", "true") in ("on", "true", "True"),
-                can_replenish=request.POST.get("can_replenish", "true") in ("on", "true", "True"),
+                is_default=is_default,
+                can_sell=can_sell,
+                can_replenish=can_replenish,
                 is_storage_synced=is_synced,
-                synced_storage_type_ids=synced_ids,
-                priority=int(request.POST.get("priority") or 1),
+                synced_storage_type_ids=synced_ids if is_synced else None,
+                priority=priority_val,
                 actor=request.user,
             )
-            messages.success(
-                request,
-                _("Linked warehouse '%(wh)s' to branch '%(br)s'.") % {"wh": wh.name, "br": branch.name},
-            )
+            linked_count += 1
         except ValidationError as exc:
             messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+
+    if linked_count > 0:
+        messages.success(
+            request,
+            _("Connected %(count)d warehouse(s) to %(branch)s.")
+            % {"count": linked_count, "branch": branch.name},
+        )
+    elif sync_all and not wh_ids:
+        messages.info(request, _("All warehouse connections removed for %(branch)s.") % {"branch": branch.name})
+
+
+def _handle_set_default_branch_warehouse(request: HttpRequest, org: Organization) -> None:
+    branch_id = request.POST.get("branch_id")
+    wh_id = request.POST.get("warehouse_id")
+    branch = tenancy_selectors.get_branch_by_id(organization_id=org.pk, branch_id=branch_id)
+    wh = selectors.get_warehouse_by_id(organization_id=org.pk, warehouse_id=wh_id)
+    if branch and wh:
+        BranchWarehouse.all_tenants.filter(organization=org, branch=branch).update(is_default=False)
+        BranchWarehouse.all_tenants.filter(organization=org, branch=branch, warehouse=wh).update(is_default=True)
+        messages.success(
+            request,
+            _("Warehouse '%(wh)s' set as primary fulfillment hub for %(branch)s.")
+            % {"wh": wh.name, "branch": branch.name},
+        )
 
 
 def _handle_unlink_branch(request: HttpRequest, org: Organization) -> None:
@@ -248,10 +305,12 @@ def _handle_branch_post(request: HttpRequest, org: Organization) -> HttpResponse
     action = request.POST.get("action", "")
     if action == "delete":
         _handle_branch_delete(request, org)
-    elif action in ("link_warehouse", "link_branch"):
+    elif action in ("link_warehouse", "link_warehouses", "link_branch"):
         _handle_link_branch(request, org)
     elif action in ("unlink_warehouse", "unlink_branch"):
         _handle_unlink_branch(request, org)
+    elif action == "set_default_warehouse":
+        _handle_set_default_branch_warehouse(request, org)
     else:
         _handle_branch_save(request, org, BranchForm(request.POST))
     return redirect("warehouses:branch_list")

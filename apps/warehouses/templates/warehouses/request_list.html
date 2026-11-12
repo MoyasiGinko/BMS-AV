@@ -1,0 +1,416 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Stock Requests" %} | {{ organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="requests" %}
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6 w-full">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+        <a href="{% url 'warehouses:dashboard' %}" class="hover:text-indigo-600 transition-colors">{% trans "Warehouses" %}</a>
+        <span>/</span>
+        <span class="text-ink">{% trans "Stock Requests" %}</span>
+      </div>
+      <h1 class="text-xl sm:text-2xl font-extrabold text-ink">{% trans "Stock Requests & Allocations" %}</h1>
+      <p class="text-xs text-muted mt-0.5">
+        {% trans "Branch requisitions, warehouse push dispatches, and incoming outlet return shipments." %}
+      </p>
+    </div>
+
+    {% if can_manage %}
+      <div class="flex items-center gap-3">
+        <a
+          href="{% url 'warehouses:push_send' %}"
+          class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+          </svg>
+          <span>{% trans "Send Stock to Outlet" %}</span>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- KPI Overview Cards -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <!-- Total -->
+    <a
+      href="{% url 'warehouses:request_list' %}"
+      class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-xl p-3.5 flex flex-col justify-between hover:border-indigo-500/40 transition-all {% if not selected_type and not selected_status %}ring-2 ring-indigo-500/20{% endif %}"
+    >
+      <div class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Total Requests" %}</div>
+      <div class="text-xl font-extrabold text-ink mt-2">{{ total_count|intcomma }}</div>
+    </a>
+
+    <!-- Pending -->
+    <a
+      href="{% url 'warehouses:request_list' %}?status=pending_approval"
+      class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-xl p-3.5 flex flex-col justify-between hover:border-amber-500/40 transition-all {% if selected_status == 'pending_approval' %}ring-2 ring-amber-500/20{% endif %}"
+    >
+      <div class="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{% trans "Pending Review" %}</div>
+      <div class="text-xl font-extrabold text-ink mt-2">{{ pending_count|intcomma }}</div>
+    </a>
+
+    <!-- In Transit -->
+    <a
+      href="{% url 'warehouses:request_list' %}?status=in_transit"
+      class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-xl p-3.5 flex flex-col justify-between hover:border-indigo-500/40 transition-all {% if selected_status == 'in_transit' %}ring-2 ring-indigo-500/20{% endif %}"
+    >
+      <div class="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">{% trans "In Transit" %}</div>
+      <div class="text-xl font-extrabold text-ink mt-2">{{ in_transit_count|intcomma }}</div>
+    </a>
+
+    <!-- Direct Push -->
+    <a
+      href="{% url 'warehouses:request_list' %}?type=push_distribution"
+      class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-xl p-3.5 flex flex-col justify-between hover:border-purple-500/40 transition-all {% if selected_type == 'push_distribution' %}ring-2 ring-purple-500/20{% endif %}"
+    >
+      <div class="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">{% trans "Push Dispatches" %}</div>
+      <div class="text-xl font-extrabold text-ink mt-2">{{ push_count|intcomma }}</div>
+    </a>
+
+    <!-- Returns -->
+    <a
+      href="{% url 'warehouses:request_list' %}?type=return"
+      class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-xl p-3.5 flex flex-col justify-between hover:border-rose-500/40 transition-all {% if selected_type == 'return' %}ring-2 ring-rose-500/20{% endif %}"
+    >
+      <div class="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">{% trans "Outlet Returns" %}</div>
+      <div class="text-xl font-extrabold text-ink mt-2">{{ returns_count|intcomma }}</div>
+    </a>
+
+    <!-- Completed -->
+    <a
+      href="{% url 'warehouses:request_list' %}?status=completed"
+      class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-xl p-3.5 flex flex-col justify-between hover:border-emerald-500/40 transition-all {% if selected_status == 'completed' %}ring-2 ring-emerald-500/20{% endif %}"
+    >
+      <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{% trans "Completed" %}</div>
+      <div class="text-xl font-extrabold text-ink mt-2">{{ completed_count|intcomma }}</div>
+    </a>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-4 shadow-xs">
+    <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+      <!-- Search Input -->
+      <div>
+        <label for="search_input" class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">
+          {% trans "Search" %}
+        </label>
+        <div class="relative">
+          <input
+            id="search_input"
+            type="text"
+            name="q"
+            value="{{ search_query }}"
+            placeholder="{% trans 'Number, branch, carrier...' %}"
+            class="w-full text-xs sm:text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-ink pl-8 pr-3 py-2 focus:ring-2 focus:ring-indigo-500"
+          />
+          <svg class="w-3.5 h-3.5 text-muted absolute left-2.5 top-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Request Type Filter -->
+      <div>
+        <label for="type_select" class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">
+          {% trans "Request Type" %}
+        </label>
+        <select id="type_select" name="type" class="w-full text-xs sm:text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-ink px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+          <option value="">{% trans "All Request Types" %}</option>
+          <option value="requisition" {% if selected_type == 'requisition' %}selected{% endif %}>{% trans "Stock Requisitions (Outlet Pull)" %}</option>
+          <option value="push_distribution" {% if selected_type == 'push_distribution' %}selected{% endif %}>{% trans "Push Distributions (Warehouse Direct)" %}</option>
+          <option value="return" {% if selected_type == 'return' %}selected{% endif %}>{% trans "Outlet Returns" %}</option>
+          <option value="replacement" {% if selected_type == 'replacement' %}selected{% endif %}>{% trans "Replacement Requests" %}</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <label for="status_select" class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">
+          {% trans "Status" %}
+        </label>
+        <select id="status_select" name="status" class="w-full text-xs sm:text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-ink px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+          <option value="">{% trans "All Statuses" %}</option>
+          <option value="pending_approval" {% if selected_status == 'pending_approval' %}selected{% endif %}>{% trans "Pending Approval" %}</option>
+          <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>{% trans "Approved (Ready to Dispatch)" %}</option>
+          <option value="dispatched" {% if selected_status == 'dispatched' %}selected{% endif %}>{% trans "Dispatched / In Transit" %}</option>
+          <option value="in_transit" {% if selected_status == 'in_transit' %}selected{% endif %}>{% trans "In Transit" %}</option>
+          <option value="partially_received" {% if selected_status == 'partially_received' %}selected{% endif %}>{% trans "Partially Received" %}</option>
+          <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>{% trans "Completed / Stocked" %}</option>
+          <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>{% trans "Cancelled" %}</option>
+        </select>
+      </div>
+
+      <!-- Branch Filter -->
+      <div>
+        <label for="branch_select" class="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">
+          {% trans "Branch Outlet" %}
+        </label>
+        <select id="branch_select" name="branch_id" class="w-full text-xs sm:text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-ink px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+          <option value="">{% trans "All Outlets" %}</option>
+          {% for b in branches %}
+            <option value="{{ b.pk }}" {% if selected_branch == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="flex items-center gap-2">
+        <button
+          type="submit"
+          class="flex-1 px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
+        >
+          {% trans "Apply" %}
+        </button>
+        <a
+          href="{% url 'warehouses:request_list' %}"
+          class="px-3 py-2 text-xs font-medium rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-muted hover:text-ink transition-colors"
+        >
+          {% trans "Reset" %}
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Requests Table Card -->
+  <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-[var(--border)]/60 bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-muted">
+            <th class="py-3 px-4">{% trans "Request #" %}</th>
+            <th class="py-3 px-4">{% trans "Type" %}</th>
+            <th class="py-3 px-4">{% trans "Date" %}</th>
+            <th class="py-3 px-4">{% trans "Route Flow" %}</th>
+            <th class="py-3 px-4 text-center">{% trans "Items" %}</th>
+            <th class="py-3 px-4">{% trans "Status" %}</th>
+            <th class="py-3 px-4">{% trans "Outlet Decision" %}</th>
+            <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]/40">
+          {% for trf in page_obj %}
+            <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
+              <!-- Number -->
+              <td class="py-3.5 px-4 font-mono font-bold text-xs text-ink">
+                <a href="{% url 'warehouses:request_detail' trf.pk %}" class="hover:text-indigo-600 transition-colors">
+                  {{ trf.transfer_number }}
+                </a>
+              </td>
+
+              <!-- Type Badge -->
+              <td class="py-3.5 px-4">
+                {% if trf.is_push_distribution or trf.transfer_type == 'push_distribution' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+                    </svg>
+                    {% trans "Push Dispatch" %}
+                  </span>
+                {% elif trf.transfer_type == 'return' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/>
+                    </svg>
+                    {% trans "Outlet Return" %}
+                  </span>
+                {% elif trf.transfer_type == 'replacement' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                    </svg>
+                    {% trans "Replacement" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                    <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12"/>
+                    </svg>
+                    {% trans "Requisition" %}
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Date -->
+              <td class="py-3.5 px-4 text-xs text-muted">
+                {{ trf.created_at|date:"M d, Y" }}
+                <span class="block text-[11px] text-muted/70">{{ trf.created_at|time:"H:i" }}</span>
+              </td>
+
+              <!-- Route Flow -->
+              <td class="py-3.5 px-4 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-ink">
+                    {% if trf.transfer_type == 'return' or trf.transfer_type == 'replacement' %}
+                      {{ trf.source_branch.name|default:trf.source_warehouse.name }}
+                    {% else %}
+                      {{ trf.source_warehouse.name }}
+                    {% endif %}
+                  </span>
+                  <span class="text-indigo-600 font-bold">➔</span>
+                  <span class="font-semibold text-ink">
+                    {% if trf.transfer_type == 'return' or trf.transfer_type == 'replacement' %}
+                      {{ trf.destination_warehouse.name }}
+                    {% else %}
+                      {{ trf.destination_branch.name|default:trf.destination_warehouse.name }}
+                    {% endif %}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Items count -->
+              <td class="py-3.5 px-4 text-center font-bold text-xs text-ink">
+                {{ trf.lines.count }}
+              </td>
+
+              <!-- Status -->
+              <td class="py-3.5 px-4">
+                {% if trf.status == 'completed' %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                    {% trans "Completed" %}
+                  </span>
+                {% elif trf.status == 'in_transit' or trf.status == 'dispatched' %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-700 dark:text-indigo-400">
+                    {% trans "In Transit" %}
+                  </span>
+                {% elif trf.status == 'pending_approval' %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                    {% trans "Pending Review" %}
+                  </span>
+                {% elif trf.status == 'approved' %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-700 dark:text-blue-400">
+                    {% trans "Approved" %}
+                  </span>
+                {% elif trf.status == 'cancelled' %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-700 dark:text-rose-400">
+                    {% trans "Cancelled" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-700 dark:text-slate-400">
+                    {{ trf.get_status_display }}
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Outlet Decision Badge -->
+              <td class="py-3.5 px-4">
+                {% if trf.outlet_decision == 'accepted' %}
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                    {% trans "Accepted" %}
+                  </span>
+                {% elif trf.outlet_decision == 'partial_accept' %}
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                    {% trans "Accepted w/ Returns" %}
+                  </span>
+                {% elif trf.outlet_decision == 'returned_now' %}
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
+                    {% trans "Returned Now" %}
+                  </span>
+                {% elif trf.outlet_decision == 'held_return_later' %}
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold text-purple-600 dark:text-purple-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    {% trans "Held for Later" %}
+                  </span>
+                {% elif trf.outlet_decision == 'cancelled_returned' %}
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    {% trans "Rejected & Returned" %}
+                  </span>
+                {% elif trf.is_push_distribution %}
+                  <span class="text-xs text-muted/80 italic">{% trans "Pending Outlet Review" %}</span>
+                {% else %}
+                  <span class="text-xs text-muted/60">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Actions -->
+              <td class="py-3.5 px-4 text-right">
+                <a
+                  href="{% url 'warehouses:request_detail' trf.pk %}"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--surface-2)] text-ink hover:text-indigo-600 border border-[var(--border)] transition-all"
+                >
+                  <span>{% trans "View" %}</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                  </svg>
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="py-12 text-center">
+                <div class="w-12 h-12 mx-auto rounded-full bg-indigo-500/10 text-indigo-600 flex items-center justify-center mb-3">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+                  </svg>
+                </div>
+                <h3 class="text-sm font-bold text-ink">{% trans "No stock requests found" %}</h3>
+                <p class="text-xs text-muted max-w-sm mx-auto mt-1 mb-4">
+                  {% trans "There are no matching requisitions, outlet returns, or push dispatches." %}
+                </p>
+                {% if can_manage %}
+                  <a
+                    href="{% url 'warehouses:push_send' %}"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs transition-all"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+                    </svg>
+                    <span>{% trans "Send Stock to Outlet" %}</span>
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div class="px-4 py-3 border-t border-[var(--border)]/60 flex items-center justify-between text-xs text-muted">
+        <div>
+          {% blocktrans with start=page_obj.start_index end=page_obj.end_index total=page_obj.paginator.count %}
+            Showing {{ start }} to {{ end }} of {{ total }} requests
+          {% endblocktrans %}
+        </div>
+        <div class="flex items-center gap-1">
+          {% if page_obj.has_previous %}
+            <a
+              href="?page={{ page_obj.previous_page_number }}&type={{ selected_type }}&status={{ selected_status }}&q={{ search_query }}"
+              class="px-2.5 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors"
+            >
+              {% trans "Previous" %}
+            </a>
+          {% endif %}
+          <span class="px-3 py-1 font-semibold text-ink">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+          </span>
+          {% if page_obj.has_next %}
+            <a
+              href="?page={{ page_obj.next_page_number }}&type={{ selected_type }}&status={{ selected_status }}&q={{ search_query }}"
+              class="px-2.5 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors"
+            >
+              {% trans "Next" %}
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+

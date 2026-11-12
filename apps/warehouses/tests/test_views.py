@@ -264,6 +264,40 @@ def test_supply_route_list_view_get_and_post(wh_view_env):
     assert route.is_preferred is True
     assert route.lead_time_days == 3
 
+    # Edit route
+    edit_payload = {
+        "action": "edit",
+        "route_id": str(route.id),
+        "priority": "2",
+        "lead_time_days": "5",
+        "notes": "Updated backup route",
+    }
+    res_edit = client.post(url, data=edit_payload)
+    assert res_edit.status_code == 302
+    route.refresh_from_db()
+    assert route.priority == 2
+    assert route.lead_time_days == 5
+    assert route.notes == "Updated backup route"
+
+    # Toggle active
+    toggle_payload = {
+        "action": "toggle_active",
+        "route_id": str(route.id),
+    }
+    res_toggle = client.post(url, data=toggle_payload)
+    assert res_toggle.status_code == 302
+    route.refresh_from_db()
+    assert route.is_active is False
+
+    # Delete route
+    del_payload = {
+        "action": "delete",
+        "route_id": str(route.id),
+    }
+    res_del = client.post(url, data=del_payload)
+    assert res_del.status_code == 302
+    assert not StockSupplyRoute.all_tenants.filter(pk=route.pk).exists()
+
 
 @pytest.mark.django_db
 def test_warehouse_detail_view_shows_locations(wh_view_env):

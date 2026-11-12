@@ -8,8 +8,8 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
-SERVICE_WORKER_CODE = """// Business OS Service Worker (bos-shell-v1)
-const CACHE_NAME = 'bos-shell-v1';
+SERVICE_WORKER_CODE = """// Business OS Service Worker (bos-shell-v2)
+const CACHE_NAME = 'bos-shell-v2';
 const STATIC_ASSETS = [
   '/',
   '/offline/',
@@ -51,6 +51,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
+
+  // In local development on localhost or 127.0.0.1, always bypass service worker directly to network
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return;
+  }
 
   // Non-GET requests (mutations, checkouts, approvals) must always hit network directly
   if (request.method !== 'GET') {

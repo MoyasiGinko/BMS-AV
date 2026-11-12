@@ -16,7 +16,7 @@
   <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider">
     <a href="{% url 'inventory:stock_level_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Inventory" %}</a>
     <span>/</span>
-    <a href="{% url 'inventory:stock_request_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Stock Requests" %}</a>
+    <a href="{% url 'inventory:stock_request_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Request List" %}</a>
     <span>/</span>
     <span class="text-ink font-mono">{{ stock_request.transfer_number }}</span>
   </div>
@@ -27,7 +27,7 @@
       <a
         href="{% url 'inventory:stock_request_list' %}"
         class="w-10 h-10 rounded-xl bg-[var(--surface-1)] border border-[var(--border)]/60 text-muted hover:text-ink hover:bg-[var(--surface-2)] flex items-center justify-center transition shadow-2xs shrink-0"
-        title="{% trans 'Back to stock requests' %}"
+        title="{% trans 'Back to request list' %}"
       >
         <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
@@ -36,6 +36,49 @@
       <div>
         <div class="flex flex-wrap items-center gap-3">
           <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink font-mono">{{ stock_request.transfer_number }}</h1>
+
+          <!-- Operation Type Badge -->
+          {% if is_inter_branch %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+              </svg>
+              <span>
+                {% if stock_request.transfer_intent == 'send' %}
+                  {% trans "Branch Transfer (Sending)" %}
+                {% elif stock_request.transfer_intent == 'request' %}
+                  {% trans "Branch Requisition (Requesting)" %}
+                {% else %}
+                  {% trans "Inter-Branch Transfer" %}
+                {% endif %}
+              </span>
+            </span>
+          {% elif stock_request.is_push_distribution or stock_request.transfer_type == 'push_distribution' %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+              </svg>
+              <span>{% trans "Push Distribution" %}</span>
+            </span>
+          {% elif is_replacement %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+              </svg>
+              <span>{% trans "Stock Replacement" %}</span>
+            </span>
+          {% elif is_return %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/>
+              </svg>
+              <span>{% trans "Stock Return" %}</span>
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+              <span>{% trans "Requisition" %}</span>
+            </span>
+          {% endif %}
 
           <!-- High-Contrast Status Badges -->
           {% if stock_request.status == 'pending_approval' or stock_request.status == 'PENDING_APPROVAL' %}
@@ -111,7 +154,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-      <!-- Step 1: Branch Requisition -->
+      <!-- Step 1: Origin Dispatch / Requisition -->
       <div class="p-4 rounded-xl border {% if lifecycle_step >= 1 %}border-emerald-500/30 bg-emerald-500/5{% else %}border-[var(--border)]/60 bg-[var(--surface-2)]/30{% endif %} flex items-start gap-3 transition">
         <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 {% if lifecycle_step >= 1 %}bg-emerald-600 text-white shadow-2xs{% else %}bg-[var(--surface-2)] text-muted{% endif %}">
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -120,11 +163,13 @@
         </div>
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-1">
-            <span class="text-xs font-bold text-ink">1. {% trans "Requisition Submitted" %}</span>
+            <span class="text-xs font-bold text-ink">
+              1. {% if is_return %}{% trans "Outlet Dispatched" %}{% else %}{% trans "Requisition Submitted" %}{% endif %}
+            </span>
             <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">{% trans "Submitted" %}</span>
           </div>
           <div class="text-xs font-semibold text-ink truncate mt-0.5">
-            {{ target_branch.name }}
+            {% if is_return %}{{ stock_request.source_branch.name }}{% else %}{{ target_branch.name }}{% endif %}
           </div>
           <div class="text-[11px] text-muted font-mono mt-0.5">
             {{ stock_request.created_at|date:"M d, Y H:i" }}
@@ -132,7 +177,7 @@
         </div>
       </div>
 
-      <!-- Step 2: Warehouse Dispatch -->
+      <!-- Step 2: Warehouse Processing / Inspection -->
       <div class="p-4 rounded-xl border {% if lifecycle_step > 2 %}border-emerald-500/30 bg-emerald-500/5{% elif lifecycle_step == 2 %}border-indigo-500/30 bg-indigo-500/5{% else %}border-amber-500/30 bg-amber-500/5{% endif %} flex items-start gap-3 transition">
         <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 {% if lifecycle_step > 2 %}bg-emerald-600 text-white{% elif lifecycle_step == 2 %}bg-indigo-600 text-white shadow-2xs{% else %}bg-amber-500 text-white shadow-2xs{% endif %}">
           {% if lifecycle_step > 2 %}
@@ -151,29 +196,33 @@
         </div>
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-1">
-            <span class="text-xs font-bold text-ink">2. {% trans "Warehouse Dispatch" %}</span>
+            <span class="text-xs font-bold text-ink">
+              2. {% if is_inter_branch %}{% trans "Outlet Dispatch" %}{% elif is_return %}{% trans "Warehouse Inspection" %}{% else %}{% trans "Warehouse Dispatch" %}{% endif %}
+            </span>
             {% if lifecycle_step > 2 %}
               <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">{% trans "Dispatched" %}</span>
             {% elif lifecycle_step == 2 %}
-              <span class="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase">{% trans "In Transit" %}</span>
+              <span class="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase">{% trans "In Review" %}</span>
             {% else %}
-              <span class="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase">{% trans "Awaiting" %}</span>
+              <span class="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase">{% trans "Pending" %}</span>
             {% endif %}
           </div>
           <div class="text-xs font-semibold text-ink truncate mt-0.5">
-            {{ stock_request.source_warehouse.name }}
+            {% if is_inter_branch %}{{ stock_request.source_branch.name }}{% elif is_return %}{{ stock_request.destination_warehouse.name }}{% else %}{{ stock_request.source_warehouse.name }}{% endif %}
           </div>
           <div class="text-[11px] text-muted font-mono mt-0.5">
-            {% if stock_request.dispatched_at %}
+            {% if stock_request.received_at %}
+              {{ stock_request.received_at|date:"M d, Y H:i" }}
+            {% elif stock_request.dispatched_at %}
               {{ stock_request.dispatched_at|date:"M d, Y H:i" }}
             {% else %}
-              {% trans "Awaiting warehouse dispatch" %}
+              {% trans "Pending inspection at hub" %}
             {% endif %}
           </div>
         </div>
       </div>
 
-      <!-- Step 3: Outlet Delivery -->
+      <!-- Step 3: Closed / Replacement Completion -->
       <div class="p-4 rounded-xl border {% if lifecycle_step == 3 %}border-emerald-500/30 bg-emerald-500/5{% else %}border-[var(--border)]/60 bg-[var(--surface-2)]/30{% endif %} flex items-start gap-3 transition">
         <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 {% if lifecycle_step == 3 %}bg-emerald-600 text-white shadow-2xs{% else %}bg-[var(--surface-2)] text-muted{% endif %}">
           {% if lifecycle_step == 3 %}
@@ -188,25 +237,25 @@
         </div>
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-1">
-            <span class="text-xs font-bold text-ink">3. {% trans "Outlet Delivery" %}</span>
+            <span class="text-xs font-bold text-ink">
+              3. {% if is_inter_branch %}{% trans "Outlet Receipt & Confirmation" %}{% elif is_replacement %}{% trans "Replacement Delivery" %}{% elif is_return %}{% trans "Return Completed" %}{% else %}{% trans "Outlet Delivery" %}{% endif %}
+            </span>
             {% if lifecycle_step == 3 %}
-              <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">{% trans "Received" %}</span>
+              <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase">{% trans "Completed" %}</span>
             {% elif lifecycle_step == 2 %}
-              <span class="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase">{% trans "Ready to Receive" %}</span>
+              <span class="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 uppercase">{% trans "Ready" %}</span>
             {% else %}
-              <span class="text-[10px] font-bold text-muted uppercase">{% trans "Pending Dispatch" %}</span>
+              <span class="text-[10px] font-bold text-muted uppercase">{% trans "Pending" %}</span>
             {% endif %}
           </div>
           <div class="text-xs font-semibold text-ink truncate mt-0.5">
-            {{ stock_request.destination_location.name|default:_("Outlet Storage Area") }}
+            {% if is_inter_branch %}{{ stock_request.destination_branch.name }}{% elif is_return %}{{ stock_request.destination_warehouse.name }}{% else %}{{ stock_request.destination_location.name|default:_("Outlet Storage Area") }}{% endif %}
           </div>
           <div class="text-[11px] text-muted font-mono mt-0.5">
             {% if stock_request.completed_at %}
               {{ stock_request.completed_at|date:"M d, Y H:i" }}
-            {% elif lifecycle_step == 2 %}
-              <span class="text-indigo-600 dark:text-indigo-400 font-sans font-bold">{% trans "In transit &bull; Confirm receipt below" %}</span>
             {% else %}
-              {% trans "Pending warehouse dispatch" %}
+              {% trans "Awaiting completion" %}
             {% endif %}
           </div>
         </div>
@@ -231,7 +280,7 @@
             <span>{% trans "Transfer Route & Logistics" %}</span>
           </h2>
           <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-            {% trans "Direct Warehouse-to-Branch Route" %}
+            {% if is_inter_branch %}{% trans "Outlet-to-Outlet Transfer Logistics" %}{% elif is_return %}{% trans "Branch-to-Warehouse Return Logistics" %}{% else %}{% trans "Direct Warehouse-to-Branch Route" %}{% endif %}
           </span>
         </div>
 
@@ -239,18 +288,23 @@
           <!-- Route Visual -->
           <div class="p-4 rounded-xl bg-[var(--surface-2)]/40 border border-[var(--border)]/60 flex flex-col sm:flex-row items-center justify-between gap-4">
             
-            <!-- Origin Hub -->
+            <!-- Origin -->
             <div class="flex items-center gap-3 min-w-0 flex-1">
-              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+              <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
                 </svg>
               </div>
               <div class="min-w-0">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-muted">{% trans "Fulfillment Source" %}</span>
-                <div class="font-bold text-ink text-sm truncate">{{ stock_request.source_warehouse.name }}</div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-muted">
+                  {% if is_inter_branch or is_return %}{% trans "Source Outlet" %}{% else %}{% trans "Fulfillment Source" %}{% endif %}
+                </span>
+                <div class="font-bold text-ink text-sm truncate">
+                  {% if is_inter_branch %}{{ stock_request.source_branch.name }}{% elif is_return %}{{ stock_request.source_branch.name }}{% else %}{{ stock_request.source_warehouse.name }}{% endif %}
+                </div>
                 <div class="text-xs text-muted truncate">
-                  {{ source_location_name|default:_("Primary Warehouse Storage") }}
+                  {% if is_inter_branch %}{{ stock_request.source_location.name|default:stock_request.source_branch.name }}{% else %}{{ source_location_name|default:_("Primary Storage") }}{% endif %}
                 </div>
               </div>
             </div>
@@ -262,18 +316,22 @@
               </svg>
             </div>
 
-            <!-- Destination Outlet -->
+            <!-- Destination -->
             <div class="flex items-center gap-3 min-w-0 flex-1 sm:text-right sm:justify-end">
               <div class="min-w-0">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-muted">{% trans "Destination Outlet" %}</span>
-                <div class="font-bold text-ink text-sm truncate">{{ target_branch.name }}</div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-muted">
+                  {% if is_inter_branch %}{% trans "Destination Outlet" %}{% elif is_return %}{% trans "Destination Warehouse" %}{% else %}{% trans "Destination Outlet" %}{% endif %}
+                </span>
+                <div class="font-bold text-ink text-sm truncate">
+                  {% if is_inter_branch %}{{ stock_request.destination_branch.name }}{% elif is_return %}{{ stock_request.destination_warehouse.name }}{% else %}{{ target_branch.name }}{% endif %}
+                </div>
                 <div class="text-xs text-muted truncate">
-                  {{ destination_location_name|default:_("Outlet Floor & Shelf Storage") }}
+                  {% if is_inter_branch %}{{ stock_request.destination_location.name|default:stock_request.destination_branch.name }}{% else %}{{ destination_location_name|default:_("Fulfillment Intake Area") }}{% endif %}
                 </div>
               </div>
-              <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20 sm:order-last">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 sm:order-last">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.614A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72m-13.5 8.65h.008v.008H4.5v-.008Zm0 3h.008v.008H4.5v-.008Zm0 3h.008v.008H4.5v-.008Z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
                 </svg>
               </div>
             </div>
@@ -310,7 +368,7 @@
             </span>
           </div>
 
-          {% if has_shortage and stock_request.status == 'pending_approval' or stock_request.status == 'PENDING_APPROVAL' %}
+          {% if has_shortage and not all_out_of_stock and stock_request.status == 'pending_approval' or stock_request.status == 'PENDING_APPROVAL' %}
             <div class="flex items-center gap-2">
               <button
                 type="button"
@@ -327,8 +385,53 @@
           {% endif %}
         </div>
 
-        <!-- Shortage Warning & Confirmation Callout Banner -->
-        {% if has_shortage %}
+        <!-- Stockout / Shortage Warning Callout Banners -->
+        {% if all_out_of_stock %}
+          <!-- 1. Complete Stockout: ZERO Available in Warehouse -->
+          <div class="m-5 p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-ink shadow-2xs">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0 border border-rose-500/40 shadow-2xs">
+                  <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                  </svg>
+                </div>
+                <div class="space-y-1">
+                  <h3 class="text-sm font-black text-rose-700 dark:text-rose-300">
+                    {% trans "Zero Warehouse Stock — Requisition Cannot Be Dispatched" %}
+                  </h3>
+                  <p class="text-xs text-ink/80 leading-relaxed font-medium">
+                    {% trans "None of the requested items are currently available in" %} <strong class="text-ink font-bold">{{ stock_request.source_warehouse.name }}</strong> (0 {% trans "units available" %}). {% trans "Stock requests cannot be dispatched with empty stock. Please cancel this requisition." %}
+                  </p>
+                  <div class="pt-2 flex flex-wrap gap-2">
+                    {% for item in shortage_items %}
+                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-[var(--surface-1)] border border-rose-500/40 text-ink shadow-2xs font-mono">
+                        <span class="font-sans font-bold text-ink">{{ item.product_name }}:</span>
+                        <span class="text-muted">{% trans "Req" %}: {{ item.requested|floatformat:"-2" }}</span>
+                        <span class="text-rose-600 dark:text-rose-400 font-bold">{% trans "Avail" %}: 0</span>
+                      </span>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 self-start sm:self-center shrink-0">
+                <button
+                  type="button"
+                  onclick="document.getElementById('cancel_modal').classList.remove('hidden')"
+                  class="px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  title="{% trans 'Cancel request due to zero warehouse stock' %}"
+                >
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  <span>{% trans "Cancel Requisition" %}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        {% elif has_shortage %}
+          <!-- 2. Partial Stock Available: Show shortage items & quick adjustment -->
           <div class="m-5 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-ink shadow-2xs">
             <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div class="flex items-start gap-3">
@@ -339,10 +442,10 @@
                 </div>
                 <div class="space-y-1">
                   <h3 class="text-sm font-black text-ink">
-                    {% trans "Warehouse Stock Shortage Detected" %}
+                    {% trans "Warehouse Stock Shortage Detected — Partial Stock Available" %}
                   </h3>
                   <p class="text-xs text-ink/80 leading-relaxed font-medium">
-                    {% trans "Source warehouse" %} <strong class="text-ink font-bold">{{ stock_request.source_warehouse.name }}</strong> {% trans "has insufficient stock for one or more requested items. Please confirm and update approved counts below before approving or dispatching." %}
+                    {% trans "Source warehouse" %} <strong class="text-ink font-bold">{{ stock_request.source_warehouse.name }}</strong> {% trans "has partial stock available. You can update approved counts below to send available items, or cancel the requisition." %}
                   </p>
                   <div class="pt-2 flex flex-wrap gap-2">
                     {% for item in shortage_items %}
@@ -387,37 +490,53 @@
 
         <!-- Table of Requested Products -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm border-collapse min-w-[760px] table-fixed">
+          <table class="w-full text-left text-sm border-collapse min-w-[840px] table-fixed">
             <colgroup>
               <col style="width: 50px;">
               <col style="width: 65px;">
               <col style="width: auto;">
               <col style="width: 140px;">
-              <col style="width: 110px;">
-              <col style="width: 140px;">
+              <col style="width: 100px;">
+              <col style="width: 150px;">
               {% if stock_request.status != 'pending_approval' and stock_request.status != 'PENDING_APPROVAL' and stock_request.status != 'approved' and stock_request.status != 'APPROVED' %}
                 <col style="width: 110px;">
               {% endif %}
+              <col style="width: 130px;">
             </colgroup>
             <thead class="bg-[var(--surface-2)] text-xs font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]/60">
               <tr>
                 <th scope="col" class="py-3.5 px-2 text-center font-mono">#</th>
                 <th scope="col" class="py-3.5 px-2 text-center">{% trans "Image" %}</th>
-                <th scope="col" class="py-3.5 px-3">{% trans "Product & Specifications" %}</th>
+                <th scope="col" class="py-3.5 px-3">{% trans "Product & Details" %}</th>
                 <th scope="col" class="py-3.5 px-3 text-center">
                   <div>{% trans "Warehouse Stock" %}</div>
-                  <div class="text-[10px] font-normal normal-case text-muted">{{ stock_request.source_warehouse.name }}</div>
+                  <div class="text-[10px] font-normal normal-case text-muted">
+                    {% if is_return %}{{ stock_request.destination_warehouse.name }}{% else %}{{ stock_request.source_warehouse.name }}{% endif %}
+                  </div>
                 </th>
-                <th scope="col" class="py-3.5 px-3 text-center">{% trans "Requested" %}</th>
-                {% if stock_request.status == 'pending_approval' or stock_request.status == 'PENDING_APPROVAL' or stock_request.status == 'approved' or stock_request.status == 'APPROVED' %}
-                  <th scope="col" class="py-3.5 px-3 text-center">
-                    <div>{% trans "Approved Count" %}</div>
-                    <div class="text-[10px] font-normal normal-case text-indigo-600 dark:text-indigo-400">{% trans "Editable prior to dispatch" %}</div>
-                  </th>
+                <th scope="col" class="py-3.5 px-3 text-center">
+                  {% if is_return %}{% trans "Returned Qty" %}{% else %}{% trans "Requested" %}{% endif %}
+                </th>
+                {% if is_return %}
+                  {% if is_replacement %}
+                    <th scope="col" class="py-3.5 px-3 text-center">{% trans "Replacement Qty" %}</th>
+                  {% endif %}
+                  <th scope="col" class="py-3.5 px-3 text-center">{% trans "Warehouse Disposition" %}</th>
                 {% else %}
-                  <th scope="col" class="py-3.5 px-3 text-center">{% trans "Dispatched" %}</th>
-                  <th scope="col" class="py-3.5 px-3 text-center">{% trans "Received" %}</th>
+                  {% if stock_request.status == 'pending_approval' or stock_request.status == 'PENDING_APPROVAL' or stock_request.status == 'approved' or stock_request.status == 'APPROVED' %}
+                    <th scope="col" class="py-3.5 px-3 text-center">
+                      <div>{% trans "Approved Count" %}</div>
+                      <div class="text-[10px] font-normal normal-case text-indigo-600 dark:text-indigo-400">{% trans "Editable prior to dispatch" %}</div>
+                    </th>
+                  {% else %}
+                    <th scope="col" class="py-3.5 px-3 text-center">{% trans "Dispatched" %}</th>
+                    <th scope="col" class="py-3.5 px-3 text-center">{% trans "Received" %}</th>
+                  {% endif %}
                 {% endif %}
+                <th scope="col" class="py-3.5 px-3 text-right">
+                  <div>{% trans "Valuation" %}</div>
+                  <div class="text-[10px] font-normal normal-case text-muted">{% trans "Unit & Total" %}</div>
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[var(--border)]/40">
@@ -425,8 +544,8 @@
                 <tr class="hover:bg-[var(--surface-2)]/30 transition-colors {% if line.has_shortage %}bg-amber-500/5{% endif %}">
 
                   <!-- 1. Row Index (Symmetrically Centered Inset Badge) -->
-                  <td class="py-4 px-3 text-center align-middle w-12">
-                    <div class="neu-index-badge">
+                  <td class="py-4 px-3 text-center align-middle w-16">
+                    <div class="neu-index-badge w-10 h-10 mx-auto rounded-xl bg-[var(--surface-2)] border border-[var(--border)] shadow-2xs text-ink flex items-center justify-center font-mono font-black text-base sm:text-lg">
                       <span>{{ forloop.counter }}</span>
                     </div>
                   </td>
@@ -468,6 +587,18 @@
                         <span class="text-[var(--border)]">&bull;</span>
                         <span class="font-medium text-muted">{% trans "Variant" %}: {{ line.variant.name }}</span>
                       {% endif %}
+                      {% if is_return %}
+                        {% if line.return_reason %}
+                          <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                            {% trans "Reason" %}: {{ line.return_reason }}
+                          </span>
+                        {% endif %}
+                        {% if line.item_condition %}
+                          <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300">
+                            {% trans "Condition" %}: {{ line.item_condition }}
+                          </span>
+                        {% endif %}
+                      {% endif %}
                     </div>
                   </td>
 
@@ -486,9 +617,11 @@
                           <span class="font-mono">{{ line.available_stock|floatformat:"-2" }}</span>
                           <span>{{ line.product.unit.code|default:_("units") }}</span>
                         </span>
-                        <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1">
-                          {% trans "Short by" %} {{ line.shortage_qty|floatformat:"-2" }}
-                        </span>
+                        {% if not is_return %}
+                          <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 mt-1">
+                            {% trans "Short by" %} {{ line.shortage_qty|floatformat:"-2" }}
+                          </span>
+                        {% endif %}
                       </div>
                     {% else %}
                       <div class="inline-flex flex-col items-center">
@@ -503,7 +636,7 @@
                     {% endif %}
                   </td>
 
-                  <!-- 5. Requested Quantity -->
+                  <!-- 5. Returned / Requested Quantity -->
                   <td class="py-4 px-4 text-center align-middle">
                     <span class="text-base font-mono font-black text-ink">
                       {{ line.quantity_requested|default:line.quantity|floatformat:"-2" }}
@@ -513,80 +646,153 @@
                     </span>
                   </td>
 
-                  <!-- 6. Approved Count / Stepper (or Dispatched/Received if closed) -->
-                  {% if stock_request.status == 'pending_approval' or stock_request.status == 'PENDING_APPROVAL' or stock_request.status == 'approved' or stock_request.status == 'APPROVED' %}
-                    <td class="py-4 px-4 text-center align-middle">
-                      <div class="flex flex-col items-center gap-1.5">
-                        
-                        <!-- Symmetrical Neumorphic Stepper -->
-                        <div class="neu-stepper-frame inline-flex items-center p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] shadow-2xs transition-all">
-                          <button
-                            type="button"
-                            onclick="stepLineQty('{{ line.id }}', -1)"
-                            class="w-7 h-7 rounded-lg bg-[var(--surface-1)] text-ink hover:bg-[var(--surface-3)] active:scale-95 flex items-center justify-center font-bold text-sm transition cursor-pointer select-none border border-[var(--border)]/40"
-                            title="{% trans 'Decrease count' %}"
-                          >&minus;</button>
-                          
-                          <input
-                            type="number"
-                            form="stock_request_form"
-                            id="line_qty_{{ line.id }}"
-                            name="quantity_{{ line.id }}"
-                            value="{{ line.quantity|floatformat:'-2' }}"
-                            data-available="{{ line.available_stock|floatformat:'-2' }}"
-                            data-requested="{{ line.req_qty|floatformat:'-2' }}"
-                            min="0"
-                            step="any"
-                            class="w-16 px-1 text-center font-mono font-black text-sm text-ink bg-transparent border-none focus:outline-hidden"
-                            oninput="validateLineQty('{{ line.id }}')"
-                          />
-                          
-                          <button
-                            type="button"
-                            onclick="stepLineQty('{{ line.id }}', 1)"
-                            class="w-7 h-7 rounded-lg bg-[var(--surface-1)] text-ink hover:bg-[var(--surface-3)] active:scale-95 flex items-center justify-center font-bold text-sm transition cursor-pointer select-none border border-[var(--border)]/40"
-                            title="{% trans 'Increase count' %}"
-                          >&plus;</button>
-                        </div>
-
-                        <span class="text-[11px] text-muted font-bold block uppercase tracking-wider">
+                  <!-- 6. Special Column for Returns vs Requisitions -->
+                  {% if is_return %}
+                    {% if is_replacement %}
+                      <td class="py-4 px-4 text-center align-middle">
+                        <span class="text-base font-mono font-black text-purple-600 dark:text-purple-400">
+                          {{ line.replacement_quantity|default:line.quantity|floatformat:"-2" }}
+                        </span>
+                        <span class="text-[11px] text-muted font-bold block uppercase tracking-wider mt-0.5">
                           {{ line.product.unit.code|default:_("units") }}
                         </span>
+                      </td>
+                    {% endif %}
 
-                        <!-- One-click set to available shortcut if short -->
-                        {% if line.has_shortage %}
-                          <button
-                            type="button"
-                            onclick="setLineQty('{{ line.id }}', '{{ line.available_stock|floatformat:'-2' }}')"
-                            class="text-[10px] font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
-                            title="{% trans 'Set approved count to available stock' %}"
+                    <!-- Warehouse Inspection & Disposition -->
+                    <td class="py-4 px-4 text-center align-middle">
+                      {% if stock_request.status == 'in_transit' or stock_request.status == 'dispatched' or stock_request.status == 'pending_approval' or stock_request.status == 'approved' %}
+                        <div class="space-y-1.5">
+                          <select
+                            name="disposition_{{ line.id }}"
+                            form="inspect_return_form"
+                            class="w-full h-8 text-xs px-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] font-semibold text-ink"
                           >
-                            {% trans "Set to available" %} ({{ line.available_stock|floatformat:"-2" }})
-                          </button>
-                        {% endif %}
-                      </div>
+                            <option value="restock_sellable">{% trans "Restock Sellable" %}</option>
+                            <option value="write_off_scrap" {% if line.item_condition == 'scrap' or line.item_condition == 'damaged' %}selected{% endif %}>{% trans "Write-off Scrap" %}</option>
+                            <option value="quarantine">{% trans "Quarantine Hold" %}</option>
+                          </select>
+                          <select
+                            name="condition_{{ line.id }}"
+                            form="inspect_return_form"
+                            class="w-full h-8 text-xs px-2 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] font-semibold text-ink"
+                          >
+                            <option value="good">{% trans "Condition: Good" %}</option>
+                            <option value="open_box" {% if line.item_condition == 'open_box' %}selected{% endif %}>{% trans "Condition: Open Box" %}</option>
+                            <option value="damaged" {% if line.item_condition == 'damaged' %}selected{% endif %}>{% trans "Condition: Damaged" %}</option>
+                            <option value="scrap" {% if line.item_condition == 'scrap' %}selected{% endif %}>{% trans "Condition: Scrap" %}</option>
+                          </select>
+                        </div>
+                      {% else %}
+                        <div class="space-y-1">
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {% if line.disposition == 'restock_sellable' %}bg-emerald-500/15 text-emerald-700 dark:text-emerald-300{% elif line.disposition == 'write_off_scrap' %}bg-rose-500/15 text-rose-700 dark:text-rose-300{% else %}bg-amber-500/15 text-amber-700 dark:text-amber-300{% endif %}">
+                            {{ line.disposition|default:_("Accepted") }}
+                          </span>
+                          <span class="block text-[11px] text-muted font-mono font-semibold">
+                            {% trans "Condition" %}: {{ line.item_condition }}
+                          </span>
+                        </div>
+                      {% endif %}
                     </td>
                   {% else %}
-                    <!-- Dispatched Quantity -->
-                    <td class="py-4 px-4 text-center align-middle">
-                      <span class="text-base font-mono font-black {% if line.quantity_dispatched > 0 %}text-indigo-600 dark:text-indigo-400{% else %}text-muted/60{% endif %}">
-                        {{ line.quantity_dispatched|floatformat:"-2" }}
-                      </span>
-                      <span class="text-[11px] text-muted font-bold block uppercase tracking-wider mt-0.5">
-                        {{ line.product.unit.code|default:_("units") }}
-                      </span>
-                    </td>
+                    <!-- Regular Requisition Approved / Dispatched Steppers -->
+                    {% if stock_request.status == 'pending_approval' or stock_request.status == 'PENDING_APPROVAL' or stock_request.status == 'approved' or stock_request.status == 'APPROVED' %}
+                      <td class="py-4 px-4 text-center align-middle">
+                        {% if all_out_of_stock %}
+                          <div class="inline-flex flex-col items-center">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                              0 {{ line.product.unit.code|default:_("units") }}
+                            </span>
+                            <span class="text-[10px] font-bold text-rose-600 dark:text-rose-400 mt-1">
+                              {% trans "Out of stock" %}
+                            </span>
+                          </div>
+                        {% else %}
+                          <div class="flex flex-col items-center gap-1.5">
+                            <!-- Symmetrical Neumorphic Stepper -->
+                            <div class="neu-stepper-frame inline-flex items-center p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] shadow-2xs transition-all">
+                              <button
+                                type="button"
+                                onclick="stepLineQty('{{ line.id }}', -1)"
+                                class="w-7 h-7 rounded-lg bg-[var(--surface-1)] text-ink hover:bg-[var(--surface-3)] active:scale-95 flex items-center justify-center font-bold text-sm transition cursor-pointer select-none border border-[var(--border)]/40"
+                                title="{% trans 'Decrease count' %}"
+                              >&minus;</button>
+                              
+                              <input
+                                type="number"
+                                form="stock_request_form"
+                                id="line_qty_{{ line.id }}"
+                                name="quantity_{{ line.id }}"
+                                value="{{ line.quantity|floatformat:'-2' }}"
+                                data-cost="{{ line.unit_cost|stringformat:'.2f' }}"
+                                data-available="{{ line.available_stock|floatformat:'-2' }}"
+                                data-requested="{{ line.req_qty|floatformat:'-2' }}"
+                                min="0"
+                                step="any"
+                                class="w-16 px-1 text-center font-mono font-black text-sm text-ink bg-transparent border-none focus:outline-hidden"
+                                oninput="validateLineQty('{{ line.id }}')"
+                              />
+                              
+                              <button
+                                type="button"
+                                onclick="stepLineQty('{{ line.id }}', 1)"
+                                class="w-7 h-7 rounded-lg bg-[var(--surface-1)] text-ink hover:bg-[var(--surface-3)] active:scale-95 flex items-center justify-center font-bold text-sm transition cursor-pointer select-none border border-[var(--border)]/40"
+                                title="{% trans 'Increase count' %}"
+                              >&plus;</button>
+                            </div>
 
-                    <!-- Received Quantity -->
-                    <td class="py-4 px-4 text-center align-middle">
-                      <span class="text-base font-mono font-black {% if line.quantity_received > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-muted/60{% endif %}">
-                        {{ line.quantity_received|floatformat:"-2" }}
-                      </span>
-                      <span class="text-[11px] text-muted font-bold block uppercase tracking-wider mt-0.5">
-                        {{ line.product.unit.code|default:_("units") }}
-                      </span>
-                    </td>
+                            <span class="text-[11px] text-muted font-bold block uppercase tracking-wider">
+                              {{ line.product.unit.code|default:_("units") }}
+                            </span>
+
+                            <!-- One-click set to available shortcut if short -->
+                            {% if line.has_shortage %}
+                              <button
+                                type="button"
+                                onclick="setLineQty('{{ line.id }}', '{{ line.available_stock|floatformat:'-2' }}')"
+                                class="text-[10px] font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer"
+                                title="{% trans 'Set approved count to available stock' %}"
+                              >
+                                {% trans "Set to available" %} ({{ line.available_stock|floatformat:"-2" }})
+                              </button>
+                            {% endif %}
+                          </div>
+                        {% endif %}
+                      </td>
+                    {% else %}
+                      <!-- Dispatched Quantity -->
+                      <td class="py-4 px-4 text-center align-middle">
+                        <span class="text-base font-mono font-black {% if line.quantity_dispatched > 0 %}text-indigo-600 dark:text-indigo-400{% else %}text-muted/60{% endif %}">
+                          {{ line.quantity_dispatched|floatformat:"-2" }}
+                        </span>
+                        <span class="text-[11px] text-muted font-bold block uppercase tracking-wider mt-0.5">
+                          {{ line.product.unit.code|default:_("units") }}
+                        </span>
+                      </td>
+
+                      <!-- Received Quantity -->
+                      <td class="py-4 px-4 text-center align-middle">
+                        <span class="text-base font-mono font-black {% if line.quantity_received > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-muted/60{% endif %}">
+                          {{ line.quantity_received|floatformat:"-2" }}
+                        </span>
+                        <span class="text-[11px] text-muted font-bold block uppercase tracking-wider mt-0.5">
+                          {{ line.product.unit.code|default:_("units") }}
+                        </span>
+                      </td>
+                    {% endif %}
                   {% endif %}
+
+                  <!-- 7. Valuation (Unit Cost & Dynamic Line Total) -->
+                  <td class="py-4 px-4 text-right align-middle">
+                    <div class="text-[11px] text-muted font-mono">
+                      <span class="text-[10px] uppercase font-bold text-muted/70">{% trans "Unit Cost" %}:</span>
+                      {{ line.unit_cost|floatformat:"2" }}
+                    </div>
+                    <div class="text-sm font-mono font-black text-ink mt-0.5">
+                      <span id="line_val_{{ line.id }}">{{ line.line_value|floatformat:"2" }}</span>
+                      <span class="text-[10px] text-muted font-semibold uppercase">{{ request.organization.currency|default:"BDT" }}</span>
+                    </div>
+                  </td>
 
                 </tr>
               {% endfor %}
@@ -689,11 +895,24 @@
               <span class="text-muted">{% trans "Total Requested" %}</span>
               <span class="font-mono font-bold text-ink text-sm">{{ total_requested|floatformat:"-2" }}</span>
             </div>
+            <div class="flex items-center justify-between py-2">
+              <span class="text-muted">{% trans "Requested Value" %}</span>
+              <span class="font-mono font-semibold text-muted text-xs">
+                {{ total_requested_value|floatformat:"2" }} {{ request.organization.currency|default:"BDT" }}
+              </span>
+            </div>
             {% if stock_request.status == 'pending_approval' or stock_request.status == 'PENDING_APPROVAL' or stock_request.status == 'approved' or stock_request.status == 'APPROVED' %}
               <div class="flex items-center justify-between py-2">
                 <span class="text-muted">{% trans "Total Approved / Staged" %}</span>
                 <span id="summary_staged_total" class="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm">
-                  {{ total_requested|floatformat:"-2" }}
+                  {{ total_approved_qty|floatformat:"-2" }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between py-2">
+                <span class="text-muted">{% trans "Approved Valuation" %}</span>
+                <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                  <span id="summary_staged_value">{{ total_approved_value|floatformat:"2" }}</span>
+                  <span class="text-[10px] text-muted font-normal uppercase">{{ request.organization.currency|default:"BDT" }}</span>
                 </span>
               </div>
             {% endif %}
@@ -741,192 +960,421 @@
         </div>
 
         <div class="p-5 space-y-4">
-          {% if stock_request.status == 'pending_approval' or stock_request.status == 'approved' or stock_request.status == 'PENDING_APPROVAL' or stock_request.status == 'APPROVED' %}
-            
-            <p class="text-xs text-muted">
-              {% trans "Confirm counts and issue approved inventory from source warehouse storage into transit." %}
-            </p>
+          {% if is_return %}
+            {% if stock_request.status == 'in_transit' or stock_request.status == 'dispatched' or stock_request.status == 'pending_approval' or stock_request.status == 'approved' or stock_request.status == 'IN_TRANSIT' or stock_request.status == 'DISPATCHED' or stock_request.status == 'PENDING_APPROVAL' or stock_request.status == 'APPROVED' %}
+              <!-- Warehouse Return Inspection & Acceptance -->
+              <p class="text-xs text-muted">
+                {% trans "Inspect item condition and select warehouse disposition for returned units." %}
+              </p>
 
-            <!-- Main Approval & Dispatch Form -->
-            <form id="stock_request_form" method="post" action="{% url 'inventory:stock_request_dispatch' stock_request.pk %}" class="space-y-4" onsubmit="return validateBeforeSubmit(event)">
-              {% csrf_token %}
-
-              <!-- Carrier / Driver -->
-              <div>
-                <label for="carrier_input" class="block text-xs font-semibold text-ink mb-1">{% trans "Carrier / Driver" %}</label>
-                <input
-                  type="text"
-                  id="carrier_input"
-                  name="carrier"
-                  value="{{ stock_request.carrier }}"
-                  placeholder="{% trans 'e.g. Internal Fleet, Delivery Van' %}"
-                  class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40"
-                />
-              </div>
-
-              <!-- Tracking / Consignment Number -->
-              <div>
-                <label for="tracking_input" class="block text-xs font-semibold text-ink mb-1">{% trans "Tracking / Consignment #" %}</label>
-                <input
-                  type="text"
-                  id="tracking_input"
-                  name="tracking_number"
-                  value="{{ stock_request.tracking_number }}"
-                  placeholder="{% trans 'e.g. TRK-00123' %}"
-                  class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40"
-                />
-              </div>
-
-              <!-- Shortage Confirmation Checkbox if warehouse has shortage -->
-              {% if has_shortage %}
-                <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/40 space-y-2">
-                  <div class="text-xs font-bold text-ink flex items-center gap-1.5">
-                    <svg class="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
-                    </svg>
-                    <span>{% trans "Shortage Confirmation" %}</span>
-                  </div>
-                  <label class="flex items-start gap-2.5 cursor-pointer text-xs">
-                    <input
-                      type="checkbox"
-                      id="shortage_confirmation_checkbox"
-                      name="shortage_confirmed"
-                      class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500 mt-0.5 shrink-0"
-                    />
-                    <span class="text-ink text-xs leading-snug font-medium">
-                      {% trans "I confirm warehouse stock levels were verified and agree to dispatch the confirmed line quantities." %}
-                    </span>
-                  </label>
+              <form id="inspect_return_form" method="post" action="{% url 'inventory:stock_return_inspect' stock_request.pk %}" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                  <label for="inspection_notes" class="block text-xs font-semibold text-ink mb-1">{% trans "Inspection Notes" %}</label>
+                  <textarea
+                    id="inspection_notes"
+                    name="inspection_notes"
+                    rows="2"
+                    placeholder="{% trans 'Damage details, serial verifications, or packaging notes (optional)' %}"
+                    class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/40"
+                  ></textarea>
                 </div>
-              {% endif %}
 
-              <!-- Action Buttons -->
-              <div class="space-y-2.5 pt-1">
-                <!-- Accept and Dispatch Button -->
+                <div class="space-y-2.5 pt-1">
+                  <button
+                    type="submit"
+                    id="accept_return_btn"
+                    class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                    </svg>
+                    <span>{% trans "Inspect & Accept Return" %}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="cancel_return_btn"
+                    onclick="document.getElementById('cancel_modal').classList.remove('hidden')"
+                    class="w-full py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span>{% trans "Reject / Cancel Return" %}</span>
+                  </button>
+                </div>
+              </form>
+
+            {% elif is_replacement and stock_request.status == 'received' or stock_request.status == 'RECEIVED' %}
+              <!-- Warehouse Dispatches Replacement Units to Outlet -->
+              <p class="text-xs text-muted">
+                {% trans "Return accepted into warehouse. Dispatch replacement goods to outlet." %}
+              </p>
+              <form id="replacement_dispatch_form" method="post" action="{% url 'inventory:stock_replacement_dispatch' stock_request.pk %}" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                  <label for="carrier_input" class="block text-xs font-semibold text-ink mb-1">{% trans "Carrier / Vehicle" %}</label>
+                  <input
+                    type="text"
+                    id="carrier_input"
+                    name="carrier"
+                    value="{{ stock_request.carrier }}"
+                    placeholder="{% trans 'e.g. Courier, Delivery Van' %}"
+                    class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-purple-500/40"
+                  />
+                </div>
+                <div>
+                  <label for="tracking_input" class="block text-xs font-semibold text-ink mb-1">{% trans "Tracking / Waybill #" %}</label>
+                  <input
+                    type="text"
+                    id="tracking_input"
+                    name="tracking_number"
+                    value="{{ stock_request.tracking_number }}"
+                    placeholder="{% trans 'e.g. TRK-RPL-0042' %}"
+                    class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-purple-500/40"
+                  />
+                </div>
+
                 <button
                   type="submit"
-                  id="dispatch_submit_btn"
-                  class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                  id="dispatch_replacement_btn"
+                  class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                   </svg>
-                  <span>{% trans "Accept & Dispatch" %}</span>
+                  <span>{% trans "Dispatch Replacement to Outlet" %}</span>
                 </button>
+              </form>
 
-                <!-- Superuser Direct Deliver & Confirm Action -->
-                {% if request.user.is_superuser or request.user.is_staff %}
-                  <button
-                    type="submit"
-                    formaction="{% url 'inventory:stock_request_direct_fulfill' stock_request.pk %}"
-                    class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-                    title="{% trans 'Fast-forward: dispatch and confirm delivery directly into branch storage in one step' %}"
-                  >
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span>{% trans "Direct Deliver & Confirm Receipt" %}</span>
-                  </button>
-                {% endif %}
-
-                <!-- Update Counts Button (saves counts to database without dispatching) -->
-                <button
-                  type="submit"
-                  formaction="{% url 'inventory:stock_request_update_counts' stock_request.pk %}"
-                  class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink border border-[var(--border)] shadow-2xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-                  title="{% trans 'Save updated counts without dispatching' %}"
-                >
-                  <svg class="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+            {% elif stock_request.status == 'cancelled' or stock_request.status == 'CANCELLED' or stock_request.status == 'rejected' or stock_request.status == 'REJECTED' %}
+              <div class="py-4 text-center space-y-2.5">
+                <div class="w-10 h-10 mx-auto rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                   </svg>
-                  <span>{% trans "Update Approved Counts" %}</span>
-                </button>
+                </div>
+                <p class="text-xs font-bold text-ink">{% trans "Return Cancelled / Rejected" %}</p>
+                {% if stock_request.rejection_reason %}
+                  <p class="text-[11px] text-muted italic">"{{ stock_request.rejection_reason }}"</p>
+                {% endif %}
+              </div>
 
-                <!-- Cancel / Reject Button -->
+            {% else %}
+              <div class="py-3 text-center space-y-2">
+                <div class="w-10 h-10 mx-auto rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                  </svg>
+                </div>
+                <p class="text-xs font-bold text-ink">{% if is_replacement %}{% trans "Replacement Completed" %}{% else %}{% trans "Return Completed" %}{% endif %}</p>
+                <p class="text-[11px] text-muted">
+                  {% trans "All stock movements have been recorded into warehouse and branch ledgers." %}
+                </p>
+              </div>
+            {% endif %}
+
+          {% else %}
+            <!-- Regular Requisition Flow -->
+            {% if stock_request.status == 'pending_approval' or stock_request.status == 'approved' or stock_request.status == 'PENDING_APPROVAL' or stock_request.status == 'APPROVED' %}
+              
+              {% if all_out_of_stock %}
+                <!-- ZERO STOCK STATE: ONLY SHOW CANCEL OPTION -->
+                <div class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-center space-y-3">
+                  <div class="w-11 h-11 mx-auto rounded-2xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-500/30 shadow-2xs">
+                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-bold text-ink">{% trans "Dispatch Blocked: No Stock" %}</h3>
+                    <p class="text-xs text-muted leading-relaxed mt-1">
+                      {% trans "None of the requested items are available in warehouse storage. Requisitions cannot be sent back with empty stock. Please cancel this request." %}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Only option shown: Cancel Requisition -->
                 <button
                   type="button"
+                  id="cancel_stockout_btn"
                   onclick="document.getElementById('cancel_modal').classList.remove('hidden')"
-                  class="w-full py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  class="w-full py-3 rounded-xl text-xs sm:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                  title="{% trans 'Cancel requisition' %}"
                 >
-                  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                   </svg>
                   <span>{% trans "Cancel Requisition" %}</span>
                 </button>
-              </div>
 
-            </form>
-
-          {% elif stock_request.status == 'dispatched' or stock_request.status == 'in_transit' or stock_request.status == 'partially_received' or stock_request.status == 'DISPATCHED' or stock_request.status == 'IN_TRANSIT' or stock_request.status == 'PARTIALLY_RECEIVED' %}
-            <p class="text-xs text-muted">
-              {% if stock_request.status == 'partially_received' or stock_request.status == 'PARTIALLY_RECEIVED' %}
-                {% trans "Partial delivery recorded. Confirm receipt of remaining goods into branch inventory or cancel unfulfilled portion." %}
               {% else %}
-                {% trans "Confirm receipt of all transferred items into branch inventory." %}
-              {% endif %}
-            </p>
-            <form id="outlet_confirm_section" method="post" action="{% url 'inventory:stock_request_confirm' stock_request.pk %}" class="space-y-3">
-              {% csrf_token %}
-              <div>
-                <label for="confirm_notes_input" class="block text-xs font-semibold text-ink mb-1">{% trans "Receipt Notes" %}</label>
-                <textarea
-                  id="confirm_notes_input"
-                  name="notes"
-                  rows="2"
-                  placeholder="{% trans 'Condition on arrival or shelf location (optional)' %}"
-                  class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/40"
-                ></textarea>
-              </div>
-              <button
-                type="submit"
-                class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
-                </svg>
-                <span>{% trans "Confirm Receipt at Outlet" %}</span>
-              </button>
+                <!-- Partial or Full Stock Available: Allow adjusting counts with dynamic amounts and dispatch -->
+                <p class="text-xs text-muted">
+                  {% trans "Confirm counts and issue approved inventory from source warehouse storage into transit." %}
+                </p>
 
-              <!-- Cancel Requisition Button -->
-              <button
-                type="button"
-                onclick="document.getElementById('cancel_modal').classList.remove('hidden')"
-                class="w-full py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-                <span>{% trans "Cancel Requisition" %}</span>
-              </button>
-            </form>
-          {% elif stock_request.status == 'cancelled' or stock_request.status == 'CANCELLED' or stock_request.status == 'rejected' or stock_request.status == 'REJECTED' %}
-            <div class="py-4 text-center space-y-2.5">
-              <div class="w-10 h-10 mx-auto rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </div>
-              <p class="text-xs font-bold text-ink">{% trans "Requisition Cancelled / Rejected" %}</p>
-              {% if stock_request.rejection_reason %}
-                <p class="text-[11px] text-muted italic">"{{ stock_request.rejection_reason }}"</p>
+                <!-- Main Approval & Dispatch Form -->
+                <form id="stock_request_form" method="post" action="{% url 'inventory:stock_request_dispatch' stock_request.pk %}" class="space-y-4" onsubmit="return validateBeforeSubmit(event)">
+                  {% csrf_token %}
+
+                  <!-- Carrier / Driver -->
+                  <div>
+                    <label for="carrier_input" class="block text-xs font-semibold text-ink mb-1">{% trans "Carrier / Driver" %}</label>
+                    <input
+                      type="text"
+                      id="carrier_input"
+                      name="carrier"
+                      value="{{ stock_request.carrier }}"
+                      placeholder="{% trans 'e.g. Internal Fleet, Delivery Van' %}"
+                      class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40"
+                    />
+                  </div>
+
+                  <!-- Tracking / Consignment Number -->
+                  <div>
+                    <label for="tracking_input" class="block text-xs font-semibold text-ink mb-1">{% trans "Tracking / Consignment #" %}</label>
+                    <input
+                      type="text"
+                      id="tracking_input"
+                      name="tracking_number"
+                      value="{{ stock_request.tracking_number }}"
+                      placeholder="{% trans 'e.g. TRK-00123' %}"
+                      class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40"
+                    />
+                  </div>
+
+                  <!-- Shortage Confirmation Checkbox if warehouse has shortage -->
+                  {% if has_shortage %}
+                    <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/40 space-y-2">
+                      <div class="text-xs font-bold text-ink flex items-center gap-1.5">
+                        <svg class="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                        </svg>
+                        <span>{% trans "Shortage Confirmation" %}</span>
+                      </div>
+                      <label class="flex items-start gap-2.5 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          id="shortage_confirmation_checkbox"
+                          name="shortage_confirmed"
+                          class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500 mt-0.5 shrink-0"
+                        />
+                        <span class="text-ink text-xs leading-snug font-medium">
+                          {% trans "I confirm warehouse stock levels were verified and agree to dispatch the confirmed line quantities." %}
+                        </span>
+                      </label>
+                    </div>
+                  {% endif %}
+
+                  <!-- Dynamic Zero-Quantity Warning Banner -->
+                  <div id="zero_qty_warning" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-medium text-center space-y-1">
+                    <div class="font-bold">{% trans "Total dispatch quantity is 0." %}</div>
+                    <div class="text-[11px] text-muted">{% trans "Requisitions cannot be sent empty. Please cancel the request below." %}</div>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="space-y-2.5 pt-1">
+                    <!-- Accept and Dispatch Button -->
+                    <button
+                      type="submit"
+                      id="dispatch_submit_btn"
+                      class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                      </svg>
+                      <span>{% trans "Accept & Dispatch" %}</span>
+                    </button>
+
+                    <!-- Superuser Direct Deliver & Confirm Action -->
+                    {% if request.user.is_superuser or request.user.is_staff %}
+                      <button
+                        type="submit"
+                        id="direct_fulfill_btn"
+                        formaction="{% url 'inventory:stock_request_direct_fulfill' stock_request.pk %}"
+                        class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                        title="{% trans 'Fast-forward: dispatch and confirm delivery directly into branch storage in one step' %}"
+                      >
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>{% trans "Direct Deliver & Confirm Receipt" %}</span>
+                      </button>
+                    {% endif %}
+
+                    <!-- Update Counts Button (saves counts to database without dispatching) -->
+                    <button
+                      type="submit"
+                      id="update_counts_btn"
+                      formaction="{% url 'inventory:stock_request_update_counts' stock_request.pk %}"
+                      class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink border border-[var(--border)] shadow-2xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                      title="{% trans 'Save updated counts without dispatching' %}"
+                    >
+                      <svg class="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                      </svg>
+                      <span>{% trans "Update Approved Counts" %}</span>
+                    </button>
+
+                    <!-- Cancel / Reject Button -->
+                    <button
+                      type="button"
+                      id="cancel_trigger_btn"
+                      onclick="document.getElementById('cancel_modal').classList.remove('hidden')"
+                      class="w-full py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                      <span>{% trans "Cancel Requisition" %}</span>
+                    </button>
+                  </div>
+
+                </form>
               {% endif %}
-              <p class="text-[10px] text-muted font-mono">
-                {% if stock_request.rejected_at %}{{ stock_request.rejected_at|date:"M d, Y H:i" }}{% endif %}
-              </p>
-            </div>
-          {% else %}
-            <div class="py-3 text-center space-y-2">
-              <div class="w-10 h-10 mx-auto rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
-                </svg>
+
+            {% elif stock_request.status == 'dispatched' or stock_request.status == 'in_transit' or stock_request.status == 'partially_received' or stock_request.status == 'DISPATCHED' or stock_request.status == 'IN_TRANSIT' or stock_request.status == 'PARTIALLY_RECEIVED' %}
+              {% if stock_request.is_push_distribution or stock_request.transfer_type == 'push_distribution' %}
+                <!-- Push Distribution Outlet Decision Section -->
+                <div class="space-y-3">
+                  <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300">
+                    <span class="font-bold">{% trans "Warehouse Direct Push" %}</span>:
+                    {% trans "Inspect shipment. You can accept items, return now or later, or reject." %}
+                  </div>
+
+                  <form method="post" action="{% url 'warehouses:push_decision' stock_request.pk %}" class="space-y-2.5">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'inventory:stock_request_detail' stock_request.pk %}" />
+
+                    <!-- Quick Accept All Button -->
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="accepted"
+                      class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                      </svg>
+                      <span>{% trans "Accept Full Push Delivery" %}</span>
+                    </button>
+
+                    <!-- Return Now Button -->
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="returned_now"
+                      class="w-full py-2 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/>
+                      </svg>
+                      <span>{% trans "Return Now (Immediate Full Return)" %}</span>
+                    </button>
+
+                    <!-- Hold for Later Button -->
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="held_return_later"
+                      class="w-full py-2 rounded-xl text-xs font-bold bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <span>{% trans "Hold Unaccepted Units (Return Later)" %}</span>
+                    </button>
+
+                    <!-- Reject & Cancel Button -->
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="cancelled_returned"
+                      class="w-full py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                      <span>{% trans "Reject & Cancel Push" %}</span>
+                    </button>
+                  </form>
+                </div>
+              {% else %}
+                <p class="text-xs text-muted">
+                  {% if stock_request.status == 'partially_received' or stock_request.status == 'PARTIALLY_RECEIVED' %}
+                    {% trans "Partial delivery recorded. Confirm receipt of remaining goods into branch inventory or cancel unfulfilled portion." %}
+                  {% else %}
+                    {% trans "Confirm receipt of all transferred items into branch inventory." %}
+                  {% endif %}
+                </p>
+                <form id="outlet_confirm_section" method="post" action="{% url 'inventory:stock_request_confirm' stock_request.pk %}" class="space-y-3">
+                  {% csrf_token %}
+                  <div>
+                    <label for="confirm_notes_input" class="block text-xs font-semibold text-ink mb-1">{% trans "Receipt Notes" %}</label>
+                    <textarea
+                      id="confirm_notes_input"
+                      name="notes"
+                      rows="2"
+                      placeholder="{% trans 'Condition on arrival or shelf location (optional)' %}"
+                      class="w-full px-3 py-2 rounded-xl text-xs bg-[var(--surface-2)] border border-[var(--border)]/80 text-ink placeholder:text-muted/60 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/40"
+                    ></textarea>
+                  </div>
+                  <button
+                    type="submit"
+                    class="w-full py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                    </svg>
+                    <span>{% trans "Confirm Receipt at Outlet" %}</span>
+                  </button>
+
+                  <!-- Cancel Requisition Button -->
+                  <button
+                    type="button"
+                    onclick="document.getElementById('cancel_modal').classList.remove('hidden')"
+                    class="w-full py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span>{% trans "Cancel Requisition" %}</span>
+                  </button>
+                </form>
+              {% endif %}
+            {% elif stock_request.status == 'cancelled' or stock_request.status == 'CANCELLED' or stock_request.status == 'rejected' or stock_request.status == 'REJECTED' %}
+              <div class="py-4 text-center space-y-2.5">
+                <div class="w-10 h-10 mx-auto rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </div>
+                <p class="text-xs font-bold text-ink">{% trans "Requisition Cancelled / Rejected" %}</p>
+                {% if stock_request.rejection_reason %}
+                  <p class="text-[11px] text-muted italic">"{{ stock_request.rejection_reason }}"</p>
+                {% endif %}
+                <p class="text-[10px] text-muted font-mono">
+                  {% if stock_request.rejected_at %}{{ stock_request.rejected_at|date:"M d, Y H:i" }}{% endif %}
+                </p>
               </div>
-              <p class="text-xs font-bold text-ink">{% trans "Fulfillment Completed" %}</p>
-              <p class="text-[11px] text-muted">
-                {% trans "Stock has been delivered and recorded into branch inventory." %}
-              </p>
-            </div>
+            {% else %}
+              <div class="py-3 text-center space-y-2">
+                <div class="w-10 h-10 mx-auto rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                  </svg>
+                </div>
+                <p class="text-xs font-bold text-ink">{% trans "Fulfillment Completed" %}</p>
+                <p class="text-[11px] text-muted">
+                  {% trans "Stock has been delivered and recorded into branch inventory." %}
+                </p>
+              </div>
+            {% endif %}
+
           {% endif %}
+        </div>
         </div>
       </div>
 
@@ -1028,15 +1476,74 @@
   }
 
   function updateTotals() {
-    let total = 0;
+    let totalQty = 0;
+    let totalValue = 0;
     const inputs = document.querySelectorAll('input[id^="line_qty_"]');
     inputs.forEach(input => {
-      total += parseFloat(input.value) || 0;
+      const lineId = input.id.replace('line_qty_', '');
+      const qty = parseFloat(input.value) || 0;
+      const cost = parseFloat(input.getAttribute('data-cost')) || 0;
+      const lineVal = qty * cost;
+      totalQty += qty;
+      totalValue += lineVal;
+
+      const lineValEl = document.getElementById('line_val_' + lineId);
+      if (lineValEl) {
+        lineValEl.innerText = lineVal.toFixed(2);
+      }
     });
 
     const summaryTotal = document.getElementById('summary_staged_total');
     if (summaryTotal) {
-      summaryTotal.innerText = total.toFixed(2).replace(/\.00$/, '');
+      summaryTotal.innerText = totalQty.toFixed(2).replace(/\.00$/, '');
+    }
+
+    const summaryValue = document.getElementById('summary_staged_value');
+    if (summaryValue) {
+      summaryValue.innerText = totalValue.toFixed(2);
+    }
+
+    const headerTotalBadge = document.getElementById('header_total_badge');
+    if (headerTotalBadge) {
+      headerTotalBadge.innerText = totalQty.toFixed(2).replace(/\.00$/, '') + " {% trans 'units' %}";
+    }
+
+    // Zero-quantity enforcement: cannot dispatch with empty stock
+    const dispatchBtn = document.getElementById('dispatch_submit_btn');
+    const directFulfillBtn = document.getElementById('direct_fulfill_btn');
+    const zeroWarning = document.getElementById('zero_qty_warning');
+    const cancelNoticeBtn = document.getElementById('cancel_trigger_btn');
+
+    if (totalQty <= 0) {
+      if (dispatchBtn) {
+        dispatchBtn.disabled = true;
+        dispatchBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      }
+      if (directFulfillBtn) {
+        directFulfillBtn.disabled = true;
+        directFulfillBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      }
+      if (zeroWarning) {
+        zeroWarning.classList.remove('hidden');
+      }
+      if (cancelNoticeBtn) {
+        cancelNoticeBtn.classList.add('ring-2', 'ring-rose-500', 'bg-rose-500/15');
+      }
+    } else {
+      if (dispatchBtn) {
+        dispatchBtn.disabled = false;
+        dispatchBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      }
+      if (directFulfillBtn) {
+        directFulfillBtn.disabled = false;
+        directFulfillBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      }
+      if (zeroWarning) {
+        zeroWarning.classList.add('hidden');
+      }
+      if (cancelNoticeBtn) {
+        cancelNoticeBtn.classList.remove('ring-2', 'ring-rose-500', 'bg-rose-500/15');
+      }
     }
   }
 
@@ -1044,8 +1551,22 @@
     // Only validate warehouse stock limit when submitting the dispatch action
     const submitter = e.submitter;
     if (submitter && submitter.getAttribute('formaction')) {
-      // If updating counts without dispatching, let it proceed immediately
-      return true;
+      const formaction = submitter.getAttribute('formaction');
+      if (formaction.indexOf('update-counts') !== -1) {
+        return true;
+      }
+    }
+
+    let totalQty = 0;
+    const inputs = document.querySelectorAll('input[id^="line_qty_"]');
+    inputs.forEach(input => {
+      totalQty += parseFloat(input.value) || 0;
+    });
+
+    if (totalQty <= 0) {
+      e.preventDefault();
+      alert("{% trans 'Cannot dispatch a stock request with zero quantity. Requisitions cannot be sent empty. Please cancel the request if no items are being sent.' %}");
+      return false;
     }
 
     // Require shortage confirmation before dispatch if checkbox is present
@@ -1057,7 +1578,6 @@
       return false;
     }
 
-    const inputs = document.querySelectorAll('input[id^="line_qty_"]');
     let hasOverStock = false;
     inputs.forEach(input => {
       const val = parseFloat(input.value) || 0;
@@ -1076,6 +1596,10 @@
 
     return true;
   }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    updateTotals();
+  });
 </script>
 
 <!-- Cancellation Modal Dialog -->

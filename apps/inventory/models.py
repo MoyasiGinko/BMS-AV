@@ -322,6 +322,15 @@ class TransferStatus(models.TextChoices):
     CANCELLED = "cancelled", _("Cancelled")
 
 
+class TransferType(models.TextChoices):
+    REQUISITION = "requisition", _("Stock Requisition")
+    RETURN = "return", _("Stock Return")
+    REPLACEMENT = "replacement", _("Stock Replacement")
+    INTERNAL = "internal", _("Internal Transfer")
+    PUSH_DISTRIBUTION = "push_distribution", _("Warehouse Push Distribution")
+    INTER_BRANCH = "inter_branch", _("Inter-Branch Transfer")
+
+
 class CountStatus(models.TextChoices):
     DRAFT = "draft", _("Draft")
     IN_PROGRESS = "in_progress", _("In Progress")
@@ -684,10 +693,23 @@ class StockTransfer(TenantModel):
         _("is inter-branch transfer"),
         default=False,
     )
+    transfer_intent = models.CharField(
+        _("transfer intent"),
+        max_length=16,
+        blank=True,
+        default="",
+        help_text=_("Inter-branch transfer intent: send (outbound dispatch) or request (inbound requisition)."),
+    )
     is_branch_requisition = models.BooleanField(
         _("is branch requisition"),
         default=False,
         help_text=_("Stock request initiated by a branch/outlet to a linked warehouse."),
+    )
+    transfer_type = models.CharField(
+        _("transfer type"),
+        max_length=32,
+        choices=TransferType.choices,
+        default=TransferType.REQUISITION,
     )
     status = models.CharField(
         _("status"),
@@ -746,6 +768,36 @@ class StockTransfer(TenantModel):
         verbose_name=_("received by"),
     )
     completed_at = models.DateTimeField(_("completed at"), null=True, blank=True)
+    is_push_distribution = models.BooleanField(
+        _("is push distribution"),
+        default=False,
+        help_text=_("Stock push initiated directly by warehouse to branch outlet without prior request."),
+    )
+    outlet_decision = models.CharField(
+        _("outlet decision"),
+        max_length=32,
+        blank=True,
+        default="",
+        help_text=_("Outlet review decision: accepted, partial_accept, returned_now, held_return_later, cancelled_returned."),
+    )
+    outlet_decision_notes = models.TextField(
+        _("outlet decision notes"),
+        blank=True,
+        default="",
+    )
+    outlet_decision_at = models.DateTimeField(
+        _("outlet decision at"),
+        null=True,
+        blank=True,
+    )
+    outlet_decision_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="push_transfer_decisions",
+        verbose_name=_("outlet decision by"),
+    )
 
     class Meta:
         base_manager_name = "all_tenants"
@@ -763,6 +815,7 @@ class StockTransfer(TenantModel):
             models.Index(fields=["organization", "source_branch", "destination_branch"]),
             models.Index(fields=["organization", "is_inter_branch"]),
             models.Index(fields=["organization", "is_branch_requisition", "status"]),
+            models.Index(fields=["organization", "is_push_distribution", "status"]),
         ]
 
     def __str__(self) -> str:
@@ -840,6 +893,61 @@ class StockTransferLine(TenantModel):
         decimal_places=4,
         default=Decimal("0.0000"),
     )
+    replacement_quantity = models.DecimalField(
+        _("replacement quantity"),
+        max_digits=18,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text=_("For replacement requests: quantity requested back from warehouse."),
+    )
+    return_reason = models.CharField(
+        _("return reason"),
+        max_length=64,
+        blank=True,
+        default="",
+        help_text=_("Reason code for return (e.g. damaged, defective, expired, excess, customer_return)."),
+    )
+    item_condition = models.CharField(
+        _("item condition"),
+        max_length=64,
+        blank=True,
+        default="good",
+        help_text=_("Condition reported by outlet (good, open_box, damaged, scrap)."),
+    )
+    disposition = models.CharField(
+        _("warehouse disposition"),
+        max_length=64,
+        blank=True,
+        default="",
+        help_text=_("Warehouse disposition (restock_sellable, quarantine, write_off_scrap, vendor_return)."),
+    )
+    inspection_notes = models.TextField(
+        _("inspection notes"),
+        blank=True,
+        default="",
+    )
+    quantity_returned_now = models.DecimalField(
+        _("quantity returned now"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+        help_text=_("Quantity returned immediately back to central warehouse."),
+    )
+    quantity_held_return_later = models.DecimalField(
+        _("quantity held for return later"),
+        max_digits=18,
+        decimal_places=4,
+        default=Decimal("0.0000"),
+        help_text=_("Quantity held at outlet to be returned in a later batch."),
+    )
+    line_decision = models.CharField(
+        _("line decision"),
+        max_length=32,
+        blank=True,
+        default="",
+        help_text=_("Decision for this specific line item (e.g. accepted, returned_now, return_later)."),
+    )
     notes = models.CharField(
         _("notes"),
         max_length=255,
@@ -864,8 +972,18 @@ class StockAdjustment(TenantModel):
     warehouse = models.ForeignKey(
         "tenancy.Warehouse",
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="adjustments",
         verbose_name=_("warehouse"),
+    )
+    branch = models.ForeignKey(
+        "tenancy.Branch",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="stock_adjustments",
+        verbose_name=_("branch outlet"),
     )
     location = models.ForeignKey(
         "inventory.InventoryLocation",
@@ -911,7 +1029,8 @@ class StockAdjustment(TenantModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.adjustment_number} ({self.get_reason_display()}) @ {self.warehouse.name}"
+        facility = self.warehouse.name if self.warehouse else (self.branch.name if self.branch else "")
+        return f"{self.adjustment_number} ({self.get_reason_display()}) @ {facility}"
 
 
 class StockAdjustmentLine(TenantModel):

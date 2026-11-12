@@ -1,0 +1,376 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Send Stock to Outlet" %} | {{ organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="requests" %}
+{% endblock %}
+
+{% block content %}
+<div
+  x-data="{
+    rows: [
+      { product_id: '', variant_id: '', quantity: 1, notes: '' }
+    ],
+    selectedWarehouseId: '{{ current_warehouse.pk|default:'' }}',
+    products: {
+      {% for p in products %}
+        '{{ p.pk }}': {
+          id: '{{ p.pk }}',
+          name: '{{ p.name|escapejs }}',
+          sku: '{{ p.sku|default:''|escapejs }}',
+          unit: '{{ p.unit.name|default:'pcs'|escapejs }}',
+          variants: [
+            {% for v in p.variants.all %}
+              { id: '{{ v.pk }}', name: '{{ v.name|escapejs }}', sku: '{{ v.sku|default:''|escapejs }}' },
+            {% endfor %}
+          ]
+        },
+      {% endfor %}
+    },
+    addRow() {
+      this.rows.push({ product_id: '', variant_id: '', quantity: 1, notes: '' });
+    },
+    removeRow(index) {
+      if (this.rows.length > 1) {
+        this.rows.splice(index, 1);
+      }
+    },
+    increment(index) {
+      const current = parseInt(this.rows[index].quantity, 10) || 0;
+      this.rows[index].quantity = current + 1;
+    },
+    decrement(index) {
+      const current = parseInt(this.rows[index].quantity, 10) || 1;
+      if (current > 1) {
+        this.rows[index].quantity = current - 1;
+      }
+    },
+    totalUnits() {
+      return this.rows.reduce((sum, r) => {
+        const q = parseInt(r.quantity, 10);
+        return sum + (isNaN(q) || q <= 0 ? 0 : q);
+      }, 0);
+    },
+    validRowsCount() {
+      return this.rows.filter(r => r.product_id && parseInt(r.quantity, 10) > 0).length;
+    }
+  }"
+  class="space-y-6 w-full"
+>
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+        <a href="{% url 'warehouses:request_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Stock Requests" %}</a>
+        <span>/</span>
+        <span class="text-ink">{% trans "Direct Stock Push" %}</span>
+      </div>
+      <h1 class="text-xl sm:text-2xl font-extrabold text-ink">{% trans "Send Stock to Outlet (Direct Push)" %}</h1>
+      <p class="text-xs text-muted mt-0.5">
+        {% trans "Dispatch inventory directly from central warehouse to a branch outlet without waiting for an outlet request." %}
+      </p>
+    </div>
+    <div>
+      <a
+        href="{% url 'warehouses:request_list' %}"
+        class="neu-subnav-btn bg-[var(--surface-1)] text-ink hover:text-indigo-600 font-semibold border border-[var(--border)]/60 px-4 py-2 rounded-xl text-xs sm:text-sm inline-flex items-center gap-2 transition-all shadow-2xs"
+      >
+        <svg class="w-4 h-4 shrink-0 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+        </svg>
+        <span>{% trans "Back to Requests" %}</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Form Layout -->
+  <form method="post" action="{% url 'warehouses:push_send' %}" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    {% csrf_token %}
+    <input type="hidden" name="lines_json" :value="JSON.stringify(rows)" />
+
+    <!-- Left Column: Route & Item Lines (8 Cols) -->
+    <div class="lg:col-span-8 space-y-6">
+
+      <!-- Route Card: FROM Warehouse -> TO Outlet -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]/40">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-ink leading-tight">{% trans "Push Distribution Route" %}</h2>
+              <p class="text-xs text-muted">{% trans "Source warehouse issuing goods directly to destination branch outlet" %}</p>
+            </div>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 font-mono">
+            {% trans "Warehouse ➔ Outlet Push" %}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
+          <!-- 1. Source Warehouse (FROM) -->
+          <div class="md:col-span-5 space-y-1.5">
+            <label for="source_wh_select" class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted">
+              <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
+              </svg>
+              <span>{% trans "Source Warehouse (From)" %}</span>
+              <span class="text-rose-500">*</span>
+            </label>
+            <select
+              id="source_wh_select"
+              name="source_warehouse_id"
+              x-model="selectedWarehouseId"
+              onchange="window.location.href='{% url 'warehouses:push_send' %}?warehouse_id=' + this.value;"
+              required
+              class="w-full h-11 text-sm py-2 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-2 focus:ring-indigo-500 font-semibold"
+            >
+              {% for wh in warehouses %}
+                <option value="{{ wh.pk }}" {% if current_warehouse and current_warehouse.pk == wh.pk %}selected{% endif %}>
+                  {{ wh.name }} ({{ wh.get_warehouse_type_display }})
+                </option>
+              {% endfor %}
+            </select>
+            <p class="text-[11px] text-muted">{% trans "Warehouse issuing inventory immediately into transit." %}</p>
+          </div>
+
+          <!-- Flow Arrow (1 col) -->
+          <div class="flex md:col-span-1 items-center justify-center pt-2">
+            <div class="w-9 h-9 rounded-full bg-[var(--surface-2)] border border-[var(--border)] flex items-center justify-center text-muted shadow-2xs">
+              <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- 2. Destination Outlet (TO) -->
+          <div class="md:col-span-5 space-y-1.5">
+            <label for="dest_branch_select" class="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted">
+              <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+              </svg>
+              <span>{% trans "Destination Outlet (To)" %}</span>
+              <span class="text-rose-500">*</span>
+            </label>
+            <select
+              id="dest_branch_select"
+              name="destination_branch_id"
+              required
+              class="w-full h-11 text-sm py-2 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-2 focus:ring-indigo-500 font-semibold"
+            >
+              <option value="">{% trans "Select receiving branch outlet..." %}</option>
+              {% for b in branches %}
+                <option value="{{ b.pk }}">{{ b.name }} {% if b.code %}({{ b.code }}){% endif %}</option>
+              {% endfor %}
+            </select>
+            <p class="text-[11px] text-muted">{% trans "Outlet receiving goods and deciding acceptance upon arrival." %}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Line Items Section -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]/40">
+          <div>
+            <h3 class="text-sm font-bold text-ink">{% trans "Products & Quantities to Dispatch" %}</h3>
+            <p class="text-xs text-muted">{% trans "Select products to push to the branch outlet." %}</p>
+          </div>
+          <button
+            type="button"
+            @click="addRow()"
+            class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+            </svg>
+            <span>{% trans "Add Item" %}</span>
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <template x-for="(row, idx) in rows" :key="idx">
+            <div class="p-3.5 rounded-xl border border-[var(--border)]/80 bg-[var(--surface-2)]/60 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+              <!-- Product Select (6 cols) -->
+              <div class="sm:col-span-6">
+                <label class="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                  {% trans "Product" %} #<span x-text="idx + 1"></span>
+                </label>
+                <select
+                  x-model="row.product_id"
+                  required
+                  class="w-full text-xs rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink px-3 py-2 font-semibold focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">{% trans "Select product..." %}</option>
+                  {% for p in products %}
+                    <option value="{{ p.pk }}">{{ p.name }} ({{ p.sku|default:'SKU: N/A' }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Variant Select (3 cols) -->
+              <div class="sm:col-span-3">
+                <label class="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                  {% trans "Variant (Optional)" %}
+                </label>
+                <select
+                  x-model="row.variant_id"
+                  class="w-full text-xs rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink px-2.5 py-2 font-medium"
+                >
+                  <option value="">{% trans "Default Variant" %}</option>
+                  <template x-if="products[row.product_id] && products[row.product_id].variants.length > 0">
+                    <template x-for="v in products[row.product_id].variants" :key="v.id">
+                      <option :value="v.id" x-text="v.name"></option>
+                    </template>
+                  </template>
+                </select>
+              </div>
+
+              <!-- Quantity Input (2 cols) -->
+              <div class="sm:col-span-2">
+                <label class="block text-[10px] font-bold text-muted uppercase tracking-wider mb-1">
+                  {% trans "Quantity" %}
+                </label>
+                <div class="flex items-center">
+                  <button
+                    type="button"
+                    @click="decrement(idx)"
+                    class="w-7 h-8 rounded-l-lg bg-[var(--surface-1)] border border-r-0 border-[var(--border)] text-muted hover:text-ink flex items-center justify-center text-xs font-bold"
+                  >-</button>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    x-model="row.quantity"
+                    class="w-12 h-8 text-center text-xs border border-[var(--border)] bg-[var(--surface-1)] text-ink font-bold focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    @click="increment(idx)"
+                    class="w-7 h-8 rounded-r-lg bg-[var(--surface-1)] border border-l-0 border-[var(--border)] text-muted hover:text-ink flex items-center justify-center text-xs font-bold"
+                  >+</button>
+                </div>
+              </div>
+
+              <!-- Remove button (1 col) -->
+              <div class="sm:col-span-1 flex justify-end sm:pt-4">
+                <button
+                  type="button"
+                  @click="removeRow(idx)"
+                  :disabled="rows.length <= 1"
+                  :class="rows.length <= 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-rose-500/10 text-rose-500'"
+                  class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                  title="{% trans 'Remove Item' %}"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Dispatch Logistics & Summary (4 Cols) -->
+    <div class="lg:col-span-4 space-y-6">
+
+      <!-- Shipment Details Card -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-ink pb-2 border-b border-[var(--border)]/40">
+          {% trans "Shipment & Logistics" %}
+        </h3>
+
+        <!-- Carrier -->
+        <div class="space-y-1">
+          <label for="carrier_input" class="block text-xs font-bold text-muted uppercase tracking-wider">
+            {% trans "Carrier / Vehicle / Driver" %}
+          </label>
+          <input
+            id="carrier_input"
+            type="text"
+            name="carrier"
+            placeholder="{% trans 'e.g. In-house Van, RedX, Courier' %}"
+            class="w-full text-xs rounded-xl border border-[var(--border)] bg-[var(--surface)] text-ink px-3 py-2.5 focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <!-- Tracking Number -->
+        <div class="space-y-1">
+          <label for="tracking_input" class="block text-xs font-bold text-muted uppercase tracking-wider">
+            {% trans "Tracking / Waybill Number" %}
+          </label>
+          <input
+            id="tracking_input"
+            type="text"
+            name="tracking_number"
+            placeholder="{% trans 'e.g. TRK-98241' %}"
+            class="w-full text-xs rounded-xl border border-[var(--border)] bg-[var(--surface)] text-ink px-3 py-2.5 focus:ring-2 focus:ring-indigo-500 font-mono"
+          />
+        </div>
+
+        <!-- Dispatch Notes -->
+        <div class="space-y-1">
+          <label for="push_notes_input" class="block text-xs font-bold text-muted uppercase tracking-wider">
+            {% trans "Dispatch Notes / Reason" %}
+          </label>
+          <textarea
+            id="push_notes_input"
+            name="notes"
+            rows="3"
+            placeholder="{% trans 'e.g. Weekly replenishment push, new seasonal allocation' %}"
+            class="w-full text-xs rounded-xl border border-[var(--border)] bg-[var(--surface)] text-ink p-3 focus:ring-2 focus:ring-indigo-500"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Summary & Action Card -->
+      <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs space-y-4">
+        <h3 class="text-sm font-bold text-ink pb-2 border-b border-[var(--border)]/40">
+          {% trans "Dispatch Summary" %}
+        </h3>
+
+        <div class="space-y-2.5 text-xs">
+          <div class="flex justify-between items-center text-muted">
+            <span>{% trans "Distinct Items" %}</span>
+            <span class="font-bold text-ink" x-text="validRowsCount()"></span>
+          </div>
+          <div class="flex justify-between items-center text-muted">
+            <span>{% trans "Total Push Units" %}</span>
+            <span class="font-bold text-indigo-600 text-sm" x-text="totalUnits()"></span>
+          </div>
+          <div class="flex justify-between items-center text-muted pt-2 border-t border-[var(--border)]/40">
+            <span>{% trans "Status on Send" %}</span>
+            <span class="font-semibold text-purple-600">{% trans "Dispatched / In-Transit" %}</span>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[11px] text-purple-700 dark:text-purple-300">
+          {% trans "Once dispatched, stock is deducted from the source warehouse immediately. The receiving outlet will review and can accept, return now, or hold unaccepted units for later." %}
+        </div>
+
+        <button
+          type="submit"
+          :disabled="validRowsCount() === 0"
+          :class="validRowsCount() === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-purple-700 active:scale-95 cursor-pointer'"
+          class="w-full py-3 rounded-xl text-xs sm:text-sm font-extrabold bg-purple-600 text-white shadow-xs transition-all flex items-center justify-center gap-2"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
+          </svg>
+          <span>{% trans "Dispatch Stock to Outlet" %}</span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+

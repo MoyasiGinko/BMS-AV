@@ -33,11 +33,44 @@
            isOnline: navigator.onLine,
            checking: false,
            init() {
+             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+               // In local development, if trapped in offline page, unregister SW & clear caches immediately
+               if ('serviceWorker' in navigator) {
+                 navigator.serviceWorker.getRegistrations().then(regs => {
+                   for (let r of regs) r.unregister();
+                 });
+               }
+               if ('caches' in window) {
+                 caches.keys().then(names => {
+                   for (let n of names) caches.delete(n);
+                 });
+               }
+               // If server is reachable, immediately reload
+               fetch('/', { cache: 'no-store' })
+                 .then(res => {
+                   if (res && res.status < 500) {
+                     window.location.href = '/';
+                   }
+                 })
+                 .catch(() => {});
+             }
              window.addEventListener('online', () => { this.isOnline = true; window.location.reload(); });
              window.addEventListener('offline', () => { this.isOnline = false; });
            },
            checkConnection() {
              this.checking = true;
+             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+               if ('serviceWorker' in navigator) {
+                 navigator.serviceWorker.getRegistrations().then(regs => {
+                   for (let r of regs) r.unregister();
+                 });
+               }
+               if ('caches' in window) {
+                 caches.keys().then(names => {
+                   for (let n of names) caches.delete(n);
+                 });
+               }
+             }
              fetch('/healthz', { cache: 'no-store' })
                .then(() => { window.location.reload(); })
                .catch(() => {

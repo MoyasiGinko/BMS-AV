@@ -10,131 +10,827 @@
 {% endblock %}
 
 {% block content %}
-<div class="inventory-page space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+<div
+  x-data="{
+    guideOpen: false,
+    editModalOpen: false,
+    autoConfigModalOpen: false,
+    poModalOpen: false,
+    currentProduct: { id: '', name: '', sku: '', point: '0', target: '10', warehouse_id: '{{ selected_warehouse.pk|default:'' }}' },
+    openEditModal(id, name, sku, point, target, whId) {
+      this.currentProduct = {
+        id: id,
+        name: name,
+        sku: sku,
+        point: point || '0',
+        target: target || '10',
+        warehouse_id: whId || '{{ selected_warehouse.pk|default:'' }}'
+      };
+      this.editModalOpen = true;
+    }
+  }"
+  class="inventory-page space-y-6"
+>
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-[var(--border)]/40">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+        <a href="{% url 'inventory:stock_level_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Inventory" %}</a>
+        <span>/</span>
+        <span class="text-ink">{% trans "Replenishment Planning" %}</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Reorder Suggestions" %}</h1>
+        <button
+          type="button"
+          @click="guideOpen = !guideOpen"
+          class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer"
+          :class="guideOpen ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-[var(--surface-1)] text-indigo-600 dark:text-indigo-400 border-indigo-500/30 hover:border-indigo-500'"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/>
+          </svg>
+          <span x-text="guideOpen ? '{% trans "Hide Guide" %}' : '{% trans "How Reorder Works" %}'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap items-center gap-2.5">
+      <button
+        type="button"
+        @click="autoConfigModalOpen = true"
+        class="neu-action-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 border border-[var(--border)] text-ink hover:text-indigo-600 transition"
+      >
+        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
+        </svg>
+        <span>{% trans "Quick Set Thresholds" %}</span>
+      </button>
+
+      <a
+        href="{% url 'inventory:add_stock' %}"
+        class="neu-action-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 border border-[var(--border)] text-ink hover:text-indigo-600 transition"
+      >
+        <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+        </svg>
+        <span>{% trans "Stock Request (Outlet)" %}</span>
+      </a>
+
+      <button
+        type="button"
+        @click="poModalOpen = true"
+        :disabled="{{ needs_reorder_count }} === 0"
+        class="neu-primary-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer bg-indigo-600 text-white hover:bg-indigo-700"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        <span>{% trans "Generate Draft Purchase Orders" %}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Educational "How Reorder Works" Section (Collapsible) -->
+  <div
+    x-show="guideOpen"
+    x-collapse
+    x-cloak
+    class="p-5 sm:p-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 dark:bg-indigo-950/20 text-ink shadow-sm space-y-4"
+  >
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/>
+          </svg>
+        </div>
         <div>
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--neu-text,#262B45)]">{% trans "Reorder Suggestions" %}</h1>
+          <h2 class="text-base font-bold text-ink">{% trans "How Automated Reorder Works in BMS-AV" %}</h2>
+          <p class="text-xs text-muted">{% trans "Understanding safety stock, replenishment formulas, and vendor workflows" %}</p>
         </div>
-        <div class="flex items-center gap-2.5">
-            {% if suggestions %}
-            <form method="post" action="{% url 'purchasing:purchase_orders_from_reorder' %}">
-                {% csrf_token %}
-                {% if selected_warehouse %}
-                <input type="hidden" name="warehouse_id" value="{{ selected_warehouse.pk }}" />
+      </div>
+      <button type="button" @click="guideOpen = false" class="text-muted hover:text-ink text-xs font-semibold">✕ {% trans "Close" %}</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-1">
+      <div class="p-3.5 rounded-xl bg-[var(--surface-1)] border border-[var(--border)]/60 space-y-1.5">
+        <div class="font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-[11px]">1</span>
+          {% trans "Reorder Point (ROP)" %}
+        </div>
+        <p class="text-muted leading-relaxed">
+          {% trans "The minimum safety threshold. When Available Stock (On Hand - Reserved) drops at or below this point, the product is flagged for restock." %}
+        </p>
+        <div class="font-mono text-[11px] p-1.5 rounded bg-[var(--surface-2)] text-ink">
+          ROP = (Daily Sales × Lead Time Days) + Safety Stock
+        </div>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-[var(--surface-1)] border border-[var(--border)]/60 space-y-1.5">
+        <div class="font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-[11px]">2</span>
+          {% trans "Suggested Order Quantity" %}
+        </div>
+        <p class="text-muted leading-relaxed">
+          {% trans "Calculates exactly how many units to purchase so you neither stock out nor tie up excessive working capital." %}
+        </p>
+        <div class="font-mono text-[11px] p-1.5 rounded bg-[var(--surface-2)] text-ink">
+          Order Qty = max(Target Qty, ROP - Available)
+        </div>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-[var(--surface-1)] border border-[var(--border)]/60 space-y-1.5">
+        <div class="font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+          <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-[11px]">3</span>
+          {% trans "Dual Restock Channels" %}
+        </div>
+        <p class="text-muted leading-relaxed">
+          <strong>{% trans "Suppliers" %}:</strong> {% trans "Central warehouses generate Purchase Orders (PO) for external vendors." %}<br>
+          <strong>{% trans "Warehouses" %}:</strong> {% trans "Retail outlets submit Stock Requests to pull inventory from central hubs." %}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Metrics Cards (4 Metrics) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Needs Reorder -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Needs Reorder" %}</span>
+        <span class="w-2.5 h-2.5 rounded-full {% if needs_reorder_count > 0 %}bg-rose-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
+      </div>
+      <div class="mt-2.5 flex items-baseline justify-between">
+        <span class="text-3xl font-black {% if needs_reorder_count > 0 %}text-rose-600 dark:text-rose-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %} font-mono">
+          {{ needs_reorder_count }}
+        </span>
+        <span class="text-xs text-muted font-medium">{% trans "urgent items" %}</span>
+      </div>
+      <p class="text-[11px] text-muted mt-2 border-t border-[var(--border)]/30 pt-1.5">
+        {% trans "At or below safety threshold" %}
+      </p>
+    </div>
+
+    <!-- Critical Out of Stock -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Out of Stock (0)" %}</span>
+        <span class="w-2.5 h-2.5 rounded-full {% if out_of_stock_count > 0 %}bg-rose-600{% else %}bg-slate-300 dark:bg-slate-700{% endif %}"></span>
+      </div>
+      <div class="mt-2.5 flex items-baseline justify-between">
+        <span class="text-3xl font-black text-rose-700 dark:text-rose-300 font-mono">
+          {{ out_of_stock_count }}
+        </span>
+        <span class="text-xs text-muted font-medium">{% trans "zero available" %}</span>
+      </div>
+      <p class="text-[11px] text-muted mt-2 border-t border-[var(--border)]/30 pt-1.5">
+        {% trans "Immediate loss of customer sales" %}
+      </p>
+    </div>
+
+    <!-- Est. Replenishment Capital -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Est. Restock Capital" %}</span>
+        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div class="mt-2.5 flex items-baseline justify-between">
+        <span class="text-2xl sm:text-3xl font-black text-ink font-mono">
+          {{ currency_symbol }}{{ total_est_cost|floatformat:2|intcomma }}
+        </span>
+        <span class="text-xs text-muted font-medium">{% trans "total cost" %}</span>
+      </div>
+      <p class="text-[11px] text-muted mt-2 border-t border-[var(--border)]/30 pt-1.5">
+        {% trans "Based on standard unit cost" %}
+      </p>
+    </div>
+
+    <!-- Monitored Catalog SKUs -->
+    <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-5 shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-muted uppercase tracking-wider">{% trans "Monitored SKUs" %}</span>
+        <svg class="w-4 h-4 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/>
+        </svg>
+      </div>
+      <div class="mt-2.5 flex items-baseline justify-between">
+        <span class="text-3xl font-black text-ink font-mono">{{ total_skus_count }}</span>
+        <span class="text-xs text-muted font-medium">{% trans "total catalog items" %}</span>
+      </div>
+      <p class="text-[11px] text-muted mt-2 border-t border-[var(--border)]/30 pt-1.5 flex items-center justify-between">
+        <span>{% trans "Healthy:" %} <strong class="text-emerald-600 dark:text-emerald-400 font-mono">{{ healthy_count }}</strong></span>
+        <span>{% trans "Unset:" %} <strong class="text-amber-600 dark:text-amber-400 font-mono">{{ unconfigured_count }}</strong></span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Scope Tabs Navigation -->
+  <div class="flex flex-wrap items-center gap-2 border-b border-[var(--border)]/60 pb-1">
+    <a
+      href="{% url 'inventory:reorder_suggestions' %}?scope=needs_reorder{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if query %}&query={{ query }}{% endif %}"
+      class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 transition-all {% if scope == 'needs_reorder' %}bg-indigo-600 text-white shadow-xs{% else %}text-muted hover:text-ink hover:bg-[var(--surface-2)]{% endif %}"
+    >
+      <span>{% trans "Needs Reorder" %}</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if scope == 'needs_reorder' %}bg-white/20 text-white{% else %}bg-rose-500/10 text-rose-600{% endif %}">
+        {{ needs_reorder_count }}
+      </span>
+    </a>
+
+    <a
+      href="{% url 'inventory:reorder_suggestions' %}?scope=out_of_stock{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if query %}&query={{ query }}{% endif %}"
+      class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 transition-all {% if scope == 'out_of_stock' %}bg-indigo-600 text-white shadow-xs{% else %}text-muted hover:text-ink hover:bg-[var(--surface-2)]{% endif %}"
+    >
+      <span>{% trans "Out of Stock" %}</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if scope == 'out_of_stock' %}bg-white/20 text-white{% else %}bg-rose-600/10 text-rose-700{% endif %}">
+        {{ out_of_stock_count }}
+      </span>
+    </a>
+
+    <a
+      href="{% url 'inventory:reorder_suggestions' %}?scope=low_stock{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if query %}&query={{ query }}{% endif %}"
+      class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 transition-all {% if scope == 'low_stock' %}bg-indigo-600 text-white shadow-xs{% else %}text-muted hover:text-ink hover:bg-[var(--surface-2)]{% endif %}"
+    >
+      <span>{% trans "Low Stock" %}</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if scope == 'low_stock' %}bg-white/20 text-white{% else %}bg-amber-500/10 text-amber-700{% endif %}">
+        {{ low_stock_count }}
+      </span>
+    </a>
+
+    <a
+      href="{% url 'inventory:reorder_suggestions' %}?scope=healthy{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if query %}&query={{ query }}{% endif %}"
+      class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 transition-all {% if scope == 'healthy' %}bg-indigo-600 text-white shadow-xs{% else %}text-muted hover:text-ink hover:bg-[var(--surface-2)]{% endif %}"
+    >
+      <span>{% trans "Healthy Stock" %}</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if scope == 'healthy' %}bg-white/20 text-white{% else %}bg-emerald-500/10 text-emerald-700{% endif %}">
+        {{ healthy_count }}
+      </span>
+    </a>
+
+    <a
+      href="{% url 'inventory:reorder_suggestions' %}?scope=unconfigured{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if query %}&query={{ query }}{% endif %}"
+      class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 transition-all {% if scope == 'unconfigured' %}bg-indigo-600 text-white shadow-xs{% else %}text-muted hover:text-ink hover:bg-[var(--surface-2)]{% endif %}"
+    >
+      <span>{% trans "Threshold Not Set" %}</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if scope == 'unconfigured' %}bg-white/20 text-white{% else %}bg-slate-500/10 text-muted{% endif %}">
+        {{ unconfigured_count }}
+      </span>
+    </a>
+
+    <a
+      href="{% url 'inventory:reorder_suggestions' %}?scope=all{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if query %}&query={{ query }}{% endif %}"
+      class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 transition-all {% if scope == 'all' %}bg-indigo-600 text-white shadow-xs{% else %}text-muted hover:text-ink hover:bg-[var(--surface-2)]{% endif %}"
+    >
+      <span>{% trans "All Items" %}</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if scope == 'all' %}bg-white/20 text-white{% else %}bg-[var(--surface-2)] text-muted{% endif %}">
+        {{ total_skus_count }}
+      </span>
+    </a>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="neu-raised-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl p-4 sm:p-5 shadow-xs">
+    <form method="get" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <input type="hidden" name="scope" value="{{ scope }}" />
+
+      <!-- Search Input -->
+      <div class="flex-1 relative">
+        <svg class="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+        </svg>
+        <input
+          type="text"
+          name="query"
+          value="{{ query }}"
+          placeholder="{% trans "Search by product name, SKU, or barcode..." %}"
+          class="w-full h-10 pl-10 pr-4 text-xs sm:text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:ring-2 focus:ring-indigo-500 font-medium"
+        />
+      </div>
+
+      <!-- Warehouse Filter -->
+      <div class="sm:w-64">
+        <select
+          name="warehouse"
+          onchange="this.form.submit()"
+          class="w-full h-10 px-3 text-xs sm:text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink focus:ring-2 focus:ring-indigo-500 font-semibold"
+        >
+          <option value="">{% trans "All Warehouses & Outlets" %}</option>
+          {% for wh in warehouses %}
+            <option value="{{ wh.pk }}" {% if selected_warehouse and selected_warehouse.pk == wh.pk %}selected{% endif %}>
+              {{ wh.name }} {% if wh.branch %}({{ wh.branch.name }}){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Submit & Reset -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="submit"
+          class="h-10 px-4 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition cursor-pointer"
+        >
+          {% trans "Filter" %}
+        </button>
+        {% if selected_warehouse or query or scope != 'needs_reorder' %}
+          <a
+            href="{% url 'inventory:reorder_suggestions' %}"
+            class="h-10 px-3 rounded-xl border border-[var(--border)] text-xs sm:text-sm font-semibold text-muted hover:text-ink flex items-center justify-center transition"
+          >
+            {% trans "Reset" %}
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Reorder Table -->
+  <div class="neu-table-card bg-[var(--surface-1)] border border-[var(--border)]/60 rounded-2xl shadow-xs overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-xs sm:text-sm">
+        <thead>
+          <tr class="neu-table-header bg-[var(--surface-2)] text-[11px] font-bold uppercase tracking-wider text-muted border-b border-[var(--border)]">
+            <th class="py-3.5 px-4">{% trans "Product Details" %}</th>
+            <th class="py-3.5 px-4">{% trans "Location / Branch" %}</th>
+            <th class="py-3.5 px-4 text-center">{% trans "Health Status" %}</th>
+            <th class="py-3.5 px-4 text-right">{% trans "Available" %}</th>
+            <th class="py-3.5 px-4 text-right">{% trans "Reorder Point" %}</th>
+            <th class="py-3.5 px-4 text-right">{% trans "Target Qty" %}</th>
+            <th class="py-3.5 px-4 text-right">{% trans "Suggested Order" %}</th>
+            <th class="py-3.5 px-4 text-right">{% trans "Est. Valuation" %}</th>
+            <th class="py-3.5 px-4 text-center">{% trans "Action" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]/40 font-mono text-xs">
+          {% for s in page_obj %}
+            <tr class="neu-table-row hover:bg-[var(--surface-2)]/60 transition-colors">
+              <!-- Product Details -->
+              <td class="py-3.5 px-4 font-sans">
+                <div class="font-bold text-ink text-sm">{{ s.product_name }}</div>
+                <div class="flex items-center gap-2 mt-0.5 font-mono text-[11px] text-muted">
+                  <span class="bg-[var(--surface-2)] px-1.5 py-0.5 rounded font-semibold">{{ s.product_sku }}</span>
+                  {% if s.product_category %}
+                    <span>• {{ s.product_category }}</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- Location / Warehouse -->
+              <td class="py-3.5 px-4 font-sans text-xs text-muted font-medium">
+                <div class="font-semibold text-ink">{{ s.warehouse_name }}</div>
+                {% if s.branch_name %}
+                  <div class="text-[11px] text-muted">{{ s.branch_name }}</div>
                 {% endif %}
-                <button type="submit" class="neu-primary-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+              </td>
+
+              <!-- Status Badge -->
+              <td class="py-3.5 px-4 text-center font-sans">
+                {% if s.stock_status == 'out_of_stock' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                    {% trans "Stockout (0)" %}
+                  </span>
+                {% elif s.stock_status == 'critical' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                    {% trans "Critical Low" %}
+                  </span>
+                {% elif s.stock_status == 'low' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    {% trans "Below Point" %}
+                  </span>
+                {% elif s.stock_status == 'healthy' %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    {% trans "Healthy" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
+                    {% trans "Unset" %}
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Available Stock -->
+              <td class="py-3.5 px-4 text-right">
+                <span class="font-extrabold text-sm {% if s.available <= 0 %}text-rose-600 dark:text-rose-400{% elif s.stock_status in 'critical,low' %}text-amber-600 dark:text-amber-400{% else %}text-ink{% endif %}">
+                  {{ s.available|floatformat:"-2"|intcomma }}
+                </span>
+                <div class="text-[10px] text-muted font-sans font-normal">
+                  {% trans "Hand:" %} {{ s.on_hand|floatformat:"-2"|intcomma }}
+                </div>
+              </td>
+
+              <!-- Reorder Point -->
+              <td class="py-3.5 px-4 text-right">
+                <div class="flex items-center justify-end gap-1.5">
+                  <span class="font-bold {% if s.reorder_point > 0 %}text-ink{% else %}text-muted{% endif %}">
+                    {{ s.reorder_point|floatformat:"-2"|intcomma }}
+                  </span>
+                  <button
+                    type="button"
+                    @click="openEditModal('{{ s.product_id }}', '{{ s.product_name|escapejs }}', '{{ s.product_sku|escapejs }}', '{{ s.reorder_point|floatformat:"-2" }}', '{{ s.target_quantity|floatformat:"-2" }}', '{{ s.warehouse_id|default:'' }}')"
+                    title="{% trans "Edit replenishment threshold" %}"
+                    class="p-1 rounded-md text-muted hover:text-indigo-600 hover:bg-indigo-500/10 transition cursor-pointer"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>
                     </svg>
-                    {% trans "Generate Draft Purchase Orders" %}
-                </button>
-            </form>
-            {% endif %}
-        </div>
-    </div>
+                  </button>
+                </div>
+              </td>
 
-    <!-- Summary Metrics -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <div class="neu-raised-card p-5">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{% trans "Items Below Threshold" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400">{{ suggestions|length }}</span>
-                <span class="text-xs text-slate-400 font-medium">{% trans "SKUs requiring replenishment" %}</span>
-            </div>
-        </div>
-        <div class="neu-raised-card p-5">
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{% trans "Estimated Replenishment Cost" %}</span>
-            <div class="mt-2 flex items-baseline justify-between">
-                <span class="text-2xl sm:text-3xl font-black text-[var(--neu-text,#262B45)] font-mono">${{ total_est_cost|floatformat:2|intcomma }}</span>
-                <span class="text-xs text-slate-400 font-medium">{% trans "Based on standard unit cost" %}</span>
-            </div>
-        </div>
-    </div>
+              <!-- Target Quantity -->
+              <td class="py-3.5 px-4 text-right text-muted font-medium">
+                {{ s.target_quantity|floatformat:"-2"|intcomma }}
+              </td>
 
-    <!-- Filter Bar -->
-    <div class="neu-raised-card p-4 sm:p-5">
-        <form method="get" class="flex flex-wrap items-center gap-4">
-            <div class="min-w-[220px]">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{% trans "Warehouse Scope" %}</label>
-                <select name="warehouse" class="neu-select w-full py-2 px-3 text-sm">
-                    <option value="">{% trans "All Warehouses" %}</option>
-                    {% for wh in warehouses %}
-                    <option value="{{ wh.pk }}" {% if selected_warehouse and selected_warehouse.pk == wh.pk %}selected{% endif %}>{{ wh.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="flex items-end gap-2 pt-5">
-                <button type="submit" class="neu-primary-btn px-4 py-2 text-sm font-bold rounded-xl transition cursor-pointer">
-                    {% trans "Filter" %}
-                </button>
-                {% if selected_warehouse %}
-                <a href="{% url 'inventory:reorder_suggestions' %}" class="neu-action-btn text-xs font-bold py-2 px-3 rounded-lg text-slate-500 hover:text-slate-800 transition">
-                    {% trans "Clear" %}
-                </a>
+              <!-- Suggested Order Qty -->
+              <td class="py-3.5 px-4 text-right">
+                {% if s.is_needing_reorder %}
+                  <span class="inline-block px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-black text-sm border border-indigo-500/20">
+                    +{{ s.suggested_qty|floatformat:"-2"|intcomma }}
+                  </span>
+                {% else %}
+                  <span class="text-muted text-xs font-normal">--</span>
                 {% endif %}
-            </div>
-        </form>
+              </td>
+
+              <!-- Estimated Valuation -->
+              <td class="py-3.5 px-4 text-right font-bold text-ink">
+                {% if s.is_needing_reorder and s.estimated_cost > 0 %}
+                  <div>{{ currency_symbol }}{{ s.estimated_cost|floatformat:2|intcomma }}</div>
+                  <div class="text-[10px] text-muted font-normal font-sans">
+                    @ {{ currency_symbol }}{{ s.unit_cost|floatformat:2|intcomma }}
+                  </div>
+                {% else %}
+                  <span class="text-muted font-normal font-sans text-xs">--</span>
+                {% endif %}
+              </td>
+
+              <!-- Action -->
+              <td class="py-3.5 px-4 text-center font-sans">
+                <div class="flex items-center justify-center gap-1.5">
+                  <button
+                    type="button"
+                    @click="openEditModal('{{ s.product_id }}', '{{ s.product_name|escapejs }}', '{{ s.product_sku|escapejs }}', '{{ s.reorder_point|floatformat:"-2" }}', '{{ s.target_quantity|floatformat:"-2" }}', '{{ s.warehouse_id|default:'' }}')"
+                    class="px-2.5 py-1 rounded-lg border border-[var(--border)] text-xs font-semibold text-ink hover:text-indigo-600 hover:border-indigo-400 transition cursor-pointer"
+                  >
+                    {% trans "Set Threshold" %}
+                  </button>
+                  <a
+                    href="{% url 'inventory:add_stock' %}?type=add&product_id={{ s.product_id }}"
+                    title="{% trans "Request replenishment from central warehouse" %}"
+                    class="p-1.5 rounded-lg border border-[var(--border)] text-muted hover:text-emerald-600 hover:border-emerald-400 transition"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" class="py-14 text-center font-sans">
+                <div class="max-w-md mx-auto p-6 rounded-3xl bg-[var(--surface-2)]/60 border border-[var(--border)]/60 text-center space-y-3">
+                  <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="text-base font-bold text-ink">{% trans "Stock levels are healthy!" %}</h3>
+                    <p class="text-xs text-muted mt-1 leading-relaxed">
+                      {% if unconfigured_count > 0 %}
+                        {% trans "No monitored items are currently below their threshold. Note that you have unconfigured products without safety levels." %}
+                      {% else %}
+                        {% trans "All monitored products currently have adequate stock." %}
+                      {% endif %}
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+                    {% if unconfigured_count > 0 %}
+                      <button
+                        type="button"
+                        @click="autoConfigModalOpen = true"
+                        class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition cursor-pointer"
+                      >
+                        {% trans "Set Default Thresholds for Unset SKUs" %}
+                      </button>
+                    {% endif %}
+                    <a
+                      href="{% url 'inventory:reorder_suggestions' %}?scope=all"
+                      class="px-4 py-2 rounded-xl border border-[var(--border)] text-xs font-bold text-ink hover:bg-[var(--surface-1)] transition"
+                    >
+                      {% trans "View All Catalog Items" %}
+                    </a>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
-    <!-- Suggestions Table -->
-    <div class="neu-table-card">
-        <table class="w-full text-left border-collapse text-sm">
-            <thead>
-                <tr class="neu-table-header text-xs font-bold uppercase tracking-wider text-slate-500">
-                    <th class="py-3.5 px-4">{% trans "Product" %}</th>
-                    <th class="py-3.5 px-4">{% trans "Warehouse / Branch" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "On Hand" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "Available" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "Reorder Point" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "Suggested Qty" %}</th>
-                    <th class="py-3.5 px-4 text-right">{% trans "Est. Cost" %}</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-[#D3D8E8] dark:divide-slate-800 font-mono text-xs">
-                {% for s in suggestions %}
-                <tr class="neu-table-row transition-colors">
-                    <td class="py-3.5 px-4 font-sans text-sm">
-                        <span class="font-bold text-[var(--neu-text,#262B45)]">{{ s.product_name }}</span>
-                        <div class="text-xs text-slate-400 font-mono font-medium">{{ s.product_sku }}</div>
-                    </td>
-                    <td class="py-3.5 px-4 font-sans text-xs text-slate-600 dark:text-slate-400 font-medium">
-                        {{ s.warehouse_name }}
-                        {% if s.branch_name %}
-                        <span class="text-slate-400">({{ s.branch_name }})</span>
-                        {% endif %}
-                    </td>
-                    <td class="py-3.5 px-4 text-right text-slate-500 font-medium">
-                        {{ s.on_hand|floatformat:"-2"|intcomma }}
-                    </td>
-                    <td class="py-3.5 px-4 text-right font-black text-rose-600 dark:text-rose-400">
-                        {{ s.available|floatformat:"-2"|intcomma }}
-                    </td>
-                    <td class="py-3.5 px-4 text-right text-slate-500 font-medium">
-                        {{ s.reorder_point|floatformat:"-2"|intcomma }}
-                    </td>
-                    <td class="py-3.5 px-4 text-right font-black text-[var(--brand-600)] dark:text-[var(--brand-400)] text-sm">
-                        {{ s.suggested_qty|floatformat:"-2"|intcomma }}
-                    </td>
-                    <td class="py-3.5 px-4 text-right font-bold text-[var(--neu-text,#262B45)]">
-                        ${{ s.estimated_cost|floatformat:2|intcomma }}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="py-12 text-center font-sans">
-                        <div class="neu-empty-well max-w-sm mx-auto p-6 rounded-2xl flex flex-col items-center">
-                            <svg class="w-12 h-12 text-emerald-500 mb-2 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p class="text-base font-bold text-[var(--neu-text,#262B45)]">{% trans "Stock levels are healthy!" %}</p>
-                            <p class="text-xs text-slate-500 mt-1">{% trans "No products currently need replenishment." %}</p>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <div class="flex items-center justify-between p-4 border-t border-[var(--border)]/60 bg-[var(--surface-2)]/40 text-xs">
+        <span class="text-muted">
+          {% trans "Showing" %} {{ page_obj.start_index }} - {{ page_obj.end_index }} {% trans "of" %} {{ page_obj.paginator.count }}
+        </span>
+        <div class="flex items-center gap-1.5">
+          {% if page_obj.has_previous %}
+            <a
+              href="?page={{ page_obj.previous_page_number }}&scope={{ scope }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if query %}&query={{ query }}{% endif %}"
+              class="px-3 py-1.5 rounded-lg border border-[var(--border)] font-bold text-ink hover:bg-[var(--surface-1)]"
+            >
+              {% trans "Previous" %}
+            </a>
+          {% endif %}
+          <span class="px-3 py-1.5 rounded-lg bg-[var(--surface-1)] font-mono font-bold text-ink border border-[var(--border)]">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+          </span>
+          {% if page_obj.has_next %}
+            <a
+              href="?page={{ page_obj.next_page_number }}&scope={{ scope }}{% if selected_warehouse %}&warehouse={{ selected_warehouse.pk }}{% endif %}{% if query %}&query={{ query }}{% endif %}"
+              class="px-3 py-1.5 rounded-lg border border-[var(--border)] font-bold text-ink hover:bg-[var(--surface-1)]"
+            >
+              {% trans "Next" %}
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- MODAL 1: Set Product Replenishment Threshold -->
+  <div
+    x-show="editModalOpen"
+    x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+    @keydown.escape.window="editModalOpen = false"
+  >
+    <div
+      @click.away="editModalOpen = false"
+      class="w-full max-w-md rounded-2xl bg-[var(--surface-1)] border border-[var(--border)] p-6 shadow-xl space-y-4"
+    >
+      <div class="flex items-start justify-between pb-3 border-b border-[var(--border)]/60">
+        <div>
+          <h2 class="text-base font-bold text-ink">{% trans "Set Replenishment Threshold" %}</h2>
+          <p class="text-xs text-muted" x-text="currentProduct.name + ' (' + currentProduct.sku + ')'"></p>
+        </div>
+        <button type="button" @click="editModalOpen = false" class="text-muted hover:text-ink text-sm font-bold">✕</button>
+      </div>
+
+      <form method="post" action="{% url 'inventory:reorder_set_threshold' %}" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="product_id" :value="currentProduct.id" />
+        <input type="hidden" name="warehouse_id" :value="currentProduct.warehouse_id" />
+        <input type="hidden" name="scope" value="{{ scope }}" />
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-muted">
+            {% trans "Reorder Point (Minimum Safety Stock)" %}
+          </label>
+          <input
+            type="number"
+            step="1"
+            min="0"
+            name="reorder_point"
+            x-model="currentProduct.point"
+            required
+            class="w-full h-11 px-3 text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink font-mono font-bold focus:ring-2 focus:ring-indigo-500"
+          />
+          <p class="text-[11px] text-muted">
+            {% trans "When stock falls to or below this level, an order suggestion is triggered." %}
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-muted">
+            {% trans "Target Order Quantity (Batch Size)" %}
+          </label>
+          <input
+            type="number"
+            step="1"
+            min="1"
+            name="reorder_quantity"
+            x-model="currentProduct.target"
+            required
+            class="w-full h-11 px-3 text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink font-mono font-bold focus:ring-2 focus:ring-indigo-500"
+          />
+          <p class="text-[11px] text-muted">
+            {% trans "The standard batch size to order from suppliers or request from the central hub." %}
+          </p>
+        </div>
+
+        <div class="pt-3 border-t border-[var(--border)]/60 flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            @click="editModalOpen = false"
+            class="px-4 py-2 rounded-xl border border-[var(--border)] text-xs font-bold text-muted hover:text-ink transition"
+          >
+            {% trans "Cancel" %}
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition cursor-pointer"
+          >
+            {% trans "Save Threshold" %}
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
+
+  <!-- MODAL 2: Quick Set Default Thresholds for Entire Store -->
+  <div
+    x-show="autoConfigModalOpen"
+    x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+    @keydown.escape.window="autoConfigModalOpen = false"
+  >
+    <div
+      @click.away="autoConfigModalOpen = false"
+      class="w-full max-w-md rounded-2xl bg-[var(--surface-1)] border border-[var(--border)] p-6 shadow-xl space-y-4"
+    >
+      <div class="flex items-start justify-between pb-3 border-b border-[var(--border)]/60">
+        <div>
+          <h2 class="text-base font-bold text-ink">{% trans "Quick Set Default Thresholds" %}</h2>
+          <p class="text-xs text-muted">{% trans "Instantly activate replenishment monitoring across your catalog" %}</p>
+        </div>
+        <button type="button" @click="autoConfigModalOpen = false" class="text-muted hover:text-ink text-sm font-bold">✕</button>
+      </div>
+
+      <form method="post" action="{% url 'inventory:reorder_auto_configure' %}" class="space-y-4">
+        {% csrf_token %}
+
+        <div class="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-900 dark:text-indigo-200">
+          {% trans "This helper sets safety stock levels on your catalog items so the system can automatically identify what to order and calculate shortfall quantities." %}
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-muted">
+            {% trans "Default Reorder Point" %}
+          </label>
+          <input
+            type="number"
+            step="1"
+            min="1"
+            name="default_point"
+            value="10"
+            required
+            class="w-full h-11 px-3 text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink font-mono font-bold focus:ring-2 focus:ring-indigo-500"
+          />
+          <p class="text-[11px] text-muted">{% trans "Suggested: 10 units" %}</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-muted">
+            {% trans "Default Target Batch Quantity" %}
+          </label>
+          <input
+            type="number"
+            step="1"
+            min="1"
+            name="default_quantity"
+            value="25"
+            required
+            class="w-full h-11 px-3 text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink font-mono font-bold focus:ring-2 focus:ring-indigo-500"
+          />
+          <p class="text-[11px] text-muted">{% trans "Suggested: 25 units" %}</p>
+        </div>
+
+        <div class="pt-2 flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="overwrite_cb"
+            name="overwrite"
+            value="1"
+            class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500"
+          />
+          <label for="overwrite_cb" class="text-xs text-muted cursor-pointer font-medium">
+            {% trans "Overwrite existing configured thresholds" %}
+          </label>
+        </div>
+
+        <div class="pt-3 border-t border-[var(--border)]/60 flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            @click="autoConfigModalOpen = false"
+            class="px-4 py-2 rounded-xl border border-[var(--border)] text-xs font-bold text-muted hover:text-ink transition"
+          >
+            {% trans "Cancel" %}
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition cursor-pointer"
+          >
+            {% trans "Apply to Catalog" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Generate Draft Purchase Orders -->
+  <div
+    x-show="poModalOpen"
+    x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+    @keydown.escape.window="poModalOpen = false"
+  >
+    <div
+      @click.away="poModalOpen = false"
+      class="w-full max-w-md rounded-2xl bg-[var(--surface-1)] border border-[var(--border)] p-6 shadow-xl space-y-4"
+    >
+      <div class="flex items-start justify-between pb-3 border-b border-[var(--border)]/60">
+        <div>
+          <h2 class="text-base font-bold text-ink">{% trans "Generate Draft Purchase Orders" %}</h2>
+          <p class="text-xs text-muted">{% trans "Creates draft vendor orders from items below reorder threshold" %}</p>
+        </div>
+        <button type="button" @click="poModalOpen = false" class="text-muted hover:text-ink text-sm font-bold">✕</button>
+      </div>
+
+      <form method="post" action="{% url 'purchasing:purchase_orders_from_reorder' %}" class="space-y-4">
+        {% csrf_token %}
+        {% if selected_warehouse %}
+          <input type="hidden" name="warehouse_id" value="{{ selected_warehouse.pk }}" />
+        {% endif %}
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-muted">
+            {% trans "Target Receiving Warehouse" %}
+          </label>
+          <select
+            name="warehouse_id"
+            class="w-full h-11 px-3 text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink font-semibold focus:ring-2 focus:ring-indigo-500"
+          >
+            {% for wh in warehouses %}
+              <option value="{{ wh.pk }}" {% if selected_warehouse and selected_warehouse.pk == wh.pk %}selected{% endif %}>
+                {{ wh.name }} {% if wh.branch %}({{ wh.branch.name }}){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-muted">
+            {% trans "Default Vendor / Supplier" %}
+          </label>
+          {% if suppliers %}
+            <select
+              name="supplier_id"
+              class="w-full h-11 px-3 text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-ink font-semibold focus:ring-2 focus:ring-indigo-500"
+            >
+              {% for supp in suppliers %}
+                <option value="{{ supp.pk }}">{{ supp.name }}</option>
+              {% endfor %}
+            </select>
+          {% else %}
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200">
+              {% trans "No suppliers registered yet. Create a supplier in Purchasing first to issue purchase orders." %}
+            </div>
+          {% endif %}
+          <p class="text-[11px] text-muted">
+            {% trans "Items without a designated supplier will be assigned to this vendor." %}
+          </p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]/60 text-xs space-y-1">
+          <div class="flex justify-between">
+            <span class="text-muted">{% trans "SKUs to Order:" %}</span>
+            <strong class="text-ink font-mono">{{ needs_reorder_count }}</strong>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted">{% trans "Est. Total Value:" %}</span>
+            <strong class="text-indigo-600 dark:text-indigo-400 font-mono font-bold">{{ currency_symbol }}{{ total_est_cost|floatformat:2|intcomma }}</strong>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-[var(--border)]/60 flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            @click="poModalOpen = false"
+            class="px-4 py-2 rounded-xl border border-[var(--border)] text-xs font-bold text-muted hover:text-ink transition"
+          >
+            {% trans "Cancel" %}
+          </button>
+          <button
+            type="submit"
+            {% if not suppliers %}disabled{% endif %}
+            class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white transition cursor-pointer"
+          >
+            {% trans "Generate Draft Orders" %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}

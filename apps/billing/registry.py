@@ -196,9 +196,6 @@ registry.register(
             "Stock Levels", "inventory:stock_level_list", icon="archive-box", permission="inventory.view"
         ),
         NavItem(
-            "Adjustments", "inventory:adjustment_list", icon="pencil-square", permission="inventory.adjust"
-        ),
-        NavItem(
             "Cycle Counts",
             "inventory:count_list",
             icon="clipboard-document-check",
@@ -244,6 +241,12 @@ registry.register(
             "Transfers",
             "warehouses:transfer_list",
             icon="truck",
+            permission="warehouses.view",
+        ),
+        NavItem(
+            "Adjustments",
+            "warehouses:adjustment_list",
+            icon="pencil-square",
             permission="warehouses.view",
         ),
         NavItem(

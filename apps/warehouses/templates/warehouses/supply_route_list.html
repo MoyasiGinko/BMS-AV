@@ -10,147 +10,640 @@
 {% endblock %}
 
 {% block content %}
+{{ locations_payload|json_script:"locations-data" }}
+
 <div
   x-data="{
+    locationsData: JSON.parse(document.getElementById('locations-data')?.textContent || '[]'),
     modalOpen: false,
-    srcId: '',
-    dstId: '',
+    isEdit: false,
+    routeId: '',
+    srcId: '{{ locations.0.pk|default:'' }}',
+    dstId: '{{ locations.1.pk|default:'' }}',
     priority: 1,
-    leadTime: 0,
-    isPreferred: false,
-    canAutoReplenish: false,
+    leadTime: 1,
+    isPreferred: true,
+    canAutoReplenish: true,
+    isActive: true,
     notes: '',
+    showExamples: {% if total_routes == 0 %}true{% else %}false{% endif %},
+    searchQuery: '',
+    filterPriority: 'all',
+
+    applyTemplate(tpl) {
+      this.isEdit = false;
+      this.routeId = '';
+      this.priority = tpl.priority;
+      this.leadTime = tpl.leadTime;
+      this.isPreferred = tpl.isPreferred;
+      this.canAutoReplenish = tpl.canAutoReplenish;
+      this.isActive = true;
+      this.notes = tpl.notes;
+
+      // Smart pre-select source & destination based on logistics pattern
+      if (tpl.type === 'wh_to_outlet') {
+        const wh = this.locationsData.find(l => l.is_warehouse);
+        const out = this.locationsData.find(l => l.is_outlet);
+        if (wh) this.srcId = String(wh.id);
+        if (out) this.dstId = String(out.id);
+      } else if (tpl.type === 'hub_to_wh') {
+        const whs = this.locationsData.filter(l => l.is_warehouse);
+        if (whs.length > 1) {
+          this.srcId = String(whs[0].id);
+          this.dstId = String(whs[1].id);
+        }
+      } else if (tpl.type === 'backup_wh') {
+        const whs = this.locationsData.filter(l => l.is_warehouse);
+        const out = this.locationsData.find(l => l.is_outlet);
+        if (whs.length > 1) this.srcId = String(whs[1].id);
+        if (out) this.dstId = String(out.id);
+      } else if (tpl.type === 'outlet_to_outlet') {
+        const outs = this.locationsData.filter(l => l.is_outlet);
+        if (outs.length >= 2) {
+          this.srcId = String(outs[0].id);
+          this.dstId = String(outs[1].id);
+        }
+      }
+      this.modalOpen = true;
+    },
+
     openCreate() {
+      this.isEdit = false;
+      this.routeId = '';
       this.srcId = '{{ locations.0.pk|default:'' }}';
       this.dstId = '{{ locations.1.pk|default:'' }}';
       this.priority = 1;
-      this.leadTime = 0;
-      this.isPreferred = false;
-      this.canAutoReplenish = false;
+      this.leadTime = 1;
+      this.isPreferred = true;
+      this.canAutoReplenish = true;
+      this.isActive = true;
       this.notes = '';
       this.modalOpen = true;
+    },
+
+    openEdit(route) {
+      this.isEdit = true;
+      this.routeId = String(route.id);
+      this.srcId = String(route.sourceId);
+      this.dstId = String(route.destinationId);
+      this.priority = route.priority;
+      this.leadTime = route.leadTime;
+      this.isPreferred = Boolean(route.isPreferred);
+      this.canAutoReplenish = Boolean(route.canAutoReplenish);
+      this.isActive = Boolean(route.isActive);
+      this.notes = route.notes || '';
+      this.modalOpen = true;
+    },
+
+    getLocationName(id) {
+      const loc = this.locationsData.find(l => String(l.id) === String(id));
+      return loc ? loc.name : '{% trans "Select node" %}';
+    },
+
+    getLocationType(id) {
+      const loc = this.locationsData.find(l => String(l.id) === String(id));
+      return loc ? loc.type_display : '';
     }
   }"
   class="space-y-6 w-full"
 >
-  <!-- Header -->
+  <!-- Page Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
     <div>
-      <h1 class="text-xl font-bold text-[var(--text)]">{% trans "Dynamic Stock Supply Routes" %}</h1>
-      <p class="text-xs text-[var(--text-muted)] mt-1">
-        {% trans "Replenishment matrix connecting source warehouses, distribution hubs, and branch outlets." %}
+      <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider mb-1">
+        <a href="{% url 'warehouses:list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Warehouses" %}</a>
+        <span>/</span>
+        <span class="text-ink">{% trans "Logistics" %}</span>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <h1 class="text-xl sm:text-2xl font-black tracking-tight text-ink">
+          {% trans "Supply Routes" %}
+        </h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 font-mono">
+          {% trans "Dynamic Stock Supply Routes" %}
+        </span>
+      </div>
+      <p class="text-xs text-muted mt-1 max-w-2xl leading-relaxed">
+        {% trans "Replenishment paths between central warehouses and branch outlets." %}
       </p>
     </div>
-    {% if can_manage %}
+
+    <div class="flex items-center gap-2.5 flex-wrap">
       <button
         type="button"
-        @click="openCreate()"
-        class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
+        @click="showExamples = !showExamples"
+        class="neu-subnav-btn bg-[var(--surface-1)] text-ink hover:text-indigo-600 font-semibold shadow-xs border border-[var(--border)]/60 px-3.5 py-2 rounded-xl text-xs inline-flex items-center gap-2 transition-all cursor-pointer"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-        {% trans "Configure route" %}
+        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.516 0c.85.493 1.508 1.333 1.508 2.316V18"/>
+        </svg>
+        <span x-text="showExamples ? '{% trans "Hide Examples" %}' : '{% trans "Supply Route Examples" %}'"></span>
       </button>
-    {% endif %}
+
+      {% if can_manage %}
+        <button
+          type="button"
+          @click="openCreate()"
+          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-xs active:scale-98 cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          {% trans "Configure Route" %}
+        </button>
+      {% endif %}
+    </div>
   </div>
 
-  <!-- Metrics -->
+  <!-- Interactive Real-World Examples Showcase -->
+  <div
+    x-show="showExamples"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 -translate-y-2"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    class="neu-raised-card bg-[var(--surface-1)] border border-indigo-500/20 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4"
+  >
+    <div class="flex items-center justify-between border-b border-[var(--border)]/40 pb-3 flex-wrap gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-ink">{% trans "Supply Route Patterns & Examples" %}</h2>
+          <p class="text-[11px] text-muted">{% trans "Click 'Use this setup' on any example to instantly prefill your route settings." %}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        @click="showExamples = false"
+        class="text-xs font-semibold text-muted hover:text-ink transition-colors cursor-pointer"
+      >
+        {% trans "Dismiss" %} ✕
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <!-- Example 1: Central Warehouse to Retail Outlet -->
+      <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/60 flex flex-col justify-between space-y-3 hover:border-indigo-500/40 transition-all shadow-2xs">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 uppercase tracking-wider font-mono">
+              {% trans "Standard Restock" %}
+            </span>
+            <span class="text-[10px] font-bold text-muted font-mono">P1 • Preferred</span>
+          </div>
+          <h3 class="text-xs font-bold text-ink">{% trans "Warehouse to Retail Outlet" %}</h3>
+          
+          <!-- Visual Route Flow -->
+          <div class="p-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]/60 text-[11px] font-medium flex items-center justify-between gap-1 text-ink">
+            <div class="flex items-center gap-1 font-semibold truncate">
+              <span class="text-indigo-600">🏛</span>
+              <span class="truncate">{% trans "Warehouse" %}</span>
+            </div>
+            <div class="shrink-0 flex items-center gap-1 text-[10px] text-indigo-600 font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40">
+              <span>1d</span>
+              <span>→</span>
+            </div>
+            <div class="flex items-center gap-1 font-semibold truncate">
+              <span class="text-emerald-600">🏪</span>
+              <span class="truncate">{% trans "Outlet" %}</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-muted leading-relaxed">
+            {% trans "Primary daily replenishment path fulfilling store shelves from the central warehouse." %}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          @click="applyTemplate({ type: 'wh_to_outlet', priority: 1, leadTime: 1, isPreferred: true, canAutoReplenish: true, notes: '{% trans "Standard daily retail replenishment route" %}' })"
+          class="w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-indigo-600/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-600 hover:text-white transition-all text-center cursor-pointer"
+        >
+          {% trans "Use this setup" %} &rarr;
+        </button>
+      </div>
+
+      <!-- Example 2: Hub to Central Depot -->
+      <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/60 flex flex-col justify-between space-y-3 hover:border-indigo-500/40 transition-all shadow-2xs">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 uppercase tracking-wider font-mono">
+              {% trans "Bulk Cargo" %}
+            </span>
+            <span class="text-[10px] font-bold text-muted font-mono">P1 • Preferred</span>
+          </div>
+          <h3 class="text-xs font-bold text-ink">{% trans "Port / Hub to Warehouse" %}</h3>
+
+          <!-- Visual Route Flow -->
+          <div class="p-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]/60 text-[11px] font-medium flex items-center justify-between gap-1 text-ink">
+            <div class="flex items-center gap-1 font-semibold truncate">
+              <span class="text-blue-600">🚢</span>
+              <span class="truncate">{% trans "Logistics Hub" %}</span>
+            </div>
+            <div class="shrink-0 flex items-center gap-1 text-[10px] text-blue-600 font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40">
+              <span>3d</span>
+              <span>→</span>
+            </div>
+            <div class="flex items-center gap-1 font-semibold truncate">
+              <span class="text-indigo-600">🏛</span>
+              <span class="truncate">{% trans "Depot" %}</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-muted leading-relaxed">
+            {% trans "Feeds bulk cargo and incoming inventory from regional distribution hubs into central stock." %}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          @click="applyTemplate({ type: 'hub_to_wh', priority: 1, leadTime: 3, isPreferred: true, canAutoReplenish: false, notes: '{% trans "Bulk freight transit between hub and storage depot" %}' })"
+          class="w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-blue-600/10 text-blue-700 dark:text-blue-300 hover:bg-blue-600 hover:text-white transition-all text-center cursor-pointer"
+        >
+          {% trans "Use this setup" %} &rarr;
+        </button>
+      </div>
+
+      <!-- Example 3: Secondary Backup Warehouse -->
+      <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/60 flex flex-col justify-between space-y-3 hover:border-indigo-500/40 transition-all shadow-2xs">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 uppercase tracking-wider font-mono">
+              {% trans "Failover Backup" %}
+            </span>
+            <span class="text-[10px] font-bold text-muted font-mono">P2 • Standby</span>
+          </div>
+          <h3 class="text-xs font-bold text-ink">{% trans "Backup Warehouse to Outlet" %}</h3>
+
+          <!-- Visual Route Flow -->
+          <div class="p-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]/60 text-[11px] font-medium flex items-center justify-between gap-1 text-ink">
+            <div class="flex items-center gap-1 font-semibold truncate">
+              <span class="text-amber-600">📦</span>
+              <span class="truncate">{% trans "Secondary Wh" %}</span>
+            </div>
+            <div class="shrink-0 flex items-center gap-1 text-[10px] text-amber-600 font-bold px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40">
+              <span>2d</span>
+              <span>→</span>
+            </div>
+            <div class="flex items-center gap-1 font-semibold truncate">
+              <span class="text-emerald-600">🏪</span>
+              <span class="truncate">{% trans "Outlet" %}</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-muted leading-relaxed">
+            {% trans "Activated to supply the outlet only when the primary central warehouse runs out of stock." %}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          @click="applyTemplate({ type: 'backup_wh', priority: 2, leadTime: 2, isPreferred: false, canAutoReplenish: true, notes: '{% trans "Failover backup supplier when primary warehouse is out of stock" %}' })"
+          class="w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-amber-600/10 text-amber-700 dark:text-amber-300 hover:bg-amber-600 hover:text-white transition-all text-center cursor-pointer"
+        >
+          {% trans "Use this setup" %} &rarr;
+        </button>
+      </div>
+
+      <!-- Example 4: Inter-Branch Outlet to Outlet -->
+      <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/60 flex flex-col justify-between space-y-3 hover:border-indigo-500/40 transition-all shadow-2xs">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 uppercase tracking-wider font-mono">
+              {% trans "Store Transfer" %}
+            </span>
+            <span class="text-[10px] font-bold text-muted font-mono">P3 • Emergency</span>
+          </div>
+          <h3 class="text-xs font-bold text-ink">{% trans "Outlet to Outlet Rebalancing" %}</h3>
+
+          <!-- Visual Route Flow -->
+          <div class="p-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]/60 text-[11px] font-medium flex items-center justify-between gap-1 text-ink">
+            <div class="flex items-center gap-1 font-semibold truncate">
+              <span class="text-purple-600">🏪</span>
+              <span class="truncate">{% trans "Branch A" %}</span>
+            </div>
+            <div class="shrink-0 flex items-center gap-1 text-[10px] text-purple-600 font-bold px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/40">
+              <span>0d</span>
+              <span>→</span>
+            </div>
+            <div class="flex items-center gap-1 font-semibold truncate">
+              <span class="text-purple-600">🏪</span>
+              <span class="truncate">{% trans "Branch B" %}</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-muted leading-relaxed">
+            {% trans "Quick peer-to-peer branch stock transfers to balance sudden item stockouts across local stores." %}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          @click="applyTemplate({ type: 'outlet_to_outlet', priority: 3, leadTime: 0, isPreferred: false, canAutoReplenish: false, notes: '{% trans "Peer-to-peer inter-branch emergency stock rebalancing" %}' })"
+          class="w-full py-1.5 px-3 rounded-lg text-xs font-bold bg-purple-600/10 text-purple-700 dark:text-purple-300 hover:bg-purple-600 hover:text-white transition-all text-center cursor-pointer"
+        >
+          {% trans "Use this setup" %} &rarr;
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Overview Metrics -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Active supply routes" %}</div>
-      <div class="text-2xl font-bold text-[var(--text)] mt-1">{{ total_routes }}</div>
+    <div class="neu-raised-card bg-[var(--surface-1)] p-4 sm:p-5 rounded-2xl border border-[var(--border)]/60 shadow-2xs">
+      <div class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Active Supply Routes" %}</div>
+      <div class="text-2xl font-black text-ink mt-1 font-mono">{{ total_routes }}</div>
+      <div class="text-[11px] text-muted mt-0.5">{% trans "Operational replenishment channels" %}</div>
     </div>
-    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Preferred primary routes" %}</div>
-      <div class="text-2xl font-bold text-emerald-600 mt-1">{{ preferred_count }}</div>
+
+    <div class="neu-raised-card bg-[var(--surface-1)] p-4 sm:p-5 rounded-2xl border border-[var(--border)]/60 shadow-2xs">
+      <div class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Primary Preferred Routes" %}</div>
+      <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">{{ preferred_count }}</div>
+      <div class="text-[11px] text-muted mt-0.5">{% trans "First-choice replenishment sources" %}</div>
     </div>
-    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Fulfillment nodes" %}</div>
-      <div class="text-2xl font-bold text-[var(--brand-600)] mt-1">{{ locations.count }}</div>
+
+    <div class="neu-raised-card bg-[var(--surface-1)] p-4 sm:p-5 rounded-2xl border border-[var(--border)]/60 shadow-2xs">
+      <div class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Connected Logistics Nodes" %}</div>
+      <div class="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 font-mono">{{ locations.count }}</div>
+      <div class="text-[11px] text-muted mt-0.5">{% trans "Warehouses, hubs, and retail outlets" %}</div>
     </div>
   </div>
 
-  <!-- Routes Table -->
-  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
+  <!-- Search & Filter Controls -->
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+    <div class="relative w-full sm:w-80">
+      <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+      </svg>
+      <input
+        type="text"
+        x-model="searchQuery"
+        placeholder="{% trans "Filter by facility or outlet name..." %}"
+        class="w-full h-10 pl-10 pr-3 text-xs rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink placeholder:text-muted focus:ring-2 focus:ring-indigo-500 font-medium"
+      />
+    </div>
+
+    <div class="flex items-center gap-2 self-start sm:self-auto text-xs">
+      <span class="text-muted font-bold">{% trans "Priority:" %}</span>
+      <div class="inline-flex p-0.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-xs">
+        <button
+          type="button"
+          @click="filterPriority = 'all'"
+          :class="filterPriority === 'all' ? 'bg-indigo-600 text-white font-bold' : 'text-muted hover:text-ink font-medium'"
+          class="px-2.5 py-1 rounded-md transition-all cursor-pointer"
+        >
+          {% trans "All" %}
+        </button>
+        <button
+          type="button"
+          @click="filterPriority = 'primary'"
+          :class="filterPriority === 'primary' ? 'bg-indigo-600 text-white font-bold' : 'text-muted hover:text-ink font-medium'"
+          class="px-2.5 py-1 rounded-md transition-all cursor-pointer"
+        >
+          {% trans "Primary (P1)" %}
+        </button>
+        <button
+          type="button"
+          @click="filterPriority = 'backup'"
+          :class="filterPriority === 'backup' ? 'bg-indigo-600 text-white font-bold' : 'text-muted hover:text-ink font-medium'"
+          class="px-2.5 py-1 rounded-md transition-all cursor-pointer"
+        >
+          {% trans "Backup (P2+)" %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Routes Directory Table -->
+  <div class="neu-raised-card bg-[var(--surface-1)] rounded-2xl border border-[var(--border)]/60 overflow-hidden shadow-xs">
     <div class="overflow-x-auto">
-      <table class="w-full text-left text-xs text-[var(--text)]">
-        <thead class="bg-[var(--surface-2)] text-[var(--text-subtle)] font-semibold border-b border-[var(--border)]">
+      <table class="w-full text-left text-xs text-ink">
+        <thead class="bg-[var(--surface-2)]/80 text-muted font-bold uppercase tracking-wider border-b border-[var(--border)] text-[11px]">
           <tr>
-            <th class="px-4 py-3">{% trans "Source (Supplying node)" %}</th>
-            <th class="px-4 py-3">{% trans "Destination (Receiving node)" %}</th>
-            <th class="px-4 py-3">{% trans "Priority" %}</th>
-            <th class="px-4 py-3">{% trans "Lead time" %}</th>
-            <th class="px-4 py-3">{% trans "Auto replenish" %}</th>
-            <th class="px-4 py-3">{% trans "Status" %}</th>
-            <th class="px-4 py-3 text-right">{% trans "Actions" %}</th>
+            <th class="px-5 py-3.5">{% trans "Source Facility (From)" %}</th>
+            <th class="px-4 py-3.5 text-center">{% trans "Flow & Lead Time" %}</th>
+            <th class="px-5 py-3.5">{% trans "Destination Facility (To)" %}</th>
+            <th class="px-4 py-3.5 text-center">{% trans "Priority" %}</th>
+            <th class="px-4 py-3.5 text-center">{% trans "Replenishment Policy" %}</th>
+            <th class="px-4 py-3.5 text-center">{% trans "Status" %}</th>
+            <th class="px-5 py-3.5 text-right">{% trans "Actions" %}</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-[var(--border)]">
+        <tbody class="divide-y divide-[var(--border)]/50">
           {% for r in routes %}
-            <tr class="hover:bg-[var(--surface-2)]/60 transition-colors">
-              <td class="px-4 py-3 font-semibold text-[var(--text)]">
-                <div class="flex items-center gap-1.5">
-                  <svg class="w-3.5 h-3.5 text-[var(--brand-600)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-                  <span>{{ r.source_location.name }}</span>
+            <tr
+              x-show="(
+                (!searchQuery || '{{ r.source_location.name|escapejs }}'.toLowerCase().includes(searchQuery.toLowerCase()) || '{{ r.destination_location.name|escapejs }}'.toLowerCase().includes(searchQuery.toLowerCase())) &&
+                (filterPriority === 'all' || (filterPriority === 'primary' && '{{ r.priority }}' === '1') || (filterPriority === 'backup' && parseInt('{{ r.priority }}', 10) > 1))
+              )"
+              class="hover:bg-[var(--surface-2)]/50 transition-colors"
+            >
+              <!-- Source (From) -->
+              <td class="px-5 py-3.5 font-medium">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    {% if r.source_location.warehouse %}
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
+                      </svg>
+                    {% else %}
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009 9.35c.664-.47 1.488-.737 2.25-.668.762-.069 1.586.198 2.25.668.664-.47 1.488-.737 2.25-.668.762-.069 1.586.198 2.25.668a3.001 3.001 0 003.75.615"/>
+                      </svg>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div class="font-bold text-ink text-sm">{{ r.source_location.name }}</div>
+                    <div class="text-[11px] text-muted">{{ r.source_location.get_location_type_display }}</div>
+                  </div>
                 </div>
-                <div class="text-[11px] text-[var(--text-muted)] font-normal">{{ r.source_location.get_location_type_display }}</div>
               </td>
-              <td class="px-4 py-3 font-semibold text-[var(--text)]">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-[var(--brand-600)]">→</span>
-                  <span>{{ r.destination_location.name }}</span>
+
+              <!-- Transit Flow Arrow -->
+              <td class="px-4 py-3.5 text-center">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--surface-2)] border border-[var(--border)]/60 text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                  <span>{{ r.lead_time_days }}</span>
+                  <span class="text-[10px] text-muted">{% if r.lead_time_days == 1 %}{% trans "day" %}{% else %}{% trans "days" %}{% endif %}</span>
+                  <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                  </svg>
                 </div>
-                <div class="text-[11px] text-[var(--text-muted)] font-normal">{{ r.destination_location.get_location_type_display }}</div>
               </td>
-              <td class="px-4 py-3">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold {% if r.priority == 1 %}bg-indigo-50 text-indigo-700{% else %}bg-slate-100 text-slate-700{% endif %}">
-                  P{{ r.priority }}
-                </span>
-                {% if r.is_preferred %}
-                  <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
-                    {% trans "Preferred" %}
+
+              <!-- Destination (To) -->
+              <td class="px-5 py-3.5 font-medium">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    {% if r.destination_location.branch %}
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009 9.35c.664-.47 1.488-.737 2.25-.668.762-.069 1.586.198 2.25.668.664-.47 1.488-.737 2.25-.668.762-.069 1.586.198 2.25.668a3.001 3.001 0 003.75.615"/>
+                      </svg>
+                    {% else %}
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
+                      </svg>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div class="font-bold text-ink text-sm">{{ r.destination_location.name }}</div>
+                    <div class="text-[11px] text-muted">{{ r.destination_location.get_location_type_display }}</div>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Priority -->
+              <td class="px-4 py-3.5 text-center">
+                {% if r.priority == 1 %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 font-mono">
+                    {% trans "Primary (P1)" %}
+                  </span>
+                {% elif r.priority == 2 %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-mono">
+                    {% trans "Backup (P2)" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20 font-mono">
+                    P{{ r.priority }}
                   </span>
                 {% endif %}
               </td>
-              <td class="px-4 py-3 text-[var(--text-muted)]">
-                {{ r.lead_time_days }} {% trans "days" %}
-              </td>
-              <td class="px-4 py-3">
+
+              <!-- Policy -->
+              <td class="px-4 py-3.5 text-center space-x-1">
+                {% if r.is_preferred %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                    <span>★</span> {% trans "Preferred" %}
+                  </span>
+                {% endif %}
+
                 {% if r.can_auto_replenish %}
-                  <span class="text-emerald-600 font-semibold text-xs">✓ {% trans "Enabled" %}</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20">
+                    {% trans "Auto Reorder" %}
+                  </span>
                 {% else %}
-                  <span class="text-[var(--text-subtle)] text-xs">{% trans "Manual only" %}</span>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium text-muted bg-[var(--surface-2)]">
+                    {% trans "Manual" %}
+                  </span>
                 {% endif %}
               </td>
-              <td class="px-4 py-3">
+
+              <!-- Status -->
+              <td class="px-4 py-3.5 text-center">
                 {% if r.is_active %}
-                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700">
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     {% trans "Active" %}
                   </span>
                 {% else %}
-                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
                     <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                    {% trans "Inactive" %}
+                    {% trans "Paused" %}
                   </span>
                 {% endif %}
               </td>
-              <td class="px-4 py-3 text-right">
+
+              <!-- Actions -->
+              <td class="px-5 py-3.5 text-right">
                 {% if can_manage %}
-                  <form method="post" class="inline" onsubmit="return confirm('{% trans "Delete this supply route?" %}');">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="delete" />
-                    <input type="hidden" name="route_id" value="{{ r.pk }}" />
-                    <button type="submit" class="p-1 rounded text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  <div class="inline-flex items-center gap-1">
+                    <!-- Edit Button -->
+                    <button
+                      type="button"
+                      @click="openEdit({
+                        id: '{{ r.pk }}',
+                        sourceId: '{{ r.source_location.pk }}',
+                        destinationId: '{{ r.destination_location.pk }}',
+                        priority: {{ r.priority }},
+                        leadTime: {{ r.lead_time_days }},
+                        isPreferred: {% if r.is_preferred %}true{% else %}false{% endif %},
+                        canAutoReplenish: {% if r.can_auto_replenish %}true{% else %}false{% endif %},
+                        isActive: {% if r.is_active %}true{% else %}false{% endif %},
+                        notes: '{{ r.notes|escapejs }}'
+                      })"
+                      title="{% trans "Edit route" %}"
+                      class="p-1.5 rounded-lg text-muted hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>
+                      </svg>
                     </button>
-                  </form>
+
+                    <!-- Toggle Pause / Activate Form -->
+                    <form method="post" class="inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="toggle_active" />
+                      <input type="hidden" name="route_id" value="{{ r.pk }}" />
+                      <button
+                        type="submit"
+                        title="{% if r.is_active %}{% trans "Pause route" %}{% else %}{% trans "Activate route" %}{% endif %}"
+                        class="p-1.5 rounded-lg text-muted hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                      >
+                        {% if r.is_active %}
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5"/>
+                          </svg>
+                        {% else %}
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z"/>
+                          </svg>
+                        {% endif %}
+                      </button>
+                    </form>
+
+                    <!-- Delete Form -->
+                    <form method="post" class="inline" onsubmit="return confirm('{% trans "Delete this supply route?" %}');">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete" />
+                      <input type="hidden" name="route_id" value="{{ r.pk }}" />
+                      <button
+                        type="submit"
+                        title="{% trans "Delete route" %}"
+                        class="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                        </svg>
+                      </button>
+                    </form>
+                  </div>
                 {% endif %}
               </td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="7" class="px-4 py-8 text-center text-[var(--text-muted)]">
-                {% trans "No stock supply routes configured." %}
+              <td colspan="7" class="px-5 py-12 text-center text-muted space-y-3">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+                  </svg>
+                </div>
+                <div class="space-y-1">
+                  <p class="text-sm font-bold text-ink">{% trans "No supply routes yet." %}</p>
+                  <p class="text-xs text-muted max-w-sm mx-auto">
+                    {% trans "Connect central warehouses to branch outlets to establish replenishment rules." %}
+                  </p>
+                </div>
+                {% if can_manage %}
+                  <div class="flex items-center justify-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      @click="openCreate()"
+                      class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-xs cursor-pointer"
+                    >
+                      {% trans "Configure First Route" %}
+                    </button>
+                    <button
+                      type="button"
+                      @click="showExamples = true"
+                      class="px-4 py-2 rounded-xl text-xs font-bold border border-[var(--border)] text-ink hover:bg-[var(--surface-2)] transition cursor-pointer"
+                    >
+                      {% trans "View Examples" %}
+                    </button>
+                  </div>
+                {% endif %}
               </td>
             </tr>
           {% endfor %}
@@ -159,110 +652,266 @@
     </div>
   </div>
 
-  <!-- Route Configuration Modal -->
+  <!-- Route Configuration Modal (Create & Edit) -->
   <div
     x-show="modalOpen"
     x-cloak
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
   >
     <div
       @click.away="modalOpen = false"
-      class="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl space-y-4"
+      class="w-full max-w-xl rounded-2xl border border-[var(--border)] bg-[var(--surface-1)] p-6 shadow-2xl space-y-5"
     >
+      <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
-        <h3 class="text-base font-bold text-[var(--text)]">{% trans "Configure Supply Route" %}</h3>
-        <button type="button" @click="modalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)] text-lg">✕</button>
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-ink" x-text="isEdit ? '{% trans "Edit Supply Route" %}' : '{% trans "Configure Supply Route" %}'"></h3>
+            <p class="text-[11px] text-muted">{% trans "Define supplying node, recipient outlet, and transit priority." %}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          @click="modalOpen = false"
+          class="text-muted hover:text-ink text-base p-1 rounded-lg hover:bg-[var(--surface-2)] transition cursor-pointer"
+        >
+          ✕
+        </button>
       </div>
 
+      <!-- Live Visual Route Flow Preview -->
+      <div class="p-3.5 rounded-xl bg-[var(--surface-2)]/70 border border-[var(--border)] space-y-2">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-muted flex items-center justify-between">
+          <span>{% trans "Route Flow Preview" %}</span>
+          <span class="text-indigo-600 font-mono" x-text="isPreferred ? '{% trans "Primary Preferred Route" %}' : '{% trans "Secondary Route" %}'"></span>
+        </div>
+        <div class="flex items-center justify-between gap-2 text-xs font-bold text-ink">
+          <!-- Source Preview -->
+          <div class="flex-1 p-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]/60 space-y-0.5 truncate">
+            <div class="text-[10px] text-muted uppercase font-bold">{% trans "Source (From)" %}</div>
+            <div class="truncate text-indigo-700 dark:text-indigo-300" x-text="getLocationName(srcId)"></div>
+          </div>
+
+          <!-- Transit Indicator -->
+          <div class="shrink-0 flex flex-col items-center justify-center px-1 text-center">
+            <div class="text-[10px] text-muted font-mono" x-text="leadTime + (leadTime == 1 ? ' day' : ' days')"></div>
+            <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+            </svg>
+          </div>
+
+          <!-- Destination Preview -->
+          <div class="flex-1 p-2 rounded-lg bg-[var(--surface-1)] border border-[var(--border)]/60 space-y-0.5 truncate">
+            <div class="text-[10px] text-muted uppercase font-bold">{% trans "Destination (To)" %}</div>
+            <div class="truncate text-emerald-700 dark:text-emerald-300" x-text="getLocationName(dstId)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route Form -->
       <form method="post" class="space-y-4">
         {% csrf_token %}
+        <input type="hidden" name="action" :value="isEdit ? 'edit' : ''" />
+        <input type="hidden" name="route_id" :value="routeId" />
 
-        <div>
-          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Source location / warehouse" %} *</label>
-          <select
-            name="source_location_id"
-            x-model="srcId"
-            required
-            class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
-          >
-            {% for l in locations %}
-              <option value="{{ l.pk }}">{{ l.name }} ({{ l.get_location_type_display }})</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Destination location / outlet" %} *</label>
-          <select
-            name="destination_location_id"
-            x-model="dstId"
-            required
-            class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
-          >
-            {% for l in locations %}
-              <option value="{{ l.pk }}">{{ l.name }} ({{ l.get_location_type_display }})</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Priority (1 = highest)" %}</label>
-            <input
-              type="number"
-              name="priority"
-              x-model="priority"
-              min="1"
-              max="99"
-              class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
-            />
+        <!-- Source & Destination 2-Column Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Source (From) -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-ink">
+              {% trans "Source Facility (From)" %} <span class="text-rose-500">*</span>
+            </label>
+            <select
+              name="source_location_id"
+              x-model="srcId"
+              :disabled="isEdit"
+              required
+              class="w-full text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-ink focus:ring-2 focus:ring-indigo-500"
+            >
+              {% for l in locations %}
+                <option value="{{ l.pk }}">
+                  {{ l.name }} ({{ l.get_location_type_display }})
+                </option>
+              {% endfor %}
+            </select>
+            <p class="text-[10px] text-muted">{% trans "Supplying warehouse or distribution hub." %}</p>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Lead time (days)" %}</label>
-            <input
-              type="number"
-              name="lead_time_days"
-              x-model="leadTime"
-              min="0"
-              class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
-            />
+
+          <!-- Destination (To) -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-ink">
+              {% trans "Destination Facility (To)" %} <span class="text-rose-500">*</span>
+            </label>
+            <select
+              name="destination_location_id"
+              x-model="dstId"
+              :disabled="isEdit"
+              required
+              class="w-full text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-ink focus:ring-2 focus:ring-indigo-500"
+            >
+              {% for l in locations %}
+                <option value="{{ l.pk }}">
+                  {{ l.name }} ({{ l.get_location_type_display }})
+                </option>
+              {% endfor %}
+            </select>
+            <p class="text-[10px] text-muted">{% trans "Receiving retail store or warehouse." %}</p>
           </div>
         </div>
 
-        <div class="flex items-center gap-4 pt-1">
-          <label class="flex items-center gap-2 text-xs font-medium text-[var(--text)] cursor-pointer">
-            <input type="checkbox" name="is_preferred" x-model="isPreferred" class="rounded text-[var(--brand-600)]" />
-            {% trans "Preferred route" %}
+        <!-- Priority & Lead Time Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          <!-- Priority -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-ink">
+              {% trans "Priority Level" %}
+            </label>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="priority = 1; isPreferred = true"
+                :class="priority === 1 ? 'bg-indigo-600 text-white font-bold' : 'bg-[var(--surface-2)] text-muted border border-[var(--border)] hover:text-ink'"
+                class="flex-1 py-1.5 px-2 rounded-lg text-xs transition cursor-pointer text-center"
+              >
+                {% trans "P1 Primary" %}
+              </button>
+              <button
+                type="button"
+                @click="priority = 2; isPreferred = false"
+                :class="priority === 2 ? 'bg-amber-600 text-white font-bold' : 'bg-[var(--surface-2)] text-muted border border-[var(--border)] hover:text-ink'"
+                class="flex-1 py-1.5 px-2 rounded-lg text-xs transition cursor-pointer text-center"
+              >
+                {% trans "P2 Backup" %}
+              </button>
+              <button
+                type="button"
+                @click="priority = 3; isPreferred = false"
+                :class="priority >= 3 ? 'bg-slate-700 text-white font-bold' : 'bg-[var(--surface-2)] text-muted border border-[var(--border)] hover:text-ink'"
+                class="flex-1 py-1.5 px-2 rounded-lg text-xs transition cursor-pointer text-center"
+              >
+                {% trans "P3 Other" %}
+              </button>
+            </div>
+            <input type="hidden" name="priority" :value="priority" />
+            <p class="text-[10px] text-muted">{% trans "P1 is selected first when reordering goods." %}</p>
+          </div>
+
+          <!-- Lead Time -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-ink">
+              {% trans "Transit Lead Time (Days)" %}
+            </label>
+            <div class="flex items-center gap-2">
+              <input
+                type="number"
+                name="lead_time_days"
+                x-model="leadTime"
+                min="0"
+                class="w-20 text-xs font-bold rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-ink focus:ring-2 focus:ring-indigo-500 font-mono text-center"
+              />
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  @click="leadTime = 0"
+                  class="px-2 py-1 rounded-md text-[10px] font-bold border border-[var(--border)] hover:bg-[var(--surface-2)] text-muted hover:text-ink cursor-pointer"
+                >
+                  {% trans "Same-day (0)" %}
+                </button>
+                <button
+                  type="button"
+                  @click="leadTime = 1"
+                  class="px-2 py-1 rounded-md text-[10px] font-bold border border-[var(--border)] hover:bg-[var(--surface-2)] text-muted hover:text-ink cursor-pointer"
+                >
+                  {% trans "1 day" %}
+                </button>
+                <button
+                  type="button"
+                  @click="leadTime = 3"
+                  class="px-2 py-1 rounded-md text-[10px] font-bold border border-[var(--border)] hover:bg-[var(--surface-2)] text-muted hover:text-ink cursor-pointer"
+                >
+                  {% trans "3 days" %}
+                </button>
+              </div>
+            </div>
+            <p class="text-[10px] text-muted">{% trans "Expected courier or shipping delivery time." %}</p>
+          </div>
+        </div>
+
+        <!-- Checkboxes -->
+        <div class="space-y-2 pt-2 border-t border-[var(--border)]/60">
+          <label class="flex items-start gap-2.5 text-xs text-ink cursor-pointer">
+            <input
+              type="checkbox"
+              name="is_preferred"
+              x-model="isPreferred"
+              class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500 mt-0.5"
+            />
+            <div>
+              <span class="font-bold">{% trans "Preferred primary supplier" %}</span>
+              <p class="text-[11px] text-muted">{% trans "Designates this route as the first-choice supplier for this destination." %}</p>
+            </div>
           </label>
-          <label class="flex items-center gap-2 text-xs font-medium text-[var(--text)] cursor-pointer">
-            <input type="checkbox" name="can_auto_replenish" x-model="canAutoReplenish" class="rounded text-[var(--brand-600)]" />
-            {% trans "Auto replenish" %}
+
+          <label class="flex items-start gap-2.5 text-xs text-ink cursor-pointer">
+            <input
+              type="checkbox"
+              name="can_auto_replenish"
+              x-model="canAutoReplenish"
+              class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500 mt-0.5"
+            />
+            <div>
+              <span class="font-bold">{% trans "Allow automated replenishment" %}</span>
+              <p class="text-[11px] text-muted">{% trans "System can automatically recommend orders or transfers using this route." %}</p>
+            </div>
+          </label>
+
+          <label x-show="isEdit" class="flex items-start gap-2.5 text-xs text-ink cursor-pointer">
+            <input
+              type="checkbox"
+              name="is_active"
+              x-model="isActive"
+              class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500 mt-0.5"
+            />
+            <div>
+              <span class="font-bold">{% trans "Route is active" %}</span>
+              <p class="text-[11px] text-muted">{% trans "Uncheck to pause transfers without deleting this route configuration." %}</p>
+            </div>
           </label>
         </div>
 
-        <div>
-          <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Notes" %}</label>
+        <!-- Notes -->
+        <div class="space-y-1.5 pt-1">
+          <label class="block text-xs font-bold text-ink">
+            {% trans "Notes (Optional)" %}
+          </label>
           <textarea
             name="notes"
             x-model="notes"
             rows="2"
-            class="w-full text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-[var(--text)]"
+            placeholder="{% trans "e.g. Standard morning courier delivery route..." %}"
+            class="w-full text-xs rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2.5 text-ink focus:ring-2 focus:ring-indigo-500"
           ></textarea>
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-[var(--border)]">
           <button
             type="button"
             @click="modalOpen = false"
-            class="px-4 py-2 text-xs font-semibold rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-2)]"
+            class="px-4 py-2 text-xs font-bold rounded-xl border border-[var(--border)] text-muted hover:text-ink hover:bg-[var(--surface-2)] transition cursor-pointer"
           >
             {% trans "Cancel" %}
           </button>
           <button
             type="submit"
-            class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]"
+            class="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-xs active:scale-98 cursor-pointer"
           >
-            {% trans "Save route" %}
+            <span x-text="isEdit ? '{% trans "Update Route" %}' : '{% trans "Save Route" %}'"></span>
           </button>
         </div>
       </form>
@@ -270,4 +919,3 @@
   </div>
 </div>
 {% endblock %}
-

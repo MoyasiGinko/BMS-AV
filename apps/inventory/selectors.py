@@ -8,6 +8,7 @@ from typing import Any
 from django.db.models import F, Q, QuerySet, Sum
 from django.utils import timezone
 
+from apps.catalog.models import Product
 from apps.inventory.models import (
     Batch,
     BatchStock,
@@ -104,13 +105,24 @@ def list_stock_adjustments(
     *,
     organization: Organization,
     warehouse: Warehouse | None = None,
+    branch: Branch | None = None,
+    location: InventoryLocation | None = None,
     reason: str = "",
 ) -> QuerySet[StockAdjustment]:
-    """List stock adjustments."""
-    qs = StockAdjustment.all_tenants.filter(organization=organization).select_related("warehouse")
+    """List stock adjustments across warehouses, outlets, and storage locations."""
+    # Organization-scoped query
+    qs = StockAdjustment.all_tenants.filter(organization=organization).select_related(
+        "warehouse", "branch", "location", "created_by"
+    )
 
     if warehouse is not None:
         qs = qs.filter(warehouse=warehouse)
+
+    if branch is not None:
+        qs = qs.filter(branch=branch)
+
+    if location is not None:
+        qs = qs.filter(location=location)
 
     if reason:
         qs = qs.filter(reason=reason)
@@ -119,10 +131,11 @@ def list_stock_adjustments(
 
 
 def get_stock_adjustment(*, organization: Organization, adjustment_id: int) -> StockAdjustment | None:
-    """Retrieve a stock adjustment along with line items."""
+    """Retrieve a stock adjustment along with line items and facility coordinates."""
+    # Organization-scoped query
     return (
         StockAdjustment.all_tenants.filter(organization=organization, pk=adjustment_id)
-        .select_related("warehouse")
+        .select_related("warehouse", "branch", "location", "created_by", "approved_by")
         .prefetch_related("lines__product", "lines__variant")
         .first()
     )
@@ -369,58 +382,210 @@ def list_cost_layers(
     return qs.order_by("received_at", "id")
 
 
+def _apply_reorder_scope(qs: QuerySet[StockLevel], scope: str) -> QuerySet[StockLevel]:
+    """Apply low stock, out of stock, healthy, or unconfigured filters to StockLevel query."""
+    if scope == "out_of_stock":
+        return qs.filter(on_hand__lte=F("reserved"))
+    if scope == "low_stock":
+        has_threshold = Q(reorder_point__gt=DECIMAL_ZERO) | Q(
+            reorder_point__isnull=True, product__reorder_level__gt=DECIMAL_ZERO
+        )
+        below_thresh = Q(reorder_point__isnull=False, on_hand__lte=F("reorder_point") + F("reserved")) | Q(
+            reorder_point__isnull=True, on_hand__lte=F("product__reorder_level") + F("reserved")
+        )
+        return qs.filter(has_threshold, below_thresh, on_hand__gt=F("reserved"))
+    if scope == "healthy":
+        thresh_condition = Q(
+            reorder_point__isnull=False,
+            reorder_point__gt=DECIMAL_ZERO,
+            on_hand__gt=F("reorder_point") + F("reserved"),
+        ) | Q(
+            reorder_point__isnull=True,
+            product__reorder_level__gt=DECIMAL_ZERO,
+            on_hand__gt=F("product__reorder_level") + F("reserved"),
+        )
+        return qs.filter(thresh_condition)
+    if scope == "unconfigured":
+        no_thresh = Q(reorder_point__isnull=True, product__reorder_level=DECIMAL_ZERO) | Q(
+            reorder_point=DECIMAL_ZERO
+        )
+        return qs.filter(no_thresh, on_hand__gt=F("reserved"))
+    if scope == "needs_reorder":
+        low_stock_filter = (
+            Q(reorder_point__isnull=False, on_hand__lte=F("reorder_point") + F("reserved"))
+            | Q(
+                reorder_point__isnull=True,
+                product__reorder_level__gt=DECIMAL_ZERO,
+                on_hand__lte=F("product__reorder_level") + F("reserved"),
+            )
+            | Q(on_hand__lte=F("reserved"))
+        )
+        return qs.filter(low_stock_filter)
+    return qs
+
+
+def _build_stock_level_suggestion(lvl: StockLevel) -> dict[str, Any]:
+    """Convert a StockLevel row into a reorder suggestion dict with calculations."""
+    point = lvl.reorder_point if lvl.reorder_point is not None else (lvl.product.reorder_level or DECIMAL_ZERO)
+    avail = lvl.available
+    default_target = lvl.reorder_quantity or lvl.product.reorder_quantity or Decimal("10.0000")
+    shortfall = max(DECIMAL_ZERO, point - avail)
+
+    if point > DECIMAL_ZERO:
+        suggested_qty = max(default_target, shortfall)
+    elif avail <= DECIMAL_ZERO:
+        suggested_qty = max(default_target, Decimal("10.0000"))
+    else:
+        suggested_qty = DECIMAL_ZERO
+
+    unit_cost = lvl.product.cost_price or lvl.avg_cost or DECIMAL_ZERO
+    est_cost = (suggested_qty * unit_cost).quantize(Decimal("0.0001"))
+
+    if avail <= DECIMAL_ZERO:
+        stock_status = "out_of_stock"
+    elif point > DECIMAL_ZERO:
+        stock_status = "critical" if avail <= (point / Decimal("2.0")) else ("low" if avail <= point else "healthy")
+    else:
+        stock_status = "unconfigured"
+
+    is_needing = (avail <= DECIMAL_ZERO) or (point > DECIMAL_ZERO and avail <= point)
+
+    return {
+        "product": lvl.product,
+        "product_id": lvl.product.pk,
+        "product_name": lvl.product.name,
+        "product_sku": lvl.product.sku,
+        "product_barcode": lvl.product.barcode or "",
+        "product_category": lvl.product.category.name if lvl.product.category else "",
+        "warehouse": lvl.warehouse,
+        "warehouse_id": lvl.warehouse.pk,
+        "warehouse_name": lvl.warehouse.name,
+        "branch_id": lvl.warehouse.branch_id,
+        "branch_name": lvl.warehouse.branch.name if lvl.warehouse.branch else "",
+        "stock_level_id": lvl.pk,
+        "on_hand": lvl.on_hand,
+        "reserved": lvl.reserved,
+        "available": avail,
+        "reorder_point": point,
+        "target_quantity": default_target,
+        "shortfall": shortfall,
+        "suggested_qty": suggested_qty,
+        "unit_cost": unit_cost,
+        "estimated_cost": est_cost,
+        "stock_status": stock_status,
+        "is_needing_reorder": is_needing,
+        "has_threshold": point > DECIMAL_ZERO,
+    }
+
+
+def _get_unstocked_suggestions(
+    *,
+    organization: Organization,
+    warehouse: Warehouse | None,
+    search: str | None,
+) -> list[dict[str, Any]]:
+    """Build reorder suggestions for products with zero stock levels in target warehouse."""
+    target_wh = warehouse or Warehouse.objects.filter(organization=organization, is_active=True).first()
+    if not target_wh:
+        return []
+
+    existing_ids = set(
+        StockLevel.all_tenants.filter(
+            organization=organization, warehouse=target_wh
+        ).values_list("product_id", flat=True)
+    )
+    unstocked = Product.all_tenants.filter(
+        organization=organization, is_active=True
+    ).exclude(pk__in=existing_ids)
+
+    if search:
+        s_term = search.strip()
+        unstocked = unstocked.filter(
+            Q(name__icontains=s_term) | Q(sku__icontains=s_term) | Q(barcode__icontains=s_term)
+        )
+
+    results = []
+    for prod in unstocked[:50]:
+        point = prod.reorder_level or DECIMAL_ZERO
+        default_target = prod.reorder_quantity or Decimal("10.0000")
+        suggested_qty = (
+            max(default_target, point)
+            if (point > DECIMAL_ZERO or default_target > DECIMAL_ZERO)
+            else Decimal("10.0000")
+        )
+        unit_cost = prod.cost_price or DECIMAL_ZERO
+        est_cost = (suggested_qty * unit_cost).quantize(Decimal("0.0001"))
+
+        results.append(
+            {
+                "product": prod,
+                "product_id": prod.pk,
+                "product_name": prod.name,
+                "product_sku": prod.sku,
+                "product_barcode": prod.barcode or "",
+                "product_category": prod.category.name if prod.category else "",
+                "warehouse": target_wh,
+                "warehouse_id": target_wh.pk,
+                "warehouse_name": target_wh.name,
+                "branch_id": target_wh.branch_id,
+                "branch_name": target_wh.branch.name if target_wh.branch else "",
+                "stock_level_id": None,
+                "on_hand": DECIMAL_ZERO,
+                "reserved": DECIMAL_ZERO,
+                "available": DECIMAL_ZERO,
+                "reorder_point": point,
+                "target_quantity": default_target,
+                "shortfall": point,
+                "suggested_qty": suggested_qty,
+                "unit_cost": unit_cost,
+                "estimated_cost": est_cost,
+                "stock_status": "out_of_stock",
+                "is_needing_reorder": True,
+                "has_threshold": point > DECIMAL_ZERO,
+            }
+        )
+    return results
+
+
 def get_reorder_suggestions(
     *,
     organization: Organization,
     warehouse: Warehouse | None = None,
     branch_id: int | None = None,
+    scope: str = "needs_reorder",
+    search: str | None = None,
 ) -> list[dict[str, Any]]:
     """Identify inventory items at or below reorder threshold and calculate suggested PO quantities."""
     qs = StockLevel.all_tenants.filter(organization=organization).select_related(
-        "product", "product__unit", "warehouse", "warehouse__branch"
+        "product", "product__unit", "product__category", "warehouse", "warehouse__branch"
     )
     if warehouse is not None:
         qs = qs.filter(warehouse=warehouse)
     if branch_id is not None:
         qs = qs.filter(warehouse__branch_id=branch_id)
 
-    low_stock_filter = Q(reorder_point__isnull=False, on_hand__lte=F("reorder_point") + F("reserved")) | Q(
-        reorder_point__isnull=True,
-        product__reorder_level__gt=DECIMAL_ZERO,
-        on_hand__lte=F("product__reorder_level") + F("reserved"),
-    )
-    low_levels = list(qs.filter(low_stock_filter).order_by("product__name", "warehouse__name"))
-
-    suggestions = []
-    for lvl in low_levels:
-        point = lvl.reorder_point or lvl.product.reorder_level or DECIMAL_ZERO
-        avail = lvl.available
-        default_target = lvl.reorder_quantity or lvl.product.reorder_quantity or Decimal("10.0000")
-        shortfall = max(DECIMAL_ZERO, point - avail)
-        suggested_qty = max(default_target, shortfall)
-        unit_cost = lvl.product.cost_price or lvl.avg_cost or DECIMAL_ZERO
-        est_cost = (suggested_qty * unit_cost).quantize(Decimal("0.0001"))
-
-        suggestions.append(
-            {
-                "product": lvl.product,
-                "product_id": lvl.product.pk,
-                "product_name": lvl.product.name,
-                "product_sku": lvl.product.sku,
-                "warehouse": lvl.warehouse,
-                "warehouse_id": lvl.warehouse.pk,
-                "warehouse_name": lvl.warehouse.name,
-                "branch_id": lvl.warehouse.branch_id,
-                "branch_name": lvl.warehouse.branch.name if lvl.warehouse.branch else "",
-                "on_hand": lvl.on_hand,
-                "reserved": lvl.reserved,
-                "available": avail,
-                "reorder_point": point,
-                "suggested_qty": suggested_qty,
-                "unit_cost": unit_cost,
-                "estimated_cost": est_cost,
-            }
+    if search:
+        s_term = search.strip()
+        qs = qs.filter(
+            Q(product__name__icontains=s_term)
+            | Q(product__sku__icontains=s_term)
+            | Q(product__barcode__icontains=s_term)
         )
+
+    qs = _apply_reorder_scope(qs, scope)
+    levels = list(qs.order_by("product__name", "warehouse__name"))
+    suggestions = [_build_stock_level_suggestion(lvl) for lvl in levels]
+
+    if scope in ("all", "needs_reorder", "out_of_stock"):
+        suggestions.extend(
+            _get_unstocked_suggestions(
+                organization=organization,
+                warehouse=warehouse,
+                search=search,
+            )
+        )
+
+    return suggestions
 
     return suggestions
 
@@ -478,9 +643,12 @@ def list_branch_stock_requests(
     """Return branch stock requests / requisitions ordered by recency."""
     qs = StockTransfer.all_tenants.filter(
         organization_id=organization_id,
-        is_branch_requisition=True,
+    ).filter(
+        Q(is_branch_requisition=True) | Q(is_inter_branch=True)
     ).select_related(
         "source_warehouse",
+        "destination_warehouse",
+        "source_branch",
         "destination_branch",
         "source_location",
         "destination_location",
@@ -491,7 +659,7 @@ def list_branch_stock_requests(
     ).prefetch_related("lines__product", "lines__variant")
 
     if branch_id:
-        qs = qs.filter(destination_branch_id=branch_id)
+        qs = qs.filter(Q(destination_branch_id=branch_id) | Q(source_branch_id=branch_id))
     if warehouse_id:
         qs = qs.filter(source_warehouse_id=warehouse_id)
     if status:
@@ -509,10 +677,12 @@ def get_branch_stock_request(
         StockTransfer.all_tenants.filter(
             organization_id=organization_id,
             pk=transfer_id,
-            is_branch_requisition=True,
         )
+        .filter(Q(is_branch_requisition=True) | Q(is_inter_branch=True))
         .select_related(
             "source_warehouse",
+            "destination_warehouse",
+            "source_branch",
             "destination_branch",
             "source_location",
             "destination_location",

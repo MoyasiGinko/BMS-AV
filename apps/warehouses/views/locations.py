@@ -198,50 +198,110 @@ def location_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
-def _handle_supply_route_post(request: HttpRequest, org: Organization) -> HttpResponse:
-    action = request.POST.get("action", "")
-    if action == "delete":
-        route_id = request.POST.get("route_id")
-        route = selectors.get_supply_route(organization=org, route_id=route_id)
-        if route:
-            services.delete_supply_route(route=route, actor=request.user)
-            messages.success(request, _("Supply route removed."))
-        return redirect("warehouses:route_list")
+def _handle_route_delete(request: HttpRequest, org: Organization) -> None:
+    route_id = request.POST.get("route_id")
+    route = selectors.get_supply_route(organization=org, route_id=route_id)
+    if route:
+        services.delete_supply_route(route=route, actor=request.user)
+        messages.success(request, _("Supply route removed."))
 
+
+def _handle_route_toggle_active(request: HttpRequest, org: Organization) -> None:
+    route_id = request.POST.get("route_id")
+    route = selectors.get_supply_route(organization=org, route_id=route_id)
+    if route:
+        new_state = not route.is_active
+        services.update_supply_route(
+            route=route,
+            is_active=new_state,
+            actor=request.user,
+        )
+        msg = _("Supply route activated.") if new_state else _("Supply route paused.")
+        messages.success(request, msg)
+
+
+def _handle_route_edit(request: HttpRequest, org: Organization) -> None:
+    route_id = request.POST.get("route_id")
+    route = selectors.get_supply_route(organization=org, route_id=route_id)
+    if not route:
+        messages.error(request, _("Supply route not found."))
+        return
+
+    try:
+        priority = int(request.POST.get("priority", 1))
+        lead_time_days = int(request.POST.get("lead_time_days", 0))
+        is_preferred = request.POST.get("is_preferred") in ("on", "true", "1", True)
+        can_auto_replenish = request.POST.get("can_auto_replenish") in ("on", "true", "1", True)
+        is_active = (
+            request.POST.get("is_active") in ("on", "true", "1", True)
+            if "is_active" in request.POST
+            else None
+        )
+        notes = request.POST.get("notes", "").strip()
+
+        services.update_supply_route(
+            route=route,
+            priority=priority,
+            lead_time_days=lead_time_days,
+            is_preferred=is_preferred,
+            can_auto_replenish=can_auto_replenish,
+            is_active=is_active,
+            notes=notes,
+            actor=request.user,
+        )
+        messages.success(request, _("Supply route updated."))
+    except (ValueError, ValidationError) as exc:
+        messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+
+
+def _handle_route_create(request: HttpRequest, org: Organization) -> None:
     form = StockSupplyRouteForm(request.POST)
-    if form.is_valid():
-        src_id = form.cleaned_data["source_location_id"]
-        dst_id = form.cleaned_data["destination_location_id"]
-        src = selectors.get_inventory_location(organization=org, location_id=src_id)
-        dst = selectors.get_inventory_location(organization=org, location_id=dst_id)
-
-        if not src or not dst:
-            messages.error(request, _("Invalid source or destination location."))
-            return redirect("warehouses:route_list")
-
-        try:
-            services.create_supply_route(
-                organization=org,
-                source_location=src,
-                destination_location=dst,
-                priority=form.cleaned_data["priority"],
-                lead_time_days=form.cleaned_data["lead_time_days"],
-                is_preferred=form.cleaned_data["is_preferred"],
-                can_auto_replenish=form.cleaned_data["can_auto_replenish"],
-                notes=form.cleaned_data["notes"],
-                actor=request.user,
-            )
-            messages.success(
-                request,
-                _("Supply route '%(src)s -> %(dst)s' configured.")
-                % {"src": src.name, "dst": dst.name},
-            )
-        except ValidationError as exc:
-            messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
-    else:
+    if not form.is_valid():
         for err_list in form.errors.values():
             for err in err_list:
                 messages.error(request, err)
+        return
+
+    src_id = form.cleaned_data["source_location_id"]
+    dst_id = form.cleaned_data["destination_location_id"]
+    src = selectors.get_inventory_location(organization=org, location_id=src_id)
+    dst = selectors.get_inventory_location(organization=org, location_id=dst_id)
+
+    if not src or not dst:
+        messages.error(request, _("Invalid source or destination location."))
+        return
+
+    try:
+        services.create_supply_route(
+            organization=org,
+            source_location=src,
+            destination_location=dst,
+            priority=form.cleaned_data["priority"],
+            lead_time_days=form.cleaned_data["lead_time_days"],
+            is_preferred=form.cleaned_data["is_preferred"],
+            can_auto_replenish=form.cleaned_data["can_auto_replenish"],
+            notes=form.cleaned_data["notes"],
+            actor=request.user,
+        )
+        messages.success(
+            request,
+            _("Supply route '%(src)s -> %(dst)s' configured.")
+            % {"src": src.name, "dst": dst.name},
+        )
+    except ValidationError as exc:
+        messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+
+
+def _handle_supply_route_post(request: HttpRequest, org: Organization) -> HttpResponse:
+    action = request.POST.get("action", "")
+    if action == "delete":
+        _handle_route_delete(request, org)
+    elif action == "toggle_active":
+        _handle_route_toggle_active(request, org)
+    elif action == "edit":
+        _handle_route_edit(request, org)
+    else:
+        _handle_route_create(request, org)
 
     return redirect("warehouses:route_list")
 
@@ -263,6 +323,17 @@ def supply_route_list_view(request: HttpRequest) -> HttpResponse:
     routes = selectors.list_supply_routes(organization=org, active_only=False)
     locations = selectors.list_inventory_locations(organization=org, is_stock_holding=True)
 
+    locations_payload = [
+        {
+            "id": loc.pk,
+            "name": loc.name,
+            "type_display": loc.get_location_type_display(),
+            "is_warehouse": bool(loc.warehouse_id or "warehouse" in loc.location_type.lower() or "hub" in loc.location_type.lower()),
+            "is_outlet": bool(loc.branch_id or "outlet" in loc.location_type.lower() or "store" in loc.location_type.lower()),
+        }
+        for loc in locations
+    ]
+
     return render(
         request,
         "warehouses/supply_route_list.html",
@@ -270,6 +341,7 @@ def supply_route_list_view(request: HttpRequest) -> HttpResponse:
             "organization": org,
             "routes": routes,
             "locations": locations,
+            "locations_payload": locations_payload,
             "total_routes": routes.count(),
             "preferred_count": routes.filter(is_preferred=True).count(),
             "can_manage": can_manage,

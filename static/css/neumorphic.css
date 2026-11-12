@@ -1292,9 +1292,9 @@ html[data-theme="spatial"],
 
 [data-theme="neumorphic"] .neu-index-badge,
 .neu-index-badge {
-  width: 36px !important;
-  height: 36px !important;
-  border-radius: 10px !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 12px !important;
   background-color: var(--neu-surface, var(--surface-2)) !important;
   box-shadow: inset 2px 2px 4px var(--neu-shadow-dark, rgba(0,0,0,0.08)), inset -1.5px -1.5px 3px var(--neu-shadow-light, rgba(255,255,255,0.7)) !important;
   border: 1px solid var(--border, rgba(0,0,0,0.06)) !important;
@@ -1302,8 +1302,8 @@ html[data-theme="spatial"],
   align-items: center !important;
   justify-content: center !important;
   font-family: var(--font-mono, monospace) !important;
-  font-weight: 800 !important;
-  font-size: 1rem !important;
+  font-weight: 900 !important;
+  font-size: 1.125rem !important;
   color: var(--neu-text, var(--ink, #0f172a)) !important;
   user-select: none !important;
   margin-inline: auto !important;

@@ -298,47 +298,41 @@
               <th scope="col" class="py-3 px-2 text-center"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-[var(--border)]/40">
+          <tbody class="divide-y divide-[var(--border)]/40 font-medium">
             <template x-for="(row, idx) in rows" :key="idx">
               <tr class="hover:bg-[var(--surface-2)]/30 transition-colors">
 
-                <!-- 1. Row Index (Image 3: Symmetrically Centered Inset Badge) -->
-                <td class="pt-4 pb-4 px-2 text-center align-top w-12">
-                  <div class="h-11 flex items-center justify-center">
-                    <div class="neu-index-badge">
-                      <span x-text="idx + 1"></span>
-                    </div>
+                <!-- 1. Row Index (#): Symmetrically Centered & Bigger Number -->
+                <td class="py-4 px-2 text-center align-middle w-16">
+                  <div class="neu-index-badge w-10 h-10 mx-auto rounded-xl bg-[var(--surface-2)] border border-[var(--border)] shadow-2xs text-ink flex items-center justify-center font-mono font-black text-base sm:text-lg">
+                    <span x-text="idx + 1"></span>
                   </div>
-                  <div class="h-[22px] mt-1.5"></div>
                 </td>
 
-                <!-- 2. Product Thumbnail (44px axis) -->
-                <td class="pt-4 pb-4 px-2 text-center align-top w-16">
-                  <div class="h-11 flex items-center justify-center">
-                    <div class="w-11 h-11 mx-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)] neu-thumbnail-frame overflow-hidden shrink-0 shadow-2xs flex items-center justify-center">
-                      <template x-if="getProduct(row.product_id)?.image">
-                        <img
-                          :src="getProduct(row.product_id).image"
-                          :alt="getProduct(row.product_id).name"
-                          class="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      </template>
-                      <template x-if="!getProduct(row.product_id)?.image">
-                        <div class="flex items-center justify-center text-muted/40 p-1.5">
-                          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
-                          </svg>
-                        </div>
-                      </template>
-                    </div>
+                <!-- 2. Product Thumbnail (Vertically Centered) -->
+                <td class="py-4 px-2 text-center align-middle w-16">
+                  <div class="w-12 h-12 mx-auto rounded-xl border border-[var(--border)] bg-[var(--surface-2)] neu-thumbnail-frame overflow-hidden shrink-0 shadow-2xs flex items-center justify-center">
+                    <template x-if="getProduct(row.product_id)?.image">
+                      <img
+                        :src="getProduct(row.product_id).image"
+                        :alt="getProduct(row.product_id).name"
+                        class="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </template>
+                    <template x-if="!getProduct(row.product_id)?.image">
+                      <div class="flex items-center justify-center text-muted/40 p-2">
+                        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>
+                        </svg>
+                      </div>
+                    </template>
                   </div>
-                  <div class="h-[22px] mt-1.5"></div>
                 </td>
 
-                <!-- 3. Product Selection & Metadata Strip (44px axis) -->
-                <td class="pt-4 pb-4 px-3 align-top min-w-[320px]">
-                  <div class="h-11 flex items-center">
+                <!-- 3. Product Selection & Metadata Strip -->
+                <td class="py-4 px-3 align-middle min-w-[320px]">
+                  <div class="space-y-1.5">
                     <select
                       name="product_id[]"
                       x-model="row.product_id"
@@ -353,56 +347,55 @@
                         </option>
                       {% endfor %}
                     </select>
-                  </div>
 
-                  <!-- Single-line metadata strip: SKU, Category, Ingredient pill, Variant -->
-                  <div class="h-[22px] mt-1.5 flex items-center gap-2 overflow-hidden">
-                    <template x-if="getProduct(row.product_id)">
-                      <div class="flex items-center gap-1.5 truncate">
-                        <template x-if="getProduct(row.product_id)?.sku">
-                          <span class="inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] bg-[var(--surface-2)] text-ink border border-[var(--border)]/70">
-                            <span class="text-muted mr-1">SKU:</span>
-                            <span class="font-bold" x-text="getProduct(row.product_id).sku"></span>
-                          </span>
-                        </template>
-                        <template x-if="getProduct(row.product_id)?.category">
-                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white" x-text="getProduct(row.product_id).category"></span>
-                        </template>
-                        <template x-if="getProduct(row.product_id)?.is_ingredient">
-                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                            {% trans "Raw Ingredient" %}
-                          </span>
-                        </template>
-                        <template x-if="getProduct(row.product_id)?.variants?.length > 0">
-                          <select
-                            name="variant_id[]"
-                            x-model="row.variant_id"
-                            @change="onVariantChange(row)"
-                            class="text-xs py-0.5 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-ink font-medium focus:ring-1 focus:ring-indigo-500"
-                          >
-                            <option value="">{% trans "Base Variant" %}</option>
-                            <template x-for="v in getProduct(row.product_id).variants" :key="v.id">
-                              <option :value="v.id" x-text="v.name + (v.sku ? ' (' + v.sku + ')' : '')"></option>
-                            </template>
-                          </select>
-                        </template>
-                      </div>
-                    </template>
-                    <template x-if="!getProduct(row.product_id)">
-                      <span class="text-xs text-muted/50 italic flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 text-muted/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-                        </svg>
-                        {% trans "Select a product or ingredient from catalog" %}
-                      </span>
-                    </template>
+                    <!-- Single-line metadata strip: SKU, Category, Ingredient pill, Variant -->
+                    <div class="flex items-center gap-2 overflow-hidden text-xs">
+                      <template x-if="getProduct(row.product_id)">
+                        <div class="flex flex-wrap items-center gap-1.5 truncate">
+                          <template x-if="getProduct(row.product_id)?.sku">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md font-mono text-[11px] bg-[var(--surface-2)] text-ink border border-[var(--border)]/70">
+                              <span class="text-muted mr-1">SKU:</span>
+                              <span class="font-bold" x-text="getProduct(row.product_id).sku"></span>
+                            </span>
+                          </template>
+                          <template x-if="getProduct(row.product_id)?.category">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white" x-text="getProduct(row.product_id).category"></span>
+                          </template>
+                          <template x-if="getProduct(row.product_id)?.is_ingredient">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                              {% trans "Raw Ingredient" %}
+                            </span>
+                          </template>
+                          <template x-if="getProduct(row.product_id)?.variants?.length > 0">
+                            <select
+                              name="variant_id[]"
+                              x-model="row.variant_id"
+                              @change="onVariantChange(row)"
+                              class="text-xs py-0.5 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-ink font-medium focus:ring-1 focus:ring-indigo-500"
+                            >
+                              <option value="">{% trans "Base Variant" %}</option>
+                              <template x-for="v in getProduct(row.product_id).variants" :key="v.id">
+                                <option :value="v.id" x-text="v.name + (v.sku ? ' (' + v.sku + ')' : '')"></option>
+                              </template>
+                            </select>
+                          </template>
+                        </div>
+                      </template>
+                      <template x-if="!getProduct(row.product_id)">
+                        <span class="text-xs text-muted/50 italic flex items-center gap-1.5">
+                          <svg class="w-3.5 h-3.5 text-muted/40 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                          </svg>
+                          {% trans "Select a product or ingredient from catalog" %}
+                        </span>
+                      </template>
+                    </div>
                   </div>
                 </td>
 
-                <!-- 4. Lot / Batch & Expiry (Compact Symmetrical 44px + 22px) -->
-                <td class="pt-4 pb-4 px-2 align-top w-44 min-w-[160px]">
-                  <!-- Tier 1: 44px Lot / Batch # input -->
-                  <div class="h-11 flex items-center">
+                <!-- 4. Lot / Batch & Expiry -->
+                <td class="py-4 px-2 align-middle w-44 min-w-[160px]">
+                  <div class="space-y-1.5">
                     <input
                       type="text"
                       name="batch_number[]"
@@ -410,23 +403,22 @@
                       placeholder="{% trans 'Lot / Batch #' %}"
                       class="w-full h-11 px-2.5 text-xs font-mono rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink placeholder:text-muted/50 focus:ring-2 focus:ring-indigo-500"
                     />
-                  </div>
-                  <!-- Tier 2: 22px Expiry Date with label -->
-                  <div class="h-[22px] mt-1.5 flex items-center gap-1.5">
-                    <span class="text-[10px] text-muted font-bold uppercase shrink-0">{% trans "Exp:" %}</span>
-                    <input
-                      type="date"
-                      name="expiry_date[]"
-                      x-model="row.expiry_date"
-                      class="w-full text-[11px] font-mono py-0.5 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-1 focus:ring-indigo-500"
-                      title="{% trans 'Best Before / Expiry' %}"
-                    />
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-[10px] text-muted font-bold uppercase shrink-0">{% trans "Exp:" %}</span>
+                      <input
+                        type="date"
+                        name="expiry_date[]"
+                        x-model="row.expiry_date"
+                        class="w-full text-[11px] font-mono py-0.5 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-1 focus:ring-indigo-500"
+                        title="{% trans 'Best Before / Expiry' %}"
+                      />
+                    </div>
                   </div>
                 </td>
 
-                <!-- 5. Quantity Stepper (Image 4: Bold, Tactile Symmetrical Stepper) -->
-                <td class="pt-4 pb-4 px-3 text-center align-top w-44 min-w-[150px]">
-                  <div class="h-11 flex items-center justify-center">
+                <!-- 5. Quantity Stepper -->
+                <td class="py-4 px-3 text-center align-middle w-44 min-w-[150px]">
+                  <div class="flex flex-col items-center gap-1">
                     <div class="neu-stepper inline-flex items-center justify-center h-11 p-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] shadow-2xs gap-1.5">
                       <button
                         type="button"
@@ -450,8 +442,6 @@
                         title="{% trans 'Increase' %}"
                       >&plus;</button>
                     </div>
-                  </div>
-                  <div class="h-[22px] mt-1.5 flex items-center justify-center">
                     <span
                       class="text-xs font-bold text-muted uppercase tracking-wider text-center font-mono"
                       x-text="getProduct(row.product_id)?.unit || '{% trans "units" %}'"
@@ -459,9 +449,9 @@
                   </div>
                 </td>
 
-                <!-- 6. Unit Cost (44px axis) -->
-                <td class="pt-4 pb-4 px-2 text-right align-top w-32 min-w-[110px]">
-                  <div class="h-11 flex items-center justify-end">
+                <!-- 6. Unit Cost -->
+                <td class="py-4 px-2 text-right align-middle w-32 min-w-[110px]">
+                  <div class="flex flex-col items-end gap-1">
                     <input
                       type="number"
                       step="any"
@@ -471,46 +461,35 @@
                       placeholder="0.00"
                       class="w-full h-11 px-2.5 text-right font-mono font-bold text-sm rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-2 focus:ring-indigo-500"
                     />
-                  </div>
-                  <div class="h-[22px] mt-1.5 flex items-center justify-end">
                     <span class="text-[11px] text-muted">{% trans "Cost / unit" %}</span>
                   </div>
                 </td>
 
-                <!-- 7. Line Total Value (44px axis) -->
-                <td class="pt-4 pb-4 px-2 text-right align-top w-28 min-w-[96px]">
-                  <div class="h-11 flex items-center justify-end">
-                    <span
-                      class="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400"
-                      x-text="((parseFloat(row.quantity) || 0) * (parseFloat(row.unit_cost) || 0)).toFixed(2)"
-                    ></span>
-                  </div>
-                  <div class="h-[22px] mt-1.5 flex items-center justify-end">
+                <!-- 7. Line Total Value -->
+                <td class="py-4 px-2 text-right align-middle w-28 min-w-[96px]">
+                  <div class="flex flex-col items-end gap-1">
+                    <div class="h-11 flex items-center justify-end">
+                      <span
+                        class="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400"
+                        x-text="((parseFloat(row.quantity) || 0) * (parseFloat(row.unit_cost) || 0)).toFixed(2)"
+                      ></span>
+                    </div>
                     <span class="text-[11px] text-muted">{% trans "Line total" %}</span>
                   </div>
                 </td>
 
-                <!-- 8. Delete Action (44px axis) -->
-                <td class="pt-4 pb-4 px-2 text-center align-top w-14">
-                  <div class="h-11 flex items-center justify-center">
-                    <button
-                      type="button"
-                      @click="removeRow(idx)"
-                      class="neu-icon-btn w-11 h-11 mx-auto rounded-xl flex items-center justify-center text-muted hover:text-rose-600 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 active:scale-95 transition cursor-pointer"
-                      title="{% trans 'Remove item' %}"
-                    >
-                      <svg class="w-4 h-4 shrink-0" style="width: 16px; height: 16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="h-[22px] mt-1.5"></div>
-                </td>
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="h-[22px] mt-1.5"></div>
+                <!-- 8. Delete Action -->
+                <td class="py-4 px-2 text-center align-middle w-14">
+                  <button
+                    type="button"
+                    @click="removeRow(idx)"
+                    class="neu-icon-btn w-10 h-10 mx-auto rounded-xl flex items-center justify-center text-muted hover:text-rose-600 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 active:scale-95 transition cursor-pointer"
+                    title="{% trans 'Remove item' %}"
+                  >
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
                 </td>
 
               </tr>

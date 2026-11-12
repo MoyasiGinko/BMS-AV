@@ -6,6 +6,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from django.apps import apps as django_apps
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
@@ -16,11 +17,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from apps.catalog.models import Product, ProductVariant
-from apps.core.permissions import check_object_scope, permission_required, scope_queryset
+from apps.catalog.models import Product
+from apps.core.permissions import permission_required, scope_queryset
 from apps.inventory import selectors, services
 from apps.inventory.forms import (
-    StockAdjustmentForm,
     StockCountForm,
     StockFilterForm,
 )
@@ -31,7 +31,13 @@ from apps.inventory.models import (
     StockMovement,
     StockTransfer,
     TransferStatus,
+    TransferType,
     WarehouseStorageType,
+)
+from apps.inventory.views_dashboard import inventory_dashboard_view
+from apps.inventory.views_returns import (
+    stock_replacement_dispatch_view,
+    stock_return_inspect_view,
 )
 from apps.tenancy.models import Branch, BranchWarehouse, Organization, Warehouse
 from apps.warehouses.views import (
@@ -39,6 +45,12 @@ from apps.warehouses.views import (
     transfer_detail_view,
     transfer_list_view,
 )
+
+__all__ = [
+    "inventory_dashboard_view",
+    "stock_replacement_dispatch_view",
+    "stock_return_inspect_view",
+]
 
 
 def _get_org(request: HttpRequest) -> Organization:
@@ -142,9 +154,12 @@ def _apply_adjustment_routing(m: Any, branch_name: str, ref_id_str: str) -> None
     m.ref_label = f"ADJ #{ref_id_str}" if ref_id_str else _("Adjustment")
     if ref_id_str.isdigit():
         try:
-            m.ref_url = reverse("inventory:adjustment_detail", kwargs={"pk": int(ref_id_str)})
+            m.ref_url = reverse("warehouses:adjustment_detail", kwargs={"pk": int(ref_id_str)})
         except Exception:
-            m.ref_url = ""
+            try:
+                m.ref_url = reverse("inventory:adjustment_detail", kwargs={"pk": int(ref_id_str)})
+            except Exception:
+                m.ref_url = ""
     else:
         m.ref_url = ""
 
@@ -338,72 +353,23 @@ def stock_movement_list(request: HttpRequest) -> HttpResponse:
 
 @permission_required("inventory.view")
 def adjustment_list(request: HttpRequest) -> HttpResponse:
-    """List stock adjustment documents."""
-    org = _get_org(request)
-    adjustments = selectors.list_stock_adjustments(organization=org)
-    adjustments = scope_queryset(adjustments, request.user, organization=org)
-
-    paginator = Paginator(adjustments, 20)
-    page_obj = paginator.get_page(request.GET.get("page", 1))
-
-    return render(request, "inventory/adjustment_list.html", {"page_obj": page_obj})
+    """Stock adjustment documents list, hosted in warehouses module."""
+    return redirect("warehouses:adjustment_list")
 
 
 @permission_required("inventory.adjust")
 def adjustment_create(request: HttpRequest) -> HttpResponse:
-    """Create and confirm a stock adjustment."""
-    org = _get_org(request)
-
+    """Stock adjustment create view, hosted in warehouses module."""
     if request.method == "POST":
-        form = StockAdjustmentForm(request.POST, organization=org)
-        if form.is_valid():
-            wh = get_object_or_404(Warehouse, organization=org, pk=form.cleaned_data["warehouse_id"])
-            prod = get_object_or_404(Product, organization=org, pk=form.cleaned_data["product_id"])
-            var_id = form.cleaned_data.get("variant_id")
-            variant = ProductVariant.objects.filter(organization=org, pk=var_id).first() if var_id else None
-
-            try:
-                adj = services.adjust_stock(
-                    organization=org,
-                    warehouse=wh,
-                    reason=form.cleaned_data["reason"],
-                    lines=[
-                        {
-                            "product": prod,
-                            "variant": variant,
-                            "quantity": form.cleaned_data["quantity"],
-                            "unit_cost": form.cleaned_data.get("unit_cost") or Decimal("0.0000"),
-                        }
-                    ],
-                    notes=form.cleaned_data.get("notes", ""),
-                    actor=request.user,
-                )
-                messages.success(
-                    request,
-                    _("Stock adjustment %(num)s created successfully.") % {"num": adj.adjustment_number},
-                )
-                return redirect("inventory:adjustment_detail", pk=adj.pk)
-            except Exception as err:
-                messages.error(request, str(err))
-    else:
-        form = StockAdjustmentForm(organization=org)
-
-    return render(request, "inventory/adjustment_form.html", {"form": form})
+        from apps.warehouses.views.adjustments import adjustment_create_view  # noqa: PLC0415
+        return adjustment_create_view(request)
+    return redirect("warehouses:adjustment_create")
 
 
 @permission_required("inventory.view")
 def adjustment_detail(request: HttpRequest, pk: int) -> HttpResponse:
-    """Detail view for a stock adjustment and its lines."""
-    org = _get_org(request)
-    adj = selectors.get_stock_adjustment(organization=org, adjustment_id=pk)
-    if not adj:
-        messages.error(request, _("Adjustment not found."))
-        return redirect("inventory:adjustment_list")
-    if not check_object_scope(request.user, adj, organization=org):
-        raise PermissionDenied(
-            _("You do not have permission to view adjustments outside your assigned branches.")
-        )
-    return render(request, "inventory/adjustment_detail.html", {"adjustment": adj})
+    """Detail view for a stock adjustment, hosted in warehouses module."""
+    return redirect("warehouses:adjustment_detail", pk=pk)
 
 
 @permission_required("inventory.view")
@@ -657,27 +623,181 @@ def serial_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @permission_required("inventory.view")
+@permission_required("inventory.view")
 def reorder_suggestions(request: HttpRequest) -> HttpResponse:
     """Identify inventory items below reorder threshold with suggested order quantities."""
     org = _get_org(request)
     wh_id = request.GET.get("warehouse")
     warehouse = Warehouse.objects.filter(organization=org, pk=wh_id).first() if wh_id else None
+    scope = request.GET.get("scope", "needs_reorder")
+    query = request.GET.get("query", "").strip()
 
     suggestions = selectors.get_reorder_suggestions(
         organization=org,
         warehouse=warehouse,
+        scope=scope,
+        search=query,
     )
+
+    all_monitored = selectors.get_reorder_suggestions(
+        organization=org,
+        warehouse=warehouse,
+        scope="all",
+    )
+    needs_reorder_count = sum(1 for s in all_monitored if s.get("is_needing_reorder"))
+    out_of_stock_count = sum(
+        1 for s in all_monitored if s.get("available", Decimal("0.0000")) <= Decimal("0.0000")
+    )
+    low_stock_count = sum(
+        1
+        for s in all_monitored
+        if s.get("stock_status") in ("critical", "low")
+        and s.get("available", Decimal("0.0000")) > Decimal("0.0000")
+    )
+    healthy_count = sum(1 for s in all_monitored if s.get("stock_status") == "healthy")
+    unconfigured_count = sum(1 for s in all_monitored if s.get("stock_status") == "unconfigured")
+    total_skus_count = len(all_monitored)
+
     warehouses = Warehouse.objects.filter(organization=org, is_active=True).order_by("name")
 
-    total_est_cost = sum((s["estimated_cost"] for s in suggestions), Decimal("0.0000"))
+    total_est_cost = sum(
+        (s["estimated_cost"] for s in suggestions if s.get("is_needing_reorder")),
+        Decimal("0.0000"),
+    )
+
+    curr_sym = org.settings.get("currency_symbol")
+    if not curr_sym:
+        base_c = getattr(org, "base_currency", "BDT")
+        curr_sym = "৳" if base_c == "BDT" else ("$" if base_c == "USD" else base_c)
+
+    supplier_model = None
+    try:
+        supplier_model = django_apps.get_model("purchasing", "Supplier")
+    except LookupError:
+        supplier_model = None
+
+    suppliers = (
+        supplier_model.all_tenants.filter(organization=org, is_active=True).order_by("name")
+        if supplier_model
+        else []
+    )
+
+    paginator = Paginator(suggestions, 50)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
 
     context = {
         "suggestions": suggestions,
+        "page_obj": page_obj,
         "warehouses": warehouses,
         "selected_warehouse": warehouse,
+        "scope": scope,
+        "query": query,
         "total_est_cost": total_est_cost,
+        "needs_reorder_count": needs_reorder_count,
+        "out_of_stock_count": out_of_stock_count,
+        "low_stock_count": low_stock_count,
+        "healthy_count": healthy_count,
+        "unconfigured_count": unconfigured_count,
+        "total_skus_count": total_skus_count,
+        "suppliers": suppliers,
+        "currency_symbol": curr_sym,
     }
     return render(request, "inventory/reorder_suggestions.html", context)
+
+
+@permission_required("inventory.manage")
+def reorder_set_threshold_view(request: HttpRequest) -> HttpResponse:
+    """Update replenishment threshold and order target for a product and warehouse."""
+    if request.method != "POST":
+        return redirect("inventory:reorder_suggestions")
+
+    org = _get_org(request)
+    product_id = request.POST.get("product_id")
+    wh_id = request.POST.get("warehouse_id")
+    point_raw = request.POST.get("reorder_point", "0")
+    qty_raw = request.POST.get("reorder_quantity", "0")
+
+    product = Product.all_tenants.filter(organization=org, pk=product_id).first()
+    if not product:
+        messages.error(request, _("Product not found."))
+        return redirect("inventory:reorder_suggestions")
+
+    try:
+        point = max(Decimal("0.0000"), Decimal(str(point_raw)))
+        qty = max(Decimal("0.0000"), Decimal(str(qty_raw)))
+    except (InvalidOperation, ValueError, TypeError):
+        messages.error(request, _("Invalid numeric values for threshold or target quantity."))
+        return redirect("inventory:reorder_suggestions")
+
+    product.reorder_level = point
+    product.reorder_quantity = qty
+    product.save(update_fields=["reorder_level", "reorder_quantity", "updated_at"])
+
+    if wh_id and wh_id.isdigit():
+        wh = Warehouse.objects.filter(organization=org, pk=int(wh_id)).first()
+        if wh:
+            sl = StockLevel.all_tenants.filter(
+                organization=org, warehouse=wh, product=product
+            ).first()
+            if sl:
+                sl.reorder_point = point
+                sl.reorder_quantity = qty
+                sl.save(update_fields=["reorder_point", "reorder_quantity", "updated_at"])
+
+    messages.success(
+        request,
+        _("Threshold updated for %(product)s (Reorder Point: %(point)s, Target: %(qty)s).")
+        % {"product": product.name, "point": point, "qty": qty},
+    )
+
+    redirect_url = reverse("inventory:reorder_suggestions")
+    scope = request.POST.get("scope")
+    params = []
+    if scope:
+        params.append(f"scope={scope}")
+    if wh_id:
+        params.append(f"warehouse={wh_id}")
+    if params:
+        redirect_url += f"?{'&'.join(params)}"
+    return redirect(redirect_url)
+
+
+@permission_required("inventory.manage")
+def reorder_auto_configure_view(request: HttpRequest) -> HttpResponse:
+    """Set default replenishment thresholds across all unconfigured products."""
+    if request.method != "POST":
+        return redirect("inventory:reorder_suggestions")
+
+    org = _get_org(request)
+    point_raw = request.POST.get("default_point", "10")
+    qty_raw = request.POST.get("default_quantity", "25")
+    overwrite = request.POST.get("overwrite") in ("1", "true", "True")
+
+    try:
+        point = max(Decimal("1.0000"), Decimal(str(point_raw)))
+        qty = max(Decimal("1.0000"), Decimal(str(qty_raw)))
+    except (InvalidOperation, ValueError, TypeError):
+        point = Decimal("10.0000")
+        qty = Decimal("25.0000")
+
+    prod_qs = Product.all_tenants.filter(organization=org, is_active=True)
+    if not overwrite:
+        prod_qs = prod_qs.filter(reorder_level=Decimal("0.0000"))
+
+    count = prod_qs.count()
+    prod_qs.update(reorder_level=point, reorder_quantity=qty)
+
+    sl_qs = StockLevel.all_tenants.filter(organization=org)
+    if not overwrite:
+        sl_qs = sl_qs.filter(Q(reorder_point__isnull=True) | Q(reorder_point=Decimal("0.0000")))
+    sl_qs.update(reorder_point=point, reorder_quantity=qty)
+
+    messages.success(
+        request,
+        _("Configured default replenishment thresholds (Min: %(min)s, Target: %(target)s) for %(count)d products.")
+        % {"min": point, "target": qty, "count": count},
+    )
+    return redirect("inventory:reorder_suggestions")
 
 
 @permission_required("inventory.manage")
@@ -753,9 +873,12 @@ def _get_branch_logistics_mapping(
         BranchWarehouse.objects.filter(
             organization=org,
             branch=current_branch,
+            warehouse__is_active=True,
+            can_replenish=True,
         )
         .select_related("warehouse")
         .prefetch_related("storage_sync_links__storage_type")
+        .order_by("-is_default", "priority", "warehouse__name")
     )
     for m in mappings:
         linked_warehouses.append(m.warehouse)
@@ -796,13 +919,277 @@ def _build_products_payload(
             "category": p.category.name if p.category else "",
             "unit": p.unit.code if p.unit else "units",
             "image_url": img_url,
+            "cost_price": float(p.cost_price or 0),
         }
     return products, products_data
 
 
+def _parse_return_request_lines(
+    org: Organization,
+    post_data: Any,
+    request_type: str,
+) -> list[dict[str, Any]]:
+    """Parse and validate line items for a stock return or replacement request."""
+    product_ids = post_data.getlist("product_id[]")
+    quantities = post_data.getlist("quantity[]")
+    replacement_quantities = post_data.getlist("replacement_quantity[]")
+    return_reasons = post_data.getlist("return_reason[]")
+    item_conditions = post_data.getlist("item_condition[]")
+    line_notes = post_data.getlist("line_notes[]")
+
+    parsed: list[dict[str, Any]] = []
+    for idx, pid in enumerate(product_ids):
+        if not pid:
+            continue
+        prod = Product.objects.filter(organization=org, pk=pid, is_active=True).first()
+        if not prod:
+            continue
+        try:
+            qty = Decimal(str(quantities[idx])) if idx < len(quantities) and quantities[idx] else Decimal("1")
+        except (InvalidOperation, ValueError):
+            qty = Decimal("1")
+        if qty <= Decimal("0"):
+            continue
+
+        rpl_qty = None
+        if request_type == "replace":
+            if idx < len(replacement_quantities) and replacement_quantities[idx]:
+                try:
+                    rpl_qty = Decimal(str(replacement_quantities[idx]))
+                except (InvalidOperation, ValueError):
+                    rpl_qty = qty
+            else:
+                rpl_qty = qty
+
+        reason = return_reasons[idx] if idx < len(return_reasons) and return_reasons[idx] else "damaged"
+        cond = item_conditions[idx] if idx < len(item_conditions) and item_conditions[idx] else "damaged"
+        l_note = line_notes[idx] if idx < len(line_notes) else ""
+
+        parsed.append({
+            "product": prod,
+            "quantity": qty,
+            "replacement_quantity": rpl_qty,
+            "return_reason": reason,
+            "item_condition": cond,
+            "notes": l_note,
+        })
+    return parsed
+
+
+def _handle_stock_return_submission(
+    request: HttpRequest,
+    org: Organization,
+    current_branch: Branch,
+    target_warehouse: Warehouse,
+    request_type: str,
+) -> HttpResponse | None:
+    """Process return/replacement request creation."""
+    notes = request.POST.get("notes", "").strip()
+    carrier = request.POST.get("carrier", "").strip()
+    tracking_num = request.POST.get("tracking_number", "").strip()
+
+    lines = _parse_return_request_lines(org, request.POST, request_type)
+    if not lines:
+        messages.error(request, _("Please specify at least one product with a valid quantity."))
+        return None
+
+    try:
+        t_type = TransferType.REPLACEMENT if request_type == "replace" else TransferType.RETURN
+        transfer = services.create_outlet_stock_return(
+            organization=org,
+            branch=current_branch,
+            destination_warehouse=target_warehouse,
+            transfer_type=t_type,
+            lines=lines,
+            notes=notes,
+            carrier=carrier,
+            tracking_number=tracking_num,
+            auto_dispatch=True,
+            actor=request.user,
+        )
+        label = _("Stock replacement request") if request_type == "replace" else _("Stock return")
+        messages.success(
+            request,
+            _("%(label)s %(num)s submitted and dispatched to %(wh)s.")
+            % {
+                "label": label,
+                "num": transfer.transfer_number,
+                "wh": target_warehouse.name,
+            },
+        )
+        return redirect("inventory:stock_request_detail", pk=transfer.pk)
+    except Exception as exc:
+        messages.error(request, str(exc))
+        return None
+
+
+def _handle_stock_requisition_submission(
+    request: HttpRequest,
+    org: Organization,
+    current_branch: Branch,
+    target_warehouse: Warehouse,
+) -> HttpResponse | None:
+    """Process branch replenishment requisition creation."""
+    storage_type_id = request.POST.get("storage_type_id")
+    notes = request.POST.get("notes", "").strip()
+    source_storage_type = None
+    if storage_type_id:
+        source_storage_type = WarehouseStorageType.objects.filter(
+            organization=org,
+            warehouse=target_warehouse,
+            pk=storage_type_id,
+            is_active=True,
+        ).first()
+
+    req_lines = _parse_stock_request_lines(
+        org, request.POST.getlist("product_id[]"), request.POST.getlist("quantity[]")
+    )
+    if not req_lines:
+        messages.error(request, _("Please specify at least one product with a valid quantity."))
+        return None
+
+    try:
+        transfer = services.create_branch_stock_request(
+            organization=org,
+            branch=current_branch,
+            source_warehouse=target_warehouse,
+            lines=req_lines,
+            source_storage_type=source_storage_type,
+            notes=notes,
+            actor=request.user,
+        )
+        messages.success(
+            request,
+            _("Stock request %(num)s submitted to %(wh)s.")
+            % {"num": transfer.transfer_number, "wh": target_warehouse.name},
+        )
+        return redirect("inventory:stock_request_detail", pk=transfer.pk)
+    except Exception as exc:
+        messages.error(request, str(exc))
+        return None
+
+
+def _handle_inter_branch_transfer_submission(
+    request: HttpRequest,
+    org: Organization,
+    current_branch: Branch,
+) -> HttpResponse | None:
+    """Process inter-branch outlet-to-outlet stock transfer or requisition."""
+    target_branch_val = request.POST.get("target_branch_id")
+    if not target_branch_val or not str(target_branch_val).isdigit():
+        messages.error(request, _("Please select a target branch outlet for the transfer."))
+        return None
+
+    target_branch = Branch.objects.filter(
+        organization=org, pk=int(target_branch_val), is_active=True
+    ).first()
+    if not target_branch:
+        messages.error(request, _("Target branch outlet not found."))
+        return None
+
+    if target_branch.pk == current_branch.pk:
+        messages.error(request, _("Source and destination branch outlets cannot be the same."))
+        return None
+
+    transfer_intent = request.POST.get("transfer_intent", "send").strip().lower()
+    if transfer_intent not in ("send", "request"):
+        transfer_intent = "send"
+
+    if transfer_intent == "send":
+        source_branch = current_branch
+        destination_branch = target_branch
+    else:
+        source_branch = target_branch
+        destination_branch = current_branch
+
+    notes = request.POST.get("notes", "").strip()
+    carrier = request.POST.get("carrier", "").strip()
+    tracking_num = request.POST.get("tracking_number", "").strip()
+
+    req_lines = _parse_stock_request_lines(
+        org, request.POST.getlist("product_id[]"), request.POST.getlist("quantity[]")
+    )
+    if not req_lines:
+        messages.error(request, _("Please specify at least one product with a valid quantity."))
+        return None
+
+    try:
+        transfer = services.create_inter_branch_transfer(
+            organization=org,
+            source_branch=source_branch,
+            destination_branch=destination_branch,
+            transfer_intent=transfer_intent,
+            lines=req_lines,
+            carrier=carrier,
+            tracking_number=tracking_num,
+            notes=notes,
+            actor=request.user,
+        )
+        if transfer_intent == "send":
+            messages.success(
+                request,
+                _("Stock transfer %(num)s dispatched to branch '%(branch)s'.")
+                % {"num": transfer.transfer_number, "branch": destination_branch.name},
+            )
+        else:
+            messages.success(
+                request,
+                _("Stock transfer request %(num)s submitted to branch '%(branch)s'.")
+                % {"num": transfer.transfer_number, "branch": source_branch.name},
+            )
+        return redirect("inventory:stock_request_detail", pk=transfer.pk)
+    except Exception as exc:
+        messages.error(request, str(exc))
+        return None
+
+
+def _process_add_stock_post(
+    request: HttpRequest,
+    org: Any,
+    current_branch: Branch | None,
+    linked_warehouses: list[Warehouse],
+    request_type: str,
+) -> HttpResponse:
+    if not current_branch:
+        messages.error(request, _("Please select a branch to process stock for."))
+        return redirect("inventory:add_stock")
+
+    fallback_url = f"{reverse('inventory:add_stock')}?branch_id={current_branch.pk}&type={request_type}"
+
+    if request_type == "transfer":
+        return _handle_inter_branch_transfer_submission(request, org, current_branch) or redirect(fallback_url)
+
+    wh_val = request.POST.get("warehouse_id")
+    if not wh_val or not str(wh_val).isdigit():
+        messages.error(request, _("Please select a valid fulfillment warehouse."))
+        return redirect(fallback_url)
+
+    target_warehouse = get_object_or_404(
+        Warehouse, organization=org, pk=int(wh_val), is_active=True
+    )
+
+    if target_warehouse not in linked_warehouses:
+        messages.error(
+            request,
+            _("Warehouse '%(wh)s' is not linked to %(branch)s. You can only request stock from linked warehouses.")
+            % {"wh": target_warehouse.name, "branch": current_branch.name},
+        )
+        return redirect(fallback_url)
+
+    if request_type in ("return", "replace"):
+        res = _handle_stock_return_submission(
+            request, org, current_branch, target_warehouse, request_type
+        )
+    else:
+        res = _handle_stock_requisition_submission(
+            request, org, current_branch, target_warehouse
+        )
+    return res or redirect(fallback_url)
+
+
 @permission_required("inventory.view")
 def add_stock_view(request: HttpRequest) -> HttpResponse:
-    """Request stock replenishment from a linked warehouse for a branch/outlet."""
+    """Request stock return, replacement, replenishment, or inter-branch transfer."""
     org = _get_org(request)
     branches = Branch.objects.filter(organization=org, is_active=True).order_by("name")
 
@@ -814,53 +1201,12 @@ def add_stock_view(request: HttpRequest) -> HttpResponse:
         current_branch = getattr(request, "branch", None) or branches.first()
 
     linked_warehouses, synced_storages = _get_branch_logistics_mapping(org, current_branch)
+    request_type = request.GET.get("type") or request.POST.get("request_type") or "add"
 
     if request.method == "POST":
-        warehouse_id = request.POST.get("warehouse_id")
-        storage_type_id = request.POST.get("storage_type_id")
-        notes = request.POST.get("notes", "").strip()
-
-        if not current_branch:
-            messages.error(request, _("Please select a branch to request stock for."))
-            return redirect("inventory:add_stock")
-
-        source_warehouse = get_object_or_404(
-            Warehouse, organization=org, pk=warehouse_id, is_active=True
+        return _process_add_stock_post(
+            request, org, current_branch, linked_warehouses, request_type
         )
-        source_storage_type = None
-        if storage_type_id:
-            source_storage_type = WarehouseStorageType.objects.filter(
-                organization=org,
-                warehouse=source_warehouse,
-                pk=storage_type_id,
-                is_active=True,
-            ).first()
-
-        lines = _parse_stock_request_lines(
-            org, request.POST.getlist("product_id[]"), request.POST.getlist("quantity[]")
-        )
-
-        if not lines:
-            messages.error(request, _("Please specify at least one product with a valid quantity."))
-        else:
-            try:
-                transfer = services.create_branch_stock_request(
-                    organization=org,
-                    branch=current_branch,
-                    source_warehouse=source_warehouse,
-                    lines=lines,
-                    source_storage_type=source_storage_type,
-                    notes=notes,
-                    actor=request.user,
-                )
-                messages.success(
-                    request,
-                    _("Stock request %(num)s submitted to %(wh)s.")
-                    % {"num": transfer.transfer_number, "wh": source_warehouse.name},
-                )
-                return redirect("inventory:stock_request_list")
-            except Exception as exc:
-                messages.error(request, str(exc))
 
     products, products_data = _build_products_payload(org)
 
@@ -874,6 +1220,7 @@ def add_stock_view(request: HttpRequest) -> HttpResponse:
             "synced_storages": synced_storages,
             "products": products,
             "products_data": products_data,
+            "initial_request_type": request_type,
         },
     )
 
@@ -934,6 +1281,66 @@ def stock_request_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _calculate_stock_request_metrics(
+    *,
+    lines: list[Any],
+    stock_levels: dict[tuple[int, int | None], Any],
+    is_pending: bool,
+) -> dict[str, Any]:
+    """Calculate availability, shortage items, and valuation metrics for requisition lines."""
+    shortage_items = []
+    total_available_stock = Decimal("0.0000")
+    total_approved_qty = Decimal("0.0000")
+    total_approved_value = Decimal("0.0000")
+    total_requested_value = Decimal("0.0000")
+
+    for line in lines:
+        sl = stock_levels.get((line.product_id, line.variant_id))
+        avail = sl.available if sl else Decimal("0.0000")
+        line.available_stock = avail
+        total_available_stock += avail
+
+        req_qty = line.quantity_requested if line.quantity_requested is not None else line.quantity
+        line.req_qty = req_qty
+
+        unit_cost = line.unit_cost or getattr(line.product, "cost_price", None) or Decimal("0.0000")
+        line.unit_cost = unit_cost
+        line.line_value = (line.quantity or Decimal("0.0000")) * unit_cost
+        line.req_line_value = req_qty * unit_cost
+
+        total_approved_qty += (line.quantity or Decimal("0.0000"))
+        total_approved_value += line.line_value
+        total_requested_value += line.req_line_value
+
+        if is_pending and line.quantity > avail:
+            line.has_shortage = True
+            line.shortage_qty = line.quantity - avail
+            shortage_items.append({
+                "line_id": line.id,
+                "product_name": line.product.name,
+                "requested": req_qty,
+                "current_count": line.quantity,
+                "available": avail,
+                "shortage": line.quantity - avail,
+                "unit": line.product.unit.code if line.product.unit else "",
+            })
+        else:
+            line.has_shortage = False
+            line.shortage_qty = Decimal("0.0000")
+
+    has_shortage = len(shortage_items) > 0
+    return {
+        "shortage_items": shortage_items,
+        "has_shortage": has_shortage,
+        "total_available_stock": total_available_stock,
+        "all_out_of_stock": is_pending and (total_available_stock <= Decimal("0.0000")),
+        "has_partial_stock": is_pending and (total_available_stock > Decimal("0.0000")) and has_shortage,
+        "total_approved_qty": total_approved_qty,
+        "total_approved_value": total_approved_value,
+        "total_requested_value": total_requested_value,
+    }
+
+
 @permission_required("inventory.view")
 def stock_request_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
     """View details of a branch stock requisition, line items, and linked stock ledger movements."""
@@ -980,40 +1387,28 @@ def stock_request_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
         else None
     )
 
+    wh_for_stock = stock_request.destination_warehouse or stock_request.source_warehouse
     stock_levels = {
         (sl.product_id, sl.variant_id): sl
         for sl in StockLevel.objects.filter(
             organization=org,
-            warehouse=stock_request.source_warehouse,
+            warehouse=wh_for_stock,
             product_id__in=[line.product_id for line in lines],
         )
     }
 
-    shortage_items = []
-    is_pending = stock_request.status in (TransferStatus.DRAFT, TransferStatus.PENDING_APPROVAL)
-    for line in lines:
-        sl = stock_levels.get((line.product_id, line.variant_id))
-        avail = sl.available if sl else Decimal("0.0000")
-        line.available_stock = avail
-        req_qty = line.quantity_requested if line.quantity_requested is not None else line.quantity
-        line.req_qty = req_qty
-        if is_pending and line.quantity > avail:
-            line.has_shortage = True
-            line.shortage_qty = line.quantity - avail
-            shortage_items.append({
-                "line_id": line.id,
-                "product_name": line.product.name,
-                "requested": req_qty,
-                "current_count": line.quantity,
-                "available": avail,
-                "shortage": line.quantity - avail,
-                "unit": line.product.unit.code if line.product.unit else "",
-            })
-        else:
-            line.has_shortage = False
-            line.shortage_qty = Decimal("0.0000")
+    is_pending = stock_request.status in (TransferStatus.DRAFT, TransferStatus.PENDING_APPROVAL, TransferStatus.APPROVED)
+    metrics = _calculate_stock_request_metrics(
+        lines=lines,
+        stock_levels=stock_levels,
+        is_pending=is_pending,
+    )
 
-    has_shortage = len(shortage_items) > 0
+    is_return = stock_request.transfer_type in (TransferType.RETURN, TransferType.REPLACEMENT)
+    is_replacement = stock_request.transfer_type == TransferType.REPLACEMENT
+    is_inter_branch = stock_request.transfer_type == TransferType.INTER_BRANCH or bool(
+        stock_request.is_inter_branch and stock_request.source_branch_id and stock_request.destination_branch_id
+    )
 
     ledger_movements = (
         StockMovement.objects.filter(
@@ -1034,14 +1429,23 @@ def stock_request_detail_view(request: HttpRequest, pk: int) -> HttpResponse:
             "source_location_name": source_location_name,
             "destination_location_name": destination_location_name,
             "lines": lines,
-            "has_shortage": has_shortage,
-            "shortage_items": shortage_items,
+            "has_shortage": metrics["has_shortage"],
+            "shortage_items": metrics["shortage_items"],
+            "total_available_stock": metrics["total_available_stock"],
+            "all_out_of_stock": metrics["all_out_of_stock"],
+            "has_partial_stock": metrics["has_partial_stock"],
             "total_requested": total_requested,
+            "total_approved_qty": metrics["total_approved_qty"],
+            "total_approved_value": metrics["total_approved_value"],
+            "total_requested_value": metrics["total_requested_value"],
             "total_dispatched": total_dispatched,
             "total_received": total_received,
             "fulfillment_pct": fulfillment_pct,
             "lifecycle_step": lifecycle_step,
             "ledger_movements": ledger_movements,
+            "is_return": is_return,
+            "is_replacement": is_replacement,
+            "is_inter_branch": is_inter_branch,
         },
     )
 
@@ -1121,6 +1525,14 @@ def stock_request_dispatch_view(request: HttpRequest, pk: int) -> HttpResponse:
     }
 
     dispatch_map = {dl["line_id"]: dl["quantity"] for dl in dispatched_lines}
+    total_to_dispatch = sum(dispatch_map.get(line.id, line.quantity) for line in stock_request.lines.all())
+    if total_to_dispatch <= Decimal("0.0000"):
+        messages.error(
+            request,
+            _("Cannot dispatch a stock request with zero quantity. Requisitions cannot be sent empty. Please cancel the request instead."),
+        )
+        return redirect("inventory:stock_request_detail", pk=pk)
+
     shortages = []
     for line in stock_request.lines.all():
         to_dispatch = dispatch_map.get(line.id, line.quantity)
@@ -1271,6 +1683,14 @@ def stock_request_direct_fulfill_view(request: HttpRequest, pk: int) -> HttpResp
     }
 
     dispatch_map = {dl["line_id"]: dl["quantity"] for dl in dispatched_lines}
+    total_to_dispatch = sum(dispatch_map.get(line.id, line.quantity) for line in stock_request.lines.all())
+    if total_to_dispatch <= Decimal("0.0000"):
+        messages.error(
+            request,
+            _("Cannot dispatch a stock request with zero quantity. Requisitions cannot be sent empty. Please cancel the request instead."),
+        )
+        return redirect("inventory:stock_request_detail", pk=pk)
+
     shortages = []
     for line in stock_request.lines.all():
         to_dispatch = dispatch_map.get(line.id, line.quantity)

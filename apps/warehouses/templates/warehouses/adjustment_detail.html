@@ -1,0 +1,197 @@
+{% extends "layouts/app.html" %}
+{% load i18n humanize %}
+
+{% block title %}{% trans "Adjustment" %} {{ adjustment.adjustment_number }} | {{ request.organization.name }}{% endblock %}
+
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "warehouses/partials/_navigation_tabs.html" with active_tab="adjustments" %}
+{% endblock %}
+
+{% block content %}
+<div class="warehouse-adjustments space-y-8 pb-16">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center gap-2 mb-2">
+            <a href="{% url 'warehouses:adjustment_list' %}" class="inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-muted hover:text-ink bg-[var(--surface-2)] hover:bg-[var(--surface-3)] transition">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {% trans "All Adjustments" %}
+            </a>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-ink font-mono">
+                        {{ adjustment.adjustment_number }}
+                    </h1>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-2xs">
+                        {{ adjustment.status|capfirst }}
+                    </span>
+                    {% if adjustment.branch %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                        {% trans "Outlet:" %} {{ adjustment.branch.name }}
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                        {% trans "Warehouse:" %} {{ adjustment.warehouse.name }}
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-sm text-slate-500 font-medium mt-1.5">
+                    {{ adjustment.get_reason_display }} &bull; {% trans "Confirmed on" %} {{ adjustment.confirmed_at|date:"Y-m-d H:i" }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bento 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left 8 cols: Lines & Ledger Table -->
+        <div class="col-span-12 lg:col-span-8 space-y-8">
+            <!-- Adjusted Stock Lines -->
+            <div class="rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs overflow-hidden">
+                <div class="p-6 sm:p-7 border-b border-[var(--border)]/60">
+                    <h2 class="text-lg font-bold text-ink">{% trans "Adjusted Stock Lines" %}</h2>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Physical inventory quantity deltas applied to on-hand balances." %}</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-[var(--surface-2)]/60 text-muted">
+                            <tr>
+                                <th scope="col" class="px-5 py-3.5 text-left font-bold uppercase text-2xs tracking-wider">{% trans "Product / SKU" %}</th>
+                                <th scope="col" class="px-5 py-3.5 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Quantity Delta" %}</th>
+                                <th scope="col" class="px-5 py-3.5 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Unit Cost" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[var(--border)]/50 text-ink">
+                            {% for line in adjustment.lines.all %}
+                            <tr class="hover:bg-[var(--surface-2)]/40 transition-colors">
+                                <td class="px-5 py-4">
+                                    <span class="font-bold text-ink text-base">{{ line.product.name }}</span>
+                                    {% if line.variant %}
+                                    <span class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold ml-1">({{ line.variant.name }})</span>
+                                    {% endif %}
+                                    <div class="text-xs text-slate-400 font-mono mt-0.5">{{ line.variant.sku|default:line.product.sku }}</div>
+                                </td>
+                                <td class="px-5 py-4 text-right font-mono font-extrabold text-base {% if line.quantity > 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                                    {% if line.quantity > 0 %}+{% endif %}{{ line.quantity }}
+                                </td>
+                                <td class="px-5 py-4 text-right font-mono font-bold text-muted">
+                                    {{ line.unit_cost }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Linked Stock Movements -->
+            {% if movements %}
+            <div class="rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs overflow-hidden">
+                <div class="p-6 sm:p-7 border-b border-[var(--border)]/60">
+                    <h2 class="text-lg font-bold text-ink">{% trans "Stock Ledger Movements" %}</h2>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Immutable ledger audit records triggered by this adjustment." %}</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-[var(--surface-2)]/60 text-muted">
+                            <tr>
+                                <th scope="col" class="px-5 py-3 text-left font-bold uppercase text-2xs tracking-wider">{% trans "Movement #" %}</th>
+                                <th scope="col" class="px-5 py-3 text-left font-bold uppercase text-2xs tracking-wider">{% trans "Type" %}</th>
+                                <th scope="col" class="px-5 py-3 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Quantity" %}</th>
+                                <th scope="col" class="px-5 py-3 text-right font-bold uppercase text-2xs tracking-wider">{% trans "Valuation" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[var(--border)]/50 text-ink">
+                            {% for m in movements %}
+                            <tr class="hover:bg-[var(--surface-2)]/40 transition-colors">
+                                <td class="px-5 py-3 text-xs font-mono font-bold text-muted">
+                                    #{{ m.pk }}
+                                </td>
+                                <td class="px-5 py-3">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold {% if m.type == 'adjustment_in' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300{% else %}bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300{% endif %}">
+                                        {{ m.get_type_display }}
+                                    </span>
+                                </td>
+                                <td class="px-5 py-3 text-right font-mono font-bold text-xs {% if m.type == 'adjustment_in' %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                                    {{ m.quantity }}
+                                </td>
+                                <td class="px-5 py-3 text-right font-mono text-xs text-muted">
+                                    {{ m.total_cost }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Audit Notes -->
+            {% if adjustment.notes %}
+            <div class="p-6 sm:p-7 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs space-y-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-muted block">{% trans "Audit Notes" %}</span>
+                <p class="text-sm text-ink leading-relaxed">{{ adjustment.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right 4 cols: Facility & Metadata -->
+        <div class="col-span-12 lg:col-span-4 space-y-6">
+            <div class="p-6 sm:p-7 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs space-y-5">
+                <div class="border-b border-[var(--border)]/60 pb-3">
+                    <h3 class="text-base font-bold text-ink">{% trans "Adjustment Coordinates" %}</h3>
+                    <p class="text-xs text-muted mt-0.5">{% trans "Facility, storage location, and audit trail." %}</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Facility Scope" %}</span>
+                        {% if adjustment.branch %}
+                        <div class="text-sm font-bold text-ink flex items-center gap-1.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">{% trans "Outlet" %}</span>
+                            <span>{{ adjustment.branch.name }}</span>
+                        </div>
+                        {% else %}
+                        <div class="text-sm font-bold text-ink flex items-center gap-1.5">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">{% trans "Warehouse" %}</span>
+                            <span>{{ adjustment.warehouse.name }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if adjustment.location %}
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Storage Location" %}</span>
+                        <div class="text-sm font-bold text-ink">{{ adjustment.location.name }}</div>
+                        <div class="text-xs text-muted">{{ adjustment.location.get_location_type_display }}</div>
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Reason" %}</span>
+                        <div class="text-sm font-bold text-ink">{{ adjustment.get_reason_display }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Confirmed At" %}</span>
+                        <div class="text-sm font-mono text-muted">{{ adjustment.confirmed_at|date:"Y-m-d H:i" }}</div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs font-bold text-muted uppercase tracking-wider block mb-1">{% trans "Created By" %}</span>
+                        <div class="text-sm font-semibold text-muted">{{ adjustment.created_by.get_full_name|default:adjustment.created_by.email|default:"System" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

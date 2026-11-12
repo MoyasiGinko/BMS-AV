@@ -24,8 +24,22 @@
     isActive: true,
     linkBranchId: '',
     linkBranchName: '',
-    selectedWarehouseId: '',
+    selectedWarehouseIds: [],
+    primaryWarehouseId: '',
     isStorageSynced: false,
+    canReplenish: true,
+    canSell: true,
+    allWarehouseIds: [{% for wh in warehouses %}'{{ wh.pk }}',{% endfor %}],
+    selectAllWarehouses() {
+      this.selectedWarehouseIds = [...this.allWarehouseIds];
+      if (!this.primaryWarehouseId && this.selectedWarehouseIds.length > 0) {
+        this.primaryWarehouseId = this.selectedWarehouseIds[0];
+      }
+    },
+    clearAllWarehouses() {
+      this.selectedWarehouseIds = [];
+      this.primaryWarehouseId = '';
+    },
     openCreate() {
       this.isEdit = false;
       this.branchId = '';
@@ -48,11 +62,14 @@
       this.isActive = isActive;
       this.modalOpen = true;
     },
-    openLinkWarehouse(id, name) {
+    openLinkWarehouse(id, name, linkedIds, primaryId) {
       this.linkBranchId = id;
       this.linkBranchName = name;
-      this.selectedWarehouseId = '';
+      this.selectedWarehouseIds = linkedIds && linkedIds.length > 0 ? [...linkedIds] : [];
+      this.primaryWarehouseId = primaryId || (this.selectedWarehouseIds.length > 0 ? this.selectedWarehouseIds[0] : '');
       this.isStorageSynced = false;
+      this.canReplenish = true;
+      this.canSell = true;
       this.linkModalOpen = true;
     }
   }"
@@ -154,6 +171,14 @@
                           <span class="font-bold">{{ mapping.warehouse.name }}</span>
                           {% if mapping.is_default %}
                             <span class="text-[10px] font-semibold text-emerald-600">&bull; {% trans "Primary" %}</span>
+                          {% else %}
+                            <form method="post" action="{% url 'warehouses:branch_list' %}" class="inline">
+                              {% csrf_token %}
+                              <input type="hidden" name="action" value="set_default_warehouse">
+                              <input type="hidden" name="branch_id" value="{{ branch.id }}">
+                              <input type="hidden" name="warehouse_id" value="{{ mapping.warehouse_id }}">
+                              <button type="submit" class="text-[10px] text-muted hover:text-emerald-600 font-semibold underline cursor-pointer" title="{% trans 'Make Primary Fulfillment Hub' %}">{% trans "Make Primary" %}</button>
+                            </form>
                           {% endif %}
                           {% if mapping.is_storage_synced %}
                             <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
@@ -167,7 +192,7 @@
                               <input type="hidden" name="action" value="unlink_warehouse">
                               <input type="hidden" name="branch_id" value="{{ branch.id }}">
                               <input type="hidden" name="warehouse_id" value="{{ mapping.warehouse_id }}">
-                              <button type="submit" class="text-muted hover:text-rose-500 text-[10px] font-bold px-1" title="{% trans 'Unlink' %}">&times;</button>
+                              <button type="submit" class="text-muted hover:text-rose-500 text-[10px] font-bold px-1 cursor-pointer" title="{% trans 'Unlink' %}">&times;</button>
                             </form>
                           {% endif %}
                         </div>
@@ -176,11 +201,11 @@
                     {% if can_manage %}
                       <button
                         type="button"
-                        @click="openLinkWarehouse('{{ branch.id }}', '{{ branch.name|escapejs }}')"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors"
+                        @click="openLinkWarehouse('{{ branch.id }}', '{{ branch.name|escapejs }}', [{% for mapping in mappings %}{% if mapping.branch_id == branch.id %}'{{ mapping.warehouse_id }}',{% endif %}{% endfor %}], '{% for mapping in mappings %}{% if mapping.branch_id == branch.id and mapping.is_default %}{{ mapping.warehouse_id }}{% endif %}{% endfor %}')"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors cursor-pointer"
                       >
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                        <span>{% trans "Link Warehouse" %}</span>
+                        <span>{% trans "Connect Warehouses" %}</span>
                       </button>
                     {% endif %}
                   </div>
@@ -367,9 +392,14 @@
         class="relative inline-block w-full max-w-lg p-6 overflow-hidden text-left align-middle transition-all transform bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl z-10"
       >
         <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]">
-          <h3 class="text-base font-bold text-[var(--text)]" id="link-modal-title">
-            {% trans "Link Fulfillment Warehouse" %} &rsaquo; <span class="text-indigo-600" x-text="linkBranchName"></span>
-          </h3>
+          <div>
+            <h3 class="text-base font-bold text-[var(--text)]" id="link-modal-title">
+              {% trans "Connect Fulfillment Warehouses" %} &rsaquo; <span class="text-indigo-600" x-text="linkBranchName"></span>
+            </h3>
+            <p class="text-xs text-[var(--text-muted)] mt-0.5">
+              {% trans "Select one or more warehouses that can fulfill stock requests for this branch." %}
+            </p>
+          </div>
           <button @click="linkModalOpen = false" class="text-[var(--text-muted)] hover:text-[var(--text)]">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
@@ -377,22 +407,83 @@
 
         <form method="post" action="{% url 'warehouses:branch_list' %}" class="mt-4 space-y-4">
           {% csrf_token %}
-          <input type="hidden" name="action" value="link_warehouse">
+          <input type="hidden" name="action" value="link_warehouses">
+          <input type="hidden" name="sync_all" value="1">
           <input type="hidden" name="branch_id" :value="linkBranchId">
 
           <div>
-            <label class="block text-xs font-semibold text-[var(--text)] mb-1">{% trans "Fulfillment Warehouse" %} *</label>
-            <select
-              name="warehouse_id"
-              x-model="selectedWarehouseId"
-              required
-              class="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] focus:ring-2 focus:ring-[var(--brand-500)] outline-none font-semibold"
-            >
-              <option value="">{% trans "-- Select Warehouse --" %}</option>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-bold text-[var(--text)]">
+                {% trans "Authorized Warehouses" %}
+                <span class="text-[11px] font-normal text-muted" x-text="'(' + selectedWarehouseIds.length + ' {% trans "selected" %})'"></span>
+              </label>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="selectAllWarehouses()"
+                  class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 underline cursor-pointer"
+                >
+                  {% trans "Select all" %}
+                </button>
+                <span class="text-muted text-xs">&bull;</span>
+                <button
+                  type="button"
+                  @click="clearAllWarehouses()"
+                  class="text-xs font-semibold text-rose-500 hover:text-rose-600 underline cursor-pointer"
+                >
+                  {% trans "Clear" %}
+                </button>
+              </div>
+            </div>
+
+            <div class="max-h-56 overflow-y-auto rounded-xl border border-[var(--border)] divide-y divide-[var(--border)] bg-[var(--surface-2)]">
               {% for wh in warehouses %}
-                <option value="{{ wh.pk }}">{{ wh.name }} ({{ wh.get_warehouse_type_display }})</option>
+                <div class="p-3 flex items-center justify-between gap-3 hover:bg-[var(--surface)] transition-colors">
+                  <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+                    <input
+                      type="checkbox"
+                      name="warehouse_ids"
+                      value="{{ wh.pk }}"
+                      x-model="selectedWarehouseIds"
+                      @change="if (!selectedWarehouseIds.includes('{{ wh.pk }}') && primaryWarehouseId == '{{ wh.pk }}') { primaryWarehouseId = selectedWarehouseIds[0] || ''; }"
+                      class="rounded border-[var(--border)] text-indigo-600 focus:ring-indigo-500"
+                    >
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-ink truncate">{{ wh.name }}</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium {% if wh.warehouse_type == 'primary' %}bg-indigo-500/10 text-indigo-700 dark:text-indigo-300{% else %}bg-slate-500/10 text-slate-700 dark:text-slate-300{% endif %}">
+                          {{ wh.get_warehouse_type_display }}
+                        </span>
+                      </div>
+                      {% if wh.code %}
+                        <p class="text-[11px] text-muted font-mono truncate">{{ wh.code }}</p>
+                      {% endif %}
+                    </div>
+                  </label>
+
+                  <!-- Primary Hub Radio Selector -->
+                  <div x-show="selectedWarehouseIds.includes('{{ wh.pk }}')" class="shrink-0">
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs py-1 px-2.5 rounded-lg border transition-colors" :class="primaryWarehouseId == '{{ wh.pk }}' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold' : 'bg-[var(--surface-1)] border-[var(--border)] text-muted hover:text-ink'">
+                      <input
+                        type="radio"
+                        name="primary_warehouse_id"
+                        value="{{ wh.pk }}"
+                        x-model="primaryWarehouseId"
+                        class="text-emerald-600 focus:ring-emerald-500"
+                      >
+                      <span class="text-[11px]">{% trans "Primary Hub" %}</span>
+                    </label>
+                  </div>
+                </div>
+              {% empty %}
+                <div class="p-4 text-center text-xs text-muted">
+                  {% trans "No warehouses available to connect." %}
+                </div>
               {% endfor %}
-            </select>
+            </div>
+            <p class="text-[11px] text-muted mt-1.5">
+              {% trans "Outlets can only request replenishments from connected warehouses." %}
+            </p>
           </div>
 
           <div class="space-y-2 pt-2 border-t border-[var(--border)]">
@@ -415,9 +506,10 @@
               <div x-show="isStorageSynced" class="pt-2 border-t border-indigo-500/20 space-y-2">
                 <span class="text-[11px] font-bold uppercase tracking-wider text-muted">{% trans "Select Warehouse Storage Zones to Sync" %}:</span>
                 {% for wh in warehouses %}
-                  <div x-show="selectedWarehouseId == '{{ wh.pk }}'" class="space-y-1.5 pl-1">
+                  <div x-show="selectedWarehouseIds.includes('{{ wh.pk }}')" class="space-y-1.5 pl-1">
+                    <span class="text-[11px] font-bold text-ink">{{ wh.name }}:</span>
                     {% for st in wh.storage_types.all %}
-                      <label class="flex items-center gap-2 cursor-pointer text-xs">
+                      <label class="flex items-center gap-2 cursor-pointer text-xs pl-2">
                         <input
                           type="checkbox"
                           name="synced_storage_types"
@@ -428,7 +520,7 @@
                         <span class="text-[10px] text-muted font-mono">({{ st.get_zone_type_display }})</span>
                       </label>
                     {% empty %}
-                      <p class="text-[11px] text-muted italic">{% trans "No custom storage zones defined for this warehouse." %}</p>
+                      <p class="text-[11px] text-muted italic pl-2">{% trans "No custom storage zones defined for this warehouse." %}</p>
                     {% endfor %}
                   </div>
                 {% endfor %}
@@ -436,19 +528,14 @@
             </div>
 
             <!-- Operational Flags -->
-            <label class="flex items-center gap-2 cursor-pointer pt-1">
-              <input type="checkbox" name="is_default" class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
-              <span class="text-xs text-[var(--text)] font-medium">{% trans "Primary fulfillment warehouse for this branch" %}</span>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="can_replenish" x-model="canReplenish" class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
+              <span class="text-xs text-[var(--text)] font-medium">{% trans "Allow replenishing branch stock from connected warehouses" %}</span>
             </label>
 
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="can_sell" checked class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
-              <span class="text-xs text-[var(--text)] font-medium">{% trans "Allow direct selling / dispatch from this warehouse" %}</span>
-            </label>
-
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="can_replenish" checked class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
-              <span class="text-xs text-[var(--text)] font-medium">{% trans "Allow replenishing branch stock from this warehouse" %}</span>
+              <input type="checkbox" name="can_sell" x-model="canSell" class="rounded border-[var(--border)] text-[var(--brand-600)] focus:ring-[var(--brand-500)]">
+              <span class="text-xs text-[var(--text)] font-medium">{% trans "Allow direct selling / dispatch from connected warehouses" %}</span>
             </label>
           </div>
 
@@ -457,7 +544,7 @@
               {% trans "Cancel" %}
             </button>
             <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs">
-              {% trans "Save Link" %}
+              {% trans "Save Connections" %}
             </button>
           </div>
         </form>

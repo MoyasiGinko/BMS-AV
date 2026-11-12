@@ -309,7 +309,12 @@ def list_supply_routes(
     """List configured supply routes with priority and preference."""
     org_id = organization_id if organization_id is not None else getattr(organization, "id", None)
     qs = StockSupplyRoute.all_tenants.filter(organization_id=org_id).select_related(
-        "source_location", "destination_location", "source_location__warehouse", "destination_location__branch"
+        "source_location",
+        "destination_location",
+        "source_location__warehouse",
+        "source_location__branch",
+        "destination_location__warehouse",
+        "destination_location__branch",
     )
 
     if source_location is not None:
@@ -567,6 +572,61 @@ def get_stock_intake(
         .prefetch_related("lines__product__category", "lines__product__unit", "lines__variant")
     )
     return _filter_by_id_or_uuid(qs, intake_id)
+
+
+def list_warehouse_stock_requests(
+    *,
+    organization: Organization,
+    warehouse: Warehouse | None = None,
+    branch_id: int | None = None,
+    transfer_type: str = "",
+    status: str = "",
+    search: str = "",
+) -> QuerySet[Any]:
+    """List stock requests relevant to warehouses: requisitions, returns, push distributions, replacements."""
+    qs = StockTransfer.all_tenants.filter(organization=organization).select_related(
+        "source_warehouse",
+        "destination_warehouse",
+        "source_branch",
+        "destination_branch",
+        "source_location",
+        "destination_location",
+        "created_by",
+        "approved_by",
+        "dispatched_by",
+        "received_by",
+        "outlet_decision_by",
+    ).prefetch_related("lines__product", "lines__variant")
+
+    if warehouse is not None:
+        qs = qs.filter(Q(source_warehouse=warehouse) | Q(destination_warehouse=warehouse))
+
+    if branch_id is not None:
+        qs = qs.filter(
+            Q(source_branch_id=branch_id)
+            | Q(destination_branch_id=branch_id)
+            | Q(source_warehouse__branch_id=branch_id)
+            | Q(destination_warehouse__branch_id=branch_id)
+        )
+
+    if transfer_type:
+        qs = qs.filter(transfer_type=transfer_type)
+
+    if status:
+        qs = qs.filter(status=status)
+
+    if search:
+        qs = qs.filter(
+            Q(transfer_number__icontains=search)
+            | Q(tracking_number__icontains=search)
+            | Q(carrier__icontains=search)
+            | Q(source_branch__name__icontains=search)
+            | Q(destination_branch__name__icontains=search)
+            | Q(notes__icontains=search)
+        )
+
+    return qs.order_by("-created_at")
+
 
 
 

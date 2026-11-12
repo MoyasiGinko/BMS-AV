@@ -3,6 +3,12 @@
 
 {% block title %}{% trans "Audit Sheet" %} {{ stock_count.count_number }} | {{ request.organization.name }}{% endblock %}
 
+{% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
+
+{% block subnav %}
+  {% include "inventory/partials/_navigation_tabs.html" with active_tab="counts" %}
+{% endblock %}
+
 {% block content %}
 <div class="w-full space-y-8 pb-16">
     <!-- Header -->

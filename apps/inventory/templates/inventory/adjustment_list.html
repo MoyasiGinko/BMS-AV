@@ -25,6 +25,25 @@
         </div>
     </div>
 
+    <!-- Guidance Banner -->
+    <div class="p-4 rounded-2xl border border-[var(--border)]/60 bg-[var(--surface-1)] shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                </svg>
+            </div>
+            <div>
+                <span class="font-bold text-ink">{% trans "Returning damaged or excess stock from an outlet?" %}</span>
+                <p class="text-muted text-[11px] mt-0.5">{% trans "Outlets should submit a Stock Return to central warehouse for inspection instead of direct manual write-offs." %}</p>
+            </div>
+        </div>
+        <a href="{% url 'inventory:add_stock' %}?type=return" class="px-3.5 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)] text-ink font-semibold transition shrink-0 inline-flex items-center gap-1.5 text-xs">
+            <span>{% trans "Create Return Request" %}</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+        </a>
+    </div>
+
     <div class="neu-table-card">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-sm">

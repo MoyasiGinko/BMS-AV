@@ -1077,6 +1077,13 @@ def dispatch_stock_transfer(
             if line_id:
                 dispatch_map[int(line_id)] = qty
 
+    total_dispatch_qty = sum(
+        dispatch_map.get(line.id, line.quantity)
+        for line in lines
+    )
+    if total_dispatch_qty <= DECIMAL_ZERO:
+        raise TransferError("Cannot dispatch a transfer with zero quantity. Please cancel the request.")
+
     for line in lines:
         if line.quantity_requested is None:
             line.quantity_requested = line.quantity
@@ -1489,14 +1496,31 @@ def transfer_stock(
 def adjust_stock(
     *,
     organization: Organization,
-    warehouse: Warehouse,
+    warehouse: Warehouse | None = None,
+    branch: Branch | None = None,
+    location: InventoryLocation | None = None,
     reason: str,
     lines: list[dict[str, Any]],
     notes: str = "",
     actor: Any = None,
 ) -> StockAdjustment:
-    """Adjust stock levels with a recorded reason code (damage, count variance, etc.)."""
-    if not warehouse.is_active:
+    """Adjust stock levels with a recorded reason code (damage, count variance, etc.) across warehouses, outlets, and storages."""
+    if warehouse is None and branch is None:
+        raise ValidationError(_("A warehouse or an outlet must be specified for stock adjustment."))
+
+    # Resolve active warehouse & location coordinates
+    if warehouse is None and branch is not None:
+        warehouse = (
+            Warehouse.objects.filter(organization=organization, branch=branch, is_active=True).first()
+            or branch.warehouses.filter(is_active=True).first()
+            or Warehouse.objects.filter(organization=organization, is_active=True).first()
+        )
+        if location is None:
+            location = get_or_create_location_for_branch(branch)
+    elif warehouse is not None and location is None:
+        location = get_or_create_location_for_warehouse(warehouse)
+
+    if warehouse is not None and not warehouse.is_active:
         raise WarehouseInactive(f"Warehouse '{warehouse.name}' is inactive.")
 
     if not lines:
@@ -1513,12 +1537,12 @@ def adjust_stock(
     )
 
     now = timezone.now()
-    loc = get_or_create_location_for_warehouse(warehouse)
     adjustment = StockAdjustment.objects.create(
         organization=organization,
         adjustment_number=adj_num,
         warehouse=warehouse,
-        location=loc,
+        branch=branch,
+        location=location,
         reason=reason,
         status="confirmed",
         notes=notes,
@@ -2390,14 +2414,35 @@ def confirm_stock_request_receipt(
 __all__ = [
     "accept_and_dispatch_stock_request",
     "confirm_stock_request_receipt",
+    "create_and_dispatch_push_distribution",
     "create_branch_stock_request",
+    "create_inter_branch_transfer",
     "create_inventory_location",
+    "create_outlet_stock_return",
     "create_supply_route",
     "delete_inventory_location",
     "delete_supply_route",
+    "dispatch_replacement_stock",
     "get_or_create_location_for_warehouse",
     "get_preferred_supply_route",
+    "inspect_and_accept_stock_return",
+    "process_outlet_push_decision",
     "update_inventory_location",
     "update_stock_request_counts",
     "update_supply_route",
 ]
+
+# Re-export return services
+from apps.inventory.services_push import (  # noqa: E402
+    create_and_dispatch_push_distribution,
+    process_outlet_push_decision,
+)
+from apps.inventory.services_returns import (  # noqa: E402
+    create_outlet_stock_return,
+    dispatch_replacement_stock,
+    inspect_and_accept_stock_return,
+)
+from apps.inventory.services_transfers import (  # noqa: E402
+    create_inter_branch_transfer,
+)
+

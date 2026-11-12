@@ -1038,3 +1038,16 @@ def receive_stock_transfer(*args: Any, **kwargs: Any) -> Any:
     return inv_services.receive_stock_transfer(*args, **kwargs)
 
 
+def create_and_dispatch_push_distribution(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.create_and_dispatch_push_distribution(*args, **kwargs)
+
+
+def process_outlet_push_decision(*args: Any, **kwargs: Any) -> Any:
+    from apps.inventory import services as inv_services  # noqa: PLC0415
+
+    return inv_services.process_outlet_push_decision(*args, **kwargs)
+
+
+

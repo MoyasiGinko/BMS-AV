@@ -1,7 +1,7 @@
 {% extends "layouts/app.html" %}
 {% load i18n humanize %}
 
-{% block title %}{% trans "Stock Requests" %} | {{ request.organization.name }}{% endblock %}
+{% block title %}{% trans "Request List" %} | {{ request.organization.name }}{% endblock %}
 
 {% block container_class %}max-w-none! w-full pb-6 sm:pb-8{% endblock %}
 
@@ -18,9 +18,9 @@
       <div class="flex items-center gap-2 text-xs font-semibold text-muted uppercase tracking-wider mb-1">
         <a href="{% url 'inventory:stock_level_list' %}" class="hover:text-indigo-600 transition-colors">{% trans "Inventory" %}</a>
         <span>/</span>
-        <span class="text-ink">{% trans "Replenishment" %}</span>
+        <span class="text-ink">{% trans "Request List" %}</span>
       </div>
-      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Stock Requests" %}</h1>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink">{% trans "Request List" %}</h1>
     </div>
     <div class="flex items-center gap-3">
       <a
@@ -30,7 +30,7 @@
         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
         </svg>
-        <span>{% trans "Create stock request" %}</span>
+        <span>{% trans "Stock Request" %}</span>
       </a>
     </div>
   </div>
@@ -148,24 +148,58 @@
                 </a>
               </td>
 
-              <!-- 3. Connected Route (Warehouse -> Outlet) -->
+              <!-- 3. Connected Route & Request Type -->
               <td class="py-4 px-4 align-middle">
-                <div class="flex items-center gap-2 text-xs">
-                  <div class="flex items-center gap-1 font-semibold text-ink max-w-[140px] truncate" title="{{ req.source_warehouse.name }}">
-                    <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/>
-                    </svg>
-                    <span>{{ req.source_warehouse.name }}</span>
+                <div class="space-y-1">
+                  <div class="flex items-center gap-1.5 text-xs">
+                    {% if req.is_push_distribution or req.transfer_type == 'push_distribution' %}
+                      <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 uppercase font-mono">{% trans "Push" %}</span>
+                    {% elif req.transfer_type == 'return' or req.transfer_type == 'RETURN' %}
+                      <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 uppercase font-mono">{% trans "Return" %}</span>
+                    {% elif req.transfer_type == 'replacement' or req.transfer_type == 'REPLACEMENT' %}
+                      <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 uppercase font-mono">{% trans "Replacement" %}</span>
+                    {% elif req.transfer_type == 'inter_branch' %}
+                      {% if req.transfer_intent == 'send' %}
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 uppercase font-mono">{% trans "Transfer (Send)" %}</span>
+                      {% else %}
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 uppercase font-mono">{% trans "Transfer (Request)" %}</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 uppercase font-mono">{% trans "Add Stock" %}</span>
+                    {% endif %}
                   </div>
-                  <svg class="w-3.5 h-3.5 text-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-                  </svg>
-                  <div class="flex items-center gap-1 font-semibold text-ink max-w-[140px] truncate" title="{{ req.destination_branch.name }}">
-                    <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
-                    </svg>
-                    <span>{{ req.destination_branch.name|default:_("Outlet") }}</span>
+                  <div class="flex items-center gap-2 text-xs">
+                    {% if req.transfer_type == 'inter_branch' %}
+                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.source_branch.name }}">
+                        <span>{{ req.source_branch.name|default:_("Outlet") }}</span>
+                      </div>
+                      <svg class="w-3.5 h-3.5 text-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                      </svg>
+                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.destination_branch.name }}">
+                        <span>{{ req.destination_branch.name|default:_("Outlet") }}</span>
+                      </div>
+                    {% elif req.transfer_type == 'return' or req.transfer_type == 'RETURN' or req.transfer_type == 'replacement' or req.transfer_type == 'REPLACEMENT' %}
+                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.branch.name }}">
+                        <span>{{ req.branch.name|default:_("Outlet") }}</span>
+                      </div>
+                      <svg class="w-3.5 h-3.5 text-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                      </svg>
+                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.destination_warehouse.name }}">
+                        <span>{{ req.destination_warehouse.name }}</span>
+                      </div>
+                    {% else %}
+                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.source_warehouse.name }}">
+                        <span>{{ req.source_warehouse.name }}</span>
+                      </div>
+                      <svg class="w-3.5 h-3.5 text-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                      </svg>
+                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.destination_branch.name }}">
+                        <span>{{ req.destination_branch.name|default:_("Outlet") }}</span>
+                      </div>
+                    {% endif %}
                   </div>
                 </div>
               </td>

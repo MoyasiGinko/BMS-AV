@@ -101,9 +101,9 @@
   <link rel="apple-touch-icon" href="{% static 'icons/icon-192.svg' %}">
 
   <!-- Calm Ledger Tokens, Tailwind 4 & Neumorphic System -->
-  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=4.5.4">
-  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=4.5.4">
-  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=4.5.4">
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v=4.5.5">
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=4.5.5">
+  <link rel="stylesheet" href="{% static 'css/neumorphic.css' %}?v=4.5.5">
 
   <!-- Vendored JavaScript (No CDN dependencies) -->
   <script defer src="{% static 'vendor/alpine-focus.min.js' %}"></script>
@@ -114,12 +114,28 @@
   <!-- Service Worker & PWA Lifecycle Handlers -->
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
-          .catch(function(err) {
-            console.debug('Service Worker registration skipped or failed:', err);
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Automatically unregister service worker & clear caches during local development to avoid stale offline traps
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var reg of registrations) {
+            reg.unregister();
+          }
+        });
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (var name of names) {
+              caches.delete(name);
+            }
           });
-      });
+        }
+      } else {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+            .catch(function(err) {
+              console.debug('Service Worker registration skipped or failed:', err);
+            });
+        });
+      }
     }
 
     // PWA Install prompt capture
