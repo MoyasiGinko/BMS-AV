@@ -33,7 +33,10 @@ Roadmap and the current phase live in `docs/ROADMAP.md`. Do not start an item fr
 4. **Do not add documentation per task.** Docs are updated only when behavior or setup changes. Record an architecture decision (ADR) only for a real, lasting architectural choice, and keep it to one page.
 5. **No leftovers.** No commented-out code, no debug prints, no unused imports, functions, templates, or CSS, no `TODO` without an issue ID (`TODO(BMS-123)`), no generated files committed (OpenAPI schemas, compiled CSS, resolved-version lists are built by CI).
 6. **No new dependencies, apps, top-level directories, or public API changes without asking.**
-7. **Finish with the checks in section 12 and a short report** (section 13).
+7. **Tiered execution (Fast UI vs. Deep Backend):**
+   - **Frontend / UI / CSS / Template tasks:** Skip heavy backend test suites (`pytest` with database creation) when only templates, styling, or UI layout are touched. Use 1-shot visual inspection (targeted screenshot or browser view) to verify design quality (tactile neumorphism, zero borders, zero white drop shadows, high contrast buttons). Never enter retry loops on scratch capture tools (fail fast <10s). Keep turnarounds under 30–45 seconds with 1–3 tool calls.
+   - **Backend / Accounting / Money tasks:** Full rigor applies (transactions, row locks, invariant tests, multi-currency rounding, cross-tenant isolation).
+8. **Finish with the checks in section 12 and a short report** (section 13).
 
 ## 4. Naming conventions
 
@@ -181,7 +184,7 @@ The words on screen must be minimal, relevant to the task, and understandable by
 ## 12. Definition of done (run before reporting)
 
 1. `ruff` (lint and naming), `vulture`, `djlint`, import-linter, and the file-length check pass.
-2. Tests exist for the behavior you changed, including failure cases, and the full suite passes. Accounting changes must keep the AR, AP, and inventory reconciliation invariant tests green.
+2. Tests exist for the behavior you changed, including failure cases, and the full suite passes (for backend, service, and data changes). Pure UI/template changes require fast 1-shot visual inspection + template/linter checks, skipping slow database test runs.
 3. For accounting, stock, or tax changes: a test proves the journal balances and stock matches the ledger.
 4. Money-path code has tests for rounding, multi-currency, and zero-decimal currencies.
 5. Migrations are reversible, have descriptive names, and are safe on a large table.

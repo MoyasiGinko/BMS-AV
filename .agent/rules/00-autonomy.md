@@ -22,6 +22,10 @@ You are running unattended. There is no human to answer questions until the whol
 ## Failure protocol
 - A failing check: read the actual error, fix the root cause, rerun. Up to 5 attempts on the same failure; on the 3rd attempt change
   approach (re-read the relevant docs/skill, simplify, rewrite the unit).
+- Core logic vs. auxiliary tools: The 5-attempt retry rule applies strictly to core product code and logic failures (backend bugs,
+  database constraints, actual product test failures). It does NOT apply to auxiliary utilities, scratch tools, or visual capture scripts.
+  Auxiliary tasks must be 1-shot; if an auxiliary script or capture fails, fail fast (<10s), do not loop or debug scratch tools across
+  multiple turns, and proceed with the task.
 - Still failing after 5: write the failure and what you tried to `docs/BLOCKERS.md`, mark the task `[!]` in the backlog, move to the
   next task, and return to `[!]` tasks at the end of the phase.
 - Environment problems (db down, port busy, missing package): fix them yourself (start services, install packages, pick another
