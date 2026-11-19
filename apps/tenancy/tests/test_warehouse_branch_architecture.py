@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from apps.core.exceptions import ValidationError
 from apps.core.tenant_context import set_current_organization
 from apps.tenancy import selectors, services
-from apps.tenancy.models import Branch, BranchWarehouse, Warehouse
+from apps.tenancy.models import Branch, BranchWarehouse, Warehouse, WarehouseType
 
 User = get_user_model()
 
@@ -212,20 +212,42 @@ def test_default_warehouse_resolution_for_branch(tenancy_env):
 
 @pytest.mark.django_db
 def test_unlink_warehouse_from_branch(tenancy_env):
-    """Removing a warehouse mapping de-authorizes that warehouse for the branch."""
+    """Removing a warehouse mapping de-authorizes that warehouse for the branch and detaches operational status."""
     org = tenancy_env["org"]
     branch = tenancy_env["branch"]
-    warehouse = tenancy_env["warehouse"]
+    dedicated_wh = tenancy_env["warehouse"]
 
-    assert branch.warehouses.filter(pk=warehouse.pk).exists()
+    assert branch.warehouses.filter(pk=dedicated_wh.pk).exists()
 
     services.unlink_warehouse_from_branch(
         organization=org,
         branch=branch,
-        warehouse=warehouse,
+        warehouse=dedicated_wh,
     )
+    assert not branch.warehouses.filter(pk=dedicated_wh.pk).exists()
+    dedicated_wh.refresh_from_db()
+    assert dedicated_wh.branch is None
 
-    assert not branch.warehouses.filter(pk=warehouse.pk).exists()
+    # Linking and unlinking an auxiliary fulfillment warehouse succeeds
+    aux_wh = services.create_warehouse(
+        organization=org,
+        name="Auxiliary Stockroom",
+        code="WH-AUX",
+        warehouse_type=WarehouseType.INDEPENDENT,
+    )
+    services.link_warehouse_to_branch(
+        organization=org,
+        branch=branch,
+        warehouse=aux_wh,
+    )
+    assert branch.warehouses.filter(pk=aux_wh.pk).exists()
+
+    services.unlink_warehouse_from_branch(
+        organization=org,
+        branch=branch,
+        warehouse=aux_wh,
+    )
+    assert not branch.warehouses.filter(pk=aux_wh.pk).exists()
 
 
 @pytest.mark.django_db

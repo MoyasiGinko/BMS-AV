@@ -168,7 +168,7 @@
             >
               <option value="">{% trans "Select receiving branch outlet..." %}</option>
               {% for b in branches %}
-                <option value="{{ b.pk }}">{{ b.name }} {% if b.code %}({{ b.code }}){% endif %}</option>
+                <option value="{{ b.pk }}" {% if selected_branch and selected_branch.pk == b.pk %}selected{% endif %}>{{ b.name }} {% if b.code %}({{ b.code }}){% endif %}</option>
               {% endfor %}
             </select>
             <p class="text-[11px] text-muted">{% trans "Outlet receiving goods and deciding acceptance upon arrival." %}</p>

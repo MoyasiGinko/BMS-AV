@@ -8,7 +8,7 @@ from typing import Any
 
 from allauth.account.models import EmailAddress
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 from apps.accounting import services as accounting_services
@@ -50,6 +50,8 @@ from apps.sales import services as sales_services
 from apps.sales.models import PaymentMethod, RecurringFrequency
 from apps.tenancy.models import Branch, Department, Membership, Organization, Role, TaxCode, Warehouse
 from apps.tenancy.services import provision_organization
+from apps.warehouses import services as warehouses_services
+from apps.warehouses.models import WarehouseType
 
 
 class Command(BaseCommand):
@@ -585,6 +587,28 @@ def _seed_b2b_sales(
     )
 
 
+def _reset_organization(org: Organization, log: Any = None) -> None:
+    """Safely reset an organization by deleting all tenant data without violating foreign key constraints."""
+    log_fn = log or (lambda msg: None)
+    log_fn(f"Resetting existing organization '{org.slug}'...")
+
+    with connection.cursor() as cursor:
+        cursor.execute("SET session_replication_role = 'replica';")
+        cursor.execute(
+            """
+            SELECT table_name 
+            FROM information_schema.columns 
+            WHERE column_name = 'organization_id' 
+              AND table_schema = 'public';
+            """
+        )
+        tables = [row[0] for row in cursor.fetchall() if row[0] != "tenancy_organization"]
+        for table in tables:
+            cursor.execute(f'DELETE FROM "{table}" WHERE organization_id = %s;', [org.id])  # noqa: S608
+        cursor.execute('DELETE FROM "tenancy_organization" WHERE id = %s;', [org.id])
+        cursor.execute("SET session_replication_role = 'origin';")
+
+
 @transaction.atomic
 def seed_small_shop(
     *,
@@ -598,8 +622,7 @@ def seed_small_shop(
     existing = Organization.objects.filter(slug=slug).first()
     if existing:
         if reset:
-            log(f"Resetting existing organization '{slug}'...")
-            existing.delete()
+            _reset_organization(existing, log=log)
         else:
             log(f"Organization '{slug}' already exists. Re-verifying credentials.")
             for email in [
@@ -2218,6 +2241,494 @@ def _seed_people_modules(
     write("People modules seeding completed successfully.")
 
 
+def _seed_warehouse_facilities(
+    *,
+    org: Organization,
+    owner: User,
+) -> dict[str, Any]:
+    """Provision warehouses and branches covering all architecture topology variations."""
+    wh_hub = Warehouse.all_tenants.filter(organization=org, code="WH-HUB01").first()
+    if wh_hub:
+        wh_hub.name = "Tejgaon Central Logistics Hub"
+        wh_hub.warehouse_type = WarehouseType.PRIMARY
+        wh_hub.is_central = True
+        wh_hub.is_default = True
+        wh_hub.branch = None
+        wh_hub.save(update_fields=["name", "warehouse_type", "is_central", "is_default", "branch", "updated_at"])
+        warehouses_services.ensure_warehouse_storage_locations(wh_hub)
+
+    wh_ctg, _ = Warehouse.all_tenants.get_or_create(
+        organization=org,
+        code="WH-CTG01",
+        defaults={
+            "name": "Chittagong Regional Depot",
+            "warehouse_type": WarehouseType.SECONDARY,
+            "branch": None,
+            "is_central": False,
+            "is_default": False,
+            "is_active": True,
+            "created_by": owner,
+        },
+    )
+    warehouses_services.ensure_warehouse_storage_locations(wh_ctg)
+
+    branch_dhm, _ = Branch.all_tenants.get_or_create(
+        organization=org,
+        code="DHM-01",
+        defaults={
+            "name": "Dhanmondi Flagship Outlet",
+            "address": "House 42, Road 27, Dhanmondi, Dhaka 1209",
+            "is_headquarters": False,
+            "is_active": True,
+            "created_by": owner,
+        },
+    )
+    wh_dhm, _ = Warehouse.all_tenants.get_or_create(
+        organization=org,
+        code="WH-DHM01",
+        defaults={
+            "name": "Dhanmondi Dedicated Warehouse",
+            "warehouse_type": WarehouseType.SECONDARY,
+            "branch": branch_dhm,
+            "is_central": False,
+            "is_default": False,
+            "is_active": True,
+            "created_by": owner,
+        },
+    )
+    if wh_dhm.branch_id != branch_dhm.pk:
+        wh_dhm.branch = branch_dhm
+        wh_dhm.save(update_fields=["branch", "updated_at"])
+    warehouses_services.ensure_warehouse_storage_locations(wh_dhm)
+    warehouses_services.link_warehouse_to_branch(
+        organization=org,
+        branch=branch_dhm,
+        warehouse=wh_dhm,
+        is_default=True,
+        can_sell=True,
+        can_replenish=True,
+        priority=1,
+        actor=owner,
+    )
+
+    branch_gls, _ = Branch.all_tenants.get_or_create(
+        organization=org,
+        code="GLS-01",
+        defaults={
+            "name": "Gulshan Premium Outlet",
+            "address": "Avenue Tower, Plot 14, Gulshan-2, Dhaka 1212",
+            "is_headquarters": False,
+            "is_active": True,
+            "created_by": owner,
+        },
+    )
+    wh_gls, _ = Warehouse.all_tenants.get_or_create(
+        organization=org,
+        code="WH-GLS01",
+        defaults={
+            "name": "Gulshan Dedicated Warehouse",
+            "warehouse_type": WarehouseType.SECONDARY,
+            "branch": branch_gls,
+            "is_central": False,
+            "is_default": False,
+            "is_active": True,
+            "created_by": owner,
+        },
+    )
+    if wh_gls.branch_id != branch_gls.pk:
+        wh_gls.branch = branch_gls
+        wh_gls.save(update_fields=["branch", "updated_at"])
+    warehouses_services.ensure_warehouse_storage_locations(wh_gls)
+    warehouses_services.link_warehouse_to_branch(
+        organization=org,
+        branch=branch_gls,
+        warehouse=wh_gls,
+        is_default=True,
+        can_sell=True,
+        can_replenish=True,
+        priority=1,
+        actor=owner,
+    )
+
+    wh_airport, _ = Warehouse.all_tenants.get_or_create(
+        organization=org,
+        code="WH-AIR01",
+        defaults={
+            "name": "Airport Transit Warehouse",
+            "warehouse_type": WarehouseType.SECONDARY,
+            "branch": None,
+            "is_central": False,
+            "is_default": False,
+            "is_active": True,
+            "created_by": owner,
+        },
+    )
+    warehouses_services.ensure_warehouse_storage_locations(wh_airport)
+
+    branch_air_t1, _ = Branch.all_tenants.get_or_create(
+        organization=org,
+        code="AIR-T1",
+        defaults={
+            "name": "Airport Terminal 1 Kiosk",
+            "address": "Departures Hall, Terminal 1, HSIA, Dhaka",
+            "is_headquarters": False,
+            "is_active": True,
+            "created_by": owner,
+        },
+    )
+    branch_air_t2, _ = Branch.all_tenants.get_or_create(
+        organization=org,
+        code="AIR-T2",
+        defaults={
+            "name": "Airport Terminal 2 Express",
+            "address": "Concourse Concession Area, Terminal 2, HSIA, Dhaka",
+            "is_headquarters": False,
+            "is_active": True,
+            "created_by": owner,
+        },
+    )
+
+    warehouses_services.add_synchronized_branch(
+        organization=org,
+        warehouse=wh_airport,
+        branch=branch_air_t1,
+        actor=owner,
+    )
+    warehouses_services.add_synchronized_branch(
+        organization=org,
+        warehouse=wh_airport,
+        branch=branch_air_t2,
+        actor=owner,
+    )
+
+    return {
+        "wh_hub": wh_hub,
+        "wh_ctg": wh_ctg,
+        "wh_dhm": wh_dhm,
+        "wh_gls": wh_gls,
+        "wh_airport": wh_airport,
+        "branch_dhm": branch_dhm,
+        "branch_gls": branch_gls,
+    }
+
+
+def _seed_warehouse_routes(
+    *,
+    org: Organization,
+    owner: User,
+    fac: dict[str, Any],
+) -> None:
+    """Configure linked replenishment branch links and inventory supply routes."""
+    wh_hub = fac["wh_hub"]
+    wh_ctg = fac["wh_ctg"]
+    branch_dhm = fac["branch_dhm"]
+    branch_gls = fac["branch_gls"]
+
+    if wh_hub:
+        warehouses_services.add_linked_branch(
+            organization=org,
+            warehouse=wh_hub,
+            branch=branch_dhm,
+            actor=owner,
+        )
+        warehouses_services.add_linked_branch(
+            organization=org,
+            warehouse=wh_hub,
+            branch=branch_gls,
+            actor=owner,
+        )
+
+    warehouses_services.add_linked_branch(
+        organization=org,
+        warehouse=wh_ctg,
+        branch=branch_gls,
+        actor=owner,
+    )
+
+    loc_hub = wh_hub.get_sellable_location() if wh_hub else None
+    loc_ctg = wh_ctg.get_sellable_location()
+    loc_dhm = fac["wh_dhm"].get_sellable_location()
+    loc_gls = fac["wh_gls"].get_sellable_location()
+
+    if loc_hub and loc_dhm:
+        warehouses_services.create_supply_route(
+            organization=org,
+            source_location=loc_hub,
+            destination_location=loc_dhm,
+            priority=1,
+            is_preferred=True,
+            lead_time_days=1,
+            can_auto_replenish=True,
+            actor=owner,
+        )
+    if loc_hub and loc_gls:
+        warehouses_services.create_supply_route(
+            organization=org,
+            source_location=loc_hub,
+            destination_location=loc_gls,
+            priority=1,
+            is_preferred=True,
+            lead_time_days=1,
+            can_auto_replenish=True,
+            actor=owner,
+        )
+    if loc_ctg and loc_gls:
+        warehouses_services.create_supply_route(
+            organization=org,
+            source_location=loc_ctg,
+            destination_location=loc_gls,
+            priority=2,
+            is_preferred=False,
+            lead_time_days=2,
+            can_auto_replenish=False,
+            actor=owner,
+        )
+
+    wh_airport = fac.get("wh_airport")
+    if wh_hub and wh_airport:
+        warehouses_services.grant_transfer_permission(
+            organization=org,
+            source_warehouse=wh_hub,
+            destination_warehouse=wh_airport,
+            can_request=True,
+            can_dispatch=True,
+            priority=1,
+            notes="Primary replenishment corridor from central hub to airport facility.",
+            actor=owner,
+        )
+        loc_air = wh_airport.get_sellable_location()
+        if loc_hub and loc_air:
+            warehouses_services.create_supply_route(
+                organization=org,
+                source_location=loc_hub,
+                destination_location=loc_air,
+                priority=1,
+                is_preferred=True,
+                lead_time_days=1,
+                can_auto_replenish=True,
+                actor=owner,
+            )
+
+    if wh_airport and wh_ctg:
+        warehouses_services.grant_transfer_permission(
+            organization=org,
+            source_warehouse=wh_airport,
+            destination_warehouse=wh_ctg,
+            can_request=True,
+            can_dispatch=True,
+            priority=1,
+            notes="Outbound transfer route from airport transit to Chittagong regional depot.",
+            actor=owner,
+        )
+        loc_air = wh_airport.get_sellable_location()
+        if loc_air and loc_ctg:
+            warehouses_services.create_supply_route(
+                organization=org,
+                source_location=loc_air,
+                destination_location=loc_ctg,
+                priority=1,
+                is_preferred=True,
+                lead_time_days=2,
+                can_auto_replenish=False,
+                actor=owner,
+            )
+
+
+def _seed_warehouse_stock_and_transfers(
+    *,
+    org: Organization,
+    owner: User,
+    products: dict[str, Product],
+    fac: dict[str, Any],
+    log_fn: Any,
+) -> None:
+    """Seed stock levels and pending, in-transit, and completed stock transfers."""
+    wh_hub = fac["wh_hub"]
+    wh_ctg = fac["wh_ctg"]
+    wh_dhm = fac["wh_dhm"]
+    wh_gls = fac["wh_gls"]
+    wh_airport = fac["wh_airport"]
+
+    wh_targets = [
+        (wh_hub, Decimal("80.0000")),
+        (wh_ctg, Decimal("35.0000")),
+        (wh_dhm, Decimal("20.0000")),
+        (wh_gls, Decimal("25.0000")),
+        (wh_airport, Decimal("30.0000")),
+    ]
+
+    for target_wh, qty in wh_targets:
+        if not target_wh:
+            continue
+        intake_lines = [
+            {"product": prod, "quantity": qty, "unit_cost": prod.cost_price}
+            for prod in products.values()
+        ]
+        try:
+            warehouses_services.create_stock_intake(
+                organization=org,
+                warehouse=target_wh,
+                lines=intake_lines,
+                intake_type="direct_stocking",
+                reference_number=f"INIT-{target_wh.code}",
+                supplier_name="Apex Central Logistics",
+                actor=owner,
+            )
+        except Exception as exc:
+            log_fn(f"Stock intake note for {target_wh.name}: {exc}")
+
+    loc_hub = wh_hub.get_sellable_location() if wh_hub else None
+    loc_ctg = wh_ctg.get_sellable_location()
+    loc_dhm = wh_dhm.get_sellable_location()
+    loc_gls = wh_gls.get_sellable_location()
+
+    if wh_hub and wh_dhm and "SAFE-01" in products and "SAFE-02" in products:
+        try:
+            trf_comp = warehouses_services.create_stock_transfer(
+                organization=org,
+                source_warehouse=wh_hub,
+                destination_warehouse=wh_dhm,
+                source_location=loc_hub,
+                destination_location=loc_dhm,
+                lines=[
+                    {"product": products["SAFE-01"], "quantity": Decimal("10.0000"), "unit_cost": products["SAFE-01"].cost_price},
+                    {"product": products["SAFE-02"], "quantity": Decimal("15.0000"), "unit_cost": products["SAFE-02"].cost_price},
+                ],
+                notes="Weekly Safety Equipment Replenishment - Completed",
+                actor=owner,
+            )
+            warehouses_services.submit_stock_transfer(organization=org, transfer=trf_comp, actor=owner)
+            warehouses_services.approve_stock_transfer(organization=org, transfer=trf_comp, actor=owner)
+            warehouses_services.dispatch_stock_transfer(organization=org, transfer=trf_comp, actor=owner)
+            warehouses_services.receive_stock_transfer(organization=org, transfer=trf_comp, actor=owner)
+        except Exception as exc:
+            log_fn(f"Completed transfer note: {exc}")
+
+    if wh_hub and wh_gls and "PACK-01" in products and "PACK-02" in products:
+        try:
+            trf_in_transit = warehouses_services.create_stock_transfer(
+                organization=org,
+                source_warehouse=wh_hub,
+                destination_warehouse=wh_gls,
+                source_location=loc_hub,
+                destination_location=loc_gls,
+                lines=[
+                    {"product": products["PACK-01"], "quantity": Decimal("12.0000"), "unit_cost": products["PACK-01"].cost_price},
+                    {"product": products["PACK-02"], "quantity": Decimal("20.0000"), "unit_cost": products["PACK-02"].cost_price},
+                ],
+                notes="Emergency Packaging Materials Dispatch - In Transit",
+                actor=owner,
+            )
+            warehouses_services.submit_stock_transfer(organization=org, transfer=trf_in_transit, actor=owner)
+            warehouses_services.approve_stock_transfer(organization=org, transfer=trf_in_transit, actor=owner)
+            warehouses_services.dispatch_stock_transfer(organization=org, transfer=trf_in_transit, actor=owner)
+        except Exception as exc:
+            log_fn(f"In-transit transfer note: {exc}")
+
+    if wh_ctg and wh_gls and "EQUIP-02" in products:
+        try:
+            trf_pending = warehouses_services.create_stock_transfer(
+                organization=org,
+                source_warehouse=wh_ctg,
+                destination_warehouse=wh_gls,
+                source_location=loc_ctg,
+                destination_location=loc_gls,
+                lines=[
+                    {"product": products["EQUIP-02"], "quantity": Decimal("2.0000"), "unit_cost": products["EQUIP-02"].cost_price},
+                ],
+                notes="Pallet Jack Stock Reallocation Request - Pending Approval",
+                actor=owner,
+            )
+            warehouses_services.submit_stock_transfer(organization=org, transfer=trf_pending, actor=owner)
+        except Exception as exc:
+            log_fn(f"Pending transfer note: {exc}")
+
+    _seed_airport_transfers(
+        org=org,
+        owner=owner,
+        products=products,
+        wh_hub=wh_hub,
+        wh_airport=wh_airport,
+        wh_ctg=wh_ctg,
+        loc_hub=loc_hub,
+        loc_ctg=loc_ctg,
+        log_fn=log_fn,
+    )
+
+
+def _seed_airport_transfers(
+    *,
+    org: Organization,
+    owner: User,
+    products: dict[str, Product],
+    wh_hub: Warehouse | None,
+    wh_airport: Warehouse | None,
+    wh_ctg: Warehouse,
+    loc_hub: Any,
+    loc_ctg: Any,
+    log_fn: Any,
+) -> None:
+    loc_air = wh_airport.get_sellable_location() if wh_airport else None
+    if wh_hub and wh_airport and "PACK-01" in products:
+        try:
+            trf_air_in = warehouses_services.create_stock_transfer(
+                organization=org,
+                source_warehouse=wh_hub,
+                destination_warehouse=wh_airport,
+                source_location=loc_hub,
+                destination_location=loc_air,
+                lines=[
+                    {"product": products["PACK-01"], "quantity": Decimal("15.0000"), "unit_cost": products["PACK-01"].cost_price},
+                ],
+                notes="Scheduled Inbound Replenishment - Packaging Materials",
+                actor=owner,
+            )
+            warehouses_services.submit_stock_transfer(organization=org, transfer=trf_air_in, actor=owner)
+            warehouses_services.approve_stock_transfer(organization=org, transfer=trf_air_in, actor=owner)
+            warehouses_services.dispatch_stock_transfer(organization=org, transfer=trf_air_in, actor=owner)
+            warehouses_services.receive_stock_transfer(organization=org, transfer=trf_air_in, actor=owner)
+        except Exception as exc:
+            log_fn(f"Airport inbound transfer note: {exc}")
+
+    if wh_airport and wh_ctg and "PACK-01" in products:
+        try:
+            trf_air_out = warehouses_services.create_stock_transfer(
+                organization=org,
+                source_warehouse=wh_airport,
+                destination_warehouse=wh_ctg,
+                source_location=loc_air,
+                destination_location=loc_ctg,
+                lines=[
+                    {"product": products["PACK-01"], "quantity": Decimal("5.0000"), "unit_cost": products["PACK-01"].cost_price},
+                ],
+                notes="Outbound Freight Dispatch to Chittagong Regional Depot",
+                actor=owner,
+            )
+            warehouses_services.submit_stock_transfer(organization=org, transfer=trf_air_out, actor=owner)
+            warehouses_services.approve_stock_transfer(organization=org, transfer=trf_air_out, actor=owner)
+            warehouses_services.dispatch_stock_transfer(organization=org, transfer=trf_air_out, actor=owner)
+        except Exception as exc:
+            log_fn(f"Airport outbound transfer note: {exc}")
+
+
+def _seed_warehouse_branch_architecture_variations(
+    *,
+    org: Organization,
+    owner: User,
+    products: dict[str, Product],
+    log: Any = None,
+) -> None:
+    """Seed comprehensive branch and warehouse topology demonstrating all architectural variations."""
+    log_fn = log or (lambda msg: None)
+    log_fn("Seeding multi-branch and multi-warehouse architectural variations...")
+
+    fac = _seed_warehouse_facilities(org=org, owner=owner)
+    _seed_warehouse_routes(org=org, owner=owner, fac=fac)
+    _seed_warehouse_stock_and_transfers(org=org, owner=owner, products=products, fac=fac, log_fn=log_fn)
+
+    log_fn("Successfully seeded complete warehouse-branch architecture variations!")
+
+
 @transaction.atomic
 def seed_growing_company(
     *,
@@ -2231,8 +2742,7 @@ def seed_growing_company(
     existing = Organization.objects.filter(slug=slug).first()
     if existing:
         if reset:
-            log(f"Resetting existing organization '{slug}'...")
-            existing.delete()
+            _reset_organization(existing, log=log)
         else:
             log(f"Organization '{slug}' already exists. Re-verifying credentials.")
             for email in [
@@ -2251,8 +2761,15 @@ def seed_growing_company(
                     u.set_password("demo12345")
                     u.save()
             users = _seed_growing_company_staff()
+            catalog_map = _seed_growing_company_catalog(existing)
             with tenant_context(existing):
                 _seed_people_modules(org=existing, users=users, log=log)
+                _seed_warehouse_branch_architecture_variations(
+                    org=existing,
+                    owner=users["owner"],
+                    products=catalog_map,
+                    log=log,
+                )
             return existing
 
     users = _seed_growing_company_staff()
@@ -2322,5 +2839,11 @@ def seed_growing_company(
             products=catalog_map,
         )
         _seed_people_modules(org=org, users=users, log=log)
+        _seed_warehouse_branch_architecture_variations(
+            org=org,
+            owner=owner,
+            products=catalog_map,
+            log=log,
+        )
 
     return org

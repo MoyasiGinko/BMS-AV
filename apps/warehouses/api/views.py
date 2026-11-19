@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.core.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.decorators import action
@@ -14,15 +15,23 @@ from apps.inventory.models import InventoryLocation, StockSupplyRoute
 from apps.tenancy.models import Branch
 from apps.warehouses import selectors, services
 from apps.warehouses.api.serializers import (
+    BranchWarehouseCreateSerializer,
     BranchWarehouseSerializer,
     InventoryLocationCreateSerializer,
     InventoryLocationSerializer,
     StockSupplyRouteCreateSerializer,
     StockSupplyRouteSerializer,
     WarehouseCreateSerializer,
+    WarehouseLinkBranchSerializer,
     WarehouseSerializer,
+    WarehouseUnlinkBranchSerializer,
 )
-from apps.warehouses.models import BranchWarehouse, Warehouse
+from apps.warehouses.models import (
+    BranchWarehouse,
+    BranchWarehouseRelationshipType,
+    Warehouse,
+    WarehouseType,
+)
 
 
 @extend_schema_view(
@@ -54,6 +63,13 @@ class WarehouseViewSet(TenantScopedModelViewSet):
     ordering_fields = ["name", "code", "created_at"]
     ordering = ["name"]
 
+    def get_queryset(self) -> Any:
+        qs = super().get_queryset()
+        wh_type = self.request.query_params.get("warehouse_type")
+        if wh_type:
+            qs = qs.filter(warehouse_type=wh_type)
+        return qs
+
     def create(self, request: Any, *args: Any, **kwargs: Any) -> Response:
         """Create a new warehouse facility."""
         serializer = WarehouseCreateSerializer(data=request.data)
@@ -64,19 +80,33 @@ class WarehouseViewSet(TenantScopedModelViewSet):
         branch = None
         if data.get("branch_id"):
             branch = Branch.all_tenants.filter(organization=org, public_id=data["branch_id"]).first()
+            if not branch:
+                return Response(
+                    {"error": "invalid_branch", "message": "Branch not found."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        wh = services.create_warehouse(
-            organization=org,
-            name=str(data["name"]),
-            branch=branch,
-            code=str(data.get("code", "")),
-            is_central=bool(data.get("is_central", False)),
-            is_default=bool(data.get("is_default", False)),
-            can_sell=bool(data.get("can_sell", True)),
-            can_replenish=bool(data.get("can_replenish", True)),
-            priority=int(data.get("priority", 1)),
-            actor=request.user,
-        )
+        try:
+            wh = services.create_warehouse(
+                organization=org,
+                name=str(data["name"]),
+                warehouse_type=str(data.get("warehouse_type", WarehouseType.PRIMARY)),
+                branch=branch,
+                code=str(data.get("code", "")),
+                is_central=bool(data.get("is_central", False)),
+                is_default=bool(data.get("is_default", False)),
+                can_sell=bool(data.get("can_sell", True)),
+                can_replenish=bool(data.get("can_replenish", True)),
+                priority=int(data.get("priority", 1)),
+                actor=request.user,
+            )
+        except ValidationError as exc:
+            msg = exc.messages[0] if hasattr(exc, "messages") else str(exc)
+            return Response(
+                {"error": "validation_error", "message": msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         out = WarehouseSerializer(wh)
         return Response(out.data, status=status.HTTP_201_CREATED)
 
@@ -86,33 +116,116 @@ class WarehouseViewSet(TenantScopedModelViewSet):
         services.delete_warehouse(warehouse=wh, actor=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @extend_schema(tags=["Warehouses"], summary="Authorize branch to fulfill from this warehouse")
+    @extend_schema(
+        tags=["Warehouses"],
+        summary="Authorize branch to fulfill from or link to this warehouse",
+        request=WarehouseLinkBranchSerializer,
+        responses={200: BranchWarehouseSerializer},
+    )
     @action(detail=True, methods=["post"], url_path="link-branch")
     def link_branch(self, request: Any, *args: Any, **kwargs: Any) -> Response:
         wh = self.get_object()
         org = self.get_tenant()
-        branch_id = request.data.get("branch_id")
-        branch = Branch.all_tenants.filter(organization=org, public_id=branch_id).first()
-        if not branch:
-            return Response({"error": "invalid_branch", "message": "Branch not found."}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = WarehouseLinkBranchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        mapping = services.link_warehouse_to_branch(
-            organization=org,
-            branch=branch,
-            warehouse=wh,
-            is_default=bool(request.data.get("is_default", False)),
-            can_sell=bool(request.data.get("can_sell", True)),
-            can_replenish=bool(request.data.get("can_replenish", True)),
-            priority=int(request.data.get("priority", 1)),
-            actor=request.user,
-        )
+        branch = Branch.all_tenants.filter(organization=org, public_id=data["branch_id"]).first()
+        if not branch:
+            return Response(
+                {"error": "invalid_branch", "message": "Branch not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        rel_type = data.get("relationship_type", BranchWarehouseRelationshipType.LINKED_SUPPLY)
+        try:
+            if rel_type == BranchWarehouseRelationshipType.SYNCHRONIZED:
+                mapping = services.add_synchronized_branch(
+                    organization=org,
+                    warehouse=wh,
+                    branch=branch,
+                    actor=request.user,
+                )
+            elif rel_type == BranchWarehouseRelationshipType.LINKED_SUPPLY:
+                mapping = services.add_linked_branch(
+                    organization=org,
+                    warehouse=wh,
+                    branch=branch,
+                    actor=request.user,
+                )
+            else:
+                mapping = services.link_warehouse_to_branch(
+                    organization=org,
+                    branch=branch,
+                    warehouse=wh,
+                    is_default=bool(data.get("is_default", False)),
+                    can_sell=bool(data.get("can_sell", True)),
+                    can_replenish=bool(data.get("can_replenish", True)),
+                    priority=int(data.get("priority", 1)),
+                    actor=request.user,
+                )
+        except ValidationError as exc:
+            msg = exc.messages[0] if hasattr(exc, "messages") else str(exc)
+            return Response(
+                {"error": "validation_error", "message": msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         out = BranchWarehouseSerializer(mapping)
         return Response(out.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Warehouses"],
+        summary="Unlink a branch relationship from this warehouse",
+        request=WarehouseUnlinkBranchSerializer,
+        responses={204: None},
+    )
+    @action(detail=True, methods=["post"], url_path="unlink-branch")
+    def unlink_branch(self, request: Any, *args: Any, **kwargs: Any) -> Response:
+        wh = self.get_object()
+        org = self.get_tenant()
+        serializer = WarehouseUnlinkBranchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        branch = Branch.all_tenants.filter(organization=org, public_id=data["branch_id"]).first()
+        if not branch:
+            return Response(
+                {"error": "invalid_branch", "message": "Branch not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        rel_type = data.get("relationship_type")
+        try:
+            if rel_type:
+                services.remove_branch_relationship(
+                    organization=org,
+                    warehouse=wh,
+                    branch=branch,
+                    relationship_type=rel_type,
+                    actor=request.user,
+                )
+            else:
+                services.unlink_warehouse_from_branch(
+                    organization=org,
+                    branch=branch,
+                    warehouse=wh,
+                    actor=request.user,
+                )
+        except ValidationError as exc:
+            msg = exc.messages[0] if hasattr(exc, "messages") else str(exc)
+            return Response(
+                {"error": "validation_error", "message": msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema_view(
     list=extend_schema(tags=["Warehouses"], summary="List branch fulfillment warehouse mappings"),
     retrieve=extend_schema(tags=["Warehouses"], summary="Retrieve branch warehouse mapping"),
+    create=extend_schema(tags=["Warehouses"], summary="Create branch warehouse mapping"),
 )
 class BranchWarehouseViewSet(TenantScopedModelViewSet):
     """API endpoint for querying branch-warehouse fulfillment matrix."""
@@ -128,6 +241,71 @@ class BranchWarehouseViewSet(TenantScopedModelViewSet):
         "destroy": "warehouses.manage",
     }
     ordering = ["branch__name", "priority"]
+
+    def get_queryset(self) -> Any:
+        qs = super().get_queryset()
+        rel_type = self.request.query_params.get("relationship_type")
+        if rel_type:
+            qs = qs.filter(relationship_type=rel_type)
+        return qs
+
+    def create(self, request: Any, *args: Any, **kwargs: Any) -> Response:
+        """Create a branch-warehouse fulfillment or supply mapping."""
+        serializer = BranchWarehouseCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        org = self.get_tenant()
+
+        branch = Branch.all_tenants.filter(organization=org, public_id=data["branch_id"]).first()
+        if not branch:
+            return Response(
+                {"error": "invalid_branch", "message": "Branch not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        wh = Warehouse.all_tenants.filter(organization=org, public_id=data["warehouse_id"]).first()
+        if not wh:
+            return Response(
+                {"error": "invalid_warehouse", "message": "Warehouse not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        rel_type = data.get("relationship_type", BranchWarehouseRelationshipType.LINKED_SUPPLY)
+        try:
+            if rel_type == BranchWarehouseRelationshipType.SYNCHRONIZED:
+                mapping = services.add_synchronized_branch(
+                    organization=org,
+                    warehouse=wh,
+                    branch=branch,
+                    actor=request.user,
+                )
+            elif rel_type == BranchWarehouseRelationshipType.LINKED_SUPPLY:
+                mapping = services.add_linked_branch(
+                    organization=org,
+                    warehouse=wh,
+                    branch=branch,
+                    actor=request.user,
+                )
+            else:
+                mapping = services.link_warehouse_to_branch(
+                    organization=org,
+                    branch=branch,
+                    warehouse=wh,
+                    is_default=bool(data.get("is_default", False)),
+                    can_sell=bool(data.get("can_sell", True)),
+                    can_replenish=bool(data.get("can_replenish", True)),
+                    priority=int(data.get("priority", 1)),
+                    actor=request.user,
+                )
+        except ValidationError as exc:
+            msg = exc.messages[0] if hasattr(exc, "messages") else str(exc)
+            return Response(
+                {"error": "validation_error", "message": msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        out = BranchWarehouseSerializer(mapping)
+        return Response(out.data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema_view(

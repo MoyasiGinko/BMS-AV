@@ -91,9 +91,9 @@
                         {% trans "Out of stock" %}
                     </span>
                     {% else %}
-                    <span class="pos-stock-in inline-flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                    <span class="pos-stock-in inline-flex items-center gap-1 text-[11px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded-full shadow-2xs shrink-0" {% if is_synchronized_pool %}title="{% trans 'Total combined stock across synchronized branches' %}"{% endif %}>
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-200"></span>
-                        {{ product.stock_qty|floatformat:0 }} {% trans "in stock" %}
+                        {{ product.stock_qty|floatformat:0 }} {% if is_synchronized_pool %}{% trans "in synced pool" %}{% else %}{% trans "in stock" %}{% endif %}
                     </span>
                     {% endif %}
                 {% endif %}

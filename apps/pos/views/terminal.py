@@ -24,6 +24,7 @@ from apps.pos.models import POSShift
 from apps.pos.views.common import _get_org
 from apps.sales.models import PaymentMethod
 from apps.tenancy.models import Organization
+from apps.warehouses.selectors import get_effective_sales_warehouse_for_branch
 
 
 @permission_required("pos.access")
@@ -74,11 +75,28 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
     category_id = request.GET.get("category")
     cat_id = int(category_id) if category_id and category_id.isdigit() else None
 
+    # Resolve effective sales warehouse and detect synchronized pool
+    pos_warehouse = active_shift.register.warehouse
+    if active_shift.register.branch:
+        try:
+            pos_warehouse = get_effective_sales_warehouse_for_branch(branch=active_shift.register.branch)
+        except Exception:
+            pos_warehouse = active_shift.register.warehouse
+
+    synced_branches: list[str] = []
+    if pos_warehouse:
+        synced_branches = list(
+            pos_warehouse.warehouse_branches.filter(
+                relationship_type="synchronized"
+            ).select_related("branch").values_list("branch__name", flat=True)
+        )
+    is_synchronized_pool = len(synced_branches) > 0
+
     products = selectors.get_pos_catalog_products(
         organization=org,
         search=search,
         category_id=cat_id,
-        warehouse=active_shift.register.warehouse,
+        warehouse=pos_warehouse,
     )
     categories = selectors.get_pos_categories(organization=org)
     held_carts = selectors.list_held_carts(organization=org, shift_id=active_shift.pk)
@@ -90,6 +108,9 @@ def terminal_view(request: HttpRequest) -> HttpResponse:
     context = {
         "shift": active_shift,
         "register": active_shift.register,
+        "pos_warehouse": pos_warehouse,
+        "is_synchronized_pool": is_synchronized_pool,
+        "synced_branch_names": synced_branches,
         "products": products,
         "categories": categories,
         "selected_category_id": cat_id,
@@ -363,7 +384,19 @@ def product_lookup_view(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"found": False, "error": str(_("Query required."))}, status=400)
 
     shift = selectors.get_active_shift_for_user(organization=org, user=request.user)
-    warehouse = shift.register.warehouse if shift else None
+    warehouse = None
+    synced_branches: list[str] = []
+    if shift and shift.register:
+        try:
+            warehouse = get_effective_sales_warehouse_for_branch(branch=shift.register.branch)
+        except Exception:
+            warehouse = shift.register.warehouse
+        if warehouse:
+            synced_branches = list(
+                warehouse.warehouse_branches.filter(
+                    relationship_type="synchronized"
+                ).select_related("branch").values_list("branch__name", flat=True)
+            )
 
     products = selectors.get_pos_catalog_products(
         organization=org,
@@ -391,6 +424,8 @@ def product_lookup_view(request: HttpRequest) -> HttpResponse:
                 "stock_qty": float(getattr(product, "stock_qty", 0) or 0),
                 "tax_rate": tax_rate,
                 "discount_percent": discount_percent,
+                "is_synchronized_pool": len(synced_branches) > 0,
+                "synced_branches": synced_branches,
             },
         }
     )

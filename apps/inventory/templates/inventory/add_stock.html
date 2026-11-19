@@ -254,8 +254,8 @@
         <div class="flex items-center justify-between pb-3 border-b border-[var(--border)]/40">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
               </svg>
             </div>
             <div>
@@ -301,11 +301,31 @@
                 required
                 class="w-full h-11 text-sm py-2 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface-1)] text-ink focus:ring-2 focus:ring-indigo-500 font-semibold"
               >
-                {% for wh in linked_warehouses %}
-                  <option value="{{ wh.pk }}">
-                    {{ wh.name }} ({{ wh.get_warehouse_type_display }})
-                  </option>
-                {% endfor %}
+                {% if independent_warehouses %}
+                  <optgroup label="{% trans "Independent Storage Hubs" %}">
+                    {% for wh in independent_warehouses %}
+                      <option value="{{ wh.pk }}">
+                        🏢 {{ wh.name }} ({{ wh.get_warehouse_type_display }})
+                      </option>
+                    {% endfor %}
+                  </optgroup>
+                {% endif %}
+                {% if peer_warehouses %}
+                  <optgroup label="{% trans "Peer Branch Warehouses" %}">
+                    {% for wh in peer_warehouses %}
+                      <option value="{{ wh.pk }}">
+                        🏬 {{ wh.name }} ({{ wh.get_warehouse_type_display }})
+                      </option>
+                    {% endfor %}
+                  </optgroup>
+                {% endif %}
+                {% if not independent_warehouses and not peer_warehouses %}
+                  {% for wh in linked_warehouses %}
+                    <option value="{{ wh.pk }}">
+                      {{ wh.name }} ({{ wh.get_warehouse_type_display }})
+                    </option>
+                  {% endfor %}
+                {% endif %}
               </select>
             {% else %}
               <div class="h-11 px-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-medium flex items-center justify-between gap-2">
@@ -361,6 +381,13 @@
                 </option>
               {% endfor %}
             </select>
+            {% if dedicated_warehouse %}
+              <div class="mt-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-700 dark:text-indigo-300 font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
+                <span class="truncate">{% trans "Dedicated Warehouse:" %} <strong class="font-bold text-ink">{{ dedicated_warehouse.name }}</strong></span>
+                <span class="text-[10px] uppercase font-bold tracking-wider font-mono opacity-80 shrink-0">({% trans "1:1 Synced" %})</span>
+              </div>
+            {% endif %}
             <p class="text-[11px] text-muted">
               <span x-show="requestType === 'add'">{% trans "Branch outlet receiving and stocking the requested products." %}</span>
               <span x-show="requestType !== 'add'">{% trans "Branch outlet issuing and dispatching returned products." %}</span>
@@ -669,6 +696,20 @@
                               x-show="getProduct(row.product_id)?.barcode"
                               x-text="'UPC: ' + getProduct(row.product_id)?.barcode"
                             ></span>
+
+                            <!-- Dual Physical Stock Level Badges -->
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                              <span>{% trans "In Outlet:" %}</span>
+                              <strong class="font-mono font-bold" x-text="(getProduct(row.product_id)?.outlet_stock ?? 0) + ' ' + (getProduct(row.product_id)?.unit || '')"></strong>
+                            </span>
+                            <span
+                              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border"
+                              :class="(getProduct(row.product_id)?.warehouse_stocks?.[selectedWarehouseId] || 0) > 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20'"
+                              x-show="selectedWarehouseId && requestType === 'add'"
+                            >
+                              <span>{% trans "Available at Source:" %}</span>
+                              <strong class="font-mono font-bold" x-text="(getProduct(row.product_id)?.warehouse_stocks?.[selectedWarehouseId] ?? 0) + ' ' + (getProduct(row.product_id)?.unit || '')"></strong>
+                            </span>
                           </div>
                         </template>
                         <template x-if="!getProduct(row.product_id)">

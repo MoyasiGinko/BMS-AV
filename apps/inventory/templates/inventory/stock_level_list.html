@@ -95,6 +95,41 @@
         </form>
     </div>
 
+    <!-- Dedicated Warehouse or Independent Facility Context Pill -->
+    {% if selected_warehouse %}
+      {% if selected_warehouse.is_branch_warehouse %}
+        <div class="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-700 dark:text-indigo-300 flex items-center justify-between shadow-2xs">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0"></span>
+            <div>
+              <span class="text-ink font-bold">{% trans "Branch Physical Inventory:" %}</span>
+              <span class="font-semibold">{{ selected_warehouse.dedicated_branch.name|default:selected_warehouse.name }}</span>
+              <span class="text-[10px] text-muted uppercase font-mono ml-1">({% trans "Dedicated Warehouse:" %} {{ selected_warehouse.name }} &bull; {% trans "1:1 Synced" %})</span>
+            </div>
+          </div>
+          {% if selected_warehouse.dedicated_branch %}
+            <a href="{% url 'inventory:add_stock' %}?branch_id={{ selected_warehouse.dedicated_branch.pk }}" class="font-bold underline hover:text-indigo-600 text-xs shrink-0">
+              {% trans "Request Replenishment" %} &rarr;
+            </a>
+          {% endif %}
+        </div>
+      {% elif selected_warehouse.is_independent %}
+        <div class="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 flex items-center justify-between shadow-2xs">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
+            <div>
+              <span class="text-ink font-bold">{% trans "Autonomous Storage Facility:" %}</span>
+              <span class="font-semibold">{{ selected_warehouse.name }}</span>
+              <span class="text-[10px] text-muted uppercase font-mono ml-1">({% trans "Independent Hub &bull; Buffer Stock" %})</span>
+            </div>
+          </div>
+          <a href="{% url 'warehouses:push_send' %}?warehouse_id={{ selected_warehouse.pk }}" class="font-bold underline hover:text-purple-600 text-xs shrink-0">
+            {% trans "Push Dispatch to Outlets" %} &rarr;
+          </a>
+        </div>
+      {% endif %}
+    {% endif %}
+
     <!-- Stock Levels Table -->
     {% include "inventory/partials/stock_level_table.html" %}
 </div>

@@ -18,13 +18,23 @@ from apps.inventory.models import (
     TransferStatus,
     WarehouseStorageType,
 )
-from apps.tenancy.models import BranchWarehouse, Warehouse, WarehouseType
+from apps.tenancy.models import (
+    BranchWarehouse,
+    BranchWarehouseAssignment,
+    BranchWarehouseRelationshipType,
+    Warehouse,
+    WarehouseMigrationAuditReport,
+    WarehouseTransferPermission,
+    WarehouseType,
+)
 
 Location = InventoryLocation
 
 __all__ = [
     "BranchStorageSync",
     "BranchWarehouse",
+    "BranchWarehouseAssignment",
+    "BranchWarehouseRelationshipType",
     "InventoryLocation",
     "Location",
     "LocationType",
@@ -38,6 +48,8 @@ __all__ = [
     "StorageType",
     "TransferStatus",
     "Warehouse",
+    "WarehouseMigrationAuditReport",
     "WarehouseStorageType",
+    "WarehouseTransferPermission",
     "WarehouseType",
 ]

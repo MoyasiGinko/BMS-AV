@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Any, ClassVar
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -136,6 +137,11 @@ class Membership(TenantModel):
         return f"{self.user} in {self.organization}"
 
 
+class BranchWarehouseRelationshipType(models.TextChoices):
+    SYNCHRONIZED = "synchronized", _("Synchronized Branch (Shared Inventory)")
+    LINKED_SUPPLY = "linked_supply", _("Linked Branch (Stock Supply)")
+
+
 class Branch(TenantModel):
     """Physical branch, office, or store location."""
 
@@ -151,6 +157,36 @@ class Branch(TenantModel):
         related_name="linked_branches",
         blank=True,
     )
+    requires_transfer_authorization = models.BooleanField(
+        _("requires transfer authorization"),
+        default=False,
+        help_text=_("When enabled, stock transfers to or from this branch's warehouse must be explicitly authorized."),
+    )
+
+    @property
+    def dedicated_warehouse(self) -> Any:
+        assignment = getattr(self, "dedicated_assignment", None)
+        if assignment and assignment.is_active:
+            return assignment.warehouse
+        return self.co_located_warehouses.filter(is_active=True).first()
+
+    @property
+    def effective_sales_warehouse(self) -> Any:
+        operational = self.co_located_warehouses.filter(is_active=True).first()
+        if operational:
+            return operational
+        sync_rel = (
+            self.branch_warehouses.filter(
+                relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED,
+                warehouse__is_active=True,
+            )
+            .select_related("warehouse")
+            .order_by("-is_default", "priority")
+            .first()
+        )
+        if sync_rel:
+            return sync_rel.warehouse
+        return None
 
     class Meta:
         verbose_name = _("branch")
@@ -234,6 +270,8 @@ class Department(TenantModel):
 class WarehouseType(models.TextChoices):
     PRIMARY = "primary", _("Primary Warehouse")
     SECONDARY = "secondary", _("Secondary Warehouse")
+    BRANCH = "branch", _("Branch Dedicated Warehouse (Secondary)")
+    INDEPENDENT = "independent", _("Independent Warehouse (Primary)")
 
 
 class Warehouse(TenantModel):
@@ -262,15 +300,87 @@ class Warehouse(TenantModel):
         help_text=_("Designates a central distribution hub that supplies multiple branches."),
     )
     is_default = models.BooleanField(_("organization default warehouse"), default=False)
+    requires_transfer_authorization = models.BooleanField(
+        _("requires transfer authorization"),
+        default=False,
+        help_text=_("When enabled, stock transfers to or from this warehouse must be explicitly authorized."),
+    )
     is_active = models.BooleanField(default=True)
 
     @property
     def is_primary(self) -> bool:
-        return self.warehouse_type == WarehouseType.PRIMARY
+        return self.warehouse_type in (WarehouseType.PRIMARY, WarehouseType.INDEPENDENT) or self.is_central
 
     @property
     def is_secondary(self) -> bool:
-        return self.warehouse_type == WarehouseType.SECONDARY
+        return not self.is_primary
+
+    @property
+    def is_branch_warehouse(self) -> bool:
+        return self.branch is not None or getattr(self, "dedicated_assignment", None) is not None
+
+    @property
+    def is_independent(self) -> bool:
+        return not self.is_branch_warehouse
+
+    @property
+    def dedicated_branch(self) -> Any:
+        assignment = getattr(self, "dedicated_assignment", None)
+        if assignment and assignment.is_active:
+            return assignment.branch
+        return self.branch
+
+    @property
+    def operational_branch(self) -> Any:
+        return self.branch or self.dedicated_branch
+
+    @property
+    def has_synchronized_branches(self) -> bool:
+        return self.warehouse_branches.filter(relationship_type="synchronized").exists()
+
+    @property
+    def has_linked_branches(self) -> bool:
+        return self.warehouse_branches.filter(relationship_type="linked_supply").exists()
+
+    @property
+    def synchronized_branches(self) -> Any:
+        return Branch.all_tenants.filter(
+            branch_warehouses__warehouse=self,
+            branch_warehouses__relationship_type="synchronized",
+        )
+
+    @property
+    def synchronized_branch_names(self) -> list[str]:
+        return list(
+            self.warehouse_branches.filter(relationship_type="synchronized")
+            .select_related("branch")
+            .values_list("branch__name", flat=True)
+        )
+
+    def clean(self) -> None:
+        super().clean()
+        if (
+            (self.warehouse_type in (WarehouseType.PRIMARY, WarehouseType.INDEPENDENT) or self.is_central)
+            and self.pk
+            and self.warehouse_branches.filter(relationship_type="synchronized").exists()
+        ):
+            raise ValidationError(
+                _("Warehouse '%(wh)s' has synchronized branches and cannot be designated as a Primary warehouse.")
+                % {"wh": self.name}
+            )
+        if self.branch:
+            qs = Warehouse.all_tenants.filter(organization=self.organization, branch=self.branch)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            conflict_wh = qs.first()
+            if conflict_wh:
+                raise ValidationError(
+                    _(
+                        "Branch '%(branch)s' is already operationally attached to warehouse '%(wh)s'. "
+                        "A branch can only be attached to one operational warehouse."
+                    )
+                    % {"branch": self.branch.name, "wh": conflict_wh.name}
+                )
 
     def get_sellable_location(self) -> Any:
         """Dedicated location for products sold through outlets."""
@@ -334,6 +444,11 @@ class Warehouse(TenantModel):
                 fields=["organization", "name"],
                 name="unique_org_warehouse_name",
             ),
+            models.UniqueConstraint(
+                fields=["organization", "branch"],
+                condition=models.Q(branch__isnull=False),
+                name="unique_org_warehouse_operational_branch",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -341,7 +456,7 @@ class Warehouse(TenantModel):
 
 
 class BranchWarehouse(TenantModel):
-    """Authorized warehouse linked to a branch with operational privileges and priority."""
+    """Authorized warehouse linked to a branch for shared inventory or replenishment supply."""
 
     branch = models.ForeignKey(
         "tenancy.Branch",
@@ -352,6 +467,16 @@ class BranchWarehouse(TenantModel):
         "tenancy.Warehouse",
         on_delete=models.CASCADE,
         related_name="warehouse_branches",
+    )
+    relationship_type = models.CharField(
+        _("relationship type"),
+        max_length=32,
+        choices=BranchWarehouseRelationshipType.choices,
+        default=BranchWarehouseRelationshipType.LINKED_SUPPLY,
+        help_text=_(
+            "Defines whether this branch shares inventory directly (synchronized) "
+            "or receives replenishment transfers (linked supply)."
+        ),
     )
     is_default = models.BooleanField(
         _("default warehouse for this branch"),
@@ -388,10 +513,161 @@ class BranchWarehouse(TenantModel):
                 fields=["organization", "branch", "warehouse"],
                 name="unique_org_branch_warehouse",
             ),
+            models.UniqueConstraint(
+                fields=["organization", "warehouse", "branch"],
+                condition=models.Q(relationship_type="linked_supply"),
+                name="unique_org_branch_warehouse_linked_supply",
+            ),
+        ]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.relationship_type == BranchWarehouseRelationshipType.SYNCHRONIZED:
+            if self.warehouse.warehouse_type in (WarehouseType.PRIMARY, WarehouseType.INDEPENDENT) or self.warehouse.is_central:
+                raise ValidationError(
+                    _("A Primary central warehouse cannot be configured as a synchronized shared-inventory warehouse. Only Secondary warehouses can be synchronized.")
+                )
+            linked_qs = BranchWarehouse.all_tenants.filter(
+                organization=self.organization,
+                warehouse=self.warehouse,
+                relationship_type=BranchWarehouseRelationshipType.LINKED_SUPPLY,
+            ).exclude(pk=self.pk)
+            if self.warehouse.branch_id:
+                linked_qs = linked_qs.exclude(branch_id=self.warehouse.branch_id)
+            if linked_qs.exists():
+                raise ValidationError(
+                    _("Warehouse '%(wh)s' already has linked supply routes. A warehouse cannot be both synchronized and linked.")
+                    % {"wh": self.warehouse.name}
+                )
+        elif self.relationship_type == BranchWarehouseRelationshipType.LINKED_SUPPLY:
+            sync_qs = BranchWarehouse.all_tenants.filter(
+                organization=self.organization,
+                warehouse=self.warehouse,
+                relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED,
+            ).exclude(pk=self.pk)
+            if self.warehouse.branch_id:
+                sync_qs = sync_qs.exclude(branch_id=self.warehouse.branch_id)
+            if sync_qs.exists():
+                raise ValidationError(
+                    _("Warehouse '%(wh)s' is configured as a synchronized shared-inventory warehouse. A warehouse cannot be both synchronized and linked.")
+                    % {"wh": self.warehouse.name}
+                )
+
+    def __str__(self) -> str:
+        return f"{self.branch.name} <-> {self.warehouse.name} ({self.get_relationship_type_display()})"
+
+
+class BranchWarehouseAssignment(TenantModel):
+    """Authoritative 1:1 dedication between a retail branch and its operational secondary warehouse."""
+
+    branch = models.OneToOneField(
+        "tenancy.Branch",
+        on_delete=models.CASCADE,
+        related_name="dedicated_assignment",
+        verbose_name=_("branch"),
+    )
+    warehouse = models.OneToOneField(
+        "tenancy.Warehouse",
+        on_delete=models.CASCADE,
+        related_name="dedicated_assignment",
+        verbose_name=_("dedicated warehouse"),
+    )
+    is_active = models.BooleanField(default=True)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = _("branch warehouse assignment")
+        verbose_name_plural = _("branch warehouse assignments")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "branch"],
+                name="unique_org_branch_dedicated_assignment",
+            ),
+            models.UniqueConstraint(
+                fields=["organization", "warehouse"],
+                name="unique_org_warehouse_dedicated_assignment",
+            ),
         ]
 
     def __str__(self) -> str:
-        return f"{self.branch.name} <-> {self.warehouse.name}"
+        return f"{self.branch.name} -> {self.warehouse.name} (Dedicated)"
+
+
+class WarehouseTransferPermission(TenantModel):
+    """Authorization policy for stock movements between warehouses."""
+
+    source_warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.CASCADE,
+        related_name="outbound_transfer_permissions",
+        verbose_name=_("source warehouse"),
+    )
+    destination_warehouse = models.ForeignKey(
+        "tenancy.Warehouse",
+        on_delete=models.CASCADE,
+        related_name="inbound_transfer_permissions",
+        verbose_name=_("destination warehouse"),
+    )
+    can_request = models.BooleanField(
+        _("allow replenishment requests"),
+        default=True,
+        help_text=_("Destination warehouse/branch can request stock from source warehouse."),
+    )
+    can_dispatch = models.BooleanField(
+        _("allow push distribution"),
+        default=True,
+        help_text=_("Source warehouse can dispatch/push stock to destination warehouse."),
+    )
+    priority = models.PositiveSmallIntegerField(
+        _("transfer priority"),
+        default=1,
+        help_text=_("Priority order when selecting replenishment sources (1 = primary)."),
+    )
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        verbose_name = _("warehouse transfer permission")
+        verbose_name_plural = _("warehouse transfer permissions")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "source_warehouse", "destination_warehouse"],
+                name="unique_org_wh_transfer_permission",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.source_warehouse.name} -> {self.destination_warehouse.name} (Priority {self.priority})"
+
+
+class WarehouseMigrationAuditReport(TenantModel):
+    """Persistent audit report logging ambiguous records detected during migration."""
+
+    entity_type = models.CharField(_("entity type"), max_length=64)
+    entity_id = models.IntegerField(_("entity id"))
+    entity_identifier = models.CharField(_("entity identifier"), max_length=128)
+    issue_type = models.CharField(_("issue type"), max_length=64)
+    description = models.TextField(_("description"))
+    suggested_action = models.TextField(_("suggested action"))
+    is_resolved = models.BooleanField(_("is resolved"), default=False)
+    resolved_at = models.DateTimeField(_("resolved at"), null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_warehouse_migration_audits",
+        verbose_name=_("resolved by"),
+    )
+
+    class Meta:
+        verbose_name = _("warehouse migration audit report")
+        verbose_name_plural = _("warehouse migration audit reports")
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"[{self.issue_type}] {self.entity_type} {self.entity_identifier}"
 
 
 def _default_invitation_token() -> str:

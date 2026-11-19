@@ -84,6 +84,31 @@ def transfer_list_view(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _validate_transfer_allowed(
+    request: HttpRequest,
+    org: Any,
+    *,
+    src_wh: Warehouse,
+    dest_wh: Warehouse,
+    src_loc: Any,
+    dest_loc: Any,
+) -> bool:
+    if src_wh.pk == dest_wh.pk and src_loc.pk == dest_loc.pk:
+        messages.error(request, _("Source and destination storage location cannot be the same."))
+        return False
+
+    if src_wh.pk != dest_wh.pk and not services.is_transfer_authorized(
+        organization=org, source_warehouse=src_wh, destination_warehouse=dest_wh
+    ):
+        messages.error(
+            request,
+            _("Stock transfer from '%(src)s' to '%(dest)s' requires configured transfer authorization.")
+            % {"src": src_wh.name, "dest": dest_wh.name},
+        )
+        return False
+    return True
+
+
 def _handle_transfer_create_post(
     request: HttpRequest, org: Any, form: WarehouseStockTransferForm
 ) -> HttpResponse | None:
@@ -135,8 +160,9 @@ def _handle_transfer_create_post(
             else dest_wh.get_sellable_location()
         )
 
-    if src_wh.pk == dest_wh.pk and src_loc.pk == dest_loc.pk:
-        messages.error(request, _("Source and destination storage location cannot be the same."))
+    if not _validate_transfer_allowed(
+        request, org, src_wh=src_wh, dest_wh=dest_wh, src_loc=src_loc, dest_loc=dest_loc
+    ):
         return None
 
     prod = get_object_or_404(Product.all_tenants, organization=org, pk=form.cleaned_data["product_id"])
@@ -296,15 +322,38 @@ def transfer_detail_view(request: HttpRequest, pk: int | None = None, public_id:
 @login_required
 @require_http_methods(["POST"])
 def transfer_approve_view(request: HttpRequest, pk: int) -> HttpResponse:
-    """Approve a pending stock transfer request."""
+    """Approve a pending stock transfer request with optional line-level quantities."""
     org = _get_org(request)
     if not _can_manage(request.user, org):
         raise PermissionDenied(_("You do not have permission to approve transfers."))
 
     trf = get_object_or_404(StockTransfer.all_tenants, organization=org, pk=pk)
+
+    line_approvals: list[dict[str, Any]] = []
+    for line in trf.lines.all():
+        approved_key = f"line_{line.id}_approved"
+        if approved_key in request.POST:
+            val = request.POST.get(approved_key, "").strip()
+            if val:
+                line_approvals.append({"line_id": line.id, "quantity_approved": val})
+
     try:
-        services.approve_stock_transfer(organization=org, transfer=trf, actor=request.user)
-        messages.success(request, _("Transfer %(num)s approved. Ready for dispatch.") % {"num": trf.transfer_number})
+        updated = services.approve_stock_transfer(
+            organization=org,
+            transfer=trf,
+            line_approvals=line_approvals or None,
+            actor=request.user,
+        )
+        if updated.status == TransferStatus.PARTIALLY_APPROVED:
+            messages.info(
+                request,
+                _("Transfer %(num)s partially approved. Ready for dispatch.") % {"num": trf.transfer_number},
+            )
+        else:
+            messages.success(
+                request,
+                _("Transfer %(num)s approved. Ready for dispatch.") % {"num": trf.transfer_number},
+            )
     except Exception as exc:
         messages.error(request, str(exc))
 

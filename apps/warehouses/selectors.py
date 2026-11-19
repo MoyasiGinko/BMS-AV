@@ -15,7 +15,18 @@ from apps.inventory.models import (
     WarehouseStorageType,
 )
 from apps.tenancy.models import Branch, Organization
-from apps.warehouses.models import BranchWarehouse, Warehouse
+from apps.warehouses.exceptions import (
+    ConflictingSalesWarehouseError,
+    SalesWarehouseConfigurationError,
+    UnconfiguredSalesWarehouseError,
+)
+from apps.warehouses.models import (
+    BranchWarehouse,
+    BranchWarehouseAssignment,
+    BranchWarehouseRelationshipType,
+    Warehouse,
+    WarehouseTransferPermission,
+)
 
 
 def _filter_by_id_or_uuid(qs: QuerySet[Any], ident: Any) -> Any | None:
@@ -114,6 +125,210 @@ def list_branch_warehouse_mappings(
     )
 
 
+def get_effective_sales_warehouse_for_branch(
+    *,
+    branch: Branch | None = None,
+    branch_id: int | None = None,
+    organization_id: int | None = None,
+    organization: Any = None,
+) -> Warehouse:
+    """Resolve the single authoritative sales warehouse for a branch.
+
+    Enforces strict conflict detection. Never falls back silently between multiple
+    conflicting candidates. Detects simultaneous operational and synchronized assignments.
+    """
+    org_id = organization_id if organization_id is not None else getattr(organization, "id", None)
+    if branch is None and branch_id is not None:
+        branch = Branch.all_tenants.filter(organization_id=org_id, id=branch_id).first()
+    if branch is None:
+        raise UnconfiguredSalesWarehouseError("Branch not specified or found.")
+
+    org_id = branch.organization_id
+
+    # 1. Check Operational Assignment (Warehouse.branch == branch)
+    operational_warehouses = list(
+        Warehouse.all_tenants.filter(
+            organization_id=org_id,
+            branch=branch,
+            is_active=True,
+        )
+    )
+
+    # 2. Check Synchronized Shared Inventory (BranchWarehouse with type="synchronized")
+    sync_wh_ids = BranchWarehouse.all_tenants.filter(
+        organization_id=org_id,
+        branch=branch,
+        relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED,
+        warehouse__is_active=True,
+    ).values_list("warehouse_id", flat=True)
+    synchronized_warehouses = list(
+        Warehouse.all_tenants.filter(
+            organization_id=org_id,
+            id__in=sync_wh_ids,
+            is_active=True,
+        )
+    )
+
+    # 1. Operational Warehouse takes precedence (authoritative on-premise operational facility)
+    if len(operational_warehouses) > 1:
+        names = ", ".join(w.name for w in operational_warehouses)
+        raise ConflictingSalesWarehouseError(
+            f"Branch '{branch.name}' is operationally assigned to multiple warehouses: [{names}]. "
+            "A branch can only be attached to one operational warehouse.",
+            branch_id=branch.pk,
+            conflicting_warehouse_ids=[w.pk for w in operational_warehouses],
+        )
+
+    if operational_warehouses:
+        return operational_warehouses[0]
+
+    # 2. Check Synchronized Shared Inventory (BranchWarehouse with type="synchronized")
+    if synchronized_warehouses:
+        default_sync = (
+            BranchWarehouse.all_tenants.filter(
+                organization_id=org_id,
+                branch=branch,
+                relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED,
+                warehouse__is_active=True,
+                is_default=True,
+            )
+            .select_related("warehouse")
+            .first()
+        )
+        if default_sync and default_sync.warehouse:
+            return default_sync.warehouse
+        return synchronized_warehouses[0]
+
+    # Check dedicated 1:1 assignment fallback if active
+    assignment = (
+        BranchWarehouseAssignment.all_tenants.filter(
+            organization_id=org_id,
+            branch=branch,
+            is_active=True,
+            warehouse__is_active=True,
+        )
+        .select_related("warehouse")
+        .first()
+    )
+    if assignment:
+        return assignment.warehouse
+
+    raise UnconfiguredSalesWarehouseError(
+        f"Branch '{branch.name}' has no operational warehouse or synchronized shared warehouse configured.",
+        branch_id=branch.pk,
+    )
+
+
+def list_synchronized_branches_for_warehouse(
+    *,
+    warehouse: Warehouse,
+) -> QuerySet[Branch]:
+    """Return all branches that share this warehouse's inventory directly."""
+    branch_ids = BranchWarehouse.all_tenants.filter(
+        organization_id=warehouse.organization_id,
+        warehouse=warehouse,
+        relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED,
+        branch__is_active=True,
+    ).values_list("branch_id", flat=True)
+    return Branch.all_tenants.filter(organization_id=warehouse.organization_id, id__in=branch_ids).order_by("name")
+
+
+def list_linked_branches_for_warehouse(
+    *,
+    warehouse: Warehouse,
+) -> QuerySet[Branch]:
+    """Return all branches that receive stock replenishment transfers from this warehouse."""
+    qs = BranchWarehouse.all_tenants.filter(
+        organization_id=warehouse.organization_id,
+        warehouse=warehouse,
+        relationship_type=BranchWarehouseRelationshipType.LINKED_SUPPLY,
+        branch__is_active=True,
+    )
+    if warehouse.branch_id:
+        qs = qs.exclude(branch_id=warehouse.branch_id)
+    branch_ids = qs.values_list("branch_id", flat=True)
+    return Branch.all_tenants.filter(organization_id=warehouse.organization_id, id__in=branch_ids).order_by("name")
+
+
+def list_supplying_warehouses_for_branch(
+    *,
+    branch: Branch,
+) -> QuerySet[Warehouse]:
+    """Return all warehouses that supply replenishment transfers to this branch."""
+    wh_ids = BranchWarehouse.all_tenants.filter(
+        organization_id=branch.organization_id,
+        branch=branch,
+        relationship_type=BranchWarehouseRelationshipType.LINKED_SUPPLY,
+        warehouse__is_active=True,
+    ).values_list("warehouse_id", flat=True)
+    return Warehouse.all_tenants.filter(organization_id=branch.organization_id, id__in=wh_ids).order_by("name")
+
+
+def get_warehouse_network_graph(
+    *,
+    organization_id: int | None = None,
+    organization: Any = None,
+) -> dict[str, Any]:
+    """Generate serializable node-edge data of warehouses, branches, and their 3 relationship types."""
+    org_id = organization_id if organization_id is not None else getattr(organization, "id", None)
+    warehouses = list(Warehouse.all_tenants.filter(organization_id=org_id, is_active=True).select_related("branch"))
+    branches = list(Branch.all_tenants.filter(organization_id=org_id, is_active=True))
+    mappings = list(
+        BranchWarehouse.all_tenants.filter(
+            organization_id=org_id,
+            warehouse__is_active=True,
+            branch__is_active=True,
+        ).select_related("branch", "warehouse")
+    )
+
+    nodes = []
+    edges = []
+
+    for wh in warehouses:
+        nodes.append({
+            "id": f"wh_{wh.id}",
+            "entity_id": wh.id,
+            "type": "warehouse",
+            "classification": wh.warehouse_type,
+            "is_primary": wh.is_primary,
+            "name": wh.name,
+            "code": wh.code,
+            "is_central": wh.is_central,
+        })
+        if wh.branch:
+            edges.append({
+                "source": f"wh_{wh.id}",
+                "target": f"br_{wh.branch_id}",
+                "relationship": "operational",
+                "label": "Operational Branch",
+            })
+
+    for br in branches:
+        nodes.append({
+            "id": f"br_{br.id}",
+            "entity_id": br.id,
+            "type": "branch",
+            "name": br.name,
+            "code": br.code,
+            "is_headquarters": br.is_headquarters,
+        })
+
+    for m in mappings:
+        if m.warehouse.branch_id == m.branch_id and m.relationship_type != BranchWarehouseRelationshipType.SYNCHRONIZED:
+            continue
+        edges.append({
+            "source": f"wh_{m.warehouse_id}",
+            "target": f"br_{m.branch_id}",
+            "relationship": m.relationship_type,
+            "label": m.get_relationship_type_display(),
+        })
+
+    return {
+        "nodes": nodes,
+        "edges": edges,
+    }
+
+
 def get_default_warehouse_for_branch(
     *,
     organization_id: int | None = None,
@@ -125,7 +340,7 @@ def get_default_warehouse_for_branch(
     org_id = organization_id if organization_id is not None else getattr(organization, "id", None)
     b_id = branch_id if branch_id is not None else getattr(branch, "id", None)
 
-    # 1. Check branch mapping marked as default
+    # 1. Check branch mapping explicitly marked as default
     mapping = (
         BranchWarehouse.all_tenants.filter(
             organization_id=org_id,
@@ -139,7 +354,32 @@ def get_default_warehouse_for_branch(
     if mapping:
         return mapping.warehouse
 
-    # 2. Fall back to co-located warehouse
+    # 2. Check authoritative effective sales warehouse (operational or synchronized)
+    try:
+        return get_effective_sales_warehouse_for_branch(
+            branch=branch,
+            branch_id=b_id,
+            organization_id=org_id,
+            organization=organization,
+        )
+    except SalesWarehouseConfigurationError:
+        pass
+
+    # 2. Check dedicated 1:1 assignment (single source of truth)
+    assignment = (
+        BranchWarehouseAssignment.all_tenants.filter(
+            organization_id=org_id,
+            branch_id=b_id,
+            is_active=True,
+            warehouse__is_active=True,
+        )
+        .select_related("warehouse")
+        .first()
+    )
+    if assignment:
+        return assignment.warehouse
+
+    # 3. Fall back to co-located warehouse
     co_located = Warehouse.all_tenants.filter(
         organization_id=org_id,
         branch_id=b_id,
@@ -148,12 +388,93 @@ def get_default_warehouse_for_branch(
     if co_located:
         return co_located
 
-    # 3. Fall back to organization default warehouse
+    # 4. Fall back to organization default warehouse
     return Warehouse.all_tenants.filter(
         organization_id=org_id,
         is_default=True,
         is_active=True,
     ).first()
+
+
+def get_branch_dedicated_warehouse(
+    *,
+    organization_id: int,
+    branch_id: int,
+) -> Warehouse | None:
+    """Return the dedicated 1:1 warehouse for a branch."""
+    return get_default_warehouse_for_branch(organization_id=organization_id, branch_id=branch_id)
+
+
+def list_authorized_transfer_sources(
+    *,
+    organization_id: int,
+    destination_warehouse_id: int,
+) -> QuerySet[Warehouse]:
+    """Return all warehouses authorized to transfer/supply stock to this destination warehouse."""
+    permitted_source_ids = list(
+        WarehouseTransferPermission.all_tenants.filter(
+            organization_id=organization_id,
+            destination_warehouse_id=destination_warehouse_id,
+            is_active=True,
+            can_request=True,
+        ).values_list("source_warehouse_id", flat=True)
+    )
+
+    # Also include any warehouses linked via BranchWarehouse as fallback
+    legacy_wh_ids = list(
+        BranchWarehouse.all_tenants.filter(
+            organization_id=organization_id,
+            warehouse__is_active=True,
+        ).filter(
+            Q(branch__dedicated_assignment__warehouse_id=destination_warehouse_id)
+            | Q(branch__co_located_warehouses__id=destination_warehouse_id)
+        ).values_list("warehouse_id", flat=True)
+    )
+
+    all_ids = set(permitted_source_ids) | set(legacy_wh_ids)
+    all_ids.discard(destination_warehouse_id)
+    return Warehouse.all_tenants.filter(
+        organization_id=organization_id,
+        id__in=all_ids,
+        is_active=True,
+    ).order_by("name")
+
+
+def list_authorized_transfer_destinations(
+    *,
+    organization_id: int,
+    source_warehouse_id: int,
+) -> QuerySet[Warehouse]:
+    """Return all warehouses authorized to receive stock from this source warehouse."""
+    permitted_dst_ids = WarehouseTransferPermission.all_tenants.filter(
+        organization_id=organization_id,
+        source_warehouse_id=source_warehouse_id,
+        is_active=True,
+        can_dispatch=True,
+    ).values_list("destination_warehouse_id", flat=True)
+
+    return Warehouse.all_tenants.filter(
+        organization_id=organization_id,
+        id__in=permitted_dst_ids,
+        is_active=True,
+    ).exclude(id=source_warehouse_id).order_by("name")
+
+
+def list_warehouse_transfer_permissions(
+    *,
+    organization_id: int,
+    source_warehouse_id: int | None = None,
+    destination_warehouse_id: int | None = None,
+) -> QuerySet[WarehouseTransferPermission]:
+    """List configured warehouse transfer permissions with prefetch."""
+    qs = WarehouseTransferPermission.all_tenants.filter(organization_id=organization_id).select_related(
+        "source_warehouse", "destination_warehouse"
+    )
+    if source_warehouse_id:
+        qs = qs.filter(source_warehouse_id=source_warehouse_id)
+    if destination_warehouse_id:
+        qs = qs.filter(destination_warehouse_id=destination_warehouse_id)
+    return qs.order_by("source_warehouse__name", "destination_warehouse__name")
 
 
 def list_branches_for_warehouse(

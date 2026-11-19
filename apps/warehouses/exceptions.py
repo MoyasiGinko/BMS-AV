@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from apps.core.exceptions import ValidationError
 
 
@@ -31,3 +33,40 @@ class LocationHasStockError(InvalidMovement):
 
     default_message = "Cannot delete location with active stock on hand. Move or adjust stock first."
     default_code = "location_has_stock"
+
+
+class SalesWarehouseConfigurationError(WarehouseError):
+    """Base exception for sales warehouse resolution errors."""
+
+    default_message = "Sales warehouse configuration error."
+    default_code = "sales_warehouse_configuration_error"
+
+
+class UnconfiguredSalesWarehouseError(SalesWarehouseConfigurationError):
+    """Raised when a branch has no operational or synchronized warehouse configured."""
+
+    default_message = "Branch has no operational warehouse or synchronized shared warehouse configured."
+    default_code = "unconfigured_sales_warehouse"
+
+    def __init__(self, message: str | None = None, *, branch_id: int | None = None, **kwargs: Any) -> None:
+        self.branch_id = branch_id
+        super().__init__(message or self.default_message, **kwargs)
+
+
+class ConflictingSalesWarehouseError(SalesWarehouseConfigurationError):
+    """Raised when a branch has multiple conflicting sales warehouses configured."""
+
+    default_message = "Branch has conflicting sales warehouse configurations."
+    default_code = "conflicting_sales_warehouse"
+
+    def __init__(
+        self,
+        message: str | None = None,
+        *,
+        branch_id: int | None = None,
+        conflicting_warehouse_ids: list[int] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.branch_id = branch_id
+        self.conflicting_warehouse_ids = conflicting_warehouse_ids or []
+        super().__init__(message or self.default_message, **kwargs)

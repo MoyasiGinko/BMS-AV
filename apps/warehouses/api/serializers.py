@@ -5,7 +5,12 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.inventory.models import InventoryLocation, LocationType, StockSupplyRoute
-from apps.warehouses.models import BranchWarehouse, Warehouse
+from apps.warehouses.models import (
+    BranchWarehouse,
+    BranchWarehouseRelationshipType,
+    Warehouse,
+    WarehouseType,
+)
 
 
 class WarehouseSerializer(serializers.ModelSerializer[Warehouse]):
@@ -14,6 +19,14 @@ class WarehouseSerializer(serializers.ModelSerializer[Warehouse]):
     id = serializers.UUIDField(source="public_id", read_only=True)
     branch_id = serializers.UUIDField(source="branch.public_id", read_only=True, allow_null=True)
     branch_name = serializers.CharField(source="branch.name", read_only=True, allow_null=True)
+    operational_branch_id = serializers.UUIDField(source="branch.public_id", read_only=True, allow_null=True)
+    operational_branch_name = serializers.CharField(source="branch.name", read_only=True, allow_null=True)
+    warehouse_type = serializers.CharField()
+    warehouse_type_display = serializers.CharField(source="get_warehouse_type_display", read_only=True)
+    is_primary = serializers.BooleanField(read_only=True)
+    is_secondary = serializers.BooleanField(read_only=True)
+    synchronized_branches = serializers.SerializerMethodField()
+    linked_branches = serializers.SerializerMethodField()
 
     class Meta:
         model = Warehouse
@@ -21,15 +34,46 @@ class WarehouseSerializer(serializers.ModelSerializer[Warehouse]):
             "id",
             "name",
             "code",
+            "warehouse_type",
+            "warehouse_type_display",
             "branch_id",
             "branch_name",
+            "operational_branch_id",
+            "operational_branch_name",
+            "is_primary",
+            "is_secondary",
             "is_central",
             "is_default",
             "is_active",
+            "synchronized_branches",
+            "linked_branches",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "branch_id", "branch_name", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "branch_id",
+            "branch_name",
+            "operational_branch_id",
+            "operational_branch_name",
+            "warehouse_type_display",
+            "is_primary",
+            "is_secondary",
+            "synchronized_branches",
+            "linked_branches",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_synchronized_branches(self, obj: Warehouse) -> list[dict[str, str]]:
+        from apps.warehouses import selectors  # noqa: PLC0415
+        branches = selectors.list_synchronized_branches_for_warehouse(warehouse=obj)
+        return [{"id": str(b.public_id), "name": b.name, "code": b.code} for b in branches]
+
+    def get_linked_branches(self, obj: Warehouse) -> list[dict[str, str]]:
+        from apps.warehouses import selectors  # noqa: PLC0415
+        branches = selectors.list_linked_branches_for_warehouse(warehouse=obj)
+        return [{"id": str(b.public_id), "name": b.name, "code": b.code} for b in branches]
 
 
 class WarehouseCreateSerializer(serializers.Serializer[dict[str, object]]):
@@ -37,6 +81,11 @@ class WarehouseCreateSerializer(serializers.Serializer[dict[str, object]]):
 
     name = serializers.CharField(max_length=128)
     code = serializers.CharField(max_length=32, required=False, allow_blank=True, default="")
+    warehouse_type = serializers.ChoiceField(
+        choices=WarehouseType.choices,
+        default=WarehouseType.PRIMARY,
+        required=False,
+    )
     branch_id = serializers.UUIDField(required=False, allow_null=True)
     is_central = serializers.BooleanField(default=False)
     is_default = serializers.BooleanField(default=False)
@@ -44,6 +93,32 @@ class WarehouseCreateSerializer(serializers.Serializer[dict[str, object]]):
     can_sell = serializers.BooleanField(default=True)
     can_replenish = serializers.BooleanField(default=True)
     priority = serializers.IntegerField(default=1, min_value=1)
+
+
+class WarehouseLinkBranchSerializer(serializers.Serializer[dict[str, object]]):
+    """Input serializer for linking a branch to a warehouse."""
+
+    branch_id = serializers.UUIDField()
+    relationship_type = serializers.ChoiceField(
+        choices=BranchWarehouseRelationshipType.choices,
+        default=BranchWarehouseRelationshipType.LINKED_SUPPLY,
+        required=False,
+    )
+    is_default = serializers.BooleanField(default=False)
+    can_sell = serializers.BooleanField(default=True)
+    can_replenish = serializers.BooleanField(default=True)
+    priority = serializers.IntegerField(default=1, min_value=1)
+
+
+class WarehouseUnlinkBranchSerializer(serializers.Serializer[dict[str, object]]):
+    """Input serializer for unlinking a branch from a warehouse."""
+
+    branch_id = serializers.UUIDField()
+    relationship_type = serializers.ChoiceField(
+        choices=BranchWarehouseRelationshipType.choices,
+        required=False,
+        allow_null=True,
+    )
 
 
 class BranchWarehouseSerializer(serializers.ModelSerializer[BranchWarehouse]):
@@ -54,6 +129,8 @@ class BranchWarehouseSerializer(serializers.ModelSerializer[BranchWarehouse]):
     branch_name = serializers.CharField(source="branch.name", read_only=True)
     warehouse_id = serializers.UUIDField(source="warehouse.public_id", read_only=True)
     warehouse_name = serializers.CharField(source="warehouse.name", read_only=True)
+    relationship_type = serializers.CharField(read_only=True)
+    relationship_type_display = serializers.CharField(source="get_relationship_type_display", read_only=True)
 
     class Meta:
         model = BranchWarehouse
@@ -63,9 +140,12 @@ class BranchWarehouseSerializer(serializers.ModelSerializer[BranchWarehouse]):
             "branch_name",
             "warehouse_id",
             "warehouse_name",
+            "relationship_type",
+            "relationship_type_display",
             "is_default",
             "can_sell",
             "can_replenish",
+            "is_storage_synced",
             "priority",
             "created_at",
             "updated_at",
@@ -76,6 +156,8 @@ class BranchWarehouseSerializer(serializers.ModelSerializer[BranchWarehouse]):
             "branch_name",
             "warehouse_id",
             "warehouse_name",
+            "relationship_type",
+            "relationship_type_display",
             "created_at",
             "updated_at",
         ]
@@ -86,6 +168,11 @@ class BranchWarehouseCreateSerializer(serializers.Serializer[dict[str, object]])
 
     branch_id = serializers.UUIDField()
     warehouse_id = serializers.UUIDField()
+    relationship_type = serializers.ChoiceField(
+        choices=BranchWarehouseRelationshipType.choices,
+        default=BranchWarehouseRelationshipType.LINKED_SUPPLY,
+        required=False,
+    )
     is_default = serializers.BooleanField(default=False)
     can_sell = serializers.BooleanField(default=True)
     can_replenish = serializers.BooleanField(default=True)

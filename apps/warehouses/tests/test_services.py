@@ -65,21 +65,29 @@ def test_create_warehouse_colocated_auto_links(warehouse_env):
     org = warehouse_env["org"]
     branch = warehouse_env["branch"]
 
+    # Main Depot Branch already has an operational warehouse ('Depot Stockroom')
+    with pytest.raises(ValidationError, match="already has an operational warehouse"):
+        wh_services.create_warehouse(
+            organization=org,
+            name="Depot Backroom Duplicate",
+            code="WH-DEPOT-BACK-DUP",
+            branch=branch,
+        )
+
+    # Creating a dedicated warehouse for a new unassigned branch succeeds
+    new_branch = Branch.all_tenants.create(
+        organization=org,
+        name="Depot Backroom Branch",
+        code="DEPOT-BACK-BR",
+    )
     colocated_wh = wh_services.create_warehouse(
         organization=org,
         name="Depot Backroom",
         code="WH-DEPOT-BACK",
-        branch=branch,
+        branch=new_branch,
     )
-    assert colocated_wh.branch == branch
-
-    mapping = BranchWarehouse.all_tenants.filter(
-        organization=org,
-        branch=branch,
-        warehouse=colocated_wh,
-    ).first()
-    assert mapping is not None
-    assert mapping.can_sell is True
+    assert colocated_wh.branch == new_branch
+    assert colocated_wh.operational_branch == new_branch
 
 
 @pytest.mark.django_db

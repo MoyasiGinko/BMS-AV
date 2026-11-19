@@ -27,14 +27,17 @@ class WarehouseForm(forms.Form):
         widget=forms.TextInput(attrs={"class": "form-input"}),
     )
     warehouse_type = forms.ChoiceField(
-        label=_("Warehouse Type"),
-        choices=WarehouseType.choices,
+        label=_("Warehouse Classification"),
+        choices=[
+            (WarehouseType.PRIMARY, _("Primary Warehouse (Central Hub / Distribution)")),
+            (WarehouseType.SECONDARY, _("Secondary Warehouse (Regional / Outlet Storage)")),
+        ],
         initial=WarehouseType.PRIMARY,
         required=False,
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     branch_id = forms.IntegerField(
-        label=_("Linked Branch / Outlet"),
+        label=_("Operational Branch"),
         required=False,
         widget=forms.Select(attrs={"class": "form-select"}),
     )
@@ -140,6 +143,62 @@ class BranchForm(forms.Form):
         required=False,
         initial=True,
         widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    warehouse_name = forms.CharField(
+        label=_("Dedicated Warehouse Name"),
+        max_length=128,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": _("Auto-generated if empty")}),
+    )
+    warehouse_code = forms.CharField(
+        label=_("Warehouse Code"),
+        max_length=32,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": _("Auto-generated if empty")}),
+    )
+    warehouse_address = forms.CharField(
+        label=_("Warehouse Address"),
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input", "placeholder": _("Defaults to branch address")}),
+    )
+
+
+class WarehouseTransferPermissionForm(forms.Form):
+    """Form to configure transfer authorization between warehouses."""
+
+    source_warehouse_id = forms.IntegerField(
+        label=_("Source Warehouse (From)"),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    destination_warehouse_id = forms.IntegerField(
+        label=_("Destination Warehouse (To)"),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    can_request = forms.BooleanField(
+        label=_("Allow Destination to Request Stock"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    can_dispatch = forms.BooleanField(
+        label=_("Allow Source to Dispatch Stock"),
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={"class": "form-checkbox"}),
+    )
+    priority = forms.IntegerField(
+        label=_("Priority (1 = Highest)"),
+        initial=1,
+        min_value=1,
+        max_value=99,
+        widget=forms.NumberInput(attrs={"class": "form-input"}),
+    )
+    notes = forms.CharField(
+        label=_("Notes"),
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-input"}),
     )
 
 

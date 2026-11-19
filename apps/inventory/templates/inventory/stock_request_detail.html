@@ -300,11 +300,28 @@
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted">
                   {% if is_inter_branch or is_return %}{% trans "Source Outlet" %}{% else %}{% trans "Fulfillment Source" %}{% endif %}
                 </span>
-                <div class="font-bold text-ink text-sm truncate">
-                  {% if is_inter_branch %}{{ stock_request.source_branch.name }}{% elif is_return %}{{ stock_request.source_branch.name }}{% else %}{{ stock_request.source_warehouse.name }}{% endif %}
+                <div class="font-bold text-ink text-sm truncate flex items-center gap-1.5">
+                  {% if is_inter_branch %}
+                    <span>{{ stock_request.source_branch.name }}</span>
+                  {% elif is_return %}
+                    <span>{{ stock_request.source_branch.name }}</span>
+                  {% else %}
+                    <span>{{ stock_request.source_warehouse.name }}</span>
+                    {% if stock_request.source_warehouse.is_independent %}
+                      <span class="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider bg-purple-500/15 text-purple-700 dark:text-purple-300 font-mono">{% trans "Independent Hub" %}</span>
+                    {% else %}
+                      <span class="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-mono">{% trans "Branch WH" %}</span>
+                    {% endif %}
+                  {% endif %}
                 </div>
                 <div class="text-xs text-muted truncate">
-                  {% if is_inter_branch %}{{ stock_request.source_location.name|default:stock_request.source_branch.name }}{% else %}{{ source_location_name|default:_("Primary Storage") }}{% endif %}
+                  {% if is_inter_branch %}
+                    {{ stock_request.source_location.name|default:stock_request.source_branch.name }}
+                  {% elif is_return %}
+                    {% if stock_request.source_branch.dedicated_warehouse %}{% trans "Dedicated Storage:" %} {{ stock_request.source_branch.dedicated_warehouse.name }}{% else %}{{ stock_request.source_branch.name }}{% endif %}
+                  {% else %}
+                    {{ source_location_name|default:_("Primary Storage") }}
+                  {% endif %}
                 </div>
               </div>
             </div>
@@ -322,11 +339,32 @@
                 <span class="text-[10px] font-bold uppercase tracking-wider text-muted">
                   {% if is_inter_branch %}{% trans "Destination Outlet" %}{% elif is_return %}{% trans "Destination Warehouse" %}{% else %}{% trans "Destination Outlet" %}{% endif %}
                 </span>
-                <div class="font-bold text-ink text-sm truncate">
-                  {% if is_inter_branch %}{{ stock_request.destination_branch.name }}{% elif is_return %}{{ stock_request.destination_warehouse.name }}{% else %}{{ target_branch.name }}{% endif %}
+                <div class="font-bold text-ink text-sm truncate flex items-center gap-1.5 sm:justify-end">
+                  {% if is_inter_branch %}
+                    <span>{{ stock_request.destination_branch.name }}</span>
+                  {% elif is_return %}
+                    <span>{{ stock_request.destination_warehouse.name }}</span>
+                    {% if stock_request.destination_warehouse.is_independent %}
+                      <span class="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider bg-purple-500/15 text-purple-700 dark:text-purple-300 font-mono">{% trans "Independent Hub" %}</span>
+                    {% else %}
+                      <span class="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase tracking-wider bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-mono">{% trans "Inspection Depot" %}</span>
+                    {% endif %}
+                  {% else %}
+                    <span>{{ target_branch.name }}</span>
+                  {% endif %}
                 </div>
                 <div class="text-xs text-muted truncate">
-                  {% if is_inter_branch %}{{ stock_request.destination_location.name|default:stock_request.destination_branch.name }}{% else %}{{ destination_location_name|default:_("Fulfillment Intake Area") }}{% endif %}
+                  {% if is_inter_branch %}
+                    {{ stock_request.destination_location.name|default:stock_request.destination_branch.name }}
+                  {% elif is_return %}
+                    {{ destination_location_name|default:_("Inspection & Quarantine Area") }}
+                  {% else %}
+                    {% if target_branch.dedicated_warehouse %}
+                      <span class="font-medium text-indigo-600 dark:text-indigo-400">↳ {% trans "Dedicated WH:" %} {{ target_branch.dedicated_warehouse.name }}</span>
+                    {% else %}
+                      {{ destination_location_name|default:_("Fulfillment Intake Area") }}
+                    {% endif %}
+                  {% endif %}
                 </div>
               </div>
               <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 sm:order-last">

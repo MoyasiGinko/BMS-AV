@@ -984,19 +984,68 @@ def submit_stock_transfer(
     return target_transfer
 
 
+def _build_approval_map(
+    line_approvals: list[dict[str, Any]] | dict[int, Decimal | float | str] | None,
+) -> dict[int, Decimal]:
+    """Normalize line approval input into a dictionary of line_id -> Decimal quantity."""
+    if not line_approvals:
+        return {}
+    if isinstance(line_approvals, dict):
+        return {int(k): Decimal(str(v)) for k, v in line_approvals.items()}
+    return {
+        item["line_id"]: Decimal(str(item["quantity_approved"]))
+        for item in line_approvals
+        if "line_id" in item and "quantity_approved" in item
+    }
+
+
 @transaction.atomic
 def approve_stock_transfer(
     *,
-    organization: Organization,
+    organization: Organization | None = None,
     transfer: StockTransfer | int,
+    line_approvals: list[dict[str, Any]] | dict[int, Decimal | float | str] | None = None,
     actor: Any = None,
+    approved_by: Any = None,
 ) -> StockTransfer:
-    """Approve a pending stock transfer."""
-    target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
+    """Approve a pending stock transfer with support for partial approval per line."""
+    act = actor or approved_by
+    if organization is None:
+        if isinstance(transfer, StockTransfer):
+            org = transfer.organization
+        else:
+            t_obj = StockTransfer.all_tenants.filter(pk=transfer).first()
+            if not t_obj:
+                raise TransferError("Stock transfer not found.")
+            org = t_obj.organization
+    else:
+        org = organization
+
+    target_transfer = _resolve_transfer_for_update(organization=org, transfer=transfer)
     if target_transfer.status not in {TransferStatus.DRAFT, TransferStatus.PENDING_APPROVAL}:
         raise TransferError(f"Cannot approve transfer in status '{target_transfer.get_status_display()}'.")
-    target_transfer.status = TransferStatus.APPROVED
-    target_transfer.approved_by = actor
+
+    approval_map = _build_approval_map(line_approvals)
+    is_partial = False
+    for line in target_transfer.lines.select_for_update():
+        if line.id in approval_map:
+            approved_qty = approval_map[line.id]
+            requested_qty = line.quantity_requested or line.quantity
+            if approved_qty < DECIMAL_ZERO:
+                raise ValidationError(_("Approved quantity cannot be negative."))
+            if approved_qty > requested_qty:
+                raise ValidationError(_("Approved quantity cannot exceed requested quantity."))
+            if approved_qty < requested_qty:
+                is_partial = True
+            line.quantity_approved = approved_qty
+            line.quantity = approved_qty
+            line.save(update_fields=["quantity_approved", "quantity", "updated_at"])
+        else:
+            line.quantity_approved = line.quantity
+            line.save(update_fields=["quantity_approved", "updated_at"])
+
+    target_transfer.status = TransferStatus.PARTIALLY_APPROVED if is_partial else TransferStatus.APPROVED
+    target_transfer.approved_by = act
     target_transfer.approved_at = timezone.now()
     target_transfer.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
     return target_transfer
@@ -1055,7 +1104,11 @@ def dispatch_stock_transfer(
 ) -> StockTransfer:
     """Dispatch a stock transfer: issues inventory from source and puts into destination in-transit."""
     target_transfer = _resolve_transfer_for_update(organization=organization, transfer=transfer)
-    if target_transfer.status not in {TransferStatus.DRAFT, TransferStatus.APPROVED}:
+    if target_transfer.status not in {
+        TransferStatus.DRAFT,
+        TransferStatus.APPROVED,
+        TransferStatus.PARTIALLY_APPROVED,
+    }:
         raise TransferError(f"Cannot dispatch transfer in status '{target_transfer.get_status_display()}'.")
 
     _check_branch_permission(

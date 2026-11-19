@@ -28,8 +28,16 @@ from apps.inventory.models import (
 from apps.tenancy.models import Branch, Organization
 from apps.warehouses.exceptions import (
     InvalidMovement,
+    SalesWarehouseConfigurationError,
 )
-from apps.warehouses.models import BranchWarehouse, Warehouse, WarehouseType
+from apps.warehouses.models import (
+    BranchWarehouse,
+    BranchWarehouseAssignment,
+    BranchWarehouseRelationshipType,
+    Warehouse,
+    WarehouseTransferPermission,
+    WarehouseType,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +45,44 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Warehouse CRUD & Branch Fulfillment Allocation
 # ---------------------------------------------------------------------------
+
+
+def _resolve_warehouse_branch_link(
+    organization: Organization, warehouse_type: str, branch: Branch | None
+) -> tuple[str, Branch | None]:
+    """Validate and resolve warehouse classification and branch association."""
+    if warehouse_type == WarehouseType.BRANCH:
+        warehouse_type = WarehouseType.SECONDARY
+    elif warehouse_type == WarehouseType.INDEPENDENT:
+        warehouse_type = WarehouseType.PRIMARY
+
+    if branch is not None:
+        existing_wh = (
+            Warehouse.all_tenants.filter(
+                organization=organization,
+                branch=branch,
+            )
+            .first()
+        )
+        if not existing_wh:
+            bwa = (
+                BranchWarehouseAssignment.all_tenants.filter(
+                    organization=organization,
+                    branch=branch,
+                    is_active=True,
+                )
+                .select_related("warehouse")
+                .first()
+            )
+            if bwa:
+                existing_wh = bwa.warehouse
+        if existing_wh:
+            raise ValidationError(
+                _("Branch '%(branch)s' already has an operational warehouse ('%(wh)s'). A branch can only be attached to one operational warehouse.")
+                % {"branch": branch.name, "wh": existing_wh.name}
+            )
+
+    return warehouse_type, branch
 
 
 @transaction.atomic
@@ -54,15 +100,16 @@ def create_warehouse(
     priority: int = 1,
     actor: Any = None,
 ) -> Warehouse:
-    """Create a primary or secondary warehouse with automatic sellable and internal storage locations."""
+    """Create a primary or secondary warehouse with optional operational branch assignment."""
     clean_name = name.strip()
     if not clean_name:
         raise ValidationError(_("Warehouse name cannot be blank."))
 
+    warehouse_type, branch = _resolve_warehouse_branch_link(organization, warehouse_type, branch)
+
     if is_default:
         Warehouse.all_tenants.filter(organization=organization, is_default=True).update(is_default=False)
 
-    # Align is_central with warehouse_type
     effective_central = is_central or (warehouse_type == WarehouseType.PRIMARY and branch is None)
 
     warehouse = Warehouse.objects.create(
@@ -77,18 +124,18 @@ def create_warehouse(
     )
 
     if branch is not None:
-        BranchWarehouse.objects.create(
+        BranchWarehouseAssignment.objects.update_or_create(
             organization=organization,
             branch=branch,
-            warehouse=warehouse,
-            is_default=is_default,
-            can_sell=can_sell,
-            can_replenish=can_replenish,
-            priority=priority,
-            created_by=actor if getattr(actor, "is_authenticated", False) else None,
+            defaults={
+                "warehouse": warehouse,
+                "is_active": True,
+                "notes": "Assigned via warehouse creation",
+                "created_by": actor if getattr(actor, "is_authenticated", False) else None,
+            },
         )
 
-    # Automatically ensure both Sellable Products and Goods & Ingredients storage locations exist
+    # Automatically ensure storage locations exist
     ensure_warehouse_storage_locations(warehouse)
 
     logger.info("Warehouse created: %s (%s, %s) in %s", warehouse.name, warehouse.code, warehouse.warehouse_type, organization.slug)
@@ -123,13 +170,24 @@ def update_warehouse(
     if not clean_name:
         raise ValidationError(_("Warehouse name cannot be blank."))
 
+    target_type = warehouse_type if warehouse_type is not None else warehouse.warehouse_type
+    target_central = is_central
+    if (
+        (target_type in (WarehouseType.PRIMARY, WarehouseType.INDEPENDENT) or target_central)
+        and warehouse.pk
+        and warehouse.warehouse_branches.filter(relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED).exists()
+    ):
+        raise ValidationError(
+            _("Warehouse '%(wh)s' has synchronized branches and cannot be designated as a Primary warehouse.")
+            % {"wh": warehouse.name}
+        )
+
     if is_default and not warehouse.is_default:
         Warehouse.all_tenants.filter(organization=warehouse.organization, is_default=True).update(
             is_default=False
         )
 
     warehouse.name = clean_name
-    warehouse.branch = branch
     warehouse.code = code.strip().upper()
     if warehouse_type is not None:
         warehouse.warehouse_type = warehouse_type
@@ -138,22 +196,15 @@ def update_warehouse(
     warehouse.is_active = is_active
     warehouse.save()
 
-    if branch is not None:
-        BranchWarehouse.all_tenants.get_or_create(
+    if branch != warehouse.branch:
+        assign_operational_branch(
             organization=warehouse.organization,
-            branch=branch,
             warehouse=warehouse,
-            defaults={
-                "is_default": is_default,
-                "can_sell": True,
-                "can_replenish": True,
-                "priority": 1,
-            },
+            branch=branch,
+            actor=actor,
         )
 
-    # Ensure both storage locations exist and sync active status
     ensure_warehouse_storage_locations(warehouse)
-
     logger.info("Warehouse updated: %s (%s)", warehouse.name, warehouse.pk)
     return warehouse
 
@@ -475,7 +526,7 @@ def delete_warehouse(
     organization: Organization | None = None,
     actor: Any = None,
 ) -> None:
-    """Delete warehouse with safety guard against default warehouse removal."""
+    """Delete warehouse with safety guard against default warehouse removal and active branch dedication."""
     if warehouse is None:
         if organization is None or warehouse_id is None:
             raise ValidationError(_("Either warehouse or both organization and warehouse_id must be provided."))
@@ -486,6 +537,12 @@ def delete_warehouse(
 
     if warehouse.is_default:
         raise ValidationError(_("Cannot delete default warehouse."))
+
+    if warehouse.is_branch_warehouse:
+        assignment = getattr(warehouse, "dedicated_assignment", None)
+        if (assignment and assignment.branch.is_active) or (warehouse.branch and warehouse.branch.is_active):
+            raise ValidationError(_("A dedicated warehouse cannot be deleted while its branch remains active."))
+
     warehouse.delete()
     logger.info("Warehouse deleted: %s", warehouse.name)
 
@@ -571,12 +628,596 @@ def unlink_warehouse_from_branch(
     actor: Any = None,
 ) -> None:
     """Remove authorization link between a branch and a warehouse."""
+    if warehouse.branch_id == branch.pk:
+        assign_operational_branch(
+            organization=organization,
+            warehouse=warehouse,
+            branch=None,
+            actor=actor,
+        )
+
     BranchWarehouse.all_tenants.filter(
         organization=organization,
         branch=branch,
         warehouse=warehouse,
     ).delete()
+    BranchWarehouseAssignment.all_tenants.filter(
+        organization=organization,
+        branch=branch,
+        warehouse=warehouse,
+    ).delete()
     logger.info("Unlinked branch %s from warehouse %s", branch.code, warehouse.code)
+
+
+@transaction.atomic
+def assign_operational_branch(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    branch: Branch | None,
+    actor: Any = None,
+) -> Warehouse:
+    """Assign, reassign, or detach the authoritative operational branch for a warehouse (1:0..1)."""
+    from apps.pos.models import POSShift, POSShiftStatus  # noqa: PLC0415
+
+    current_op = warehouse.branch or getattr(warehouse, "operational_branch", None)
+    if current_op is not None and current_op != branch:
+        open_shift_records = (
+            POSShift.all_tenants.filter(
+                organization=organization,
+                register__branch=current_op,
+                status=POSShiftStatus.OPEN,
+            )
+            .select_related("register")
+        )
+        if open_shift_records.exists():
+            reg_names = ", ".join(f"'{s.register.name}'" for s in open_shift_records[:3])
+            raise ValidationError(
+                _(
+                    "Cannot reassign or detach operational branch '%(branch)s' while it has open POS cashier shifts on register(s) %(registers)s. "
+                    "Close all active shifts first."
+                )
+                % {"branch": current_op.name, "registers": reg_names}
+            )
+
+    if branch is not None:
+        if branch.organization_id != organization.pk or warehouse.organization_id != organization.pk:
+            raise ValidationError(_("Branch and Warehouse must belong to the same organization."))
+
+        # Check if branch is already operational at another warehouse
+        existing_wh = (
+            Warehouse.all_tenants.filter(
+                organization=organization,
+                branch=branch,
+            )
+            .exclude(pk=warehouse.pk)
+            .first()
+        )
+        if not existing_wh:
+            bwa = (
+                BranchWarehouseAssignment.all_tenants.filter(
+                    organization=organization,
+                    branch=branch,
+                    is_active=True,
+                )
+                .exclude(warehouse=warehouse)
+                .select_related("warehouse")
+                .first()
+            )
+            if bwa:
+                existing_wh = bwa.warehouse
+        if existing_wh:
+            raise ValidationError(
+                _(
+                    "Branch '%(branch)s' is already operational at warehouse '%(wh)s'. Detach it there first."
+                )
+                % {"branch": branch.name, "wh": existing_wh.name}
+            )
+
+        # Check if branch is already synchronized with this warehouse
+        if warehouse.pk and warehouse.warehouse_branches.filter(
+            branch=branch, relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED
+        ).exists():
+            raise ValidationError(
+                _(
+                    "Branch '%(branch)s' is already synchronized with this warehouse and cannot be assigned as operational."
+                )
+                % {"branch": branch.name}
+            )
+
+        # Check if branch is already linked to this warehouse
+        if warehouse.pk and warehouse.warehouse_branches.filter(
+            branch=branch, relationship_type=BranchWarehouseRelationshipType.LINKED_SUPPLY
+        ).exists():
+            raise ValidationError(
+                _(
+                    "Branch '%(branch)s' is already linked to this warehouse and cannot be assigned as operational."
+                )
+                % {"branch": branch.name}
+            )
+
+    # Clear previous 1:1 dedication records to avoid unique constraint violations
+    BranchWarehouseAssignment.all_tenants.filter(
+        organization=organization,
+        warehouse=warehouse,
+    ).delete()
+
+    if branch is not None:
+        BranchWarehouseAssignment.all_tenants.filter(
+            organization=organization,
+            branch=branch,
+        ).delete()
+        BranchWarehouseAssignment.all_tenants.create(
+            organization=organization,
+            branch=branch,
+            warehouse=warehouse,
+            is_active=True,
+            created_by=actor if getattr(actor, "is_authenticated", False) else None,
+        )
+
+    warehouse.branch = branch
+    warehouse.save(update_fields=["branch", "updated_at"])
+
+    # Ensure storage locations reflect the operational branch
+    ensure_warehouse_storage_locations(warehouse)
+
+    logger.info(
+        "Assigned operational branch %s to warehouse %s",
+        getattr(branch, "name", "None"),
+        warehouse.name,
+    )
+    return warehouse
+
+
+@transaction.atomic
+def add_synchronized_branch(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    branch: Branch,
+    actor: Any = None,
+) -> BranchWarehouse:
+    """Synchronize a branch with a warehouse so it shares the warehouse's inventory directly."""
+    if branch.organization_id != organization.pk or warehouse.organization_id != organization.pk:
+        raise ValidationError(_("Branch and Warehouse must belong to the same organization."))
+
+    # Constraint: A Primary central warehouse cannot be synchronized
+    if warehouse.warehouse_type in (WarehouseType.PRIMARY, WarehouseType.INDEPENDENT) or warehouse.is_central:
+        raise ValidationError(
+            _("A Primary central warehouse cannot be configured as a synchronized shared-inventory warehouse. Only Secondary warehouses can be synchronized.")
+        )
+
+    # Constraint: Cannot synchronize if the branch is already the operational branch of this warehouse
+    current_op = warehouse.branch or getattr(warehouse, "operational_branch", None)
+    if current_op is not None and current_op.pk == branch.pk:
+        raise ValidationError(
+            _("Branch '%(branch)s' is already connected to this warehouse as its operational branch and cannot be synchronized.")
+            % {"branch": branch.name}
+        )
+
+    # Constraint: Cannot synchronize if the branch is already linked to this warehouse
+    if warehouse.warehouse_branches.filter(
+        branch=branch, relationship_type=BranchWarehouseRelationshipType.LINKED_SUPPLY
+    ).exists():
+        raise ValidationError(
+            _("Branch '%(branch)s' is already linked to this warehouse and cannot be synchronized.")
+            % {"branch": branch.name}
+        )
+
+    # Constraint: Already synchronized with this warehouse
+    if warehouse.warehouse_branches.filter(
+        branch=branch, relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED
+    ).exists():
+        raise ValidationError(
+            _("Branch '%(branch)s' is already synchronized with this warehouse.")
+            % {"branch": branch.name}
+        )
+
+    # Constraint: A warehouse cannot be both synchronized and linked
+    linked_routes = warehouse.warehouse_branches.filter(
+        relationship_type=BranchWarehouseRelationshipType.LINKED_SUPPLY
+    )
+    if current_op is not None:
+        linked_routes = linked_routes.exclude(branch=current_op)
+    if linked_routes.exists():
+        raise ValidationError(
+            _("Warehouse '%(wh)s' already has linked supply routes. A warehouse cannot be both synchronized and linked.")
+            % {"wh": warehouse.name}
+        )
+
+    mapping, _created = BranchWarehouse.all_tenants.update_or_create(
+        organization=organization,
+        branch=branch,
+        warehouse=warehouse,
+        defaults={
+            "relationship_type": BranchWarehouseRelationshipType.SYNCHRONIZED,
+            "is_storage_synced": True,
+            "can_sell": True,
+            "can_replenish": False,
+            "created_by": actor if getattr(actor, "is_authenticated", False) else None,
+        },
+    )
+    logger.info("Synchronized branch %s with warehouse %s", branch.name, warehouse.name)
+    return mapping
+
+
+@transaction.atomic
+def add_linked_branch(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    branch: Branch,
+    actor: Any = None,
+) -> BranchWarehouse:
+    """Link a supplying warehouse to a branch for replenishment transfers."""
+    if branch.organization_id != organization.pk or warehouse.organization_id != organization.pk:
+        raise ValidationError(_("Branch and Warehouse must belong to the same organization."))
+
+    # Constraint: Cannot link if the branch is already the operational branch of this warehouse
+    current_op = warehouse.branch or getattr(warehouse, "operational_branch", None)
+    if current_op is not None and current_op.pk == branch.pk:
+        raise ValidationError(
+            _("Branch '%(branch)s' is already connected to this warehouse as its operational branch and cannot be linked.")
+            % {"branch": branch.name}
+        )
+
+    # Constraint: Cannot link if the branch is already synchronized with this warehouse
+    if warehouse.warehouse_branches.filter(
+        branch=branch, relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED
+    ).exists():
+        raise ValidationError(
+            _("Branch '%(branch)s' is already synchronized with this warehouse and cannot be linked.")
+            % {"branch": branch.name}
+        )
+
+    # Constraint: Already linked to this warehouse
+    if warehouse.warehouse_branches.filter(
+        branch=branch, relationship_type=BranchWarehouseRelationshipType.LINKED_SUPPLY
+    ).exists():
+        raise ValidationError(
+            _("Branch '%(branch)s' is already linked to this warehouse.")
+            % {"branch": branch.name}
+        )
+
+    # Constraint: A warehouse cannot be both synchronized and linked
+    sync_routes = warehouse.warehouse_branches.filter(
+        relationship_type=BranchWarehouseRelationshipType.SYNCHRONIZED
+    )
+    if current_op is not None:
+        sync_routes = sync_routes.exclude(branch=current_op)
+    if sync_routes.exists():
+        raise ValidationError(
+            _("Warehouse '%(wh)s' is configured as a synchronized shared-inventory warehouse. A warehouse cannot be both synchronized and linked.")
+            % {"wh": warehouse.name}
+        )
+
+    # Mandatory guard: Branch must have its own dedicated/operational secondary warehouse distinct from this warehouse
+    from apps.warehouses.selectors import get_effective_sales_warehouse_for_branch  # noqa: PLC0415
+
+    try:
+        dest_wh = get_effective_sales_warehouse_for_branch(branch=branch)
+    except SalesWarehouseConfigurationError as exc:
+        raise ValidationError(
+            _(
+                "Cannot link branch '%(branch)s' for stock supply: "
+                "Branch must have an active operational or dedicated Secondary Warehouse first."
+            )
+            % {"branch": branch.name}
+        ) from exc
+
+    if dest_wh.pk == warehouse.pk:
+        raise ValidationError(
+            _(
+                "Cannot link warehouse '%(wh)s' as a replenishment supplier to branch '%(branch)s' "
+                "because this warehouse is already the branch's sales warehouse. Self-replenishment is invalid."
+            )
+            % {"wh": warehouse.name, "branch": branch.name}
+        )
+
+    mapping, _created = BranchWarehouse.all_tenants.update_or_create(
+        organization=organization,
+        branch=branch,
+        warehouse=warehouse,
+        defaults={
+            "relationship_type": BranchWarehouseRelationshipType.LINKED_SUPPLY,
+            "is_storage_synced": False,
+            "can_sell": False,
+            "can_replenish": True,
+            "created_by": actor if getattr(actor, "is_authenticated", False) else None,
+        },
+    )
+
+    # Automatically grant transfer permission between supplying warehouse and branch's dedicated warehouse
+    grant_transfer_permission(
+        organization=organization,
+        source_warehouse=warehouse,
+        destination_warehouse=dest_wh,
+        can_request=True,
+        can_dispatch=True,
+        actor=actor,
+    )
+
+    logger.info(
+        "Linked supplying warehouse %s to branch %s (destination: %s)",
+        warehouse.name,
+        branch.name,
+        dest_wh.name,
+    )
+    return mapping
+
+
+@transaction.atomic
+def remove_branch_relationship(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    branch: Branch,
+    relationship_type: str,
+    actor: Any = None,
+) -> None:
+    """Safely detach an operational, synchronized, or linked relationship."""
+    from apps.pos.models import POSShift, POSShiftStatus  # noqa: PLC0415
+
+    if relationship_type == "operational":
+        assign_operational_branch(
+            organization=organization,
+            warehouse=warehouse,
+            branch=None,
+            actor=actor,
+        )
+    else:
+        if relationship_type == BranchWarehouseRelationshipType.SYNCHRONIZED:
+            open_shifts = POSShift.all_tenants.filter(
+                organization=organization,
+                register__branch=branch,
+                status=POSShiftStatus.OPEN,
+            ).exists()
+            if open_shifts:
+                raise ValidationError(
+                    _(
+                        "Cannot detach synchronized branch '%(branch)s' while it has open POS cashier shifts."
+                    )
+                    % {"branch": branch.name}
+                )
+
+        BranchWarehouse.all_tenants.filter(
+            organization=organization,
+            warehouse=warehouse,
+            branch=branch,
+            relationship_type=relationship_type,
+        ).delete()
+
+
+@transaction.atomic
+def assign_branch_dedicated_warehouse(
+    *,
+    organization: Organization,
+    branch: Branch,
+    warehouse: Warehouse,
+    actor: Any = None,
+) -> BranchWarehouseAssignment:
+    """Assign or reassign a dedicated 1:1 warehouse to a branch."""
+    if branch.organization_id != organization.pk or warehouse.organization_id != organization.pk:
+        raise ValidationError(_("Branch and Warehouse must belong to the same organization."))
+
+    if warehouse.warehouse_type == WarehouseType.INDEPENDENT or warehouse.is_independent:
+        raise ValidationError(_("Only BRANCH warehouses can be assigned as a branch dedicated warehouse."))
+
+    existing_assignment = BranchWarehouseAssignment.all_tenants.filter(
+        organization=organization, warehouse=warehouse
+    ).exclude(branch=branch).first()
+    if existing_assignment:
+        raise ValidationError(
+            _("Warehouse '%(wh)s' is already assigned as the dedicated warehouse for branch '%(br)s'.")
+            % {"wh": warehouse.name, "br": existing_assignment.branch.name}
+        )
+
+    assignment, _created = BranchWarehouseAssignment.objects.update_or_create(
+        organization=organization,
+        branch=branch,
+        defaults={
+            "warehouse": warehouse,
+            "is_active": True,
+            "created_by": actor if getattr(actor, "is_authenticated", False) else None,
+        },
+    )
+
+    set_branch_default_warehouse(
+        organization=organization,
+        branch=branch,
+        warehouse=warehouse,
+        actor=actor,
+    )
+    return assignment
+
+
+@transaction.atomic
+def grant_transfer_permission(
+    *,
+    organization: Organization,
+    source_warehouse: Warehouse,
+    destination_warehouse: Warehouse,
+    can_request: bool = True,
+    can_dispatch: bool = True,
+    priority: int = 1,
+    notes: str = "",
+    actor: Any = None,
+) -> WarehouseTransferPermission:
+    """Grant stock transfer authorization between two warehouses."""
+    if source_warehouse.pk == destination_warehouse.pk:
+        raise ValidationError(_("Source and destination warehouses cannot be the same."))
+    if source_warehouse.organization_id != organization.pk or destination_warehouse.organization_id != organization.pk:
+        raise ValidationError(_("Both warehouses must belong to the active organization."))
+
+    perm, _created = WarehouseTransferPermission.objects.update_or_create(
+        organization=organization,
+        source_warehouse=source_warehouse,
+        destination_warehouse=destination_warehouse,
+        defaults={
+            "can_request": can_request,
+            "can_dispatch": can_dispatch,
+            "priority": priority,
+            "is_active": True,
+            "notes": notes.strip(),
+            "created_by": actor if getattr(actor, "is_authenticated", False) else None,
+        },
+    )
+    return perm
+
+
+@transaction.atomic
+def revoke_transfer_permission(
+    *,
+    organization: Organization,
+    source_warehouse: Warehouse,
+    destination_warehouse: Warehouse,
+    actor: Any = None,
+) -> None:
+    """Revoke stock transfer authorization between two warehouses."""
+    WarehouseTransferPermission.all_tenants.filter(
+        organization=organization,
+        source_warehouse=source_warehouse,
+        destination_warehouse=destination_warehouse,
+    ).delete()
+
+
+def is_transfer_permitted(
+    *,
+    organization: Organization,
+    source_warehouse: Warehouse,
+    destination_warehouse: Warehouse,
+) -> bool:
+    """Check whether stock transfer is authorized between source and destination warehouses."""
+    if source_warehouse.pk == destination_warehouse.pk:
+        return True
+    return WarehouseTransferPermission.all_tenants.filter(
+        organization=organization,
+        source_warehouse=source_warehouse,
+        destination_warehouse=destination_warehouse,
+        is_active=True,
+    ).exists()
+
+
+def get_warehouse_connected_branches(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+) -> list[Branch]:
+    """Return all branches connected to this warehouse (operational, dedicated, or linked/sync)."""
+    branches: list[Branch] = []
+    seen_ids: set[int] = set()
+
+    op_b_id = warehouse.branch_id
+    if hasattr(warehouse, "dedicated_assignment") and warehouse.dedicated_assignment:
+        op_b_id = op_b_id or getattr(warehouse.dedicated_assignment, "branch_id", None)
+
+    if op_b_id:
+        b_obj = Branch.all_tenants.filter(organization=organization, pk=op_b_id).first()
+        if b_obj:
+            branches.append(b_obj)
+            seen_ids.add(b_obj.pk)
+
+    linked_branches = Branch.all_tenants.filter(
+        organization=organization,
+        branch_warehouses__warehouse=warehouse,
+        is_active=True,
+    )
+    for b in linked_branches:
+        if b.pk not in seen_ids:
+            branches.append(b)
+            seen_ids.add(b.pk)
+
+    return branches
+
+
+def transfer_requires_authorization(
+    *,
+    organization: Organization,
+    source_warehouse: Warehouse,
+    destination_warehouse: Warehouse,
+) -> bool:
+    """
+    Return True if either warehouse or any associated branch has transfer authorization enabled.
+    By default, warehouse-to-warehouse transfers do NOT require transfer authorization.
+    """
+    if (
+        getattr(source_warehouse, "requires_transfer_authorization", False)
+        or getattr(destination_warehouse, "requires_transfer_authorization", False)
+    ):
+        return True
+
+    # Check branches associated with source warehouse
+    for b in get_warehouse_connected_branches(organization=organization, warehouse=source_warehouse):
+        if getattr(b, "requires_transfer_authorization", False):
+            return True
+
+    # Check branches associated with destination warehouse
+    for b in get_warehouse_connected_branches(organization=organization, warehouse=destination_warehouse):
+        if getattr(b, "requires_transfer_authorization", False):
+            return True
+
+    return False
+
+
+def is_transfer_authorized(
+    *,
+    organization: Organization,
+    source_warehouse: Warehouse,
+    destination_warehouse: Warehouse,
+) -> bool:
+    """
+    Check whether stock transfer is authorized between source and destination warehouses.
+    By default, all warehouses can transfer without authorization.
+    Only if an involved branch (or warehouse) has transfer authorization enabled
+    is an explicit WarehouseTransferPermission required.
+    """
+    if source_warehouse.pk == destination_warehouse.pk:
+        return True
+
+    if not transfer_requires_authorization(
+        organization=organization,
+        source_warehouse=source_warehouse,
+        destination_warehouse=destination_warehouse,
+    ):
+        return True
+
+    return is_transfer_permitted(
+        organization=organization,
+        source_warehouse=source_warehouse,
+        destination_warehouse=destination_warehouse,
+    )
+
+
+@transaction.atomic
+def set_branch_transfer_authorization_requirement(
+    *,
+    organization: Organization,
+    branch: Branch,
+    requires_authorization: bool,
+    actor: Any = None,
+) -> Branch:
+    """Configure whether a branch requires transfer authorization for stock movements."""
+    if branch.organization_id != organization.pk:
+        raise ValidationError(_("Branch must belong to the active organization."))
+    branch.requires_transfer_authorization = requires_authorization
+    branch.save(update_fields=["requires_transfer_authorization", "updated_at"])
+    return branch
+
+
+@transaction.atomic
+def set_warehouse_transfer_authorization_requirement(
+    *,
+    organization: Organization,
+    warehouse: Warehouse,
+    requires_authorization: bool,
+    actor: Any = None,
+) -> Warehouse:
+    """Configure whether a warehouse requires transfer authorization for stock movements."""
+    if warehouse.organization_id != organization.pk:
+        raise ValidationError(_("Warehouse must belong to the active organization."))
+    warehouse.requires_transfer_authorization = requires_authorization
+    warehouse.save(update_fields=["requires_transfer_authorization", "updated_at"])
+    return warehouse
 
 
 @transaction.atomic

@@ -23,12 +23,15 @@
     isCentral: false,
     isDefault: false,
     isActive: true,
-    linkBranchId: '{{ branches.0.pk|default:"" }}',
-    linkWhId: '{{ warehouses.0.pk|default:"" }}',
+    linkBranchId: '{{ branches.0.pk|default:'' }}',
+    linkWhId: '{{ warehouses.0.pk|default:'' }}',
     linkIsDefault: false,
     linkCanSell: true,
     linkCanReplenish: true,
     linkPriority: 1,
+    searchQuery: '',
+    typeFilter: 'all',
+    showTopology: false,
     openCreate() {
       this.isEdit = false;
       this.whId = '';
@@ -47,20 +50,29 @@
       this.name = name;
       this.code = code;
       this.branchId = branchId || '';
-      this.warehouseType = whType || (isCentral ? 'primary' : 'secondary');
+      this.warehouseType = (whType === 'secondary' || whType === 'branch') ? 'secondary' : 'primary';
       this.isCentral = isCentral;
       this.isDefault = isDef;
       this.isActive = isActive;
       this.modalOpen = true;
     },
     openLinkModal() {
-      this.linkBranchId = '{{ branches.0.pk|default:"" }}';
-      this.linkWhId = '{{ warehouses.0.pk|default:"" }}';
+      this.linkBranchId = '{{ branches.0.pk|default:'' }}';
+      this.linkWhId = '{{ warehouses.0.pk|default:'' }}';
       this.linkIsDefault = false;
       this.linkCanSell = true;
       this.linkCanReplenish = true;
       this.linkPriority = 1;
       this.linkModalOpen = true;
+    },
+    matchesFilter(whName, whCode, whBranch, whType, isOp) {
+      const q = this.searchQuery.toLowerCase().trim();
+      const matchesSearch = !q || whName.toLowerCase().includes(q) || whCode.toLowerCase().includes(q) || whBranch.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+      if (this.typeFilter === 'primary') return whType === 'primary';
+      if (this.typeFilter === 'secondary') return whType === 'secondary';
+      if (this.typeFilter === 'operational') return isOp === 'true';
+      return true;
     }
   }"
   class="space-y-6 w-full"
@@ -68,9 +80,9 @@
   <!-- Page Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
     <div>
-      <h1 class="text-xl font-bold text-[var(--text)]">{% trans "Warehouses" %}</h1>
-      <p class="text-xs text-[var(--text-muted)] mt-1">
-        {% trans "Storage facilities, central depots, and branch fulfillment mappings." %}
+      <h1 class="text-xl font-bold text-[var(--text)] tracking-tight">{% trans "Warehouses" %}</h1>
+      <p class="text-xs text-[var(--text-muted)] mt-0.5">
+        {% trans "Storage facilities, central distribution hubs, and branch inventory connections." %}
       </p>
     </div>
     {% if can_manage %}
@@ -78,9 +90,9 @@
         <button
           type="button"
           @click="openLinkModal()"
-          class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors shadow-xs"
+          class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors shadow-xs"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          <svg class="w-4 h-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
           {% trans "Link warehouse" %}
         </button>
         <button
@@ -88,113 +100,257 @@
           @click="openCreate()"
           class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)] transition-colors shadow-xs"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
           {% trans "Create warehouse" %}
         </button>
       </div>
     {% endif %}
   </div>
 
-  <!-- Metric Overview Cards -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Total facilities" %}</div>
-      <div class="text-2xl font-bold text-[var(--text)] mt-1.5">{{ total_warehouses }}</div>
-      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Storage facilities in organization" %}</div>
+  <!-- Migration Audit Banner (Only when unresolved ambiguous records exist) -->
+  {% if audit_reports %}
+    <div class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-[var(--text)] space-y-3 shadow-xs">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-5 h-5 text-amber-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <div>
+            <h3 class="text-sm font-bold text-amber-900 dark:text-amber-100">{% trans "Warehouse & Branch Migration Review Required" %}</h3>
+            <p class="text-xs text-amber-700/90 dark:text-amber-300/80 mt-0.5">
+              {% trans "Some historical records had ambiguous relationship configurations and were preserved safely for manual review." %}
+            </p>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/20 text-amber-800 dark:text-amber-200">
+          {{ audit_reports|length }} {% trans "items" %}
+        </span>
+      </div>
+      <div class="divide-y divide-amber-500/20 border-t border-amber-500/20 pt-2 text-xs space-y-2">
+        {% for rep in audit_reports %}
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
+            <div>
+              <span class="font-bold text-amber-900 dark:text-amber-100">{{ rep.warehouse_name }}</span>
+              <span class="text-amber-700 dark:text-amber-300 font-mono text-[11px] ml-1">({{ rep.issue_type }})</span>:
+              <span class="text-[var(--text-muted)] ml-1">{{ rep.reason }}</span>
+            </div>
+            {% if can_manage %}
+              <form method="post" action="{% url 'warehouses:list' %}" class="inline shrink-0">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="resolve_audit">
+                <input type="hidden" name="report_id" value="{{ rep.pk }}">
+                <button type="submit" class="px-2.5 py-1 text-2xs font-semibold rounded-md bg-amber-600 text-white hover:bg-amber-700 transition">
+                  {% trans "Acknowledge" %}
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
     </div>
-    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Primary warehouses" %}</div>
-      <div class="text-2xl font-bold text-blue-600 mt-1.5">{{ primary_count }}</div>
-      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Regional distribution hubs & outlet suppliers" %}</div>
+  {% endif %}
+
+  <!-- Minimal KPI Metric Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Total Facilities -->
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs transition-shadow hover:shadow-sm">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-[var(--text-muted)]">{% trans "Total Facilities" %}</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+      </div>
+      <div class="text-2xl font-bold text-[var(--text)] font-mono tabular-nums mt-1.5">{{ total_warehouses }}</div>
+      <div class="text-xs text-[var(--text-subtle)] mt-1 flex items-center gap-1.5">
+        <span class="font-medium text-emerald-600">{{ active_count }} {% trans "active" %}</span>
+        <span>&bull;</span>
+        <span>{{ primary_count|add:secondary_count }} {% trans "classified" %}</span>
+      </div>
     </div>
-    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs">
-      <div class="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Secondary warehouses" %}</div>
-      <div class="text-2xl font-bold text-amber-600 mt-1.5">{{ secondary_count }}</div>
-      <div class="text-[11px] text-[var(--text-muted)] mt-0.5">{% trans "Feeder depots, overflow & transit stock" %}</div>
+
+    <!-- Primary Hubs -->
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs transition-shadow hover:shadow-sm">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-[var(--text-muted)]">{% trans "Primary Hubs" %}</span>
+        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+      </div>
+      <div class="text-2xl font-bold text-[var(--text)] font-mono tabular-nums mt-1.5">{{ primary_count }}</div>
+      <div class="text-xs text-[var(--text-subtle)] mt-1">{% trans "Central distribution facilities" %}</div>
+    </div>
+
+    <!-- Secondary Depots -->
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs transition-shadow hover:shadow-sm">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-[var(--text-muted)]">{% trans "Secondary Depots" %}</span>
+        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+      </div>
+      <div class="text-2xl font-bold text-[var(--text)] font-mono tabular-nums mt-1.5">{{ secondary_count }}</div>
+      <div class="text-xs text-[var(--text-subtle)] mt-1">{% trans "Regional & transit depots" %}</div>
+    </div>
+
+    <!-- Connected Outlets -->
+    <div class="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xs transition-shadow hover:shadow-sm">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-[var(--text-muted)]">{% trans "Branch Relationships" %}</span>
+        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+      </div>
+      <div class="text-2xl font-bold text-[var(--text)] font-mono tabular-nums mt-1.5">{{ operational_branches_count }}</div>
+      <div class="text-xs text-[var(--text-subtle)] mt-1 flex items-center gap-1.5">
+        <span class="font-medium text-indigo-600">{{ operational_branches_count }} {% trans "dedicated" %}</span>
+        <span>&bull;</span>
+        <span>{{ synchronized_branches_count }} {% trans "synchronized" %}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] shadow-xs">
+    <!-- Instant Search -->
+    <div class="relative flex-1 max-w-md">
+      <svg class="w-4 h-4 text-[var(--text-muted)] absolute inset-y-0 start-3 my-auto pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+      </svg>
+      <input
+        type="search"
+        x-model="searchQuery"
+        placeholder="{% trans 'Filter warehouses by name, code, or branch...' %}"
+        class="w-full ps-9 pe-4 py-1.5 text-xs rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] focus:outline-none focus:border-[var(--brand-600)] transition-colors"
+      >
+    </div>
+
+    <!-- Filter Segment Buttons -->
+    <div class="flex items-center gap-1.5 overflow-x-auto text-xs shrink-0">
+      <button
+        type="button"
+        @click="typeFilter = 'all'"
+        :class="typeFilter === 'all' ? 'bg-[var(--surface-2)] text-[var(--text)] font-bold border-[var(--border-strong)]' : 'text-[var(--text-muted)] hover:text-[var(--text)] border-transparent'"
+        class="px-3 py-1.5 rounded-lg border transition-colors cursor-pointer"
+      >
+        {% trans "All" %} ({{ total_warehouses }})
+      </button>
+      <button
+        type="button"
+        @click="typeFilter = 'primary'"
+        :class="typeFilter === 'primary' ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 font-bold border-blue-500/30' : 'text-[var(--text-muted)] hover:text-[var(--text)] border-transparent'"
+        class="px-3 py-1.5 rounded-lg border transition-colors cursor-pointer"
+      >
+        {% trans "Primary Hubs" %} ({{ primary_count }})
+      </button>
+      <button
+        type="button"
+        @click="typeFilter = 'secondary'"
+        :class="typeFilter === 'secondary' ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold border-amber-500/30' : 'text-[var(--text-muted)] hover:text-[var(--text)] border-transparent'"
+        class="px-3 py-1.5 rounded-lg border transition-colors cursor-pointer"
+      >
+        {% trans "Secondary Depots" %} ({{ secondary_count }})
+      </button>
+      <button
+        type="button"
+        @click="typeFilter = 'operational'"
+        :class="typeFilter === 'operational' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-bold border-emerald-500/30' : 'text-[var(--text-muted)] hover:text-[var(--text)] border-transparent'"
+        class="px-3 py-1.5 rounded-lg border transition-colors cursor-pointer"
+      >
+        {% trans "Branch Dedicated" %} ({{ operational_branches_count }})
+      </button>
     </div>
   </div>
 
   <!-- Warehouses Directory Table -->
-  <div class="space-y-3">
-    <div class="flex items-center justify-between">
-      <h2 class="text-sm font-bold uppercase tracking-wider text-[var(--text)]">{% trans "Facilities directory" %}</h2>
-    </div>
-
-    <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-sm">
-          <thead>
-            <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
-              <th class="py-3 px-4">{% trans "Facility & code" %}</th>
-              <th class="py-3 px-4">{% trans "Classification" %}</th>
-              <th class="py-3 px-4">{% trans "Assigned branch / outlet" %}</th>
-              <th class="py-3 px-4">{% trans "Dual storage zones" %}</th>
-              <th class="py-3 px-4">{% trans "Status" %}</th>
-              <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--border)]">
-            {% for wh in warehouses %}
-              <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
-                <td class="py-3 px-4 font-semibold text-[var(--text)]">
-                  <a href="{% url 'warehouses:detail' warehouse_id=wh.pk %}" class="hover:text-[var(--brand-600)] transition-colors">
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
+    <div tabindex="0" role="region" aria-label="{% trans 'Warehouses directory' %}" class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-[var(--border)] bg-[var(--surface-2)]/60 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
+            <th scope="col" class="py-3 px-4">{% trans "Facility" %}</th>
+            <th scope="col" class="py-3 px-4">{% trans "Classification" %}</th>
+            <th scope="col" class="py-3 px-4">{% trans "Branch Connection" %}</th>
+            <th scope="col" class="py-3 px-4">{% trans "Storage" %}</th>
+            <th scope="col" class="py-3 px-4">{% trans "Status" %}</th>
+            <th scope="col" class="py-3 px-4 text-right">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {% for wh in warehouses %}
+            <tr
+              x-show="matchesFilter('{{ wh.name|escapejs }}', '{{ wh.code|escapejs }}', '{{ wh.operational_branch.name|default:''|escapejs }}', '{% if wh.is_primary or wh.warehouse_type == 'primary' or wh.warehouse_type == 'independent' %}primary{% else %}secondary{% endif %}', '{{ wh.operational_branch|yesno:'true,false' }}')"
+              class="hover:bg-[var(--surface-2)]/40 transition-colors"
+            >
+              <!-- Facility & Code -->
+              <td class="py-3 px-4">
+                <div class="flex items-center gap-2">
+                  <a href="{% url 'warehouses:detail' warehouse_id=wh.pk %}" class="font-semibold text-[var(--text)] hover:text-[var(--brand-600)] transition-colors">
                     {{ wh.name }}
                   </a>
-                  <div class="text-xs text-[var(--text-muted)] font-mono mt-0.5">{{ wh.code }}</div>
-                </td>
-                <td class="py-3 px-4 text-xs">
-                  {% if wh.is_primary %}
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
-                      {% trans "Primary Warehouse" %}
-                    </span>
-                  {% else %}
-                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                      {% trans "Secondary Warehouse" %}
-                    </span>
-                  {% endif %}
-                </td>
-                <td class="py-3 px-4 text-xs">
-                  {% if wh.branch %}
-                    <span class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      {{ wh.branch.name }}
-                    </span>
-                  {% else %}
-                    <span class="text-[var(--text-subtle)] italic">{% trans "Standalone (No linked outlet)" %}</span>
-                  {% endif %}
-                </td>
-                <td class="py-3 px-4 text-xs">
-                  <div class="flex flex-col gap-1">
-                    <span class="inline-flex items-center gap-1.5 text-2xs font-mono text-[var(--text)]">
-                      <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                      <strong class="font-bold">{% trans "Sellable" %}:</strong> {{ wh.code }}-SELL
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 text-2xs font-mono text-[var(--text-muted)]">
-                      <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                      <strong class="font-bold">{% trans "Internal" %}:</strong> {{ wh.code }}-INTERNAL
-                    </span>
-                  </div>
-                </td>
-                <td class="py-3 px-4">
-                  {% if wh.is_active %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                      {% trans "Active" %}
-                    </span>
-                  {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-zinc-500/10 text-zinc-600 border border-zinc-500/20">
-                      {% trans "Inactive" %}
-                    </span>
-                  {% endif %}
                   {% if wh.is_default %}
-                    <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-3xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]">
                       {% trans "Default" %}
                     </span>
                   {% endif %}
-                </td>
-                <td class="py-3 px-4 text-right space-x-2">
+                </div>
+                <div class="text-xs text-[var(--text-muted)] font-mono mt-0.5">{{ wh.code }}</div>
+              </td>
+
+              <!-- Classification -->
+              <td class="py-3 px-4 text-xs">
+                {% if wh.is_primary or wh.warehouse_type == 'primary' or wh.warehouse_type == 'independent' %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    {% trans "Primary Hub" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    {% trans "Secondary Depot" %}
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Branch Connection -->
+              <td class="py-3 px-4 text-xs">
+                {% if wh.operational_branch %}
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    <span>{% trans "Operational" %}: <strong>{{ wh.operational_branch.name }}</strong></span>
+                  </div>
+                {% elif wh.synchronized_branches.exists %}
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                    <span>{% trans "Synchronized" %}: {{ wh.synchronized_branches.count }} {% trans "outlet(s)" %}</span>
+                  </div>
+                {% elif wh.linked_branches.exists %}
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20">
+                    <span>{% trans "Supplying" %}: {{ wh.linked_branches.count }} {% trans "outlet(s)" %}</span>
+                  </div>
+                {% else %}
+                  <span class="text-xs text-[var(--text-subtle)]">{% trans "Autonomous (Independent Hub)" %}</span>
+                {% endif %}
+              </td>
+
+              <!-- Storage -->
+              <td class="py-3 px-4 text-xs text-[var(--text-muted)]">
+                <span class="inline-flex items-center gap-1 text-xs">
+                  <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                  <span>{% trans "Sellable & Internal" %}</span>
+                </span>
+              </td>
+
+              <!-- Status -->
+              <td class="py-3 px-4">
+                {% if wh.is_active %}
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    {% trans "Active" %}
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--surface-2)] text-[var(--text-subtle)] border border-[var(--border)]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                    {% trans "Inactive" %}
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Actions -->
+              <td class="py-3 px-4 text-right">
+                <div class="inline-flex items-center gap-3">
                   <a
                     href="{% url 'warehouses:detail' warehouse_id=wh.pk %}"
-                    class="text-xs text-[var(--text-muted)] hover:text-[var(--text)] font-medium"
+                    class="text-xs font-medium text-[var(--brand-600)] hover:underline"
                   >
                     {% trans "View" %}
                   </a>
@@ -202,122 +358,126 @@
                     <button
                       type="button"
                       @click="openEdit('{{ wh.pk }}', '{{ wh.name|escapejs }}', '{{ wh.code|escapejs }}', '{{ wh.branch_id|default:'' }}', {{ wh.is_central|yesno:'true,false' }}, {{ wh.is_default|yesno:'true,false' }}, {{ wh.is_active|yesno:'true,false' }}, '{{ wh.warehouse_type }}')"
-                      class="text-xs text-[var(--brand-600)] hover:underline font-medium"
+                      class="text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
                     >
                       {% trans "Edit" %}
                     </button>
-                    {% if not wh.is_default %}
+                    {% if not wh.is_default and not wh.operational_branch %}
                       <form method="post" action="{% url 'warehouses:list' %}" class="inline-block" onsubmit="return confirm('{% trans "Delete this warehouse?" %}');">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="warehouse_id" value="{{ wh.pk }}">
-                        <button type="submit" class="text-xs text-red-500 hover:underline font-medium">
+                        <button type="submit" class="text-xs font-medium text-rose-500 hover:text-rose-600 transition-colors cursor-pointer">
                           {% trans "Delete" %}
                         </button>
                       </form>
                     {% endif %}
                   {% endif %}
-                </td>
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="6" class="py-8 px-4 text-center text-sm text-[var(--text-muted)]">
-                  {% trans "No warehouses yet." %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="py-8 px-4 text-center text-sm text-[var(--text-muted)]">
+                {% trans "No warehouses yet." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- Branch Fulfillment Mappings Section -->
-  <div class="space-y-3 pt-4">
-    <div class="flex items-center justify-between">
+  <!-- Network Relationships & Topology Guide (Collapsible) -->
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xs space-y-4">
+    <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
       <div>
-        <h2 class="text-sm font-bold uppercase tracking-wider text-[var(--text)]">{% trans "Branch fulfillment mappings" %}</h2>
+        <h2 class="text-sm font-bold text-[var(--text)]">{% trans "Warehouse & Branch Relationships" %}</h2>
         <p class="text-xs text-[var(--text-muted)] mt-0.5">
-          {% trans "Authorized warehouses for each branch to sell from and request stock." %}
+          {% trans "Overview of operational assignments, live stock synchronization, and transfer supply routes." %}
+        </p>
+      </div>
+      <button
+        type="button"
+        @click="showTopology = !showTopology"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:bg-[var(--surface-3)] transition-colors cursor-pointer"
+      >
+        <span x-text="showTopology ? '{% trans "Hide details" %}' : '{% trans "Show details" %}'"></span>
+        <svg class="w-3.5 h-3.5 transition-transform" :class="showTopology ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+    </div>
+
+    <!-- 3 Core Architecture Concepts (Minimal & Clear) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="p-3.5 rounded-lg border border-emerald-500/20 bg-emerald-50/5 dark:bg-emerald-950/10 space-y-1">
+        <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          {% trans "Operational (1:1)" %}
+        </div>
+        <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+          {% trans "A dedicated warehouse permanently linked to exactly one branch. The branch conducts all sales and daily inventory on this location." %}
+        </p>
+      </div>
+
+      <div class="p-3.5 rounded-lg border border-indigo-500/20 bg-indigo-50/5 dark:bg-indigo-950/10 space-y-1">
+        <div class="flex items-center gap-2 text-xs font-bold text-indigo-800 dark:text-indigo-200">
+          <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+          {% trans "Synchronized (1:N)" %}
+        </div>
+        <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+          {% trans "Direct shared inventory pool. Multiple outlets or cash registers deduct directly from this warehouse in real time." %}
+        </p>
+      </div>
+
+      <div class="p-3.5 rounded-lg border border-cyan-500/20 bg-cyan-50/5 dark:bg-cyan-950/10 space-y-1">
+        <div class="flex items-center gap-2 text-xs font-bold text-cyan-800 dark:text-cyan-200">
+          <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
+          {% trans "Linked Supply Routes" %}
+        </div>
+        <p class="text-xs text-[var(--text-muted)] leading-relaxed">
+          {% trans "Stock replenishment via formal transfer requests. Products are dispatched from the hub and received into the branch warehouse." %}
         </p>
       </div>
     </div>
 
-    <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xs">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse text-sm">
-          <thead>
-            <tr class="border-b border-[var(--border)] bg-[var(--surface-2)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-subtle)]">
-              <th class="py-3 px-4">{% trans "Branch" %}</th>
-              <th class="py-3 px-4">{% trans "Warehouse" %}</th>
-              <th class="py-3 px-4">{% trans "Branch default" %}</th>
-              <th class="py-3 px-4">{% trans "Can sell" %}</th>
-              <th class="py-3 px-4">{% trans "Can replenish" %}</th>
-              <th class="py-3 px-4">{% trans "Priority" %}</th>
-              {% if can_manage %}
-                <th class="py-3 px-4 text-right">{% trans "Actions" %}</th>
-              {% endif %}
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--border)]">
-            {% for m in mappings %}
-              <tr class="hover:bg-[var(--surface-2)]/50 transition-colors">
-                <td class="py-3 px-4 font-semibold text-[var(--text)]">
-                  {{ m.branch.name }}
-                </td>
-                <td class="py-3 px-4 text-[var(--text)]">
-                  {{ m.warehouse.name }}
-                </td>
-                <td class="py-3 px-4">
-                  {% if m.is_default %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                      {% trans "Default" %}
-                    </span>
-                  {% else %}
-                    <span class="text-xs text-[var(--text-subtle)]">—</span>
-                  {% endif %}
-                </td>
-                <td class="py-3 px-4 text-xs">
-                  {% if m.can_sell %}
-                    <span class="text-emerald-600 font-medium">{% trans "Yes" %}</span>
-                  {% else %}
-                    <span class="text-[var(--text-subtle)]">{% trans "No" %}</span>
-                  {% endif %}
-                </td>
-                <td class="py-3 px-4 text-xs">
-                  {% if m.can_replenish %}
-                    <span class="text-emerald-600 font-medium">{% trans "Yes" %}</span>
-                  {% else %}
-                    <span class="text-[var(--text-subtle)]">{% trans "No" %}</span>
-                  {% endif %}
-                </td>
-                <td class="py-3 px-4 font-mono text-xs text-[var(--text-muted)]">
-                  {{ m.priority }}
-                </td>
-                {% if can_manage %}
-                  <td class="py-3 px-4 text-right">
-                    <form method="post" action="{% url 'warehouses:list' %}" class="inline-block" onsubmit="return confirm('{% trans "Remove this branch warehouse mapping?" %}');">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="unlink_branch">
-                      <input type="hidden" name="branch_id" value="{{ m.branch_id }}">
-                      <input type="hidden" name="warehouse_id" value="{{ m.warehouse_id }}">
-                      <button type="submit" class="text-xs text-red-500 hover:underline font-medium">
-                        {% trans "Unlink" %}
-                      </button>
-                    </form>
-                  </td>
+    <!-- Expanded Network Graph -->
+    <div x-show="showTopology" x-cloak class="pt-3 border-t border-[var(--border)] space-y-3">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)]">{% trans "Active Connection Topology" %}</h3>
+      {% if network_graph.links %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {% for link in network_graph.links %}
+            <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/60 flex items-center justify-between text-xs">
+              <div class="min-w-0">
+                <div class="font-semibold text-[var(--text)] truncate">{{ link.source_name }}</div>
+                <div class="text-[10px] text-[var(--text-muted)] font-mono">{% trans "Warehouse Hub" %}</div>
+              </div>
+              <div class="px-2 text-center shrink-0">
+                {% if link.relationship == 'operational' %}
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                    &harr; {% trans "Operational" %}
+                  </span>
+                {% elif link.relationship == 'synchronized' %}
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
+                    &harr; {% trans "Synchronized" %}
+                  </span>
+                {% else %}
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20">
+                    &rarr; {% trans "Supply Route" %}
+                  </span>
                 {% endif %}
-              </tr>
-            {% empty %}
-              <tr>
-                <td colspan="7" class="py-8 px-4 text-center text-sm text-[var(--text-muted)]">
-                  {% trans "No branch warehouse mappings yet." %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+              </div>
+              <div class="min-w-0 text-right">
+                <div class="font-semibold text-[var(--text)] truncate">{{ link.target_name }}</div>
+                <div class="text-[10px] text-[var(--text-muted)] font-mono">{% trans "Branch Outlet" %}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="py-4 text-center text-xs text-[var(--text-muted)]">
+          {% trans "No branch relationships or supply routes mapped yet." %}
+        </div>
+      {% endif %}
     </div>
   </div>
 
@@ -325,8 +485,7 @@
   <div
     x-show="modalOpen"
     x-cloak
-    style="display: none;"
-    class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+    class="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
   >
     <div
       @click.away="modalOpen = false"
@@ -344,67 +503,65 @@
         <input type="hidden" name="warehouse_id" :value="whId">
 
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">
             {% trans "Warehouse name" %} <span class="text-red-500">*</span>
           </label>
-          <input type="text" name="name" x-model="name" required class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          <input type="text" name="name" x-model="name" required class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:outline-none focus:border-[var(--brand-600)]">
         </div>
 
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1.5">
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1.5">
             {% trans "Warehouse Classification" %} <span class="text-red-500">*</span>
           </label>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <label class="p-3 rounded-xl border cursor-pointer flex flex-col gap-1 transition-all"
-                   :class="warehouseType === 'primary' ? 'border-blue-500 bg-blue-50/20 dark:bg-blue-950/20 text-blue-900 dark:text-blue-100' : 'border-[var(--border)] bg-[var(--surface-2)] text-muted'">
+                   :class="warehouseType === 'primary' || warehouseType === 'independent' ? 'border-blue-500 bg-blue-50/20 dark:bg-blue-950/20 text-blue-900 dark:text-blue-100 shadow-xs' : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]'">
               <div class="flex items-center gap-2">
                 <input type="radio" name="warehouse_type" value="primary" x-model="warehouseType" class="text-blue-600">
                 <span class="font-bold text-xs">{% trans "Primary Warehouse" %}</span>
               </div>
-              <span class="text-3xs text-[var(--text-muted)]">{% trans "Main regional supply hub, supplies multiple outlets & holds sellable stock." %}</span>
+              <span class="text-[11px] text-[var(--text-muted)] leading-tight">{% trans "Central distribution hub or main storage facility. Can supply multiple branches." %}</span>
             </label>
             <label class="p-3 rounded-xl border cursor-pointer flex flex-col gap-1 transition-all"
-                   :class="warehouseType === 'secondary' ? 'border-amber-500 bg-amber-50/20 dark:bg-amber-950/20 text-amber-900 dark:text-amber-100' : 'border-[var(--border)] bg-[var(--surface-2)] text-muted'">
+                   :class="warehouseType === 'secondary' || warehouseType === 'branch' ? 'border-amber-500 bg-amber-50/20 dark:bg-amber-950/20 text-amber-900 dark:text-amber-100 shadow-xs' : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]'">
               <div class="flex items-center gap-2">
                 <input type="radio" name="warehouse_type" value="secondary" x-model="warehouseType" class="text-amber-600">
                 <span class="font-bold text-xs">{% trans "Secondary Warehouse" %}</span>
               </div>
-              <span class="text-3xs text-[var(--text-muted)]">{% trans "Feeder, transit, or overflow depot with dual-storage capacity." %}</span>
+              <span class="text-[11px] text-[var(--text-muted)] leading-tight">{% trans "Outlet storage, feeder depot, or transit facility." %}</span>
             </label>
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">
             {% trans "Warehouse code" %} <span class="text-red-500">*</span>
           </label>
-          <input type="text" name="code" x-model="code" required class="w-full px-3 py-2 text-sm uppercase font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          <input type="text" name="code" x-model="code" required class="w-full px-3 py-2 text-sm uppercase font-mono bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:outline-none focus:border-[var(--brand-600)]">
         </div>
 
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
-            {% trans "Assigned Branch / Retail Outlet" %}
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">
+            {% trans "Operational Branch" %} <span class="text-[var(--text-subtle)] font-normal">({% trans "Optional, 1:0..1" %})</span>
           </label>
-          <select name="branch_id" x-model="branchId" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
-            <option value="">{% trans "None (Standalone Warehouse Only)" %}</option>
+          <select name="branch_id" x-model="branchId" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:outline-none focus:border-[var(--brand-600)]">
+            <option value="">{% trans "None (Autonomous Storage Hub)" %}</option>
             {% for b in branches %}
-              <option value="{{ b.pk }}">{{ b.name }} ({{ b.code }})</option>
+              {% if b.op_warehouse %}
+                <option value="{{ b.pk }}" disabled class="text-[var(--text-muted)] bg-[var(--surface-3)]">
+                  {{ b.name }} ({{ b.code }}) — {% trans "Operational at" %} {{ b.op_warehouse.name }}
+                </option>
+              {% else %}
+                <option value="{{ b.pk }}">
+                  {{ b.name }} ({{ b.code }})
+                </option>
+              {% endif %}
             {% endfor %}
           </select>
-          <p class="text-[11px] text-[var(--text-muted)] mt-1">{% trans "Assign a branch if this warehouse is linked to or co-located with a selling retail outlet." %}</p>
+          <p class="text-[11px] text-[var(--text-muted)] mt-1">{% trans "If assigned, this branch conducts business operations directly on this warehouse." %}</p>
         </div>
 
-        <div class="p-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/40 text-xs space-y-1">
-          <div class="font-bold text-[var(--text)] flex items-center gap-1.5">
-            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            {% trans "Automatic Dual-Storage Zones" %}
-          </div>
-          <p class="text-[11px] text-[var(--text-muted)]">
-            {% trans "Every warehouse automatically receives 2 dedicated storage zones: (1) Sellable Outlets Storage for POS retail sales, and (2) Goods & Ingredients Storage for non-sale inventory." %}
-          </p>
-        </div>
-
-        <div class="space-y-2 pt-1">
+        <div class="space-y-2 pt-1 border-t border-[var(--border)]">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" name="is_default" x-model="isDefault" class="rounded border-[var(--border)] text-[var(--brand-600)]">
             <span class="text-xs font-medium text-[var(--text)]">{% trans "Organization default warehouse" %}</span>
@@ -419,7 +576,7 @@
           <button type="button" @click="modalOpen = false" class="px-4 py-2 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]">
             {% trans "Cancel" %}
           </button>
-          <button type="submit" class="px-4 py-2 text-xs font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]">
+          <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]">
             {% trans "Save" %}
           </button>
         </div>
@@ -431,8 +588,7 @@
   <div
     x-show="linkModalOpen"
     x-cloak
-    style="display: none;"
-    class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+    class="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
   >
     <div
       @click.away="linkModalOpen = false"
@@ -450,10 +606,10 @@
         <input type="hidden" name="action" value="link_branch">
 
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">
             {% trans "Branch" %} <span class="text-red-500">*</span>
           </label>
-          <select name="branch_id" x-model="linkBranchId" required class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          <select name="branch_id" x-model="linkBranchId" required class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:outline-none focus:border-[var(--brand-600)]">
             {% for b in branches %}
               <option value="{{ b.pk }}">{{ b.name }} ({{ b.code }})</option>
             {% endfor %}
@@ -461,10 +617,10 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">
             {% trans "Warehouse" %} <span class="text-red-500">*</span>
           </label>
-          <select name="warehouse_id" x-model="linkWhId" required class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          <select name="warehouse_id" x-model="linkWhId" required class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:outline-none focus:border-[var(--brand-600)]">
             {% for wh in warehouses %}
               <option value="{{ wh.pk }}">{{ wh.name }} ({{ wh.code }})</option>
             {% endfor %}
@@ -472,14 +628,14 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--text-subtle)] mb-1">
+          <label class="block text-xs font-semibold text-[var(--text)] mb-1">
             {% trans "Priority" %}
           </label>
-          <input type="number" name="priority" x-model="linkPriority" min="1" max="99" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)]">
+          <input type="number" name="priority" x-model="linkPriority" min="1" max="99" class="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-[var(--text)] focus:outline-none focus:border-[var(--brand-600)]">
           <p class="text-[11px] text-[var(--text-muted)] mt-1">{% trans "Lower numbers are prioritized during stock fulfillment." %}</p>
         </div>
 
-        <div class="space-y-2 pt-2">
+        <div class="space-y-2 pt-2 border-t border-[var(--border)]">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" name="is_default" x-model="linkIsDefault" class="rounded border-[var(--border)] text-[var(--brand-600)]">
             <span class="text-xs font-medium text-[var(--text)]">{% trans "Default warehouse for this branch" %}</span>
@@ -498,7 +654,7 @@
           <button type="button" @click="linkModalOpen = false" class="px-4 py-2 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]">
             {% trans "Cancel" %}
           </button>
-          <button type="submit" class="px-4 py-2 text-xs font-medium rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]">
+          <button type="submit" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--brand-600)] text-white hover:bg-[var(--brand-700)]">
             {% trans "Link warehouse" %}
           </button>
         </div>
@@ -508,4 +664,3 @@
 
 </div>
 {% endblock %}
-

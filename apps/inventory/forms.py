@@ -48,10 +48,43 @@ class StockFilterForm(forms.Form):
 
     def __init__(self, *args: Any, organization: Organization, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        whs = Warehouse.objects.filter(organization=organization, is_active=True).order_by("name")
-        cast(forms.ChoiceField, self.fields["warehouse"]).choices = [("", _("All Warehouses"))] + [
-            (str(w.pk), w.name) for w in whs
-        ]
+        whs = (
+            Warehouse.objects.filter(organization=organization, is_active=True)
+            .select_related("branch", "dedicated_assignment__branch")
+            .prefetch_related("warehouse_branches__branch")
+            .order_by("name")
+        )
+        primary_choices: list[tuple[str, str]] = []
+        dedicated_choices: list[tuple[str, str]] = []
+        synced_wh_choices: list[tuple[str, str]] = []
+        synced_branch_choices: list[tuple[str, str]] = []
+
+        for w in whs:
+            sync_branches = list(w.warehouse_branches.filter(relationship_type="synchronized").select_related("branch"))
+            if sync_branches:
+                b_names = ", ".join(bw.branch.name for bw in sync_branches)
+                synced_wh_choices.append((str(w.pk), f"🔄 {w.name} (Combined Total: {b_names})"))
+                for bw in sync_branches:
+                    synced_branch_choices.append((f"branch:{bw.branch.pk}", f"📍 {bw.branch.name} (Synced to {w.name})"))
+            elif getattr(w, "is_primary", False) or getattr(w, "is_central", False):
+                primary_choices.append((str(w.pk), f"🏢 {w.name} (Primary Central Hub)"))
+            else:
+                br = getattr(w, "dedicated_branch", None) or w.branch
+                br_name = f" • {br.name}" if br else ""
+                dedicated_choices.append((str(w.pk), f"🏬 {w.name} (Dedicated{br_name})"))
+
+        choices: list[Any] = [("", _("All Facilities (Combined Synced Pools)"))]
+        if primary_choices:
+            choices.append((_("Primary Central Hubs"), primary_choices))
+        if dedicated_choices:
+            choices.append((_("Branch Dedicated Warehouses"), dedicated_choices))
+        if synced_wh_choices:
+            choices.append((_("Synchronized Warehouses (Combined Pools)"), synced_wh_choices))
+        if synced_branch_choices:
+            choices.append((_("Individual Synced Outlets"), synced_branch_choices))
+        if len(choices) == 1:
+            choices.extend([(str(w.pk), w.name) for w in whs])
+        cast(forms.ChoiceField, self.fields["warehouse"]).choices = choices
 
 
 class StockAdjustmentForm(forms.Form):

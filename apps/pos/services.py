@@ -45,6 +45,7 @@ from apps.pos.models import (
 from apps.sales import services as sales_services
 from apps.sales.models import Invoice, PaymentMethod
 from apps.tenancy.models import Branch, Organization, Warehouse
+from apps.warehouses.selectors import get_effective_sales_warehouse_for_branch
 
 DECIMAL_ZERO = Decimal("0.0000")
 FOUR_PLACES = Decimal("0.0001")
@@ -56,14 +57,28 @@ def create_register(
     organization: Organization,
     name: str,
     branch: Branch,
-    warehouse: Warehouse,
+    warehouse: Warehouse | None = None,
     code: str | None = None,
     receipt_header: str = "",
     receipt_footer: str = "",
     is_active: bool = True,
     actor: Any = None,
 ) -> POSRegister:
-    """Create a new POS register / checkout terminal."""
+    """Create a new POS register / checkout terminal.
+
+    Automatically resolves and validates effective sales warehouse for the branch.
+    """
+    effective_wh = get_effective_sales_warehouse_for_branch(branch=branch)
+    if warehouse is not None and warehouse.pk != effective_wh.pk:
+        is_synced = warehouse.warehouse_branches.filter(
+            branch=branch,
+            relationship_type="synchronized",
+        ).exists()
+        if not is_synced and warehouse.branch_id != branch.pk:
+            warehouse = effective_wh
+    else:
+        warehouse = effective_wh
+
     reg_code = code
     if not reg_code:
         reg_code = generate_next_number(
@@ -327,10 +342,15 @@ def checkout_pos_sale(
         # 2. Create and Post Sales Invoice (reusing apps.sales services)
         # This automatically updates inventory stock levels and posts GL COGS/revenue entries.
         register = shift.register
+        try:
+            sales_warehouse = get_effective_sales_warehouse_for_branch(branch=register.branch)
+        except Exception:
+            sales_warehouse = register.warehouse
+
         invoice = sales_services.create_invoice(
             organization=organization,
             customer=sale_customer,
-            warehouse=register.warehouse,
+            warehouse=sales_warehouse,
             lines=lines,
             branch=register.branch,
             notes=f"POS Sale on Register {register.code}",

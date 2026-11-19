@@ -1,11 +1,22 @@
 {% load i18n humanize %}
 <div id="stock-level-table-container" class="neu-table-card overflow-x-auto bg-[var(--surface-1)] rounded-2xl transition-all">
+    {% if is_individual_branch and selected_branch %}
+    <div class="px-6 py-3 bg-sky-50 dark:bg-sky-950/40 border-b border-sky-100 dark:border-sky-900/40 flex items-center justify-between text-xs text-sky-800 dark:text-sky-300">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+            <span>{% trans "Filtered to individual outlet:" %} <strong class="font-bold">{{ selected_branch.name }}</strong> ({{ selected_branch.code }}) &bull; {% trans "Shared Inventory Pool:" %} <strong class="font-bold">{{ selected_warehouse.name }}</strong></span>
+        </div>
+        <a href="?warehouse={{ selected_warehouse.pk }}" class="text-sky-700 dark:text-sky-400 font-semibold underline hover:text-sky-900">
+            {% trans "View Combined Pool Total" %} &rarr;
+        </a>
+    </div>
+    {% endif %}
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-[#D3D8E8] dark:divide-slate-800 text-left text-sm">
             <thead class="bg-slate-50/50 dark:bg-slate-800/40 text-xs font-bold uppercase tracking-wider text-muted">
                 <tr>
                     <th class="py-3.5 px-6 font-bold">{% trans "Product / SKU" %}</th>
-                    <th class="py-3.5 px-4 font-bold">{% trans "Warehouse" %}</th>
+                    <th class="py-3.5 px-4 font-bold">{% if is_individual_branch %}{% trans "Outlet / Facility" %}{% else %}{% trans "Facility / Warehouse" %}{% endif %}</th>
                     <th class="py-3.5 px-4 font-bold text-right">{% trans "On Hand" %}</th>
                     <th class="py-3.5 px-4 font-bold text-right">{% trans "Reserved" %}</th>
                     <th class="py-3.5 px-4 font-bold text-right">{% trans "Available" %}</th>
@@ -31,11 +42,32 @@
                         </div>
                     </td>
                     <td class="py-4 px-4 text-muted font-medium">
-                        <div class="flex items-center gap-1.5">
-                            <svg class="w-3.5 h-3.5 opacity-60 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                            <span>{{ item.warehouse.name }}</span>
+                        <div class="space-y-0.5">
+                            {% if is_individual_branch and selected_branch %}
+                                <div class="flex items-center gap-1.5 font-bold text-ink">
+                                    <span>{{ selected_branch.name }}</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 font-bold uppercase tracking-wider">
+                                        {% trans "Outlet View" %}
+                                    </span>
+                                </div>
+                                <span class="text-[10px] text-sky-600 dark:text-sky-400 font-mono block">↳ {% trans "Shared Pool:" %} {{ item.warehouse.name }}</span>
+                            {% else %}
+                                <div class="flex items-center gap-1.5 font-bold text-ink">
+                                    <span>{{ item.warehouse.name }}</span>
+                                    {% if item.warehouse.has_synchronized_branches %}
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 font-bold uppercase tracking-wider">
+                                        {% trans "Combined Total" %}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if item.warehouse.has_synchronized_branches %}
+                                    <span class="text-[10px] text-sky-600 dark:text-sky-400 font-mono block">↳ {% trans "Synced across:" %} {{ item.warehouse.synchronized_branch_names|join:", " }}</span>
+                                {% elif item.warehouse.branch %}
+                                    <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono block">↳ {{ item.warehouse.branch.name }}</span>
+                                {% elif item.warehouse.is_primary %}
+                                    <span class="text-[10px] text-purple-600 dark:text-purple-400 uppercase font-mono block">{% trans "Primary Hub" %}</span>
+                                {% endif %}
+                            {% endif %}
                         </div>
                     </td>
                     <td class="py-4 px-4 text-right font-mono font-bold text-ink">

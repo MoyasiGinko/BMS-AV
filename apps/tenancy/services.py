@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import logging
 from dataclasses import dataclass, field
@@ -22,6 +23,7 @@ from apps.core.permissions import get_user_allowed_branch_ids
 from apps.tenancy.models import (
     Branch,
     BranchWarehouse,
+    BranchWarehouseAssignment,
     Currency,
     Department,
     Invitation,
@@ -32,6 +34,7 @@ from apps.tenancy.models import (
     Role,
     TaxCode,
     Warehouse,
+    WarehouseType,
 )
 from apps.warehouses.services import (  # noqa: F401
     create_warehouse,
@@ -327,7 +330,15 @@ def provision_organization(
         branch=branch,
         name=warehouse_name.strip() or "Main Warehouse",
         code=warehouse_code.strip() or "WH-MAIN",
+        warehouse_type=WarehouseType.BRANCH,
         is_default=True,
+    )
+    BranchWarehouseAssignment.all_tenants.create(
+        organization=org,
+        branch=branch,
+        warehouse=warehouse,
+        is_active=True,
+        notes="Organization default dedicated branch warehouse",
     )
     BranchWarehouse.all_tenants.create(
         organization=org,
@@ -336,6 +347,7 @@ def provision_organization(
         is_default=True,
         can_sell=True,
         can_replenish=True,
+        is_storage_synced=True,
         priority=1,
     )
 
@@ -637,22 +649,79 @@ def create_branch(
     address: str = "",
     phone: str = "",
     is_headquarters: bool = False,
+    warehouse_name: str | None = None,
+    warehouse_code: str | None = None,
+    warehouse_address: str | None = None,
     actor: Any = None,
 ) -> Branch:
-    """Create a new branch within organization."""
+    """Create a new branch within organization and automatically provision its dedicated warehouse."""
+    clean_name = name.strip()
+    if not clean_name:
+        raise ValidationError(_("Branch name cannot be blank."))
+
     if is_headquarters:
         Branch.all_tenants.filter(organization=organization, is_headquarters=True).update(
             is_headquarters=False
         )
-    return Branch.objects.create(
+    branch = Branch.objects.create(
         organization=organization,
-        name=name.strip(),
+        name=clean_name,
         code=code.strip().upper(),
         address=address.strip(),
         phone=phone.strip(),
         is_headquarters=is_headquarters,
         created_by=actor if getattr(actor, "is_authenticated", False) else None,
     )
+
+    # Automatically provision its dedicated BRANCH warehouse (1:1 mandatory relationship)
+    wh_name = (warehouse_name or f"{clean_name} Warehouse").strip()
+    wh_code = (warehouse_code or f"{branch.code or 'BR'}-WH").strip().upper()[:32]
+
+    base_wh_name = wh_name
+    counter = 1
+    while Warehouse.all_tenants.filter(organization=organization, name=wh_name).exists():
+        counter += 1
+        wh_name = f"{base_wh_name} {counter}"
+
+    warehouse = Warehouse.objects.create(
+        organization=organization,
+        branch=branch,
+        name=wh_name,
+        code=wh_code,
+        warehouse_type=WarehouseType.BRANCH,
+        is_central=False,
+        is_default=False,
+        is_active=branch.is_active,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+
+    BranchWarehouseAssignment.objects.create(
+        organization=organization,
+        branch=branch,
+        warehouse=warehouse,
+        is_active=True,
+        notes="Automatically provisioned dedicated warehouse",
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+
+    # Maintain legacy BranchWarehouse mapping for backward compatibility
+    BranchWarehouse.objects.create(
+        organization=organization,
+        branch=branch,
+        warehouse=warehouse,
+        is_default=True,
+        can_sell=True,
+        can_replenish=True,
+        is_storage_synced=True,
+        priority=1,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+
+    with contextlib.suppress(Exception):
+        from apps.warehouses.services import ensure_warehouse_storage_locations  # noqa: PLC0415
+        ensure_warehouse_storage_locations(warehouse)
+
+    return branch
 
 
 @transaction.atomic
@@ -668,6 +737,9 @@ def update_branch(
     actor: Any = None,
 ) -> Branch:
     """Update existing branch properties."""
+    if is_active and not branch.dedicated_warehouse:
+        raise ValidationError(_("A branch cannot be activated without a valid dedicated warehouse."))
+
     if is_headquarters and not branch.is_headquarters:
         Branch.all_tenants.filter(organization=branch.organization, is_headquarters=True).update(
             is_headquarters=False

@@ -16,7 +16,8 @@ from apps.core.tenant_context import tenant_context
 from apps.inventory import services as inventory_services
 from apps.pos import devices, printing, selectors, services
 from apps.pos.models import POSShiftStatus
-from apps.tenancy.models import Branch, Membership, Organization, Role, TaxCode, Warehouse
+from apps.tenancy.models import Branch, Membership, Organization, Role, TaxCode, Warehouse, WarehouseType
+from apps.warehouses import services as wh_services
 
 User = get_user_model()
 
@@ -471,3 +472,76 @@ def test_product_lookup_view_barcode_and_sku(pos_view_setup: dict[str, object]) 
     # 4. Empty query returns 400
     res = client.get("/pos/lookup/", {"query": ""})
     assert res.status_code == 400
+
+
+def test_pos_terminal_synchronized_branch_stock_display(pos_view_setup: dict[str, object]) -> None:
+    """Test that POS displays combined stock total and synced indicators for synchronized branches."""
+    org: Organization = pos_view_setup["org"]  # type: ignore
+    user: User = pos_view_setup["user"]  # type: ignore
+    prod: Product = pos_view_setup["prod"]  # type: ignore
+    client: Client = pos_view_setup["client"]  # type: ignore
+
+    # Create secondary shared warehouse
+    wh_synced = wh_services.create_warehouse(
+        organization=org,
+        name="Airport Shared Stockroom",
+        warehouse_type=WarehouseType.SECONDARY,
+        code="WH-AIR-SHARED",
+        is_central=False,
+        actor=user,
+    )
+
+    inventory_services.receive_stock(
+        organization=org,
+        warehouse=wh_synced,
+        product=prod,
+        quantity=Decimal("75.0000"),
+        unit_cost=Decimal("1.5000"),
+        actor=user,
+    )
+
+    kiosk_1 = Branch.all_tenants.create(organization=org, name="Terminal 1 Kiosk", code="T1-K")
+    kiosk_2 = Branch.all_tenants.create(organization=org, name="Terminal 2 Kiosk", code="T2-K")
+
+    wh_services.add_synchronized_branch(organization=org, warehouse=wh_synced, branch=kiosk_1, actor=user)
+    wh_services.add_synchronized_branch(organization=org, warehouse=wh_synced, branch=kiosk_2, actor=user)
+
+    reg_t1 = services.create_register(
+        organization=org,
+        name="Kiosk 1 Register",
+        branch=kiosk_1,
+        actor=user,
+    )
+
+    shift_t1 = services.open_shift(
+        organization=org,
+        register=reg_t1,
+        cashier=user,
+        opening_cash=Decimal("50.00"),
+        actor=user,
+    )
+    assert shift_t1.status == POSShiftStatus.OPEN
+
+    # GET /pos/
+    res = client.get("/pos/")
+    assert res.status_code == 200
+    assert res.context["is_synchronized_pool"] is True
+    assert "Terminal 1 Kiosk" in res.context["synced_branch_names"]
+    assert "Terminal 2 Kiosk" in res.context["synced_branch_names"]
+    products = list(res.context["products"])
+    p_latte = next(p for p in products if p.pk == prod.pk)
+    assert p_latte.stock_qty == Decimal("75.0000")
+
+    html = res.content.decode()
+    assert "Synced Pool" in html
+    assert "in synced pool" in html
+
+    # GET /pos/lookup/ instant scanner lookup
+    res_lookup = client.get("/pos/lookup/", {"query": "LATTE-01"})
+    assert res_lookup.status_code == 200
+    data = res_lookup.json()
+    assert data["found"] is True
+    assert data["product"]["is_synchronized_pool"] is True
+    assert data["product"]["stock_qty"] == 75.0
+    assert "Terminal 1 Kiosk" in data["product"]["synced_branches"]
+    assert "Terminal 2 Kiosk" in data["product"]["synced_branches"]

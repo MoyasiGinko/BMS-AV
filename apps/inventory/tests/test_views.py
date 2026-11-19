@@ -13,7 +13,8 @@ from apps.accounts.models import User
 from apps.catalog.models import Category, Product, ProductType, Unit
 from apps.inventory import selectors, services
 from apps.inventory.models import AdjustmentReason
-from apps.tenancy.models import Branch, Membership, Organization, Role, Warehouse
+from apps.tenancy.models import Branch, Membership, Organization, Role, Warehouse, WarehouseType
+from apps.warehouses import services as wh_services
 
 
 @pytest.fixture
@@ -45,10 +46,11 @@ def view_setup(db: None) -> dict[str, Any]:
     client.force_login(user)
 
     branch = Branch.objects.create(organization=org, name="HQ Branch", code="HQ")
+    branch_annex = Branch.objects.create(organization=org, name="Annex Branch", code="ANNEX")
     wh1 = Warehouse.objects.create(
         organization=org, branch=branch, name="Main WH", code="W1", is_default=True
     )
-    wh2 = Warehouse.objects.create(organization=org, branch=branch, name="Annex WH", code="W2")
+    wh2 = Warehouse.objects.create(organization=org, branch=branch_annex, name="Annex WH", code="W2")
 
     unit = Unit.objects.create(organization=org, name="Piece", code="PCS")
     cat = Category.objects.create(organization=org, name="General", slug="general")
@@ -114,8 +116,8 @@ class TestInventoryViews:
         wh: Warehouse = view_setup["warehouse_1"]
         prod: Product = view_setup["product"]
 
-        # GET form
-        resp_get = client.get(reverse("inventory:adjustment_create"), **headers)
+        # GET form (redirects to warehouses:adjustment_create)
+        resp_get = client.get(reverse("inventory:adjustment_create"), follow=True, **headers)
         assert resp_get.status_code == 200
 
         # POST form
@@ -286,3 +288,96 @@ class TestInventoryViews:
         assert resp_comp.status_code == 302
         cnt.refresh_from_db()
         assert cnt.status == "completed"
+
+    def test_add_stock_view_dedicated_and_independent_warehouses(
+        self, view_setup: dict[str, Any]
+    ) -> None:
+        client: Client = view_setup["client"]
+        headers: dict[str, str] = view_setup["headers"]
+        org: Organization = view_setup["org"]
+        wh1: Warehouse = view_setup["warehouse_1"]
+        branch: Branch = wh1.branch
+
+        from apps.tenancy.models import BranchWarehouseAssignment, WarehouseType  # noqa: PLC0415
+        BranchWarehouseAssignment.objects.create(
+            organization=org,
+            branch=branch,
+            warehouse=wh1,
+        )
+
+        Warehouse.objects.create(
+            organization=org,
+            name="Central Regional Hub",
+            code="HUB-REG",
+            warehouse_type=WarehouseType.INDEPENDENT,
+        )
+
+        resp = client.get(f"{reverse('inventory:add_stock')}?branch_id={branch.pk}", **headers)
+        assert resp.status_code == 200
+        html = resp.content.decode()
+        assert "Dedicated Warehouse:" in html
+        assert "Central Regional Hub" in html
+
+    def test_stock_level_synchronized_total_and_individual_branch_filter(self, view_setup: dict[str, Any]) -> None:
+        """Test synchronized warehouse combined total by default and individual outlet filtering."""
+        client: Client = view_setup["client"]
+        headers: dict[str, str] = view_setup["headers"]
+        org: Organization = view_setup["org"]
+        prod: Product = view_setup["product"]
+
+        # Create secondary shared warehouse
+        wh_synced = wh_services.create_warehouse(
+            organization=org,
+            name="Airport Central Transit",
+            warehouse_type=WarehouseType.SECONDARY,
+            code="WH-AIR-TRN",
+            is_central=False,
+        )
+
+        services.receive_stock(
+            organization=org,
+            warehouse=wh_synced,
+            product=prod,
+            quantity=Decimal("120.0000"),
+            unit_cost=Decimal("15.0000"),
+        )
+
+        kiosk_t1 = Branch.all_tenants.create(organization=org, name="Terminal 1 Lounge", code="T1-L")
+        kiosk_t2 = Branch.all_tenants.create(organization=org, name="Terminal 2 Express", code="T2-E")
+
+        wh_services.add_synchronized_branch(organization=org, warehouse=wh_synced, branch=kiosk_t1)
+        wh_services.add_synchronized_branch(organization=org, warehouse=wh_synced, branch=kiosk_t2)
+
+        # 1. Default stock_level_list: Displays synchronized warehouse with combined total
+        resp_all = client.get(reverse("inventory:stock_level_list"), **headers)
+        assert resp_all.status_code == 200
+        html_all = resp_all.content.decode()
+        assert "Airport Central Transit" in html_all
+        assert "Combined Total" in html_all
+        assert "120" in html_all
+
+        # 2. Filter by individual branch: ?warehouse=branch:<id>
+        resp_branch = client.get(
+            f"{reverse('inventory:stock_level_list')}?warehouse=branch:{kiosk_t1.pk}",
+            **headers,
+        )
+        assert resp_branch.status_code == 200
+        assert resp_branch.context["is_individual_branch"] is True
+        assert resp_branch.context["selected_branch"] == kiosk_t1
+        assert resp_branch.context["selected_warehouse"] == wh_synced
+        html_branch = resp_branch.content.decode()
+        assert "Filtered to individual outlet:" in html_branch
+        assert "Terminal 1 Lounge" in html_branch
+        assert "Outlet View" in html_branch
+        assert "View Combined Pool Total" in html_branch
+
+        # 3. Filter by warehouse ID directly: ?warehouse=<pk>
+        resp_wh = client.get(
+            f"{reverse('inventory:stock_level_list')}?warehouse={wh_synced.pk}",
+            **headers,
+        )
+        assert resp_wh.status_code == 200
+        assert resp_wh.context["is_individual_branch"] is False
+        assert resp_wh.context["selected_warehouse"] == wh_synced
+        html_wh = resp_wh.content.decode()
+        assert "Combined Total" in html_wh

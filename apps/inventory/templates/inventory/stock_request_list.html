@@ -170,34 +170,48 @@
                   </div>
                   <div class="flex items-center gap-2 text-xs">
                     {% if req.transfer_type == 'inter_branch' %}
-                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.source_branch.name }}">
-                        <span>{{ req.source_branch.name|default:_("Outlet") }}</span>
+                      <div class="space-y-0.5 max-w-[140px] truncate" title="{{ req.source_branch.name }}">
+                        <span class="font-bold text-ink block truncate">{{ req.source_branch.name|default:_("Outlet") }}</span>
+                        {% if req.source_branch.dedicated_warehouse %}
+                          <span class="text-[10px] text-muted block truncate">↳ {{ req.source_branch.dedicated_warehouse.name }}</span>
+                        {% endif %}
                       </div>
-                      <svg class="w-3.5 h-3.5 text-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                       </svg>
-                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.destination_branch.name }}">
-                        <span>{{ req.destination_branch.name|default:_("Outlet") }}</span>
+                      <div class="space-y-0.5 max-w-[140px] truncate" title="{{ req.destination_branch.name }}">
+                        <span class="font-bold text-ink block truncate">{{ req.destination_branch.name|default:_("Outlet") }}</span>
+                        {% if req.destination_branch.dedicated_warehouse %}
+                          <span class="text-[10px] text-muted block truncate">↳ {{ req.destination_branch.dedicated_warehouse.name }}</span>
+                        {% endif %}
                       </div>
                     {% elif req.transfer_type == 'return' or req.transfer_type == 'RETURN' or req.transfer_type == 'replacement' or req.transfer_type == 'REPLACEMENT' %}
-                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.branch.name }}">
-                        <span>{{ req.branch.name|default:_("Outlet") }}</span>
+                      <div class="space-y-0.5 max-w-[140px] truncate" title="{{ req.branch.name }}">
+                        <span class="font-bold text-ink block truncate">{{ req.branch.name|default:_("Outlet") }}</span>
+                        {% if req.branch.dedicated_warehouse %}
+                          <span class="text-[10px] text-muted block truncate">↳ {{ req.branch.dedicated_warehouse.name }}</span>
+                        {% endif %}
                       </div>
-                      <svg class="w-3.5 h-3.5 text-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                       </svg>
-                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.destination_warehouse.name }}">
-                        <span>{{ req.destination_warehouse.name }}</span>
+                      <div class="space-y-0.5 max-w-[140px] truncate" title="{{ req.destination_warehouse.name }}">
+                        <span class="font-bold text-ink block truncate">{{ req.destination_warehouse.name }}</span>
+                        <span class="text-[10px] text-muted block uppercase font-mono font-semibold">{% if req.destination_warehouse.is_independent %}{% trans "Independent Hub" %}{% else %}{% trans "Inspection Depot" %}{% endif %}</span>
                       </div>
                     {% else %}
-                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.source_warehouse.name }}">
-                        <span>{{ req.source_warehouse.name }}</span>
+                      <div class="space-y-0.5 max-w-[140px] truncate" title="{{ req.source_warehouse.name }}">
+                        <span class="font-bold text-ink block truncate">{{ req.source_warehouse.name }}</span>
+                        <span class="text-[10px] text-muted block uppercase font-mono font-semibold">{% if req.source_warehouse.is_independent %}{% trans "Independent Hub" %}{% else %}{% trans "Branch Depot" %}{% endif %}</span>
                       </div>
-                      <svg class="w-3.5 h-3.5 text-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <svg class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                       </svg>
-                      <div class="flex items-center gap-1 font-semibold text-ink max-w-[130px] truncate" title="{{ req.destination_branch.name }}">
-                        <span>{{ req.destination_branch.name|default:_("Outlet") }}</span>
+                      <div class="space-y-0.5 max-w-[140px] truncate" title="{{ req.destination_branch.name }}">
+                        <span class="font-bold text-ink block truncate">{{ req.destination_branch.name|default:_("Outlet") }}</span>
+                        {% if req.destination_branch.dedicated_warehouse %}
+                          <span class="text-[10px] text-muted block truncate font-mono">↳ {{ req.destination_branch.dedicated_warehouse.name }}</span>
+                        {% endif %}
                       </div>
                     {% endif %}
                   </div>

@@ -39,7 +39,8 @@ from apps.inventory.views_returns import (
     stock_replacement_dispatch_view,
     stock_return_inspect_view,
 )
-from apps.tenancy.models import Branch, BranchWarehouse, Organization, Warehouse
+from apps.tenancy.models import Branch, BranchWarehouse, Organization, Warehouse, WarehouseType
+from apps.warehouses.selectors import get_effective_sales_warehouse_for_branch
 from apps.warehouses.views import (
     transfer_create_view,
     transfer_detail_view,
@@ -66,10 +67,25 @@ def stock_level_list(request: HttpRequest) -> HttpResponse:
     org = _get_org(request)
     form = StockFilterForm(request.GET, organization=org)
 
-    wh_id = request.GET.get("warehouse")
+    wh_param = request.GET.get("warehouse", "").strip()
     warehouse = None
-    if wh_id:
-        warehouse = Warehouse.objects.filter(organization=org, pk=wh_id).first()
+    selected_branch = None
+    is_individual_branch = False
+
+    if wh_param.startswith("branch:"):
+        b_id = wh_param.split(":", 1)[1]
+        if b_id.isdigit():
+            selected_branch = Branch.objects.filter(organization=org, pk=int(b_id)).first()
+            if selected_branch:
+                is_individual_branch = True
+                try:
+                    warehouse = get_effective_sales_warehouse_for_branch(branch=selected_branch)
+                except Exception:
+                    warehouse = getattr(selected_branch, "dedicated_warehouse", None) or Warehouse.objects.filter(
+                        organization=org, branch=selected_branch
+                    ).first()
+    elif wh_param.isdigit():
+        warehouse = Warehouse.objects.filter(organization=org, pk=int(wh_param)).first()
 
     query = request.GET.get("query", "")
     low_stock_only = request.GET.get("low_stock_only") in ("1", "true", "True")
@@ -93,6 +109,8 @@ def stock_level_list(request: HttpRequest) -> HttpResponse:
         "form": form,
         "summary": summary,
         "selected_warehouse": warehouse,
+        "selected_branch": selected_branch,
+        "is_individual_branch": is_individual_branch,
         "query": query,
         "low_stock_only": low_stock_only,
     }
@@ -862,12 +880,29 @@ def _parse_stock_request_lines(
 
 def _get_branch_logistics_mapping(
     org: Organization, current_branch: Branch | None
-) -> tuple[list[Warehouse], list[dict[str, Any]]]:
+) -> tuple[
+    list[Warehouse],
+    list[dict[str, Any]],
+    Warehouse | None,
+    list[Warehouse],
+    list[Warehouse],
+]:
     """Retrieve linked fulfillment warehouses and synced storage zones for a branch."""
     linked_warehouses: list[Warehouse] = []
     synced_storages: list[dict[str, Any]] = []
+    independent_warehouses: list[Warehouse] = []
+    peer_warehouses: list[Warehouse] = []
+
     if not current_branch:
-        return linked_warehouses, synced_storages
+        return (
+            linked_warehouses,
+            synced_storages,
+            None,
+            independent_warehouses,
+            peer_warehouses,
+        )
+
+    dedicated_wh = getattr(current_branch, "dedicated_warehouse", None)
 
     mappings = (
         BranchWarehouse.objects.filter(
@@ -876,31 +911,80 @@ def _get_branch_logistics_mapping(
             warehouse__is_active=True,
             can_replenish=True,
         )
-        .select_related("warehouse")
+        .select_related("warehouse", "warehouse__dedicated_assignment__branch")
         .prefetch_related("storage_sync_links__storage_type")
         .order_by("-is_default", "priority", "warehouse__name")
     )
     for m in mappings:
-        linked_warehouses.append(m.warehouse)
+        # Exclude branch's own dedicated warehouse from replenishment sources
+        if dedicated_wh and dedicated_wh.is_branch_warehouse and m.warehouse_id == dedicated_wh.pk:
+            continue
+        if m.warehouse not in linked_warehouses:
+            linked_warehouses.append(m.warehouse)
         for sync in m.storage_sync_links.all():
             if sync.storage_type.is_active:
                 synced_storages.append({
                     "warehouse": m.warehouse,
                     "storage_type": sync.storage_type,
                 })
-    return linked_warehouses, synced_storages
+
+    # If no linked warehouses are configured in BranchWarehouse, fall back to independent hubs
+    if not linked_warehouses:
+        independent_qs = Warehouse.objects.filter(
+            organization=org,
+            warehouse_type=WarehouseType.INDEPENDENT,
+            is_active=True,
+        ).order_by("name")
+        for wh in independent_qs:
+            if wh not in linked_warehouses:
+                linked_warehouses.append(wh)
+
+    for wh in linked_warehouses:
+        if getattr(wh, "is_independent", False):
+            independent_warehouses.append(wh)
+        else:
+            peer_warehouses.append(wh)
+
+    return (
+        linked_warehouses,
+        synced_storages,
+        dedicated_wh,
+        independent_warehouses,
+        peer_warehouses,
+    )
 
 
 def _build_products_payload(
     org: Organization,
+    dedicated_warehouse: Warehouse | None = None,
+    source_warehouses: list[Warehouse] | None = None,
 ) -> tuple[Any, dict[str, dict[str, Any]]]:
-    """Fetch products with preloaded images and prepare JSON lookup dictionary."""
+    """Fetch products with preloaded images, stock levels, and prepare JSON lookup dictionary."""
     products = (
         Product.objects.filter(organization=org, is_active=True)
         .select_related("category", "unit")
         .prefetch_related("images")
         .order_by("name")[:150]
     )
+
+    wh_ids: list[int] = []
+    if dedicated_warehouse:
+        wh_ids.append(dedicated_warehouse.pk)
+    if source_warehouses:
+        for w in source_warehouses:
+            if w.pk not in wh_ids:
+                wh_ids.append(w.pk)
+
+    stock_map: dict[tuple[int, int], Decimal] = {}
+    if wh_ids:
+        stock_qs = StockLevel.objects.filter(
+            organization=org,
+            warehouse_id__in=wh_ids,
+            product_id__in=[p.pk for p in products],
+        ).values("product_id", "warehouse_id", "on_hand")
+        for s in stock_qs:
+            stock_map[(s["product_id"], s["warehouse_id"])] = s["on_hand"]
+
     products_data: dict[str, dict[str, Any]] = {}
     for p in products:
         img_url = ""
@@ -911,6 +995,18 @@ def _build_products_payload(
         except Exception:
             img_url = ""
 
+        raw_outlet = (
+            stock_map.get((p.pk, dedicated_warehouse.pk), Decimal("0"))
+            if dedicated_warehouse
+            else Decimal("0")
+        )
+        outlet_stock = int(raw_outlet) if raw_outlet == int(raw_outlet) else float(raw_outlet)
+
+        wh_stocks: dict[str, int | float] = {}
+        for w in source_warehouses or []:
+            raw_wh = stock_map.get((p.pk, w.pk), Decimal("0"))
+            wh_stocks[str(w.pk)] = int(raw_wh) if raw_wh == int(raw_wh) else float(raw_wh)
+
         products_data[str(p.pk)] = {
             "id": p.pk,
             "name": p.name,
@@ -920,6 +1016,8 @@ def _build_products_payload(
             "unit": p.unit.code if p.unit else "units",
             "image_url": img_url,
             "cost_price": float(p.cost_price or 0),
+            "outlet_stock": outlet_stock,
+            "warehouse_stocks": wh_stocks,
         }
     return products, products_data
 
@@ -1168,6 +1266,19 @@ def _process_add_stock_post(
         Warehouse, organization=org, pk=int(wh_val), is_active=True
     )
 
+    dedicated_wh = getattr(current_branch, "dedicated_warehouse", None)
+    if (
+        dedicated_wh
+        and getattr(dedicated_wh, "is_branch_warehouse", False)
+        and target_warehouse.pk == dedicated_wh.pk
+        and request_type == "add"
+    ):
+        messages.error(
+            request,
+            _("Cannot request replenishment from the branch's own dedicated warehouse. Please select an independent storage hub or peer branch warehouse."),
+        )
+        return redirect(fallback_url)
+
     if target_warehouse not in linked_warehouses:
         messages.error(
             request,
@@ -1200,7 +1311,13 @@ def add_stock_view(request: HttpRequest) -> HttpResponse:
     if not current_branch:
         current_branch = getattr(request, "branch", None) or branches.first()
 
-    linked_warehouses, synced_storages = _get_branch_logistics_mapping(org, current_branch)
+    (
+        linked_warehouses,
+        synced_storages,
+        dedicated_warehouse,
+        independent_warehouses,
+        peer_warehouses,
+    ) = _get_branch_logistics_mapping(org, current_branch)
     request_type = request.GET.get("type") or request.POST.get("request_type") or "add"
 
     if request.method == "POST":
@@ -1208,7 +1325,11 @@ def add_stock_view(request: HttpRequest) -> HttpResponse:
             request, org, current_branch, linked_warehouses, request_type
         )
 
-    products, products_data = _build_products_payload(org)
+    products, products_data = _build_products_payload(
+        org,
+        dedicated_warehouse=dedicated_warehouse,
+        source_warehouses=linked_warehouses,
+    )
 
     return render(
         request,
@@ -1216,7 +1337,10 @@ def add_stock_view(request: HttpRequest) -> HttpResponse:
         {
             "branches": branches,
             "current_branch": current_branch,
+            "dedicated_warehouse": dedicated_warehouse,
             "linked_warehouses": linked_warehouses,
+            "independent_warehouses": independent_warehouses,
+            "peer_warehouses": peer_warehouses,
             "synced_storages": synced_storages,
             "products": products,
             "products_data": products_data,

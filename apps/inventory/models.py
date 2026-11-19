@@ -313,6 +313,7 @@ class TransferStatus(models.TextChoices):
     DRAFT = "draft", _("Draft")
     PENDING_APPROVAL = "pending_approval", _("Pending Approval")
     APPROVED = "approved", _("Approved")
+    PARTIALLY_APPROVED = "partially_approved", _("Partially Approved")
     REJECTED = "rejected", _("Rejected")
     DISPATCHED = "dispatched", _("Dispatched")
     IN_TRANSIT = "in_transit", _("In Transit")
@@ -858,6 +859,13 @@ class StockTransferLine(TenantModel):
     )
     quantity_requested = models.DecimalField(
         _("quantity requested"),
+        max_digits=18,
+        decimal_places=4,
+        null=True,
+        blank=True,
+    )
+    quantity_approved = models.DecimalField(
+        _("quantity approved"),
         max_digits=18,
         decimal_places=4,
         null=True,

@@ -224,6 +224,11 @@ def warehouse_push_send_view(request: HttpRequest) -> HttpResponse:
     if not current_wh and warehouses.exists():
         current_wh = warehouses.first()
 
+    selected_dest_branch_id = request.GET.get("destination_branch") or request.GET.get("branch_id")
+    selected_branch = None
+    if selected_dest_branch_id and selected_dest_branch_id.isdigit():
+        selected_branch = Branch.all_tenants.filter(organization=org, pk=int(selected_dest_branch_id)).first()
+
     # Preload stock levels for current warehouse
     available_stock_levels = []
     if current_wh:
@@ -253,6 +258,7 @@ def warehouse_push_send_view(request: HttpRequest) -> HttpResponse:
             "warehouses": warehouses,
             "branches": branches,
             "current_warehouse": current_wh,
+            "selected_branch": selected_branch,
             "products": products,
             "available_stock_levels": available_stock_levels,
             "can_manage": True,

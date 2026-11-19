@@ -394,20 +394,20 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] .card,
 [data-theme="neumorphic"] .bos-card,
 [data-theme="neumorphic"] article.bos-card,
-[data-theme="neumorphic"] main .bg-surface:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main [class*="bg-surface"]:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="border border-line"]:not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="border-line"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="border-[var(--border)]"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="border-slate-200"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="shadow-xs"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="shadow-sm"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="shadow-md"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div[class*="shadow-lg"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main .bg-surface:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main [class*="bg-surface"]:not(button):not(a):not(input):not(select):not(span):not(td):not(th):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main div[class*="border border-line"]:not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main div[class*="border-line"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main div[class*="border-[var(--border)]"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main div[class*="border-slate-200"]:not([class*="border-t"]):not([class*="border-b"]):not([class*="border-l"]):not([class*="border-r"]):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main div[class*="shadow-xs"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main div[class*="shadow-sm"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main div[class*="shadow-md"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
+[data-theme="neumorphic"] main div[class*="shadow-lg"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
 [data-theme="neumorphic"] a.neu-card,
 [data-theme="neumorphic"] a.card,
 [data-theme="neumorphic"] a[class*="neu-card"],
-[data-theme="neumorphic"] [class*="card"]:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box):not(.pos-terminal *),
+[data-theme="neumorphic"] [class*="card"]:not(.sidebar-preset-card):not(aside.bos-sidebar):not(.bos-sidebar):not(.neu-sidebar-mock):not(#sidebar-live-preview-box):not(.pos-terminal *):not(.wh-vibrant-card):not([class*="wh-tint-"]):not(.wh-vibrant-card *):not([class*="wh-tint-"] *),
 [data-theme="neumorphic"] #dashboard-widgets-container > div > div {
   background-color: var(--neu-surface) !important;
   background-image: none !important;
@@ -423,8 +423,8 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] div.neu-card,
 [data-theme="neumorphic"] div[class*="neu-card"]:not(.pos-terminal *),
 [data-theme="neumorphic"] article.bos-card,
-[data-theme="neumorphic"] main div.bg-surface.rounded-2xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
-[data-theme="neumorphic"] main div.bg-surface.rounded-xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule),
+[data-theme="neumorphic"] main div.bg-surface.rounded-2xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]),
+[data-theme="neumorphic"] main div.bg-surface.rounded-xl:not(a):not(button):not(input):not(select):not(span):not(.neu-subnav-btn):not(nav *):not([role="button"]):not(.btn):not(.wh-header-tabs-capsule):not(.inv-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]),
 [data-theme="neumorphic"] main section.bg-surface,
 [data-theme="neumorphic"] div.neu-stat-card,
 [data-theme="neumorphic"] div.neu-filter-card,
@@ -441,14 +441,43 @@ html[data-theme="neumorphic"],
 }
 
 /* Dividers must remain flat divider lines with no card shadow */
-[data-theme="neumorphic"] div[class*="border-t"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not(.sticky-header-tabs),
-[data-theme="neumorphic"] div[class*="border-b"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not(.sticky-header-tabs),
-[data-theme="neumorphic"] div[class*="border-l"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not(.sticky-header-tabs),
-[data-theme="neumorphic"] div[class*="border-r"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not(.sticky-header-tabs) {
+[data-theme="neumorphic"] div[class*="border-t"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]):not([class*="rounded-lg"]):not(.sticky-header-tabs),
+[data-theme="neumorphic"] div[class*="border-b"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]):not([class*="rounded-lg"]):not(.sticky-header-tabs),
+[data-theme="neumorphic"] div[class*="border-l"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]):not([class*="rounded-lg"]):not([class*="border-l-"]):not(.sticky-header-tabs),
+[data-theme="neumorphic"] div[class*="border-r"]:not(.card):not(.neu-card):not(.bos-card):not([class*="bg-surface"]):not([class*="rounded-2xl"]):not([class*="rounded-xl"]):not([class*="rounded-lg"]):not(.sticky-header-tabs) {
   box-shadow: none !important;
   border-radius: 0 !important;
   border-color: var(--neu-line) !important;
   background-color: transparent !important;
+}
+
+/* Tactile Cards with Accent Borders (e.g. Warehouse Facility Architecture, Stat Cards, Partitions) */
+[data-theme="neumorphic"] div[class*="border-l-3"],
+[data-theme="neumorphic"] div[class*="border-l-4"] {
+  background-color: var(--neu-surface) !important;
+  border-radius: 16px !important;
+  box-shadow: 4px 4px 10px var(--neu-shadow-dark), -3px -3px 8px var(--neu-shadow-light) !important;
+  border: none !important;
+  border-width: 0 !important;
+}
+
+[data-theme="neumorphic"] [class*="border-l-indigo"] {
+  border-left: 4px solid #4F46E5 !important;
+}
+[data-theme="neumorphic"] [class*="border-l-blue"] {
+  border-left: 4px solid #2563EB !important;
+}
+[data-theme="neumorphic"] [class*="border-l-cyan"] {
+  border-left: 4px solid #0891B2 !important;
+}
+[data-theme="neumorphic"] [class*="border-l-teal"] {
+  border-left: 4px solid #0D9488 !important;
+}
+[data-theme="neumorphic"] [class*="border-l-sky"] {
+  border-left: 4px solid #0284C7 !important;
+}
+[data-theme="neumorphic"] [class*="border-l-slate"] {
+  border-left: 4px solid #64748B !important;
 }
 
 [data-theme="neumorphic"] .sticky-header-tabs {
@@ -460,9 +489,9 @@ html[data-theme="neumorphic"],
 }
 
 /* Universal Sunken Filter Bars & Toolbars */
-[data-theme="neumorphic"] main div[class*="bg-[var(--surface-2)]"]:not(button):not(a):not(input):not(select),
-[data-theme="neumorphic"] main div[class*="bg-slate-50"]:not(button):not(a):not(input):not(select),
-[data-theme="neumorphic"] main div[class*="bg-slate-100"]:not(button):not(a):not(input):not(select) {
+[data-theme="neumorphic"] main div[class*="bg-[var(--surface-2)]"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]),
+[data-theme="neumorphic"] main div[class*="bg-slate-50"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]),
+[data-theme="neumorphic"] main div[class*="bg-slate-100"]:not(button):not(a):not(input):not(select):not(.wh-header-tabs-capsule):not(.wh-vibrant-card):not([class*="wh-tint-"]) {
   background-color: var(--neu-surface) !important;
   box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light) !important;
   border: none !important;
@@ -557,6 +586,76 @@ html[data-theme="neumorphic"],
 [data-theme="neumorphic"] main button[class*="bg-[var(--brand-600)]"]:active,
 [data-theme="neumorphic"] main .btn-primary:active,
 [data-theme="neumorphic"] .neu-btn-primary:active {
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(0) !important;
+}
+
+/* Cool Blue Action Buttons */
+[data-theme="neumorphic"] main a[class*="bg-blue-600"],
+[data-theme="neumorphic"] main button[class*="bg-blue-600"],
+[data-theme="neumorphic"] main .neu-btn-blue {
+  background-color: #2563EB !important;
+  color: #FFFFFF !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(37, 99, 235, 0.7) !important;
+  box-shadow: 2.5px 2.5px 6px rgba(37, 99, 235, 0.35), -1.5px -1.5px 4px var(--neu-shadow-light) !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 40px !important;
+  padding: 8px 18px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 140ms ease !important;
+}
+
+[data-theme="neumorphic"] main a[class*="bg-blue-600"]:hover,
+[data-theme="neumorphic"] main button[class*="bg-blue-600"]:hover,
+[data-theme="neumorphic"] main .neu-btn-blue:hover {
+  box-shadow: 3.5px 3.5px 8px rgba(37, 99, 235, 0.5), -2px -2px 6px var(--neu-shadow-light) !important;
+  transform: translateY(-1px) !important;
+}
+
+[data-theme="neumorphic"] main a[class*="bg-blue-600"]:active,
+[data-theme="neumorphic"] main button[class*="bg-blue-600"]:active,
+[data-theme="neumorphic"] main .neu-btn-blue:active {
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(0) !important;
+}
+
+/* Cool Cyan Action Buttons */
+[data-theme="neumorphic"] main a[class*="bg-cyan-"],
+[data-theme="neumorphic"] main button[class*="bg-cyan-"],
+[data-theme="neumorphic"] main .neu-btn-cyan {
+  background-color: #0891B2 !important;
+  color: #FFFFFF !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(8, 145, 178, 0.7) !important;
+  box-shadow: 2.5px 2.5px 6px rgba(8, 145, 178, 0.35), -1.5px -1.5px 4px var(--neu-shadow-light) !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 40px !important;
+  padding: 8px 18px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 140ms ease !important;
+}
+
+[data-theme="neumorphic"] main a[class*="bg-cyan-"]:hover,
+[data-theme="neumorphic"] main button[class*="bg-cyan-"]:hover,
+[data-theme="neumorphic"] main .neu-btn-cyan:hover {
+  box-shadow: 3.5px 3.5px 8px rgba(8, 145, 178, 0.5), -2px -2px 6px var(--neu-shadow-light) !important;
+  transform: translateY(-1px) !important;
+}
+
+[data-theme="neumorphic"] main a[class*="bg-cyan-"]:active,
+[data-theme="neumorphic"] main button[class*="bg-cyan-"]:active,
+[data-theme="neumorphic"] main .neu-btn-cyan:active {
   box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3), inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.2) !important;
   transform: translateY(0) !important;
 }
@@ -890,7 +989,7 @@ html[data-theme="spatial"],
 
 [data-theme="spatial"] .card:hover,
 [data-theme="spatial"] #dashboard-widgets-container > div > div:hover {
-  transform: translateY(-2px);
+  transform: none !important;
   box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05) !important;
 }
 
@@ -1241,7 +1340,7 @@ html[data-theme="spatial"],
 
 [data-theme="neumorphic"] .pos-terminal .pos-catalog-card:hover {
   box-shadow: 7px 7px 18px var(--neu-shadow-dark), -5px -5px 14px var(--neu-shadow-light) !important;
-  transform: translateY(-2px) !important;
+  transform: none !important;
 }
 
 [data-theme="neumorphic"] .pos-terminal .pos-cart-card {
@@ -1732,6 +1831,511 @@ html[data-theme="spatial"],
   padding: 2px 2px !important;
 }
 
+[data-theme="neumorphic"] .wh-header-tabs-capsule .wh-tab-active {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  border: none !important;
+  border-width: 0 !important;
+  font-weight: 700 !important;
+  border-radius: 0.75rem !important;
+}
+
+[data-theme="neumorphic"] .wh-header-tabs-capsule button:not(.wh-tab-active) {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+[data-theme="neumorphic"] .wh-header-tabs-capsule button:not(.wh-tab-active):hover {
+  color: #0F172A !important;
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  border: none !important;
+}
+
+/* Symmetrical Standardized Button Sizing across Warehouse Detail */
+.wh-btn-header,
+[data-theme="neumorphic"] .wh-btn-header,
+.wh-btn-modal,
+[data-theme="neumorphic"] .wh-btn-modal {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  min-width: 88px !important;
+  padding: 0 16px !important;
+  font-size: 0.75rem !important; /* 12px */
+  font-weight: 700 !important;
+  border-radius: 0.75rem !important; /* 12px */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.18), inset 1px 1px 1px rgba(255, 255, 255, 0.25) !important;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease, background-color 120ms ease !important;
+  cursor: pointer !important;
+}
+
+.wh-btn-header:hover,
+[data-theme="neumorphic"] .wh-btn-header:hover,
+.wh-btn-modal:hover,
+[data-theme="neumorphic"] .wh-btn-modal:hover {
+  transform: translateY(-1.5px) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22), inset 1px 1px 1.5px rgba(255, 255, 255, 0.35) !important;
+  filter: brightness(1.08) !important;
+}
+
+.wh-btn-header:active,
+[data-theme="neumorphic"] .wh-btn-header:active,
+.wh-btn-modal:active,
+[data-theme="neumorphic"] .wh-btn-modal:active {
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
+  transform: translateY(1px) !important;
+  filter: brightness(0.96) !important;
+}
+
+.wh-btn-section,
+[data-theme="neumorphic"] .wh-btn-section {
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  min-width: 76px !important;
+  padding: 0 14px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  border-radius: 0.625rem !important; /* 10px */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.15), inset 1px 1px 1px rgba(255, 255, 255, 0.2) !important;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease, background-color 120ms ease !important;
+  cursor: pointer !important;
+}
+
+.wh-btn-section:hover,
+[data-theme="neumorphic"] .wh-btn-section:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3.5px 8px rgba(0, 0, 0, 0.2), inset 1px 1px 1.5px rgba(255, 255, 255, 0.3) !important;
+  filter: brightness(1.08) !important;
+}
+
+.wh-btn-section:active,
+[data-theme="neumorphic"] .wh-btn-section:active {
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.28) !important;
+  transform: translateY(1px) !important;
+  filter: brightness(0.96) !important;
+}
+
+.wh-btn-row,
+[data-theme="neumorphic"] .wh-btn-row {
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  min-width: 68px !important;
+  padding: 0 12px !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  border-radius: 0.5rem !important; /* 8px */
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+  box-shadow: 1.5px 1.5px 3.5px rgba(0, 0, 0, 0.15), inset 1px 1px 1px rgba(255, 255, 255, 0.18) !important;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease, background-color 120ms ease !important;
+  cursor: pointer !important;
+}
+
+.wh-btn-row:hover,
+[data-theme="neumorphic"] .wh-btn-row:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.18), inset 1px 1px 1.2px rgba(255, 255, 255, 0.28) !important;
+  filter: brightness(1.08) !important;
+}
+
+.wh-btn-row:active,
+[data-theme="neumorphic"] .wh-btn-row:active {
+  box-shadow: inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.25) !important;
+  transform: translateY(1px) !important;
+  filter: brightness(0.96) !important;
+}
+
+/* Vibrant Bento & Component Blocks with Cool Accents on Neumorphic Surfaces */
+[data-theme="neumorphic"] .wh-vibrant-card,
+[data-theme="neumorphic"] [class*="wh-tint-"] {
+  border-radius: 1.25rem !important;
+  border: none !important;
+  border-width: 0 !important;
+  outline: none !important;
+}
+
+/* Neutral Slate Cards (Base Surface plate on the page background - ZERO white shadows) */
+[data-theme="neumorphic"] .wh-tint-slate {
+  background-color: var(--neu-surface) !important;
+  background-image: none !important;
+  color: var(--neu-text) !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Tactile 3D Neumorphic Vibrant Cards: Clean Rich Ambient Drop Shadows (ZERO white shadows) */
+[data-theme="neumorphic"] .wh-vibrant-card:not(.wh-tint-slate),
+[data-theme="neumorphic"] [class*="wh-tint-"]:not(.wh-tint-slate) {
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.22), 0 4px 10px -2px rgba(15, 23, 42, 0.1) !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Solid Cool Vibrant Accents with Rich Ambient Drop Shadows (ZERO white shadows) */
+[data-theme="neumorphic"] .wh-tint-indigo {
+  background: linear-gradient(135deg, #4338CA 0%, #4F46E5 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 12px 28px -4px rgba(49, 46, 129, 0.38), 0 4px 10px -2px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-cyan {
+  background: linear-gradient(135deg, #0284C7 0%, #0EA5E9 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 12px 28px -4px rgba(12, 74, 110, 0.38), 0 4px 10px -2px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-purple {
+  background: linear-gradient(135deg, #6D28D9 0%, #7C3AED 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 12px 28px -4px rgba(76, 29, 149, 0.38), 0 4px 10px -2px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-emerald {
+  background: linear-gradient(135deg, #0F766E 0%, #0D9488 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 12px 28px -4px rgba(6, 78, 59, 0.38), 0 4px 10px -2px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-amber {
+  background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 12px 28px -4px rgba(146, 64, 14, 0.38), 0 4px 10px -2px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-teal {
+  background: linear-gradient(135deg, #0D9488 0%, #14B8A6 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 12px 28px -4px rgba(19, 78, 74, 0.38), 0 4px 10px -2px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-blue {
+  background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 12px 28px -4px rgba(30, 58, 138, 0.38), 0 4px 10px -2px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Specifically Bento Cards Nested Inside Storage Types or Any Vibrant Container */
+[data-theme="neumorphic"] .wh-vibrant-card .wh-vibrant-card,
+[data-theme="neumorphic"] .wh-vibrant-card [class*="wh-tint-"],
+[data-theme="neumorphic"] [class*="wh-tint-"] .wh-vibrant-card,
+[data-theme="neumorphic"] [class*="wh-tint-"] [class*="wh-tint-"],
+[data-theme="neumorphic"] .wh-storage-bento-card {
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.28) !important;
+  border: none !important;
+}
+
+/* Cards & Component Blocks: Perfectly Solid & Grounded (No hover translate X/Y, no scaling/resizing) */
+.wh-vibrant-card,
+[class*="wh-tint-"],
+.wh-storage-bento-card,
+[data-theme="neumorphic"] .wh-vibrant-card,
+[data-theme="neumorphic"] [class*="wh-tint-"],
+[data-theme="neumorphic"] .wh-storage-bento-card,
+[data-theme="neumorphic"] .card,
+[data-theme="neumorphic"] .bos-card,
+[data-theme="neumorphic"] .neu-card {
+  transform: none !important;
+}
+
+.wh-vibrant-card:hover,
+[class*="wh-tint-"]:hover,
+.wh-storage-bento-card:hover,
+[data-theme="neumorphic"] .wh-vibrant-card:hover,
+[data-theme="neumorphic"] [class*="wh-tint-"]:hover,
+[data-theme="neumorphic"] .wh-storage-bento-card:hover,
+[data-theme="neumorphic"] .card:hover,
+[data-theme="neumorphic"] .bos-card:hover,
+[data-theme="neumorphic"] .neu-card:hover {
+  transform: none !important;
+}
+
+/* Tactile Neumorphic Buttons on Vibrant Cards */
+[data-theme="neumorphic"] .wh-vibrant-card button,
+[data-theme="neumorphic"] [class*="wh-tint-"] button,
+[data-theme="neumorphic"] .wh-vibrant-card a[class*="rounded"] {
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.25), inset 1px 1px 1.5px rgba(255, 255, 255, 0.25) !important;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease, background-color 120ms ease !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card button:hover,
+[data-theme="neumorphic"] [class*="wh-tint-"] button:hover,
+[data-theme="neumorphic"] .wh-vibrant-card a[class*="rounded"]:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 9px rgba(0, 0, 0, 0.35), inset 1px 1px 1.5px rgba(255, 255, 255, 0.4) !important;
+  filter: brightness(1.1) !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card button:active,
+[data-theme="neumorphic"] [class*="wh-tint-"] button:active,
+[data-theme="neumorphic"] .wh-vibrant-card a[class*="rounded"]:active {
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.38), inset -1px -1px 2px rgba(255, 255, 255, 0.15) !important;
+  transform: translateY(1px) !important;
+  filter: brightness(0.95) !important;
+}
+
+/* Debossed Tactile Wells for Inner Tags and Code Badges on Vibrant Cards */
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="bg-white/"],
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="bg-white/"] {
+  box-shadow: inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.2), inset -1px -1px 2px rgba(255, 255, 255, 0.12) !important;
+}
+
+/* High-Contrast Action Buttons: Explicit Visibility & Zero Graying */
+[data-theme="neumorphic"] .wh-vibrant-card button[class*="bg-rose-"],
+[data-theme="neumorphic"] [class*="wh-tint-"] button[class*="bg-rose-"],
+[data-theme="neumorphic"] button[class*="bg-rose-"] {
+  background-color: #E11D48 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+  box-shadow: 0 2px 5px rgba(225, 29, 72, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card button[class*="bg-rose-"]:hover,
+[data-theme="neumorphic"] [class*="wh-tint-"] button[class*="bg-rose-"]:hover,
+[data-theme="neumorphic"] button[class*="bg-rose-"]:hover {
+  background-color: #BE123C !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 8px rgba(225, 29, 72, 0.5) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-blue button.wh-btn-row,
+[data-theme="neumorphic"] .wh-tint-cyan button.wh-btn-row {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-blue button.wh-btn-row:hover,
+[data-theme="neumorphic"] .wh-tint-cyan button.wh-btn-row:hover {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35) !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-slate {
+  background-color: var(--neu-surface) !important;
+  background-image: none !important;
+  color: var(--neu-text) !important;
+}
+
+/* Pure high-contrast white text, icons, and translucent badges on vibrant colored cards */
+[data-theme="neumorphic"] .wh-tint-indigo,
+[data-theme="neumorphic"] .wh-tint-cyan,
+[data-theme="neumorphic"] .wh-tint-purple,
+[data-theme="neumorphic"] .wh-tint-emerald,
+[data-theme="neumorphic"] .wh-tint-amber,
+[data-theme="neumorphic"] .wh-tint-teal,
+[data-theme="neumorphic"] .wh-tint-blue {
+  color: #FFFFFF !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-indigo h1, [data-theme="neumorphic"] .wh-tint-indigo h2, [data-theme="neumorphic"] .wh-tint-indigo h3, [data-theme="neumorphic"] .wh-tint-indigo h4,
+[data-theme="neumorphic"] .wh-tint-cyan h1, [data-theme="neumorphic"] .wh-tint-cyan h2, [data-theme="neumorphic"] .wh-tint-cyan h3, [data-theme="neumorphic"] .wh-tint-cyan h4,
+[data-theme="neumorphic"] .wh-tint-purple h1, [data-theme="neumorphic"] .wh-tint-purple h2, [data-theme="neumorphic"] .wh-tint-purple h3, [data-theme="neumorphic"] .wh-tint-purple h4,
+[data-theme="neumorphic"] .wh-tint-emerald h1, [data-theme="neumorphic"] .wh-tint-emerald h2, [data-theme="neumorphic"] .wh-tint-emerald h3, [data-theme="neumorphic"] .wh-tint-emerald h4,
+[data-theme="neumorphic"] .wh-tint-amber h1, [data-theme="neumorphic"] .wh-tint-amber h2, [data-theme="neumorphic"] .wh-tint-amber h3, [data-theme="neumorphic"] .wh-tint-amber h4,
+[data-theme="neumorphic"] .wh-tint-teal h1, [data-theme="neumorphic"] .wh-tint-teal h2, [data-theme="neumorphic"] .wh-tint-teal h3, [data-theme="neumorphic"] .wh-tint-teal h4,
+[data-theme="neumorphic"] .wh-tint-blue h1, [data-theme="neumorphic"] .wh-tint-blue h2, [data-theme="neumorphic"] .wh-tint-blue h3, [data-theme="neumorphic"] .wh-tint-blue h4 {
+  color: #FFFFFF !important;
+}
+
+[data-theme="neumorphic"] .wh-tint-indigo p, [data-theme="neumorphic"] .wh-tint-cyan p,
+[data-theme="neumorphic"] .wh-tint-purple p, [data-theme="neumorphic"] .wh-tint-emerald p,
+[data-theme="neumorphic"] .wh-tint-amber p, [data-theme="neumorphic"] .wh-tint-teal p,
+[data-theme="neumorphic"] .wh-tint-blue p {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* Direct headings, paragraphs, and labels on vibrant colored cards */
+[data-theme="neumorphic"] .wh-tint-indigo > div > span,
+[data-theme="neumorphic"] .wh-tint-cyan > div > span,
+[data-theme="neumorphic"] .wh-tint-purple > div > span,
+[data-theme="neumorphic"] .wh-tint-emerald > div > span,
+[data-theme="neumorphic"] .wh-tint-amber > div > span,
+[data-theme="neumorphic"] .wh-tint-teal > div > span,
+[data-theme="neumorphic"] .wh-tint-blue > div > span {
+  color: #FFFFFF !important;
+}
+
+/* Translucent badges and icon containers on vibrant cards: ZERO white shadow and ZERO border */
+[data-theme="neumorphic"] .wh-vibrant-card span:not(.pos-status-dot),
+[data-theme="neumorphic"] [class*="wh-tint-"] span:not(.pos-status-dot),
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="rounded-md"]:not(.pos-status-dot),
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="rounded-full"]:not(.pos-status-dot),
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="rounded-lg"]:not(.pos-status-dot),
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="rounded-md"]:not(.pos-status-dot),
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="rounded-full"]:not(.pos-status-dot),
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="rounded-lg"]:not(.pos-status-dot),
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="bg-"]:not(.pos-status-dot),
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="bg-"]:not(.pos-status-dot) {
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Default Sales Source badge specifically: crisp high-contrast pill, ZERO white shadow */
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="bg-amber-"],
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="bg-amber-"],
+[data-theme="neumorphic"] span.wh-default-source-badge,
+[data-theme="neumorphic"] .wh-default-source-badge {
+  background-color: #FEF3C7 !important;
+  color: #78350F !important;
+  font-weight: 800 !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="bg-amber-"] *,
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="bg-amber-"] *,
+[data-theme="neumorphic"] .wh-default-source-badge * {
+  color: #78350F !important;
+}
+
+/* Sub-cards and tables inside vibrant cards and slate cards: ZERO white shadow, ZERO outer halo, and ZERO borders */
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"],
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-slate-900"],
+[data-theme="neumorphic"] .wh-vibrant-card .rounded-xl,
+[data-theme="neumorphic"] .wh-vibrant-card .rounded-lg,
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-white"],
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-slate-900"],
+[data-theme="neumorphic"] [class*="wh-tint-"] .rounded-xl,
+[data-theme="neumorphic"] [class*="wh-tint-"] .rounded-lg,
+[data-theme="neumorphic"] .wh-vibrant-card [class*="shadow-"],
+[data-theme="neumorphic"] [class*="wh-tint-"] [class*="shadow-"],
+[data-theme="neumorphic"] .wh-vibrant-card table,
+[data-theme="neumorphic"] [class*="wh-tint-"] table {
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] span:not([class*="bg-"]),
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] div,
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] p,
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] td,
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] th,
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] h3 {
+  color: #0F172A !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] .text-muted,
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] [class*="text-slate-500"],
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] [class*="text-slate-400"],
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] .text-\[var\(--text-muted\)\] {
+  color: #475569 !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] a {
+  color: #4338CA !important;
+}
+
+/* Ensure pristine high-contrast light backgrounds for partition sub-cards */
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-cyan-50"],
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-cyan-50"] {
+  background-color: #ECFEFF !important;
+  color: #0F172A !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-indigo-50"],
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-indigo-50"] {
+  background-color: #EEF2FF !important;
+  color: #0F172A !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-sky-50"],
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-sky-50"] {
+  background-color: #F0F9FF !important;
+  color: #0F172A !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-teal-50"],
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-teal-50"] {
+  background-color: #F0FDFA !important;
+  color: #0F172A !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-blue-50"],
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-blue-50"] {
+  background-color: #EFF6FF !important;
+  color: #0F172A !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-slate-50"],
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-slate-50"] {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+/* All action buttons inside white sub-cards in vibrant columns */
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] button.wh-btn-row,
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-white"] button.wh-btn-row {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] button.wh-btn-row:hover,
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-white"] button.wh-btn-row:hover {
+  background-color: #F8FAFC !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Revoke Danger Button in Pipeline and Route Lists */
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] button[class*="bg-rose-"],
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-white"] button[class*="bg-rose-"],
+[data-theme="neumorphic"] button[class*="bg-rose-600"] {
+  background-color: #E11D48 !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.35) !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card div[class*="bg-white"] button[class*="bg-rose-"]:hover,
+[data-theme="neumorphic"] [class*="wh-tint-"] div[class*="bg-white"] button[class*="bg-rose-"]:hover,
+[data-theme="neumorphic"] button[class*="bg-rose-600"]:hover {
+  background-color: #BE123C !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 10px rgba(225, 29, 72, 0.45) !important;
+}
+
 /* ==========================================================================
    High-Contrast Legibility & Visible Text Guarantees (Neumorphic Surface)
    Guarantees 5:1 to 12:1 WCAG contrast on all links, labels, and muted text
@@ -1785,8 +2389,8 @@ html[data-theme="spatial"],
   background-color: #059669 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16) !important;
+  border: none !important;
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
@@ -1806,8 +2410,8 @@ html[data-theme="spatial"],
   background-color: #E11D48 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16) !important;
+  border: none !important;
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
@@ -1827,8 +2431,8 @@ html[data-theme="spatial"],
   background-color: #D97706 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16) !important;
+  border: none !important;
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
@@ -1839,14 +2443,34 @@ html[data-theme="spatial"],
   color: #FFFFFF !important;
 }
 
+/* Default Sales Source badge on vibrant cards: high contrast gold pill with deep amber text */
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="bg-amber-"],
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="bg-amber-"],
+[data-theme="neumorphic"] .wh-vibrant-card .wh-default-source-badge,
+[data-theme="neumorphic"] .wh-default-source-badge {
+  background-color: #FEF3C7 !important;
+  color: #78350F !important;
+  font-weight: 800 !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="neumorphic"] .wh-vibrant-card span[class*="bg-amber-"] *,
+[data-theme="neumorphic"] [class*="wh-tint-"] span[class*="bg-amber-"] *,
+[data-theme="neumorphic"] .wh-vibrant-card .wh-default-source-badge *,
+[data-theme="neumorphic"] .wh-default-source-badge * {
+  color: #78350F !important;
+}
+
 
 [data-theme="neumorphic"] span[class*="bg-indigo-"]:not(a):not(button):not(.neu-subnav-btn):not(.sidebar-brand-icon-box),
 [data-theme="neumorphic"] span[class*="rounded-full"][class*="indigo"] {
   background-color: #4F46E5 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16) !important;
+  border: none !important;
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
@@ -1862,8 +2486,8 @@ html[data-theme="spatial"],
   background-color: #7C3AED !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16) !important;
+  border: none !important;
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
@@ -1876,42 +2500,62 @@ html[data-theme="spatial"],
 
 [data-theme="neumorphic"] span[class*="bg-blue-"],
 [data-theme="neumorphic"] span[class*="bg-sky-"],
+[data-theme="neumorphic"] span[class*="bg-cyan-"],
 [data-theme="neumorphic"] span[class*="rounded-full"][class*="blue"],
 [data-theme="neumorphic"] span[class*="rounded-full"][class*="sky"],
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="cyan"],
 [data-theme="neumorphic"] span[class*="bg-indigo-600"]:not(a):not(button):not(.neu-subnav-btn):not(.sidebar-brand-icon-box),
 [data-theme="neumorphic"] .badge-info,
 [data-theme="neumorphic"] .status-pill-info {
-  background-color: #2563EB !important;
+  background-color: #0284C7 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16) !important;
+  border: none !important;
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
 [data-theme="neumorphic"] span[class*="bg-blue-"] *,
 [data-theme="neumorphic"] span[class*="bg-sky-"] *,
+[data-theme="neumorphic"] span[class*="bg-cyan-"] *,
 [data-theme="neumorphic"] span[class*="rounded-full"][class*="blue"] *,
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="sky"] * {
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="sky"] *,
+[data-theme="neumorphic"] span[class*="rounded-full"][class*="cyan"] * {
   color: #FFFFFF !important;
 }
 
 [data-theme="neumorphic"] span[class*="bg-slate-"],
 [data-theme="neumorphic"] span[class*="bg-gray-"],
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="slate"],
-[data-theme="neumorphic"] span[class*="rounded-full"][class*="gray"],
 [data-theme="neumorphic"] .badge-neutral,
 [data-theme="neumorphic"] .status-pill-neutral {
   background-color: #475569 !important;
   color: #FFFFFF !important;
   font-weight: 700 !important;
-  box-shadow: 2px 2px 5px var(--neu-shadow-dark), -2px -2px 5px var(--neu-shadow-light) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16) !important;
+  border: none !important;
   border-radius: 9999px !important;
   padding: 3px 10px !important;
 }
 [data-theme="neumorphic"] span[class*="bg-slate-"] *,
-[data-theme="neumorphic"] span[class*="bg-gray-"] *,
+[data-theme="neumorphic"] span[class*="bg-gray-"] * {
+  color: #FFFFFF !important;
+}
+
+/* Explicit Default Sales Source badge guarantee */
+[data-theme="neumorphic"] .wh-default-source-badge,
+[data-theme="neumorphic"] span.wh-default-source-badge,
+.wh-default-source-badge {
+  background-color: #FEF3C7 !important;
+  color: #78350F !important;
+  font-weight: 800 !important;
+  border: none !important;
+  border-width: 0 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+[data-theme="neumorphic"] .wh-default-source-badge *,
+.wh-default-source-badge * {
+  color: #78350F !important;
+}
 [data-theme="neumorphic"] span[class*="rounded-full"][class*="slate"] *,
 [data-theme="neumorphic"] span[class*="rounded-full"][class*="gray"] * {
   color: #FFFFFF !important;
